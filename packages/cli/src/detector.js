@@ -12,7 +12,7 @@ import {
   SLOP_FONT_PREFIXES,
   ACCENT_SERIF_PREFIXES,
   scorePatterns
-} from '@slop-detect/core';
+} from 'slop-detect-core';
 
 function buildPageScript() {
   const patternCalls = PATTERNS.map(p => `

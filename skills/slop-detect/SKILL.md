@@ -7,7 +7,7 @@ metadata:
   version: "0.1.0"
   homepage: "https://slop-detect.com"
   repository: "https://github.com/ravidsrk/slop-detect"
-compatibility: Requires internet access. Uses the public slop-detect.com API (no auth, rate-limited per-IP). Falls back to the @slop-detect/cli npm package when offline or when scanning behind auth.
+compatibility: Requires internet access. Uses the public slop-detect.com API (no auth, rate-limited per-IP). Falls back to the slop-detect npm package when offline or when scanning behind auth.
 ---
 
 # slop-detect
@@ -114,10 +114,10 @@ curl -s -X POST -H 'Content-Type: application/json' \
 ### 2. CLI (when offline, scanning auth-walled URLs, or batch scanning in CI)
 
 ```bash
-npx @slop-detect/cli https://example.com
-npx @slop-detect/cli https://example.com --json
-npx @slop-detect/cli https://example.com --screenshot
-npx @slop-detect/cli url1 url2 url3       # batch — prints a summary table
+npx slop-detect https://example.com
+npx slop-detect https://example.com --json
+npx slop-detect https://example.com --screenshot
+npx slop-detect url1 url2 url3       # batch — prints a summary table
 ```
 
 First install downloads Chromium (~150MB) via Playwright. Subsequent invocations are fast (~5s/url cold, ~3s warm).
@@ -125,11 +125,11 @@ First install downloads Chromium (~150MB) via Playwright. Subsequent invocations
 ### 3. Programmatic embed (the user has their own browser pipeline)
 
 ```bash
-npm install @slop-detect/core
+npm install slop-detect-core
 ```
 
 ```js
-import { PATTERNS, scorePatterns } from '@slop-detect/core';
+import { PATTERNS, scorePatterns } from 'slop-detect-core';
 
 // Caller provides a runner that executes each pattern's extract() in the page DOM:
 const patterns = await Promise.all(PATTERNS.map(async p => ({

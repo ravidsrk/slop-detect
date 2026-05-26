@@ -28,6 +28,6 @@ URL scanned: `https://...`
 
 ## Environment
 
-- Package: <!-- @slop-detect/cli vX.Y.Z / web (slop-detect.com) / @slop-detect/core embedded -->
+- Package: <!-- slop-detect vX.Y.Z / web (slop-detect.com) / slop-detect-core embedded -->
 - Node version (if CLI): <!-- output of `node -v` -->
 - OS: <!-- macOS 14 / Ubuntu 22 / Windows / etc. -->

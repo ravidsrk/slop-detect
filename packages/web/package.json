@@ -1,5 +1,5 @@
 {
-  "name": "@slop-detect/web",
+  "name": "slop-detect-web",
   "version": "0.1.0",
   "private": true,
   "description": "Cloudflare Pages app for slop-detect.com — web UI + /api/scan + /api/fix-prompt.",
@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@cloudflare/puppeteer": "^1.1.0",
-    "@slop-detect/core": "0.1.0"
+    "slop-detect-core": "0.1.0"
   },
   "devDependencies": {
     "wrangler": "^4.86.0"

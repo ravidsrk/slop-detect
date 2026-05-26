@@ -1,5 +1,6 @@
 {
-  "name": "slop-detect",
+  "name": "slop-detect-monorepo",
+  "private": true,
   "version": "0.1.0",
   "private": true,
   "description": "Score any landing page against the 16-rule AI-design-slop fingerprint. Detect Cursor/v0/Lovable templates in the wild.",
@@ -20,10 +21,10 @@
     "packages/web"
   ],
   "scripts": {
-    "scan": "npm run --workspace @slop-detect/cli scan --",
-    "demo": "npm run --workspace @slop-detect/cli demo",
-    "web:dev": "npm run --workspace @slop-detect/web dev",
-    "web:deploy": "npm run --workspace @slop-detect/web deploy",
+    "scan": "npm run --workspace slop-detect scan --",
+    "demo": "npm run --workspace slop-detect demo",
+    "web:dev": "npm run --workspace slop-detect-web dev",
+    "web:deploy": "npm run --workspace slop-detect-web deploy",
     "lint": "node --check packages/core/src/*.js packages/cli/src/*.js packages/cli/bin/*.js packages/web/functions/api/*.js"
   },
   "engines": {

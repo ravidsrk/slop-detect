@@ -1,4 +1,4 @@
-# @slop-detect/core
+# slop-detect-core
 
 > Pure detection engine for AI-design-slop patterns. Runtime-agnostic — runs in Node, Cloudflare Workers, or the browser.
 
@@ -7,13 +7,13 @@ This is the heart of [`slop-detect`](https://github.com/ravidsrk/slop-detect). I
 ## Install
 
 ```bash
-npm install @slop-detect/core
+npm install slop-detect-core
 ```
 
 ## Usage
 
 ```js
-import { PATTERNS, scorePatterns } from '@slop-detect/core';
+import { PATTERNS, scorePatterns } from 'slop-detect-core';
 
 // 1) Drive your runner (Playwright / Puppeteer / Cloudflare browser) to
 //    execute each pattern's `extract()` in the page's DOM context:
@@ -57,7 +57,7 @@ console.log(`${score}/100 — ${tier}`);
 
 ## Reference runners
 
-- Node + Playwright: [`@slop-detect/cli`](https://www.npmjs.com/package/@slop-detect/cli)
+- Node + Playwright: [`slop-detect`](https://www.npmjs.com/package/slop-detect)
 - Cloudflare Workers + Browser Rendering: see [`packages/web/functions/api/scan.js`](https://github.com/ravidsrk/slop-detect/blob/main/packages/web/functions/api/scan.js)
 
 ## License

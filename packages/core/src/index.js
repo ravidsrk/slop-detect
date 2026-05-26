@@ -1,8 +1,8 @@
-// @slop-detect/core — public entry point.
+// slop-detect-core — public entry point.
 //
 // This package is the pure, runtime-agnostic detection engine. It does NOT
 // know how to fetch a page (no Playwright, no Puppeteer, no fetch). Callers
-// (`@slop-detect/cli`, `@slop-detect/web`, or your own integration) are
+// (`slop-detect`, `slop-detect-web`, or your own integration) are
 // responsible for opening the page in a browser, running the per-pattern
 // `detect()` callback inside that page's context, then assembling a result.
 //

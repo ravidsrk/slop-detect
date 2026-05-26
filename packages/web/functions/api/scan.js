@@ -13,7 +13,7 @@ import {
   SLOP_FONT_PREFIXES,
   ACCENT_SERIF_PREFIXES,
   scorePatterns
-} from '@slop-detect/core';
+} from 'slop-detect-core';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',

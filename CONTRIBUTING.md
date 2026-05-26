@@ -29,12 +29,12 @@ For pure pattern development you don't need Cloudflare — the CLI runs everythi
 
 ```
 packages/
-├── core/    @slop-detect/core   ← rule definitions, scoring, fix recipes
-├── cli/     @slop-detect/cli    ← Playwright runner
-└── web/     @slop-detect/web    ← Cloudflare Pages app for slop-detect.com
+├── core/    slop-detect-core   ← rule definitions, scoring, fix recipes
+├── cli/     slop-detect    ← Playwright runner
+└── web/     slop-detect-web    ← Cloudflare Pages app for slop-detect.com
 ```
 
-When you change a rule in `packages/core/src/patterns.js`, both the CLI and the web app pick it up automatically — they're consumers of the same `@slop-detect/core` package via workspace symlinks.
+When you change a rule in `packages/core/src/patterns.js`, both the CLI and the web app pick it up automatically — they're consumers of the same `slop-detect-core` package via workspace symlinks.
 
 ## Proposing a new pattern (#17, #18, ...)
 

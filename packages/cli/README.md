@@ -1,4 +1,4 @@
-# @slop-detect/cli
+# slop-detect
 
 > Score any landing page against the 16-rule AI-design-slop fingerprint, from your terminal.
 
@@ -8,10 +8,10 @@ Playwright-based, deterministic, zero-config. Perfect for CI, batch scans, and a
 
 ```bash
 # One-off
-npx @slop-detect/cli https://your-site.com
+npx slop-detect https://your-site.com
 
 # Or install globally
-npm install -g @slop-detect/cli
+npm install -g slop-detect
 slop-detect https://your-site.com
 ```
 
@@ -58,7 +58,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
-      - run: npx -y @slop-detect/cli ${{ env.PREVIEW_URL }} --json > slop.json
+      - run: npx -y slop-detect ${{ env.PREVIEW_URL }} --json > slop.json
       - run: |
           score=$(jq .score slop.json)
           [ "$score" -lt 12 ] || (echo "Score $score exceeds Clean tier"; exit 1)
@@ -73,7 +73,7 @@ jobs:
 ## See also
 
 - [Web UI](https://slop-detect.com) — point-and-click scanning
-- [`@slop-detect/core`](https://www.npmjs.com/package/@slop-detect/core) — pure detection engine, runtime-agnostic
+- [`slop-detect-core`](https://www.npmjs.com/package/slop-detect-core) — pure detection engine, runtime-agnostic
 - [Repository](https://github.com/ravidsrk/slop-detect) — source, contributing, the full 16 patterns
 
 ## License

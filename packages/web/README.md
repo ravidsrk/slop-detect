@@ -1,4 +1,4 @@
-# @slop-detect/web
+# slop-detect-web
 
 > Cloudflare Pages app powering [slop-detect.com](https://slop-detect.com).
 

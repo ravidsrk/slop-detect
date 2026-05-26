@@ -5,7 +5,7 @@
 
 <p>
   <a href="https://github.com/ravidsrk/slop-detect/actions"><img alt="CI" src="https://github.com/ravidsrk/slop-detect/workflows/ci/badge.svg" /></a>
-  <a href="https://www.npmjs.com/package/@slop-detect/cli"><img alt="npm" src="https://img.shields.io/npm/v/@slop-detect/cli.svg?label=%40slop-detect%2Fcli" /></a>
+  <a href="https://www.npmjs.com/package/slop-detect"><img alt="npm" src="https://img.shields.io/npm/v/slop-detect.svg?label=%40slop-detect%2Fcli" /></a>
   <a href="https://slop-detect.com"><img alt="Live demo" src="https://img.shields.io/badge/live-slop--detect.com-22c55e" /></a>
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-blue.svg" /></a>
   <img alt="Node" src="https://img.shields.io/badge/node-%3E%3D20-339933" />
@@ -32,9 +32,9 @@ By April 2026, AI-generated landing pages had collapsed onto a measurable visual
 
 `slop-detect` reproduces Krebs's methodology, adds the signals Meng To identified in his [May 2026 Aura tutorial](https://x.com/MengTo/status/2058893181740359863), and packages it three ways:
 
-- 🟢 **`@slop-detect/cli`** — Playwright-based, run from your terminal or CI
+- 🟢 **`slop-detect`** — Playwright-based, run from your terminal or CI
 - 🟢 **`slop-detect.com`** — drop-in web UI, scan any URL in 8 seconds
-- 🟢 **`@slop-detect/core`** — pure detection engine, embed it in your own pipeline
+- 🟢 **`slop-detect-core`** — pure detection engine, embed it in your own pipeline
 
 All three share the **same 16-rule scoring engine** so a Heavy from the CLI is a Heavy from the web is a Heavy from the API.
 
@@ -50,7 +50,7 @@ curl -s -X POST -H 'Content-Type: application/json' \
   -d '{"url":"https://your-site.com"}' | jq
 
 # CLI — for CI, batch scans, or air-gapped work
-npx @slop-detect/cli https://your-site.com
+npx slop-detect https://your-site.com
 
 # Agent Skill — drop into Claude Code / Cursor / Copilot / Codex / Junie
 git clone --depth 1 https://github.com/ravidsrk/slop-detect /tmp/sd \
@@ -89,9 +89,9 @@ Source: Krebs (Apr 2026) + Meng To (May 2026 Aura tutorial). See [`packages/core
 ```
 slop-detect/
 ├── packages/
-│   ├── core/    @slop-detect/core   ← pure detection engine (Node, Workers, browser)
-│   ├── cli/     @slop-detect/cli    ← Playwright runner for terminal + CI
-│   └── web/     @slop-detect/web    ← Cloudflare Pages app powering slop-detect.com
+│   ├── core/    slop-detect-core   ← pure detection engine (Node, Workers, browser)
+│   ├── cli/     slop-detect    ← Playwright runner for terminal + CI
+│   └── web/     slop-detect-web    ← Cloudflare Pages app powering slop-detect.com
 ```
 
 A monorepo with npm workspaces. The `core` package is the single source of truth for the 16 rules — `cli` and `web` are thin runtime adapters around it.
@@ -135,7 +135,7 @@ Plus cross-cutting guidance ("don't replace one slop pattern with another", "emp
 ## Programmatic use
 
 ```js
-import { PATTERNS, scorePatterns } from '@slop-detect/core';
+import { PATTERNS, scorePatterns } from 'slop-detect-core';
 
 // PATTERNS is the array of 16 rule definitions.
 // Each has { id, label, weight, extract, detect } where:

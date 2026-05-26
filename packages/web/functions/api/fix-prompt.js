@@ -9,7 +9,7 @@
 //        -d '{"url":"https://example.com"}' \
 //        https://slop-detector-8by.pages.dev/api/fix-prompt
 
-import { buildFixPrompt } from '@slop-detect/core';
+import { buildFixPrompt } from 'slop-detect-core';
 import { onRequestPost as scanHandler } from './scan.js';
 
 const CORS = {
