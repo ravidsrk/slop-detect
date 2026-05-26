@@ -3,6 +3,7 @@
 // results, computes a 0-100 score.
 
 import { chromium } from 'playwright';
+import { spawnSync } from 'node:child_process';
 import {
   PATTERNS,
   createColorHelpers,
@@ -13,6 +14,78 @@ import {
   ACCENT_SERIF_PREFIXES,
   scorePatterns
 } from 'slop-detect-core';
+
+// Lazy-install Chromium on first run. We skip the eager `postinstall` so that
+// `npm i -g slop-detect` (or `npx`) doesn't burn ~150 MB on every CI cache miss.
+// Set SKIP_PLAYWRIGHT_DOWNLOAD=1 to short-circuit (useful if you've already
+// installed Chromium via your system playwright, or you're bringing your own).
+let chromiumReady = false;
+async function ensureChromium() {
+  if (chromiumReady) return;
+  if (process.env.SKIP_PLAYWRIGHT_DOWNLOAD) { chromiumReady = true; return; }
+  // Try a cheap launch first. If the browser binary is missing, Playwright
+  // throws a recognisable error — only then do we spawn the installer.
+  try {
+    const b = await chromium.launch({ headless: true });
+    await b.close();
+    chromiumReady = true;
+    return;
+  } catch (err) {
+    const msg = String(err && err.message);
+    if (!/Executable doesn't exist|browserType\.launch/i.test(msg)) {
+      throw err;
+    }
+    process.stderr.write('slop-detect: first run — downloading Chromium (~150 MB, one-time)…\n');
+    const r = spawnSync('npx', ['--yes', 'playwright', 'install', 'chromium'], {
+      stdio: 'inherit',
+      shell: process.platform === 'win32'
+    });
+    if (r.status !== 0) {
+      throw new Error(
+        'Failed to install Chromium. Run `npx playwright install chromium` manually, ' +
+        'or set SKIP_PLAYWRIGHT_DOWNLOAD=1 if you have it installed elsewhere.'
+      );
+    }
+    chromiumReady = true;
+  }
+}
+
+// ── Anti-bot / dead-page heuristics (mirrored from packages/web/functions/api/scan.js) ──
+function detectBlocked(data) {
+  const title = (data?.title || '').trim();
+  const h1 = (data?.h1Text || '').trim();
+  const visibleCount = data?.visibleCount || 0;
+
+  const cfMarkers = [
+    'Just a moment...',
+    'Attention Required! | Cloudflare',
+    'Please Wait... | Cloudflare',
+    'Access denied | Cloudflare',
+    'Sorry, you have been blocked'
+  ];
+  if (cfMarkers.some(m => title.includes(m))) {
+    return {
+      code: 'cloudflare_challenge',
+      reason: 'Site is behind a Cloudflare bot challenge — cannot score automatically.',
+      hint: 'Try a different URL, or run the CLI with a fresh non-headless browser session.'
+    };
+  }
+  if (/access denied|forbidden|akamai/i.test(title) && visibleCount < 20) {
+    return {
+      code: 'access_blocked',
+      reason: `Site refused the scan (title: "${title.slice(0, 80)}")`,
+      hint: 'The target is blocking automated requests.'
+    };
+  }
+  if (!title && !h1 && visibleCount < 10) {
+    return {
+      code: 'empty_page',
+      reason: 'Target page rendered no visible content within the timeout.',
+      hint: 'The site may require longer JS or block headless browsers.'
+    };
+  }
+  return null;
+}
 
 function buildPageScript() {
   const patternCalls = PATTERNS.map(p => `
@@ -74,6 +147,7 @@ function buildPageScript() {
 }
 
 export async function scanUrl(url, opts = {}) {
+  await ensureChromium();
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
     viewport: { width: 1280, height: 800 },
@@ -89,6 +163,27 @@ export async function scanUrl(url, opts = {}) {
     await page.waitForTimeout(500);
 
     const data = await page.evaluate(buildPageScript());
+
+    // Anti-bot / dead-page detection — don't silently return Clean 0.
+    const blocked = detectBlocked(data);
+    if (blocked) {
+      result = {
+        url,
+        finalUrl: data.url,
+        title: data.title,
+        h1: data.h1Text,
+        blocked: true,
+        error: blocked.reason,
+        code: blocked.code,
+        hint: blocked.hint,
+        score: null,
+        tier: null,
+        patternsFlagged: 0,
+        patternsTotal: PATTERNS.length,
+        patterns: []
+      };
+      return result;
+    }
 
     // Build the structured result on the Node side.
     const patterns = PATTERNS.map(p => {

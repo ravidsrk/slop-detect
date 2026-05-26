@@ -3,16 +3,26 @@
 // Geist combos signal "tried to look artsy"; Lucide/Iconify default icon sets.
 
 export const SLOP_FONT_PREFIXES = [
-  'inter',
-  'geist',
+  'inter',                 // Inter / Inter Display / Inter Tight
+  'geist',                 // Geist / Geist Sans / Geist Mono / GeistSans
   'space grotesk',
   'space-grotesk',
   'instrument serif',
   'instrument-serif',
   'general sans',
+  'general-sans',
   'satoshi',
   'plus jakarta sans',
-  'plus-jakarta'
+  'plus-jakarta',
+  'plus jakarta',
+  'manrope',               // 2026 AI-tool default
+  'dm sans',               // shadcn/ui default
+  'dm-sans',
+  'cal sans',              // Linear/Vercel imitator hero font
+  'cal-sans',
+  'switzer',
+  'clash display',
+  'clash-display'
 ];
 
 export function isSlopFont(family) {

@@ -265,10 +265,26 @@ export const PATTERNS = [
       if (!h1) return { triggered: false, h1Found: false };
       const cs = getComputedStyle(h1);
       const fontSize = parseFloat(cs.fontSize);
-      const centered = cs.textAlign === 'center';
-      const big = fontSize >= 36;
+      // textAlign may be inherited from parent; also check parent's textAlign
+      // and whether the H1 itself is roughly centered within its container.
+      let centered = cs.textAlign === 'center';
+      if (!centered && h1.parentElement) {
+        const pcs = getComputedStyle(h1.parentElement);
+        if (pcs.textAlign === 'center') centered = true;
+      }
+      if (!centered) {
+        // Geometric check: bbox center within 12% of parent container center
+        try {
+          const r = h1.getBoundingClientRect();
+          const pr = (h1.parentElement || document.body).getBoundingClientRect();
+          const elCx = r.left + r.width / 2;
+          const prCx = pr.left + pr.width / 2;
+          if (pr.width > 0 && Math.abs(elCx - prCx) / pr.width < 0.12) centered = true;
+        } catch {}
+      }
+      // Lowered from 36 → 28 to catch v0.dev (32px) and modern smaller AI-tool heroes.
+      const big = fontSize >= 28;
       const slopFont = isSlopFont(cs.fontFamily);
-      // Triggered if centered, big, and using a slop font.
       const triggered = centered && big && slopFont;
       return { triggered, fontSize, centered, slopFont, family: cs.fontFamily };
     }
@@ -351,24 +367,54 @@ export const PATTERNS = [
     weight: 4,
     extract: (ctx) => {
       const { parseColor, isDark, isMidGrey } = ctx;
-      const body = document.body;
-      const bodyBg = parseColor(getComputedStyle(body).backgroundColor)
-        || parseColor(getComputedStyle(document.documentElement).backgroundColor);
+      // Sample multiple sources: html, body, and the largest near-fullscreen
+      // wrapper element (many modern AI sites paint bg on a flex-wrap div, not
+      // body itself).
+      const cand = [];
+      cand.push(parseColor(getComputedStyle(document.documentElement).backgroundColor));
+      cand.push(parseColor(getComputedStyle(document.body).backgroundColor));
+      // Walk a few top-level wrappers; pick the largest fully-visible element
+      // and sample its bg.
+      const topWrappers = Array.from(document.body.children).slice(0, 8);
+      for (const w of topWrappers) {
+        try {
+          const r = w.getBoundingClientRect();
+          if (r.width >= window.innerWidth * 0.8 && r.height >= window.innerHeight * 0.5) {
+            cand.push(parseColor(getComputedStyle(w).backgroundColor));
+          }
+        } catch {}
+      }
+      // Also sample a single mid-viewport pixel by checking element at point.
+      try {
+        const el = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
+        if (el) cand.push(parseColor(getComputedStyle(el).backgroundColor));
+      } catch {}
+
+      // Find the first non-transparent dark colour.
+      let bodyBg = null;
+      for (const c of cand) {
+        if (c && c.a >= 0.5) { bodyBg = c; break; }
+      }
       const dark = isDark(bodyBg);
       if (!dark) return { triggered: false, bodyDark: false };
-      // Count visible paragraphs in mid-grey
-      const ps = document.querySelectorAll('p, li');
+      const ps = document.querySelectorAll('p, li, span');
       let greys = 0, total = 0;
       for (const p of ps) {
         const cs = getComputedStyle(p);
-        if (cs.display === 'none') continue;
+        if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+        const txt = (p.textContent || '').trim();
+        if (txt.length < 6) continue;
         total++;
         if (isMidGrey(parseColor(cs.color))) greys++;
+        if (total >= 200) break;
       }
       const ratio = total ? greys / total : 0;
+      // Either: dark + lots of mid-grey body text (≥30%) OR just very dark page (a
+      // dark site is itself a strong slop signal even if text is white).
+      const triggered = dark && (ratio >= 0.3 || total >= 5);
       return {
         bodyDark: true, greyParas: greys, totalParas: total, ratio: +ratio.toFixed(2),
-        triggered: dark && ratio >= 0.4
+        triggered
       };
     }
   },

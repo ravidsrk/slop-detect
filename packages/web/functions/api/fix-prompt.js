@@ -12,16 +12,7 @@
 import { buildFixPrompt } from 'slop-detect-core';
 import { onRequestPost as scanHandler } from './scan.js';
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type'
-};
-
-export async function onRequestOptions() {
-  return new Response(null, { status: 204, headers: CORS });
-}
-
+// CORS + rate-limit handled by functions/api/_middleware.js.
 export async function onRequestPost({ request, env }) {
   let body;
   try { body = await request.json(); }
@@ -57,15 +48,15 @@ export async function onRequestPost({ request, env }) {
       patternsFlagged: result.patternsFlagged,
       prompt
     }, null, 2), {
-      headers: { 'Content-Type': 'application/json', ...CORS }
+      headers: { 'Content-Type': 'application/json' }
     });
   }
 
   return new Response(prompt, {
-    headers: { 'Content-Type': 'text/plain; charset=utf-8', ...CORS }
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' }
   });
 }
 
 function text(s, status = 200) {
-  return new Response(s, { status, headers: { 'Content-Type': 'text/plain', ...CORS } });
+  return new Response(s, { status, headers: { 'Content-Type': 'text/plain' } });
 }

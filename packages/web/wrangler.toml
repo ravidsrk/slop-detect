@@ -8,3 +8,15 @@ compatibility_flags = ["nodejs_compat"]
 # what env.BROWSER refers to inside functions/api/scan.js.
 [browser]
 binding = "BROWSER"
+
+# KV namespace used by functions/api/_middleware.js for per-IP rate-limiting.
+# Namespace ID created via the Cloudflare API (account-bound) on 2026-05-26.
+# Production deploys also have this binding declared in the Pages dashboard.
+[[kv_namespaces]]
+binding = "RATE_LIMIT"
+id = "c5aad4cb07e7405e86c3cf1aebcae772"
+
+# Public Turnstile sitekey (safe to commit; the matching secret lives in
+# Pages env vars and is never written to disk).
+[vars]
+TURNSTILE_SITEKEY = "0x4AAAAAADWirXpm1gXBhB5E"

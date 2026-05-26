@@ -64,7 +64,7 @@ The 16 patterns scored:
   16. Letter avatars        — gradient-initial testimonial avatars
 
 Tier thresholds:
-  Clean: 0-11   ·   Mild: 12-29   ·   Heavy: 30+
+  Clean: 0-9   ·   Mild: 10-27   ·   Heavy: 28+
 `);
 }
 
@@ -88,6 +88,19 @@ function emoji(tier) {
 }
 
 function renderPretty(result) {
+  // Blocked / dead-page result has no tier and no patterns to render.
+  if (result.blocked) {
+    console.log();
+    console.log(`${C.bold}${result.url}${C.reset}`);
+    if (result.title) console.log(`${C.grey}${result.title}${C.reset}`);
+    console.log();
+    console.log(`  ${C.yellow}⚠ Cannot score${C.reset}  ·  ${C.grey}${result.code}${C.reset}`);
+    console.log(`  ${result.error}`);
+    if (result.hint) console.log(`  ${C.grey}${result.hint}${C.reset}`);
+    console.log();
+    return;
+  }
+
   const ts = tierStyle(result.tier);
   console.log();
   console.log(`${C.bold}${result.url}${C.reset}`);
@@ -147,7 +160,9 @@ function renderPretty(result) {
   if (urls.length > 1 && !flags.json) {
     console.log(`${C.bold}━━━ Summary ━━━${C.reset}`);
     for (const r of results) {
-      if (r.error) {
+      if (r.blocked) {
+        console.log(`  ${C.yellow}⚠ blocked${C.reset}  ${C.grey}${r.code.padEnd(20)}${C.reset}  ${r.url}`);
+      } else if (r.error) {
         console.log(`  ${C.red}error${C.reset}  ${r.url}`);
       } else {
         const ts = tierStyle(r.tier);

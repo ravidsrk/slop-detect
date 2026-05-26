@@ -5,25 +5,35 @@
 
 <p>
   <a href="https://github.com/ravidsrk/slop-detect/actions"><img alt="CI" src="https://github.com/ravidsrk/slop-detect/workflows/ci/badge.svg" /></a>
-  <a href="https://www.npmjs.com/package/slop-detect"><img alt="npm" src="https://img.shields.io/npm/v/slop-detect.svg?label=%40slop-detect%2Fcli" /></a>
+  <a href="https://www.npmjs.com/package/slop-detect"><img alt="npm: slop-detect" src="https://img.shields.io/npm/v/slop-detect.svg?label=slop-detect" /></a>
+  <a href="https://www.npmjs.com/package/slop-detect-core"><img alt="npm: slop-detect-core" src="https://img.shields.io/npm/v/slop-detect-core.svg?label=slop-detect-core" /></a>
   <a href="https://slop-detect.com"><img alt="Live demo" src="https://img.shields.io/badge/live-slop--detect.com-22c55e" /></a>
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-blue.svg" /></a>
   <img alt="Node" src="https://img.shields.io/badge/node-%3E%3D20-339933" />
 </p>
 
 ```
-URL: https://www.aura.build
-SCORE: 36 / 100   →   tier: Heavy
-PATTERNS: 8 / 16 triggered
+$ npx slop-detect https://bolt.new https://www.aura.build https://news.ycombinator.com
 
-  ✓ Slop fonts (Inter / Geist / Space Grotesk)        (+8)
-  ✓ VibeCode Purple — filled indigo/violet CTAs       (+8)
-  ✓ Hero gradient text (background-clip:text)         (+6)
-  ✓ Gradient-heavy backgrounds (5+ elements)          (+4)
-  ✓ Eyebrow pill above hero ("Now in beta")           (+5)
-  ✓ All-caps section labels                           (+3)
-  ✓ Identical feature cards with icon on top          (+4)
-  ✓ Big-number stat banner ("10k+", "99.9%")          (+3)
+https://bolt.new
+What will you build today?
+  🟡 Mild  ·  score 24/100  ·  5/16 patterns triggered
+  ✗ AI-default font stack (Inter / Geist / Space Grotesk)       (+8)
+  ✗ Gradient-heavy backgrounds (5+ elements)                    (+4)
+  ✗ Big colored box-shadow glows (purple/blue/pink)             (+4)
+  ✗ Centered hero in generic sans (Inter-style)                 (+4)
+  ✗ Perma dark mode + medium-grey body text                     (+4)
+
+https://www.aura.build
+Create beautiful designs
+  🟡 Mild  ·  score 20/100  ·  4/16 patterns triggered
+  ✗ AI-default font stack (Inter / Geist / Space Grotesk)       (+8)
+  ✗ Glassmorphism (backdrop-filter blur on translucent layers)  (+4)
+  ✗ Big colored box-shadow glows (purple/blue/pink)             (+4)
+  ✗ Centered hero in generic sans (Inter-style)                 (+4)
+
+https://news.ycombinator.com
+  🟢 Clean  ·  score 3/100  ·  1/16 patterns triggered
 ```
 
 ## Why this exists
@@ -70,17 +80,17 @@ The repo also ships an [Agent Skill](skills/slop-detect/SKILL.md) following the 
 | 5 | **Accent stripe** | 6 | Cards with thick colored top/left border only |
 | 6 | **Glassmorphism** | 4 | `backdrop-filter: blur()` on translucent layers |
 | 7 | **Colored glows** | 4 | Box-shadows with ≥24px blur and non-grey color |
-| 8 | **Centered hero** | 4 | H1 centered, ≥36px, in a slop font |
+| 8 | **Centered hero** | 4 | H1 centered (or in a centered container), ≥28px, in a slop font |
 | 9 | **Eyebrow pill** | 5 | Rounded pill above H1 ("Now in beta", "New") |
 | 10 | **All-caps labels** | 3 | `text-transform: uppercase` section labels |
-| 11 | **Perma-dark mode** | 3 | Hard-coded dark background with no toggle |
+| 11 | **Perma-dark mode** | 4 | Dark page background (body / html / wrapper) with mid-grey body text |
 | 12 | **Icon card grid** | 4 | ≥3 identical feature cards with icon on top |
 | 13 | **Numbered steps** | 3 | "1 · 2 · 3" step sequences |
 | 14 | **Stat banner** | 3 | Big-number stat row ("10k+", "99.9%") |
 | 15 | **FAQ accordion** | 2 | Generic accordion with no schema markup |
 | 16 | **Gradient avatars** | 5 | Letter-only testimonial avatars on gradient backgrounds |
 
-**Tiers:** Clean (0–11) · Mild (12–29) · Heavy (≥30)
+**Tiers:** Clean (0–9) · Mild (10–27) · Heavy (≥28)
 
 Source: Krebs (Apr 2026) + Meng To (May 2026 Aura tutorial). See [`packages/core/src/patterns.js`](packages/core/src/patterns.js) for the full detection logic with weighted heuristics.
 
@@ -130,7 +140,7 @@ Each triggered pattern comes back with:
 - **Better alternatives** (3–5 concrete directions with brand references)
 - **Hard rule** (a testable constraint the agent self-checks against)
 
-Plus cross-cutting guidance ("don't replace one slop pattern with another", "empty is better than fake") and a built-in acceptance criterion: rescan and target score < 12.
+Plus cross-cutting guidance ("don't replace one slop pattern with another", "empty is better than fake") and a built-in acceptance criterion: rescan and target score < 10 (Clean tier).
 
 ## Programmatic use
 

@@ -7,6 +7,16 @@
 <meta name="description" content="Paste a URL. Get a 0–100 slop score in 5 seconds. Based on Adrian Krebs's 15-rule study + Meng To's gradient-letter avatar tell.">
 <meta property="og:title" content="Slop Detector — How AI-generated does your landing page look?">
 <meta property="og:description" content="16 deterministic patterns. Real Playwright. 0–100 score.">
+<meta property="og:image" content="https://slop-detect.com/og.png">
+<meta property="og:url" content="https://slop-detect.com">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Slop Detector — score any landing page against the 16-rule AI-design fingerprint">
+<meta name="twitter:description" content="Cursor / v0 / Lovable / Bolt all collapsed onto the same 16 CSS tells. Paste a URL, get a score.">
+<meta name="twitter:image" content="https://slop-detect.com/og.png">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/favicon.png">
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <style>
   :root {
     --bg: #0a0a0b;
@@ -380,6 +390,7 @@
     <input id="url" type="text" placeholder="https://example.com" autocomplete="off" spellcheck="false" required>
     <button type="submit" id="go">Scan</button>
   </form>
+  <div id="turnstile-host" style="margin-top:12px"></div>
 
   <div class="examples">
     <span>Try:</span>
@@ -419,9 +430,9 @@
     <p>
       <strong>How it works:</strong> Headless Chromium loads the page, collects up to 4,000 visible DOM nodes,
       runs 16 pure-function pattern detectors in one round-trip, returns a weighted score.
-      Tiers: <span style="color:var(--green)">Clean</span> 0–11 ·
-      <span style="color:var(--yellow)">Mild</span> 12–29 ·
-      <span style="color:var(--red)">Heavy</span> 30+.
+      Tiers: <span style="color:var(--green)">Clean</span> 0–9 ·
+      <span style="color:var(--yellow)">Mild</span> 10–27 ·
+      <span style="color:var(--red)">Heavy</span> 28+.
     </p>
     <p style="margin-top:8px">
       Slop is a fingerprint, not a verdict. Linear and Stripe also use Inter — that's why they score Mild.
@@ -456,6 +467,52 @@ const $ = (id) => document.getElementById(id);
 const form = $('form'), urlInput = $('url'), goBtn = $('go'),
       statusEl = $('status'), resultEl = $('result');
 
+// ── Turnstile bootstrap ──────────────────────────────────────────────────────
+// Sitekey is injected at deploy time via a meta tag or window.__TURNSTILE_SITEKEY.
+// Falls back to the production widget if unspecified (safe to commit; secret is server-side).
+const TURNSTILE_SITEKEY = window.__TURNSTILE_SITEKEY || '0x4AAAAAADWirXpm1gXBhB5E';
+let turnstileToken = null;
+let turnstileWidgetId = null;
+
+window.onloadTurnstileCallback = function () {
+  if (!window.turnstile) return;
+  turnstileWidgetId = window.turnstile.render('#turnstile-host', {
+    sitekey: TURNSTILE_SITEKEY,
+    theme: 'dark',
+    appearance: 'interaction-only',  // invisible unless a challenge is needed
+    callback: (token) => { turnstileToken = token; },
+    'error-callback': () => { turnstileToken = null; },
+    'expired-callback': () => { turnstileToken = null; }
+  });
+};
+// If Turnstile script already loaded, mount immediately.
+if (window.turnstile) window.onloadTurnstileCallback();
+else {
+  // Re-mount once the async script finishes loading.
+  const i = setInterval(() => {
+    if (window.turnstile) { clearInterval(i); window.onloadTurnstileCallback(); }
+  }, 150);
+  setTimeout(() => clearInterval(i), 8000);
+}
+
+async function ensureTurnstileToken() {
+  if (turnstileToken) return turnstileToken;
+  if (!window.turnstile || turnstileWidgetId === null) return null;
+  // Force an interaction if invisible mode didn't pre-issue a token.
+  try {
+    return await new Promise((resolve) => {
+      const start = Date.now();
+      const poll = setInterval(() => {
+        if (turnstileToken) { clearInterval(poll); resolve(turnstileToken); }
+        else if (Date.now() - start > 6000) { clearInterval(poll); resolve(null); }
+      }, 100);
+      try { window.turnstile.execute(turnstileWidgetId); } catch (_) {}
+    });
+  } catch (_) {
+    return null;
+  }
+}
+
 document.querySelectorAll('.examples button').forEach(b => {
   b.addEventListener('click', () => { urlInput.value = b.dataset.url; form.requestSubmit(); });
 });
@@ -475,12 +532,33 @@ form.addEventListener('submit', async (e) => {
 
   const t0 = Date.now();
   try {
+    // Grab a Turnstile token (invisible to most users).
+    const token = await ensureTurnstileToken();
     const r = await fetch('/api/scan', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'X-Turnstile-Token': token } : {})
+      },
       body: JSON.stringify({ url })
     });
     const data = await r.json();
+    // Reset token after every submit (Turnstile tokens are single-use).
+    turnstileToken = null;
+    if (window.turnstile && turnstileWidgetId !== null) {
+      try { window.turnstile.reset(turnstileWidgetId); } catch (_) {}
+    }
+    if (r.status === 429) {
+      throw new Error((data.message || 'Rate limit hit.') + ' Try again in a minute.');
+    }
+    if (r.status === 422 && data.code) {
+      // Anti-bot challenge / dead-page — render a friendly notice instead of crashing.
+      statusEl.classList.add('error');
+      statusEl.textContent = `${data.error} ${data.hint || ''}`.trim();
+      goBtn.disabled = false;
+      goBtn.textContent = 'Scan';
+      return;
+    }
     if (!r.ok || data.error) throw new Error(data.error || ('HTTP ' + r.status));
     render(data, Date.now() - t0);
     statusEl.classList.remove('show');

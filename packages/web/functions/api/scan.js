@@ -15,21 +15,13 @@ import {
   scorePatterns
 } from 'slop-detect-core';
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type'
-};
-
+// CORS + Turnstile + rate-limit are handled by functions/api/_middleware.js.
+// This handler just returns JSON; the middleware merges Access-Control-* headers.
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json', ...CORS }
+    headers: { 'Content-Type': 'application/json' }
   });
-}
-
-export async function onRequestOptions() {
-  return new Response(null, { status: 204, headers: CORS });
 }
 
 export async function onRequestPost({ request, env }) {
@@ -67,6 +59,20 @@ export async function onRequestPost({ request, env }) {
     const navMs = Date.now() - navStart;
 
     const data = await page.evaluate(pageScript);
+
+    // Anti-bot challenge / dead-page detection — refuse to score these so we
+    // don't silently return a fake "Clean 0".
+    const blocked = detectBlocked(data);
+    if (blocked) {
+      return json({
+        error: blocked.reason,
+        code: blocked.code,
+        url,
+        finalUrl: data.url,
+        title: data.title,
+        hint: blocked.hint
+      }, 422);
+    }
 
     let screenshot = null;
     if (body.screenshot) {
@@ -107,6 +113,51 @@ export async function onRequestPost({ request, env }) {
   } finally {
     try { await browser?.close(); } catch (_) {}
   }
+}
+
+// ── Anti-bot / dead-page heuristics ─────────────────────────────────────────
+function detectBlocked(data) {
+  const title = (data?.title || '').trim();
+  const h1 = (data?.h1Text || '').trim();
+  const visibleCount = data?.visibleCount || 0;
+
+  // Cloudflare's interstitial keeps an empty <title> long enough that we
+  // sometimes capture it, but more commonly the title is "Just a moment...".
+  const cfMarkers = [
+    'Just a moment...',
+    'Attention Required! | Cloudflare',
+    'Please Wait... | Cloudflare',
+    'Access denied | Cloudflare',
+    'Sorry, you have been blocked'
+  ];
+  if (cfMarkers.some(m => title.includes(m))) {
+    return {
+      code: 'cloudflare_challenge',
+      reason: 'Site is behind a Cloudflare bot challenge — cannot score automatically.',
+      hint: 'Try a different URL, or use the `slop-detect` CLI locally with a real browser session.'
+    };
+  }
+
+  // Other anti-bot vendors
+  if (/access denied|forbidden|akamai/i.test(title) && visibleCount < 20) {
+    return {
+      code: 'access_blocked',
+      reason: `Site refused the scan (title: "${title.slice(0, 80)}")`,
+      hint: 'The target is blocking automated requests. Try the CLI from your machine.'
+    };
+  }
+
+  // Empty / dead page (no title, no h1, no visible content) — usually means
+  // the page never finished rendering inside the headless runtime.
+  if (!title && !h1 && visibleCount < 10) {
+    return {
+      code: 'empty_page',
+      reason: 'Target page rendered no visible content within 7 seconds.',
+      hint: 'The site may require JS that takes longer than our timeout, or it blocks headless browsers.'
+    };
+  }
+
+  return null;
 }
 
 // ── Page-side script assembler ──────────────────────────────────────────────

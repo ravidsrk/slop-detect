@@ -1,7 +1,7 @@
 {
   "name": "slop-detect-monorepo",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Score any landing page against the 16-rule AI-design-slop fingerprint. Detect Cursor/v0/Lovable templates in the wild.",
   "type": "module",

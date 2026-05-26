@@ -27,9 +27,13 @@ export function scorePatterns(patternResults) {
     .filter(p => p.triggered)
     .reduce((sum, p) => sum + p.weight, 0);
 
+  // Tier thresholds:
+  //   Heavy ≥ 28   — clearly AI-coded; the page wears Cursor/v0/Bolt aesthetics with multiple smoking guns
+  //   Mild  ≥ 10   — at least one strong + one supporting slop signal
+  //   Clean < 10   — premium-feeling, custom-crafted, or genuinely minimal
   const tier =
-    score >= 30 ? 'Heavy' :
-    score >= 12 ? 'Mild'  :
+    score >= 28 ? 'Heavy' :
+    score >= 10 ? 'Mild'  :
                   'Clean';
 
   return {
