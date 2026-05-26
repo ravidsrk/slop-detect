@@ -1,0 +1,10 @@
+name = "slop-detector"
+pages_build_output_dir = "public"
+compatibility_date = "2025-05-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Cloudflare Browser Rendering binding — gives the Pages Function access to a
+# real headless Chromium via @cloudflare/puppeteer. The 'BROWSER' name here is
+# what env.BROWSER refers to inside functions/api/scan.js.
+[browser]
+binding = "BROWSER"

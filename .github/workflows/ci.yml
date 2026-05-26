@@ -1,0 +1,44 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint (syntax check)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run lint
+
+  smoke-cli:
+    name: Smoke test CLI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Scan a known-clean page (HN)
+        run: |
+          cd packages/cli
+          node bin/slop.js https://news.ycombinator.com --json > result.json
+          cat result.json
+          score=$(node -e "console.log(JSON.parse(require('fs').readFileSync('result.json')).score)")
+          echo "Score: $score"
+          if [ "$score" -gt 12 ]; then
+            echo "::error::Hacker News should score Clean (< 12), got $score"
+            exit 1
+          fi

@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Slop Detector — Score any landing page against the 16-rule AI-design fingerprint</title>
+<meta name="description" content="Paste a URL. Get a 0–100 slop score in 5 seconds. Based on Adrian Krebs's 15-rule study + Meng To's gradient-letter avatar tell.">
+<meta property="og:title" content="Slop Detector — How AI-generated does your landing page look?">
+<meta property="og:description" content="16 deterministic patterns. Real Playwright. 0–100 score.">
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --panel: #121214;
+    --panel-2: #1a1a1d;
+    --border: #232327;
+    --text: #f5f5f7;
+    --muted: #8a8a92;
+    --dim: #5a5a62;
+    --accent: #d4d4d8;
+    --green: #4ade80;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --blue: #60a5fa;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--text); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
+                 "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  a { color: var(--blue); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code, .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.9em; }
+
+  .wrap { max-width: 760px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  header { margin-bottom: 32px; }
+  h1 {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+  h1 .tag { color: var(--muted); font-weight: 400; }
+  .sub { color: var(--muted); font-size: 15px; max-width: 560px; }
+  .sub a { color: var(--accent); border-bottom: 1px dashed var(--dim); }
+
+  .form {
+    margin-top: 28px;
+    display: flex;
+    gap: 8px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 6px;
+  }
+  .form input {
+    flex: 1;
+    background: transparent;
+    border: 0;
+    color: var(--text);
+    font-size: 15px;
+    padding: 10px 12px;
+    outline: none;
+    font-family: inherit;
+  }
+  .form input::placeholder { color: var(--dim); }
+  .form button {
+    background: var(--text);
+    color: #000;
+    border: 0;
+    border-radius: 6px;
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: opacity 0.1s;
+  }
+  .form button:hover { opacity: 0.85; }
+  .form button:disabled { opacity: 0.5; cursor: wait; }
+
+  .examples {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--muted);
+    align-items: center;
+  }
+  .examples span { color: var(--dim); }
+  .examples button {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .examples button:hover { border-color: var(--accent); color: var(--text); }
+
+  .status {
+    margin-top: 28px;
+    color: var(--muted);
+    font-size: 14px;
+    display: none;
+  }
+  .status.show { display: block; }
+  .status.error { color: var(--red); }
+
+  .result { margin-top: 32px; display: none; }
+  .result.show { display: block; }
+
+  .result-head {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 22px;
+    margin-bottom: 16px;
+  }
+  .result-url {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    word-break: break-all;
+  }
+  .result-title {
+    font-size: 18px;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .result-h1 { font-size: 13px; color: var(--dim); }
+
+  .score-row {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+  }
+  .score-num {
+    font-size: 56px;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+  .score-tier {
+    font-size: 16px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 999px;
+    border: 1px solid;
+  }
+  .tier-Clean { color: var(--green); border-color: var(--green); }
+  .tier-Mild  { color: var(--yellow); border-color: var(--yellow); }
+  .tier-Heavy { color: var(--red); border-color: var(--red); }
+  .score-meta { color: var(--muted); font-size: 14px; margin-left: auto; }
+  .score-bar {
+    margin-top: 14px;
+    height: 6px;
+    background: var(--panel-2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s cubic-bezier(.2,.7,.2,1);
+  }
+  .fill-Clean { background: var(--green); }
+  .fill-Mild  { background: var(--yellow); }
+  .fill-Heavy { background: var(--red); }
+
+  .pat-section { margin-top: 24px; }
+  .pat-label {
+    font-size: 12px;
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+  .pat-list { display: flex; flex-direction: column; gap: 4px; }
+  .pat {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .pat:hover { border-color: var(--dim); }
+  .pat .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .pat.triggered .dot { background: var(--red); }
+  .pat.clean .dot { background: var(--dim); }
+  .pat.clean { color: var(--muted); }
+  .pat .label { flex: 1; }
+  .pat .weight { color: var(--dim); font-size: 12px; }
+  .pat.triggered .weight { color: var(--red); }
+  .pat .evidence {
+    display: none;
+    width: 100%;
+    margin-top: 8px;
+    padding: 10px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--muted);
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .pat.open { flex-wrap: wrap; }
+  .pat.open .evidence { display: block; }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  footer a { color: var(--accent); }
+
+  /* Fix prompt CTA + modal */
+  .fix-cta {
+    margin-top: 20px;
+    padding: 16px 18px;
+    background: linear-gradient(135deg, rgba(74,222,128,0.08), rgba(96,165,250,0.08));
+    border: 1px solid rgba(74,222,128,0.3);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .fix-cta-text { flex: 1; min-width: 200px; }
+  .fix-cta-title { font-weight: 600; font-size: 15px; margin-bottom: 2px; }
+  .fix-cta-sub { font-size: 13px; color: var(--muted); }
+  .fix-cta button {
+    background: var(--green);
+    color: #003314;
+    border: 0;
+    border-radius: 6px;
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .fix-cta button:hover { opacity: 0.9; }
+  .fix-cta button:disabled { opacity: 0.5; cursor: wait; }
+
+  .modal-bg {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 20px;
+    overflow-y: auto;
+  }
+  .modal-bg.show { display: flex; }
+  .modal {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    max-width: 820px;
+    width: 100%;
+    max-height: calc(100vh - 80px);
+    display: flex;
+    flex-direction: column;
+  }
+  .modal-head {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  .modal-head-title { font-size: 16px; font-weight: 600; }
+  .modal-head-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .modal-actions { display: flex; gap: 8px; }
+  .modal-actions button {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .modal-actions button.primary {
+    background: var(--text);
+    color: #000;
+    border-color: var(--text);
+    font-weight: 600;
+  }
+  .modal-actions button:hover { opacity: 0.85; }
+  .modal-body {
+    padding: 18px 22px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .modal-body pre {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+  }
+  .copied-flash {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--green);
+    color: #003314;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    z-index: 200;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  .copied-flash.show { opacity: 1; }
+
+  @media (max-width: 600px) {
+    .wrap { padding: 32px 16px 60px; }
+    h1 { font-size: 24px; }
+    .score-num { font-size: 44px; }
+    .score-row { flex-wrap: wrap; }
+    .modal-bg { padding: 20px 12px; }
+    .modal-body pre { font-size: 11.5px; padding: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Slop Detector <span class="tag">/ 16 rules / 0–100</span></h1>
+    <p class="sub">
+      Paste any landing page. Get a deterministic slop score in ~5 seconds. Based on
+      <a href="https://www.adriankrebs.ch/blog/design-slop/" target="_blank" rel="noopener">Adrian Krebs's April 2026 study</a>
+      (15 rules) plus <a href="https://x.com/MengTo/status/2058893181740359863" target="_blank" rel="noopener">Meng To's</a>
+      gradient-letter avatar tell. Runs on real Chromium via Cloudflare Browser Rendering.
+    </p>
+  </header>
+
+  <form class="form" id="form">
+    <input id="url" type="text" placeholder="https://example.com" autocomplete="off" spellcheck="false" required>
+    <button type="submit" id="go">Scan</button>
+  </form>
+
+  <div class="examples">
+    <span>Try:</span>
+    <button data-url="https://news.ycombinator.com">news.ycombinator.com</button>
+    <button data-url="https://www.aura.build">aura.build</button>
+    <button data-url="https://lovable.dev">lovable.dev</button>
+    <button data-url="https://stripe.com">stripe.com</button>
+    <button data-url="https://engagemii.com/aeo">engagemii.com/aeo</button>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <section class="result" id="result"></section>
+
+  <!-- Fix prompt modal -->
+  <div class="modal-bg" id="modalBg">
+    <div class="modal" role="dialog" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <div>
+          <div class="modal-head-title" id="modalTitle">Fix prompt</div>
+          <div class="modal-head-sub" id="modalSub">Paste this into Claude, Cursor, v0, or whichever agent built this page.</div>
+        </div>
+        <div class="modal-actions">
+          <button id="copyBtn" class="primary">Copy</button>
+          <button id="closeBtn">Close</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <pre id="modalPre"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="copied-flash" id="flash">✓ Copied to clipboard</div>
+
+  <footer>
+    <p>
+      <strong>How it works:</strong> Headless Chromium loads the page, collects up to 4,000 visible DOM nodes,
+      runs 16 pure-function pattern detectors in one round-trip, returns a weighted score.
+      Tiers: <span style="color:var(--green)">Clean</span> 0–11 ·
+      <span style="color:var(--yellow)">Mild</span> 12–29 ·
+      <span style="color:var(--red)">Heavy</span> 30+.
+    </p>
+    <p style="margin-top:8px">
+      Slop is a fingerprint, not a verdict. Linear and Stripe also use Inter — that's why they score Mild.
+      <a href="#" id="aboutLink">Read the 16 rules ↓</a>
+    </p>
+    <details id="rulesDetails" style="margin-top:12px">
+      <summary style="cursor:pointer; color:var(--accent)">The 16 rules</summary>
+      <ol style="margin:12px 0 0 20px; color:var(--muted); font-size:13px; line-height:1.8">
+        <li><strong>Slop fonts</strong> — Inter / Geist / Space Grotesk / Instrument Serif italic accent <em>(weight 8)</em></li>
+        <li><strong>VibeCode Purple</strong> — Indigo-violet on filled CTAs <em>(8)</em></li>
+        <li><strong>Gradient text</strong> — Hero H1 with background-clip:text <em>(6)</em></li>
+        <li><strong>Gradient backgrounds</strong> — ≥5 elements with CSS gradients <em>(4)</em></li>
+        <li><strong>Accent stripe</strong> — Cards with thick colored top/left border <em>(6)</em></li>
+        <li><strong>Glassmorphism</strong> — backdrop-filter blur on translucent layers <em>(4)</em></li>
+        <li><strong>Colored glows</strong> — Big colored box-shadows <em>(4)</em></li>
+        <li><strong>Centered hero</strong> — Centered + big + slop font <em>(4)</em></li>
+        <li><strong>Eyebrow pill</strong> — "Now in beta" / "New" above H1 <em>(5)</em></li>
+        <li><strong>All-caps labels</strong> — Uppercase section labels with letter-spacing <em>(3)</em></li>
+        <li><strong>Perma dark mode</strong> — Dark BG + mid-grey body text <em>(4)</em></li>
+        <li><strong>Icon-card grid</strong> — 3+ identical cards with icon on top <em>(4)</em></li>
+        <li><strong>Numbered steps</strong> — 1·2·3 sequence headings <em>(3)</em></li>
+        <li><strong>Stat banner</strong> — "10k+", "99.9%" cluster <em>(3)</em></li>
+        <li><strong>FAQ accordion</strong> — &lt;details&gt; in lower half <em>(2)</em></li>
+        <li><strong>Letter avatars</strong> — Gradient-initial testimonial avatars <em>(5)</em> <small>← Meng's</small></li>
+      </ol>
+    </details>
+  </footer>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const form = $('form'), urlInput = $('url'), goBtn = $('go'),
+      statusEl = $('status'), resultEl = $('result');
+
+document.querySelectorAll('.examples button').forEach(b => {
+  b.addEventListener('click', () => { urlInput.value = b.dataset.url; form.requestSubmit(); });
+});
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const url = urlInput.value.trim();
+  if (!url) return;
+
+  goBtn.disabled = true;
+  goBtn.textContent = 'Scanning…';
+  resultEl.classList.remove('show');
+  resultEl.innerHTML = '';
+  statusEl.classList.remove('error');
+  statusEl.classList.add('show');
+  statusEl.textContent = 'Loading page in headless Chromium…';
+
+  const t0 = Date.now();
+  try {
+    const r = await fetch('/api/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    const data = await r.json();
+    if (!r.ok || data.error) throw new Error(data.error || ('HTTP ' + r.status));
+    render(data, Date.now() - t0);
+    statusEl.classList.remove('show');
+  } catch (err) {
+    statusEl.classList.add('error');
+    statusEl.textContent = '✗ ' + err.message;
+  } finally {
+    goBtn.disabled = false;
+    goBtn.textContent = 'Scan';
+  }
+});
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+let lastResult = null;
+
+function render(d, totalMs) {
+  lastResult = d;
+  const triggered = d.patterns.filter(p => p.triggered);
+  const clean = d.patterns.filter(p => !p.triggered);
+
+  const patHtml = (arr, kind) => arr.map(p => `
+    <div class="pat ${kind}" data-id="${p.id}">
+      <span class="dot"></span>
+      <span class="label">${escapeHtml(p.label)}</span>
+      <span class="weight">${kind === 'triggered' ? '+' : ''}${p.weight}</span>
+      <div class="evidence">${escapeHtml(JSON.stringify(p.evidence, null, 2))}</div>
+    </div>
+  `).join('');
+
+  const fixCta = triggered.length ? `
+    <div class="fix-cta">
+      <div class="fix-cta-text">
+        <div class="fix-cta-title">🛠 Generate a fix prompt</div>
+        <div class="fix-cta-sub">A copy-pasteable instruction for Claude / Cursor / v0 that addresses these ${triggered.length} ${triggered.length === 1 ? 'issue' : 'issues'} specifically.</div>
+      </div>
+      <button id="fixPromptBtn">Generate fix prompt →</button>
+    </div>` : '';
+
+  resultEl.innerHTML = `
+    <div class="result-head">
+      <div class="result-url">${escapeHtml(d.finalUrl || d.url)}</div>
+      <div class="result-title">${escapeHtml(d.title || '(no title)')}</div>
+      ${d.h1 ? `<div class="result-h1">H1: "${escapeHtml(d.h1.slice(0,80))}${d.h1.length>80?'…':''}"</div>` : ''}
+      <div class="score-row">
+        <div class="score-num">${d.score}</div>
+        <div class="score-tier tier-${d.tier}">${d.tier}</div>
+        <div class="score-meta">${d.patternsFlagged}/${d.patternsTotal} patterns · ${(totalMs/1000).toFixed(1)}s</div>
+      </div>
+      <div class="score-bar"><div class="score-bar-fill fill-${d.tier}" style="width:${d.score}%"></div></div>
+      ${fixCta}
+    </div>
+    ${triggered.length ? `
+      <div class="pat-section">
+        <div class="pat-label">Triggered (${triggered.length})</div>
+        <div class="pat-list">${patHtml(triggered, 'triggered')}</div>
+      </div>` : ''}
+    ${clean.length ? `
+      <div class="pat-section">
+        <div class="pat-label">Clean (${clean.length})</div>
+        <div class="pat-list">${patHtml(clean, 'clean')}</div>
+      </div>` : ''}
+  `;
+  resultEl.classList.add('show');
+
+  resultEl.querySelectorAll('.pat').forEach(el => {
+    el.addEventListener('click', () => el.classList.toggle('open'));
+  });
+
+  const fixBtn = document.getElementById('fixPromptBtn');
+  if (fixBtn) fixBtn.addEventListener('click', openFixPrompt);
+}
+
+// ── Fix prompt modal ────────────────────────────────────────────────────────
+const modalBg = $('modalBg'), modalPre = $('modalPre'),
+      modalSub = $('modalSub'), copyBtn = $('copyBtn'),
+      closeBtn = $('closeBtn'), flash = $('flash');
+
+closeBtn.addEventListener('click', closeModal);
+modalBg.addEventListener('click', (e) => { if (e.target === modalBg) closeModal(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+function closeModal() { modalBg.classList.remove('show'); }
+
+async function openFixPrompt() {
+  if (!lastResult) return;
+  const btn = document.getElementById('fixPromptBtn');
+  btn.disabled = true; btn.textContent = 'Generating…';
+  modalPre.textContent = 'Generating fix prompt…';
+  modalSub.textContent = `${lastResult.patternsFlagged} ${lastResult.patternsFlagged === 1 ? 'issue' : 'issues'} on ${new URL(lastResult.finalUrl || lastResult.url).hostname}`;
+  modalBg.classList.add('show');
+
+  try {
+    const r = await fetch('/api/fix-prompt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ result: lastResult })
+    });
+    const text = await r.text();
+    if (!r.ok) throw new Error(text);
+    modalPre.textContent = text;
+  } catch (err) {
+    modalPre.textContent = '✗ Failed to generate prompt: ' + err.message;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Generate fix prompt →';
+  }
+}
+
+copyBtn.addEventListener('click', async () => {
+  const text = modalPre.textContent;
+  try {
+    await navigator.clipboard.writeText(text);
+    flash.classList.add('show');
+    setTimeout(() => flash.classList.remove('show'), 1600);
+  } catch (_) {
+    // Fallback for older browsers
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+    flash.classList.add('show');
+    setTimeout(() => flash.classList.remove('show'), 1600);
+  }
+});
+</script>
+</body>
+</html>

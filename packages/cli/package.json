@@ -1,0 +1,46 @@
+{
+  "name": "@slop-detect/cli",
+  "version": "0.1.0",
+  "description": "Score any landing page against the 16-rule AI-design-slop fingerprint from your terminal. Playwright-based, deterministic, zero-config.",
+  "type": "module",
+  "license": "MIT",
+  "homepage": "https://slop-detect.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ravidsrk/slop-detect.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/ravidsrk/slop-detect/issues"
+  },
+  "bin": {
+    "slop": "./bin/slop.js",
+    "slop-detect": "./bin/slop.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "postinstall": "playwright install chromium",
+    "scan": "node bin/slop.js",
+    "demo": "node bin/slop.js https://news.ycombinator.com https://www.aura.build https://lovable.dev"
+  },
+  "dependencies": {
+    "@slop-detect/core": "0.1.0",
+    "playwright": "^1.49.0"
+  },
+  "keywords": [
+    "slop",
+    "ai-detection",
+    "landing-page",
+    "design-audit",
+    "cli",
+    "playwright"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

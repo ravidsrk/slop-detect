@@ -1,0 +1,111 @@
+# Contributing to slop-detect
+
+Thanks for considering a contribution. The whole project is ~2,000 lines of JavaScript — small enough that you can read all of it in one sitting before you start.
+
+## TL;DR
+
+1. Fork → branch → PR.
+2. New patterns and fix-recipe improvements are the most welcome contributions.
+3. CI runs `node --check` on every PR; please don't break the syntax.
+4. Be kind in issues and PRs. The code we're auditing was written by people too.
+
+## Setup
+
+```bash
+git clone https://github.com/<you>/slop-detect.git
+cd slop-detect
+npm install              # installs all 3 workspaces
+npm run demo             # smoke test: scans 3 known sites
+```
+
+You need:
+
+- Node 20+
+- A Cloudflare account if you want to run the web app locally with real scans (Browser Rendering requires Workers Paid; ~$5/mo)
+
+For pure pattern development you don't need Cloudflare — the CLI runs everything locally with Playwright.
+
+## Repository layout
+
+```
+packages/
+├── core/    @slop-detect/core   ← rule definitions, scoring, fix recipes
+├── cli/     @slop-detect/cli    ← Playwright runner
+└── web/     @slop-detect/web    ← Cloudflare Pages app for slop-detect.com
+```
+
+When you change a rule in `packages/core/src/patterns.js`, both the CLI and the web app pick it up automatically — they're consumers of the same `@slop-detect/core` package via workspace symlinks.
+
+## Proposing a new pattern (#17, #18, ...)
+
+The bar for adding a 17th pattern is high but not impossible. Convince us with **evidence at scale**:
+
+1. **Find the pattern in the wild.** Show 10+ real landing pages where it appears.
+2. **Confirm AI-tooling correlation.** It must be over-represented in AI-generated pages (Cursor, v0, Lovable, Bolt, GPT image-to-code) versus human-designed ones.
+3. **Write a deterministic detector.** `extract(ctx)` runs in the page's DOM; `detect(signals)` returns true/false. Avoid heuristics that depend on screenshots, ML, or wall-clock timing.
+4. **Assign a weight (1–8).** Justify it relative to the existing 16. Weight 8 is reserved for slam-dunk signals like Inter-font usage and indigo-600 CTAs.
+5. **Write a fix recipe.** Add a `FIXES` entry in `packages/core/src/fixes.js` with: problem, fix, alternatives, hard rule.
+
+Open an issue first using the **New Pattern** template before writing code. We'd rather discuss it before you spend an evening on a detector we can't accept.
+
+## Improving a fix recipe
+
+If a fix recipe is too generic, contradicts itself, or recommends a substitute that itself reads as slop — fix it. PRs that sharpen existing recipes are some of the most valuable contributions because they directly improve the LLM output users get.
+
+Each recipe should follow the four-field structure:
+
+- `problem` — *why* this reads as AI-slop, with the specific tell
+- `fix` — the senior designer's prescription
+- `alternatives` — 3–5 concrete directions with brand references (Linear, Stripe, PostHog, Cabin, etc.)
+- `rule` — a hard, testable constraint
+
+Avoid:
+
+- Vague guidance ("use better typography", "make it more original")
+- Substituting one banned pattern for another (Inter → Geist is not progress)
+- Naming products as alternatives that became slop themselves
+
+## Code style
+
+- ES modules (`type: "module"` everywhere)
+- Two-space indentation, single quotes, no semicolons-at-ends-of-IIFEs flair
+- Keep files small. `core` is the source of truth — don't add runtime-specific logic there
+
+## Testing your changes
+
+```bash
+# 1) Lint (syntax check)
+npm run lint
+
+# 2) Run the CLI against a known-bad and known-good URL
+npm run scan -- https://www.aura.build              # should be Heavy
+npm run scan -- https://news.ycombinator.com         # should be Clean
+
+# 3) Run the web app locally (won't actually scan without Cloudflare):
+npm run web:dev
+```
+
+## Pull request checklist
+
+- [ ] `npm run lint` passes
+- [ ] You ran the CLI against ≥2 URLs and confirmed your change behaves as expected
+- [ ] If you added a pattern: ≥10 real-world examples in the PR description
+- [ ] If you changed a fix recipe: a before/after comparison of the generated prompt
+- [ ] README / pattern table updated if the public surface changed
+
+## Reporting bugs
+
+Use the **Bug Report** issue template. Include:
+
+- URL you scanned
+- Full JSON output from `slop-detect <url> --json`
+- What you expected
+- What you got
+
+## Code of conduct
+
+Be kind. The web we're building tools for is built by humans, and the AI-generated sites we audit are usually first-time builders shipping their first product. Roast the patterns, never the people.
+
+## License
+
+By contributing, you agree your work is released under the [MIT License](LICENSE).

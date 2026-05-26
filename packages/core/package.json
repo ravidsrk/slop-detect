@@ -1,0 +1,41 @@
+{
+  "name": "@slop-detect/core",
+  "version": "0.1.0",
+  "description": "Pure detection engine for AI-design-slop patterns. Runtime-agnostic — runs in Node, Cloudflare Workers, or the browser.",
+  "type": "module",
+  "license": "MIT",
+  "homepage": "https://slop-detect.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ravidsrk/slop-detect.git",
+    "directory": "packages/core"
+  },
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./patterns": "./src/patterns.js",
+    "./fonts": "./src/fonts.js",
+    "./color": "./src/color.js",
+    "./visibility": "./src/visibility.js",
+    "./fixes": "./src/fixes.js"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "slop",
+    "ai-detection",
+    "landing-page",
+    "design-audit",
+    "tailwind",
+    "v0",
+    "cursor",
+    "lovable",
+    "design-quality"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

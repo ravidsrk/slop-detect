@@ -1,0 +1,22 @@
+{
+  "name": "@slop-detect/web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cloudflare Pages app for slop-detect.com — web UI + /api/scan + /api/fix-prompt.",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "dev": "wrangler pages dev public",
+    "deploy": "wrangler pages deploy public --project-name=slop-detector --commit-dirty=true"
+  },
+  "dependencies": {
+    "@cloudflare/puppeteer": "^1.1.0",
+    "@slop-detect/core": "0.1.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.86.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

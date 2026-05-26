@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build / cache
+dist/
+build/
+.next/
+.cache/
+.turbo/
+
+# Cloudflare / Wrangler
+.wrangler/
+.dev.vars
+.dev.vars.*
+
+# Playwright
+playwright-report/
+test-results/
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# Env files (never commit)
+.env
+.env.local
+.env.*.local
+
+# Local outputs from scans (per-user)
+*.scan.json
+*.fix.md
+/tmp-scans/
