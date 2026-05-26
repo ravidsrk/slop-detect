@@ -51,7 +51,13 @@ curl -s -X POST -H 'Content-Type: application/json' \
 
 # CLI — for CI, batch scans, or air-gapped work
 npx @slop-detect/cli https://your-site.com
+
+# Agent Skill — drop into Claude Code / Cursor / Copilot / Codex / Junie
+git clone --depth 1 https://github.com/ravidsrk/slop-detect /tmp/sd \
+  && cp -r /tmp/sd/skills/slop-detect ~/.claude/skills/
 ```
+
+The repo also ships an [Agent Skill](skills/slop-detect/SKILL.md) following the [agentskills.io](https://agentskills.io) open spec — any compatible agent (Claude Code, Cursor, GitHub Copilot, Gemini CLI, Codex, Roo Code, Junie, and 20+ others) will autonomously invoke the scanner when you ask it to audit a landing page.
 
 ## The 16 patterns
 
