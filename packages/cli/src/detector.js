@@ -77,11 +77,19 @@ function detectBlocked(data) {
       hint: 'The target is blocking automated requests.'
     };
   }
-  if (!title && !h1 && visibleCount < 10) {
+  const signals = data?.signals || {};
+  const patternsWithEvidence = Object.values(signals).filter(s => {
+    if (!s || typeof s !== 'object') return false;
+    const keys = Object.keys(s).filter(k => k !== 'triggered' && k !== 'error');
+    return keys.length > 0;
+  }).length;
+  const noContent = !title && !h1;
+  const sparseDom = visibleCount < 10 || patternsWithEvidence < 4;
+  if (noContent || sparseDom) {
     return {
       code: 'empty_page',
-      reason: 'Target page rendered no visible content within the timeout.',
-      hint: 'The site may require longer JS or block headless browsers.'
+      reason: 'Target page rendered no scannable content (no title, no H1, or empty DOM).',
+      hint: 'The site likely requires sign-in, uses heavy client-side hydration, or blocks headless browsers.'
     };
   }
   return null;

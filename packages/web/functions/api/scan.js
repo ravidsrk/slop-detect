@@ -62,7 +62,7 @@ export async function onRequestPost({ request, env }) {
 
     // Anti-bot challenge / dead-page detection — refuse to score these so we
     // don't silently return a fake "Clean 0".
-    const blocked = detectBlocked(data);
+    const blocked = detectBlocked(data, { url, finalUrl: data.url });
     if (blocked) {
       return json({
         error: blocked.reason,
@@ -116,10 +116,18 @@ export async function onRequestPost({ request, env }) {
 }
 
 // ── Anti-bot / dead-page heuristics ─────────────────────────────────────────
-function detectBlocked(data) {
+function detectBlocked(data, _ctx) {
   const title = (data?.title || '').trim();
   const h1 = (data?.h1Text || '').trim();
   const visibleCount = data?.visibleCount || 0;
+  const signals = data?.signals || {};
+  // Count how many of the 16 patterns returned ANY non-empty evidence — proxy
+  // for "did the page actually render meaningful DOM?".
+  const patternsWithEvidence = Object.values(signals).filter(s => {
+    if (!s || typeof s !== 'object') return false;
+    const keys = Object.keys(s).filter(k => k !== 'triggered' && k !== 'error');
+    return keys.length > 0;
+  }).length;
 
   // Cloudflare's interstitial keeps an empty <title> long enough that we
   // sometimes capture it, but more commonly the title is "Just a moment...".
@@ -148,12 +156,15 @@ function detectBlocked(data) {
   }
 
   // Empty / dead page (no title, no h1, no visible content) — usually means
-  // the page never finished rendering inside the headless runtime.
-  if (!title && !h1 && visibleCount < 10) {
+  // the page never finished rendering inside the headless runtime, OR the site
+  // is gating content behind a JS auth wall. ChatGPT/Cursor/etc do this.
+  const noContent = !title && !h1;
+  const sparseDom = visibleCount < 10 || patternsWithEvidence < 4;
+  if (noContent || sparseDom) {
     return {
       code: 'empty_page',
-      reason: 'Target page rendered no visible content within 7 seconds.',
-      hint: 'The site may require JS that takes longer than our timeout, or it blocks headless browsers.'
+      reason: 'Target page rendered no scannable content (no title, no H1, or empty DOM).',
+      hint: 'The site likely requires sign-in, uses heavy client-side hydration, or blocks headless browsers. Try a public marketing URL instead.'
     };
   }
 
