@@ -228,22 +228,139 @@ export const FIXES = {
   }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Per-pattern evidence formatters. Each takes the pattern's `evidence` blob
+// (extracted by the detector in patterns.js) and returns a short, concrete
+// "Here's what we found on YOUR page" line. The point is to stop the consuming
+// LLM from re-discovering the problem and possibly fixing the wrong thing.
+// Returns null when there's no useful evidence to surface.
+// ─────────────────────────────────────────────────────────────────────────────
+function fmtList(arr, n = 3) {
+  if (!Array.isArray(arr) || arr.length === 0) return null;
+  const slice = arr.slice(0, n).map(s => `"${String(s).slice(0, 60)}"`);
+  return slice.join(', ') + (arr.length > n ? `, … (+${arr.length - n} more)` : '');
+}
+
+const EVIDENCE_FORMATTERS = {
+  slop_fonts: (e) => {
+    const lines = [];
+    if (typeof e.ratio === 'number' && e.total) {
+      lines.push(`${e.slopCount}/${e.total} elements (${Math.round(e.ratio * 100)}%) use an AI-default font.`);
+    }
+    if (e.heroFam) {
+      lines.push(`Hero/H1 font is \`${e.heroFam}\` — ${e.heroIsSlop ? '⚠️ on the slop list, replace it.' : '✓ not on the slop list, **keep it**.'}`);
+    }
+    if (e.accentSerifItalicCount > 0) {
+      lines.push(`${e.accentSerifItalicCount} italic-serif accents (Instrument Serif-style) detected.`);
+    }
+    return lines.length ? lines.join(' ') : null;
+  },
+  purple_accent: (e) => {
+    const parts = [];
+    if (e.purpleEls != null) parts.push(`${e.purpleEls} elements painted in the HSL 240–295° purple/indigo range`);
+    if (e.filledCtas != null) parts.push(`${e.filledCtas} filled CTAs use it`);
+    const sam = fmtList(e.samples);
+    if (sam) parts.push(`samples: ${sam}`);
+    return parts.length ? parts.join('; ') + '.' : null;
+  },
+  gradient_text: (e) => {
+    const parts = [];
+    if (e.count != null) parts.push(`${e.count} \`background-clip: text\` gradients found`);
+    if (e.heroHasGradient) parts.push('including the hero H1 itself');
+    return parts.length ? parts.join(' — ') + '.' : null;
+  },
+  gradient_backgrounds: (e) => {
+    const parts = [];
+    if (e.bgElements != null) parts.push(`${e.bgElements} elements have gradient backgrounds`);
+    if (e.conic) parts.push(`${e.conic} are conic gradients (rainbow swirls)`);
+    return parts.length ? parts.join('; ') + '.' : null;
+  },
+  accent_stripe: (e) =>
+    e.stripeCards ? `${e.stripeCards} cards have a thick colored top or left border (Tailwind UI "accent stripe").` : null,
+  glassmorphism: (e) =>
+    e.glassCount ? `${e.glassCount} elements use \`backdrop-filter: blur()\` on translucent surfaces.` : null,
+  colored_glows: (e) =>
+    e.glowCount ? `${e.glowCount} elements have saturated colored \`box-shadow\` glows (red/orange/blue/purple/etc.).` : null,
+  centered_hero: (e) => {
+    const parts = [];
+    if (e.fontSize) parts.push(`hero is ${e.fontSize}px`);
+    if (e.centered) parts.push('text-aligned center');
+    if (e.family) parts.push(`font \`${e.family}\``);
+    if (e.slopFont) parts.push('on the slop font list');
+    return parts.length ? `H1 fingerprint: ${parts.join(', ')}.` : null;
+  },
+  hero_eyebrow_pill: () => `A rounded pill (border-radius ≥ 999px) sits above the H1.`,
+  all_caps_labels: (e) => {
+    const parts = [];
+    if (e.count != null) parts.push(`${e.count} all-caps labels detected`);
+    const sam = fmtList(e.samples);
+    if (sam) parts.push(`including ${sam}`);
+    return parts.length ? parts.join(' — ') + '.' : null;
+  },
+  perma_dark_mode: (e) => {
+    const parts = [];
+    if (e.bodyDark) parts.push('body background is dark');
+    if (e.greyParas != null && e.totalParas) {
+      parts.push(`${e.greyParas}/${e.totalParas} paragraphs (${Math.round((e.ratio || 0) * 100)}%) use mid-grey text below the WCAG-AA contrast threshold`);
+    }
+    return parts.length ? parts.join('; ') + '.' : null;
+  },
+  icon_card_grid: (e) =>
+    e.maxGroupSize ? `Largest sibling card group: ${e.maxGroupSize} identical icon-on-top cards in a row.` : null,
+  numbered_steps: (e) =>
+    e.bestRun ? `Found a run of ${e.bestRun} numbered "1 · 2 · 3" steps with generic verbs.` : null,
+  stat_banner: (e) =>
+    e.clusterSize ? `${e.clusterSize} oversized big-number stats clustered in one banner (likely unverified).` : null,
+  faq_accordion: (e) => {
+    if (!e.detailsCount) return null;
+    return `${e.detailsCount} \`<details>\` accordion entries${e.hasFaqHeading ? ' under an explicit FAQ heading' : ''}.`;
+  },
+  gradient_letter_avatars: (e) => {
+    const parts = [];
+    if (e.count != null) parts.push(`${e.count} initials-on-gradient avatars found`);
+    const sam = fmtList(e.samples);
+    if (sam) parts.push(`labels: ${sam}`);
+    return parts.length ? parts.join(' — ') + '.' : null;
+  }
+};
+
+function formatEvidence(pattern) {
+  const formatter = EVIDENCE_FORMATTERS[pattern.id];
+  if (!formatter) return null;
+  try {
+    return formatter(pattern.evidence || {});
+  } catch {
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tier thresholds (kept in sync with packages/core/src/index.js).
+// Clean < 10 · Mild 10–27 · Heavy ≥ 28
+// ─────────────────────────────────────────────────────────────────────────────
+const CLEAN_THRESHOLD = 10;
+
 // Build the assembled fix prompt from a scan result.
 export function buildFixPrompt(result) {
-  const triggered = (result.patterns || []).filter(p => p.triggered);
+  const allPatterns = result.patterns || [];
+  const triggered = allPatterns.filter(p => p.triggered);
+  const passing = allPatterns.filter(p => !p.triggered);
+
   if (triggered.length === 0) {
     return `Your landing page (${result.url}) scored ${result.score}/100 — tier "${result.tier}" — and triggered 0 of 16 AI-design-slop patterns. There's nothing to fix on the slop dimension. Move on to copy, conversion, or content quality.`;
   }
 
+  const url = result.finalUrl || result.url;
+  const h1FontIsSlop =
+    triggered.find(p => p.id === 'slop_fonts')?.evidence?.heroIsSlop === true;
+
   const header = `# Landing page slop fix prompt
 
-Your landing page scored **${result.score}/100** on the Slop Detector — tier **${result.tier}** — triggering **${triggered.length} of 16** AI-design-slop patterns. The goal of this prompt is to reduce that score to **< 12 (Clean tier)** by addressing each triggered pattern with specific, opinionated remediation.
+Your landing page scored **${result.score}/100** on the Slop Detector — tier **${result.tier}** — triggering **${triggered.length} of 16** AI-design-slop patterns. The goal of this prompt is to reduce that score to **< ${CLEAN_THRESHOLD} (Clean tier)** by addressing each triggered pattern with specific, opinionated remediation.
 
 ## Page context
-- URL: ${result.finalUrl || result.url}
-- Title: ${result.title || '(no title)'}
-${result.h1 ? `- H1: "${result.h1}"` : ''}
-${result.h1Font ? `- H1 font: ${result.h1Font}` : ''}
+- URL: ${url}
+- Title: ${result.title || '(no title)'}${result.h1 ? `\n- H1: "${result.h1}"` : ''}${result.h1Font ? `\n- H1 font: ${result.h1Font}${h1FontIsSlop ? ' ⚠️ on the slop list' : ' ✓ not on the slop list — **keep this font**'}` : ''}
 
 ## Issues to fix (in priority order — highest weight first)
 `;
@@ -253,8 +370,12 @@ ${result.h1Font ? `- H1 font: ${result.h1Font}` : ''}
     const fix = FIXES[p.id];
     if (!fix) return `### ${i + 1}. ${p.label} (+${p.weight})\n_No fix recipe available for this pattern._`;
     const alts = fix.alternatives.map(a => `   - ${a}`).join('\n');
+    const evidence = formatEvidence(p);
+    const evidenceBlock = evidence
+      ? `\n**What we found on YOUR page:**\n${evidence}\n`
+      : '';
     return `### ${i + 1}. ${p.label}  *(weight: +${p.weight})*
-
+${evidenceBlock}
 **Why this reads as AI-slop:**
 ${fix.problem}
 
@@ -267,24 +388,56 @@ ${alts}
 **Hard rule:** ${fix.rule}`;
   }).join('\n\n---\n\n');
 
+  // Anti-regression: list patterns that currently pass so the LLM doesn't
+  // "fix" the page by introducing one of them (very common: removing the
+  // icon-card grid and replacing it with a gradient-text hero).
+  const passingList = passing
+    .slice()
+    .sort((a, b) => b.weight - a.weight)
+    .map(p => `- **${p.label}** — currently passing. Do not introduce this pattern.`)
+    .join('\n');
+
   const footer = `
+
+---
+
+## Currently passing — do NOT introduce these patterns
+
+The following ${passing.length} patterns are not triggered on your page right now. Any fix that introduces one of them will RAISE your score and is unacceptable.
+
+${passingList}
 
 ---
 
 ## General guidance
 
 1. **Don't replace one slop pattern with another.** Swapping Inter for Geist is not progress — both are banned. Swapping indigo-600 for violet-500 is not progress — the whole HSL 240–295 range is banned.
-2. **Look at brands with distinct personality** for inspiration: Posthog (intentionally weird), Are.na, Cabin, Manual, Hash, Linear (pre-2024), Stripe docs. The common thread is *editorial restraint and real product imagery*, not decoration.
-3. **Show the product, don't decorate around it.** Every gradient, glow, glass panel, and icon card is space that could have been a real product screenshot.
-4. **Empty is better than fake.** Empty stat banner > "10k+ users". Empty testimonials section > "JD" on a purple gradient. Empty FAQ > five invented questions.
-5. **Verify by rescanning** at https://slop-detector-8by.pages.dev after your changes. The acceptance criterion is **score < 12 (Clean tier)** with **0 patterns from the list above** still triggering.
+2. **Preserve what's already clean.** Anything not flagged above is, by definition, working. Don't rewrite untriggered fonts, colors, or layouts "for consistency".
+3. **Look at brands with distinct personality** for inspiration: Posthog (intentionally weird), Are.na, Cabin, Manual, Hash, Linear (pre-2024), Stripe docs. The common thread is *editorial restraint and real product imagery*, not decoration.
+4. **Show the product, don't decorate around it.** Every gradient, glow, glass panel, and icon card is space that could have been a real product screenshot.
+5. **Empty is better than fake.** Empty stat banner > "10k+ users". Empty testimonials section > "JD" on a purple gradient. Empty FAQ > five invented questions.
+
+## Acceptance criterion
+
+After your changes, rescan with:
+
+\`\`\`bash
+curl -sX POST https://slop-detect.com/api/scan \\
+  -H 'content-type: application/json' \\
+  -d '{"url":"${url}"}' | jq '{score, tier, patternsFlagged, triggered: [.patterns[] | select(.triggered) | .id]}'
+\`\`\`
+
+Or open https://slop-detect.com and paste the URL.
+
+✅ **Passing**: \`score < ${CLEAN_THRESHOLD}\` AND none of the ${triggered.length} patterns above still trigger.
+❌ **Failing**: score didn't drop below ${CLEAN_THRESHOLD}, OR any previously-passing pattern now triggers.
 
 ## Output format
 
-When you make the changes, please:
-- Show each file you're modifying
-- Briefly note which pattern(s) each change addresses
-- After all changes, list the patterns from this prompt that should now be resolved`;
+When you make the changes:
+- Show each file you're modifying (full path + unified diff if possible)
+- For each change, name the pattern ID it addresses (e.g. \`slop_fonts\`, \`perma_dark_mode\`)
+- After all changes, list the triggered patterns that should now be resolved AND confirm none of the "currently passing" patterns were introduced.`;
 
   return header + '\n' + issues + footer;
 }
