@@ -150,17 +150,34 @@
 
   .score-row {
     display: flex;
-    align-items: baseline;
-    gap: 16px;
+    align-items: center;
+    gap: 18px;
     margin-top: 18px;
     padding-top: 18px;
     border-top: 1px solid var(--border);
   }
-  .score-num {
-    font-size: 56px;
-    font-weight: 700;
+  .score-grade {
+    font-size: 64px;
+    font-weight: 800;
     letter-spacing: -0.04em;
+    line-height: 0.85;
+  }
+  .grade-Clean { color: var(--green); }
+  .grade-Mild  { color: var(--yellow); }
+  .grade-Heavy { color: var(--red); }
+  .score-num {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
     line-height: 1;
+  }
+  .score-num small { font-size: 18px; color: var(--muted); font-weight: 500; }
+  .scale-note { font-size: 11px; color: var(--dim); margin-top: 2px; }
+  .score-verdict {
+    margin-top: 14px;
+    font-size: 16px;
+    color: var(--accent);
+    line-height: 1.4;
   }
   .score-tier {
     font-size: 16px;
@@ -278,6 +295,77 @@
   }
   .fix-cta button:hover { opacity: 0.9; }
   .fix-cta button:disabled { opacity: 0.5; cursor: wait; }
+
+  /* Share + embed panels */
+  .share {
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .share-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .share-box h4 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--dim);
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  .share-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .share-btn {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .share-btn:hover { border-color: var(--accent); }
+  .badge-preview {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .badge-preview img { height: 20px; }
+  .badge-preview span { font-size: 12px; color: var(--dim); }
+  .embed-snippet {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 9px 11px;
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow-x: auto;
+    cursor: pointer;
+  }
+  .embed-snippet:hover { border-color: var(--dim); color: var(--text); }
+  .embed-tabs { display: flex; gap: 4px; margin-bottom: 8px; }
+  .embed-tab {
+    background: transparent;
+    color: var(--dim);
+    border: 0;
+    border-radius: 5px;
+    padding: 3px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .embed-tab.active { background: var(--panel-2); color: var(--text); }
+  @media (max-width: 600px) { .share { grid-template-columns: 1fr; } }
 
   .modal-bg {
     display: none;
@@ -608,12 +696,18 @@ function render(d, totalMs) {
       <div class="result-title">${escapeHtml(d.title || '(no title)')}</div>
       ${d.h1 ? `<div class="result-h1">H1: "${escapeHtml(d.h1.slice(0,80))}${d.h1.length>80?'…':''}"</div>` : ''}
       <div class="score-row">
-        <div class="score-num">${d.score}</div>
+        <div class="score-grade grade-${d.tier}">${escapeHtml(d.grade || '')}</div>
+        <div>
+          <div class="score-num">${d.score}<small>/100</small></div>
+          <div class="scale-note">slop · lower is better</div>
+        </div>
         <div class="score-tier tier-${d.tier}">${d.tier}</div>
         <div class="score-meta">${d.patternsFlagged}/${d.patternsTotal} patterns · ${(totalMs/1000).toFixed(1)}s</div>
       </div>
       <div class="score-bar"><div class="score-bar-fill fill-${d.tier}" style="width:${d.score}%"></div></div>
+      ${d.verdict ? `<div class="score-verdict">${escapeHtml(d.verdict)}</div>` : ''}
       ${fixCta}
+      ${sharePanel(d)}
     </div>
     ${triggered.length ? `
       <div class="pat-section">
@@ -634,6 +728,104 @@ function render(d, totalMs) {
 
   const fixBtn = document.getElementById('fixPromptBtn');
   if (fixBtn) fixBtn.addEventListener('click', openFixPrompt);
+
+  wireSharePanel(d);
+
+  // Update the URL bar to the shareable permalink (no reload).
+  if (d.resultUrl) {
+    try { history.replaceState(null, '', '/r/' + d.id); } catch (_) {}
+  }
+}
+
+// ── Share + embed panel ───────────────────────────────────────────────────────
+function domainOf(u) {
+  try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; }
+}
+
+function sharePanel(d) {
+  if (!d.resultUrl) return '';  // sharing unavailable (KV off / opted out)
+  const dom = domainOf(d.finalUrl || d.url);
+  const origin = location.origin;
+  const badgeUrl = `${origin}/badge/${dom}.svg`;
+  return `
+    <div class="share">
+      <div class="share-box">
+        <h4>Share this result</h4>
+        <div class="share-actions">
+          <button class="share-btn" id="copyLinkBtn">🔗 Copy link</button>
+          <button class="share-btn" id="shareXBtn">𝕏 Share</button>
+          <button class="share-btn" id="shareLiBtn">in Share</button>
+        </div>
+      </div>
+      <div class="share-box">
+        <h4>Embed a live badge</h4>
+        <div class="badge-preview">
+          <img src="${badgeUrl}" alt="slop badge" onerror="this.style.display='none'">
+          <span>re-scans periodically</span>
+        </div>
+        <div class="embed-tabs">
+          <button class="embed-tab active" data-fmt="md">Markdown</button>
+          <button class="embed-tab" data-fmt="html">HTML</button>
+          <button class="embed-tab" data-fmt="url">URL</button>
+        </div>
+        <div class="embed-snippet" id="embedSnippet" title="Click to copy"></div>
+      </div>
+    </div>`;
+}
+
+function wireSharePanel(d) {
+  if (!d.resultUrl) return;
+  const dom = domainOf(d.finalUrl || d.url);
+  const origin = location.origin;
+  const badgeUrl = `${origin}/badge/${dom}.svg`;
+  const link = d.resultUrl;
+
+  const snippets = {
+    md:   `[![slop](${badgeUrl})](${link})`,
+    html: `<a href="${link}"><img src="${badgeUrl}" alt="slop"></a>`,
+    url:  badgeUrl
+  };
+  const snippetEl = document.getElementById('embedSnippet');
+  let fmt = 'md';
+  const renderSnippet = () => { if (snippetEl) snippetEl.textContent = snippets[fmt]; };
+  renderSnippet();
+
+  document.querySelectorAll('.embed-tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.embed-tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      fmt = t.dataset.fmt;
+      renderSnippet();
+    });
+  });
+  if (snippetEl) snippetEl.addEventListener('click', () => copyToClipboard(snippets[fmt], 'Snippet copied'));
+
+  const copyLink = document.getElementById('copyLinkBtn');
+  if (copyLink) copyLink.addEventListener('click', () => copyToClipboard(link, 'Link copied'));
+
+  const verdictText = `${dom} scored ${d.grade} (${d.score}/100) on the AI-design-slop detector. ${d.verdict || ''}`.trim();
+  const shareX = document.getElementById('shareXBtn');
+  if (shareX) shareX.addEventListener('click', () => {
+    window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(verdictText) + '&url=' + encodeURIComponent(link), '_blank', 'noopener');
+  });
+  const shareLi = document.getElementById('shareLiBtn');
+  if (shareLi) shareLi.addEventListener('click', () => {
+    window.open('https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(link), '_blank', 'noopener');
+  });
+}
+
+async function copyToClipboard(text, msg) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (_) {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch (__) {}
+    ta.remove();
+  }
+  flash.textContent = '✓ ' + (msg || 'Copied');
+  flash.classList.add('show');
+  setTimeout(() => flash.classList.remove('show'), 1600);
 }
 
 // ── Fix prompt modal ────────────────────────────────────────────────────────
@@ -689,6 +881,15 @@ copyBtn.addEventListener('click', async () => {
     setTimeout(() => flash.classList.remove('show'), 1600);
   }
 });
+
+// Deep-link prefill: /?url=... (used by the "Re-scan this page" CTA on /r/:id).
+// Runs last, after the submit handler + example chips are wired.
+(function prefillFromQuery() {
+  try {
+    const q = new URLSearchParams(location.search).get('url');
+    if (q) { urlInput.value = q; form.requestSubmit(); }
+  } catch (_) {}
+})();
 </script>
 </body>
 </html>

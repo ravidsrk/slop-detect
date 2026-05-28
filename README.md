@@ -67,6 +67,25 @@ git clone --depth 1 https://github.com/ravidsrk/slop-detect /tmp/sd \
   && cp -r /tmp/sd/skills/slop-detect ~/.claude/skills/
 ```
 
+## Share & embed
+
+Every scan now gets a **shareable permalink** with an auto-generated social card,
+and any domain gets a **live badge** you can drop in a README or site footer.
+
+```md
+<!-- Live slop badge — re-scans periodically, colored by tier -->
+[![slop](https://slop-detect.com/badge/your-site.com.svg)](https://slop-detect.com)
+```
+
+| Endpoint | What it returns |
+|---|---|
+| `GET /r/<id>` | Server-rendered result permalink (OG card unfurls on X / LinkedIn / Slack) |
+| `GET /og/<id>.png` | 1200×630 PNG share card (grade · score · tier · verdict) |
+| `GET /badge/<domain>.svg` | Live tier-colored badge (`slop · A · 6`) for the last scan of that domain |
+
+The `POST /api/scan` response includes `grade`, `verdict`, `definitionsVersion`,
+plus an `id` and `resultUrl` for the shareable permalink.
+
 The repo also ships an [Agent Skill](skills/slop-detect/SKILL.md) following the [agentskills.io](https://agentskills.io) open spec — any compatible agent (Claude Code, Cursor, GitHub Copilot, Gemini CLI, Codex, Roo Code, Junie, and 20+ others) will autonomously invoke the scanner when you ask it to audit a landing page.
 
 ## The 16 patterns
@@ -164,12 +183,20 @@ The runner is yours — Playwright, Puppeteer, Cloudflare Browser Rendering, Bro
 
 ## Roadmap
 
-- [ ] Public REST API at `slop-detect.com/api/*` with rate-limited free tier
-- [ ] SVG badge endpoint (`![Slop: Clean 3/100](.../badge?url=...)`) for README embedding
-- [ ] GitHub Action — auto-comment fix prompts on PRs that deploy preview URLs
-- [ ] 17th, 18th, ... patterns as new slop trends emerge (Cursor v3, v0 v2, etc.)
-- [ ] Historical scoring — track how `stripe.com` drifted across 5 years
-- [ ] Multilingual patterns (Japanese/Chinese landing pages have different slop signatures)
+See [ROADMAP.md](ROADMAP.md) for the full strategic plan. Phase 1 (distribution
+primitives) shipped in v0.2.0:
+
+- [x] **Shareable result permalinks** — every scan gets `slop-detect.com/r/<id>`
+- [x] **OG share cards** — auto-generated 1200×630 image per result (`/og/<id>.png`)
+- [x] **Letter grades + verdict** — A+→F grade and a one-liner on every score
+- [x] **Embeddable SVG badge** — `slop-detect.com/badge/<domain>.svg` + copy-paste snippets
+- [x] **Versioned slop definitions** — scores tagged with `definitionsVersion`
+- [ ] GitHub Action — auto-comment fix prompts / status checks on PR preview URLs
+- [ ] MCP server so agents self-audit before shipping
+- [ ] Declarative rule format + community rule registry
+- [ ] 17th, 18th, ... patterns as new slop trends emerge (bento walls, aurora gradients)
+- [ ] Multi-axis slop score (design + copy + code)
+- [ ] Historical scoring + team dashboards (Pro)
 
 ## Acknowledgments
 

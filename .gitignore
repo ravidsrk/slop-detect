@@ -39,3 +39,6 @@ yarn-error.log*
 *.scan.json
 *.fix.md
 /tmp-scans/
+
+# Agent state (issues, outputs, entities)
+.mogra/

@@ -108,8 +108,10 @@ function renderPretty(result) {
   if (result.h1) console.log(`${C.grey}H1: "${result.h1}"${C.reset}`);
   console.log();
   console.log(`  ${emoji(result.tier)} ${ts}${C.bold}${result.tier}${C.reset}` +
+    `  ·  ${C.bold}${result.grade || '?'}${C.reset}` +
     `  ·  score ${C.bold}${result.score}${C.reset}/100` +
     `  ·  ${C.bold}${result.patternsFlagged}${C.reset}/${result.patternsTotal} patterns triggered`);
+  if (result.verdict) console.log(`  ${C.grey}${result.verdict}${C.reset}`);
   console.log();
 
   const flagged = result.patterns.filter(p => p.triggered);

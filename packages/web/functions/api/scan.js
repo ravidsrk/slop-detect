@@ -14,6 +14,7 @@ import {
   ACCENT_SERIF_PREFIXES,
   scorePatterns
 } from 'slop-detect-core';
+import { newId, slimResult, saveResult } from '../_shared.js';
 
 // CORS + Turnstile + rate-limit are handled by functions/api/_middleware.js.
 // This handler just returns JSON; the middleware merges Access-Control-* headers.
@@ -97,7 +98,7 @@ export async function onRequestPost({ request, env }) {
     });
     const scoring = scorePatterns(patterns);
 
-    return json({
+    const result = {
       url,
       finalUrl: data.url,
       title: data.title,
@@ -107,7 +108,22 @@ export async function onRequestPost({ request, env }) {
       patterns,
       screenshot,
       navMs
-    });
+    };
+
+    // Persist a slim snapshot so the scan gets a shareable permalink (/r/:id),
+    // a cached OG card (/og/:id.png), and feeds the per-domain badge.
+    // Skip persistence when the caller opts out (e.g. CI dry-runs).
+    if (env.RESULTS && body.share !== false) {
+      try {
+        const id = newId();
+        const slim = slimResult(result, id);
+        await saveResult(env.RESULTS, slim);
+        result.id = id;
+        result.resultUrl = `${new URL(request.url).origin}/r/${id}`;
+      } catch (_) { /* sharing is best-effort; never fail a scan over it */ }
+    }
+
+    return json(result);
   } catch (err) {
     return json({ error: err.message || String(err) }, 502);
   } finally {

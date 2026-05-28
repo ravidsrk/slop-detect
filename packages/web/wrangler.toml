@@ -16,6 +16,13 @@ binding = "BROWSER"
 binding = "RATE_LIMIT"
 id = "c5aad4cb07e7405e86c3cf1aebcae772"
 
+# KV namespace for shareable scan results, OG card cache, and badge cache.
+# Created via the Cloudflare API on 2026-05-28. Powers /r/:id, /og/:id.png,
+# and /badge/:domain.svg (Phase 1 distribution primitives — see UX.md).
+[[kv_namespaces]]
+binding = "RESULTS"
+id = "f8bbc9f7a16948a2995215321e679115"
+
 # Public Turnstile sitekey (safe to commit; the matching secret lives in
 # Pages env vars and is never written to disk).
 [vars]
