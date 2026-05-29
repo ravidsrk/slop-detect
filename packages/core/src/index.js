@@ -20,13 +20,15 @@ export {
 } from './fonts.js';
 export { FIXES, buildFixPrompt } from './fixes.js';
 export { gradeForScore, verdictFor, GRADE_BANDS } from './verdict.js';
+export { compileRule, compileRules, validateRule } from './rules.js';
+export { PRESETS, applyPreset, isPreset } from './presets.js';
 
 import { gradeForScore, verdictFor } from './verdict.js';
 
 // Versioned "slop definitions". Bump when patterns are added / removed /
 // re-weighted so historical scores stay comparable and a re-score drift is
 // explainable (rule change vs. site change). See ROADMAP.md issue #06.
-export const DEFINITIONS_VERSION = '2026.06';
+export const DEFINITIONS_VERSION = '2026.07';
 
 // Convenience: turn a triggered-pattern array into a scoring summary.
 // Pure function so it's safe to call from any runtime.

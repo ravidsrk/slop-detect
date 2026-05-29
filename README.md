@@ -1,6 +1,6 @@
 # slop-detect
 
-> **Score any landing page against the 16-rule AI-design-slop fingerprint.**
+> **Score any landing page against the 19-rule AI-design-slop fingerprint.**
 > Detect Cursor / v0 / Lovable / Bolt templates in the wild — and get a copy-pasteable fix prompt to clean them up.
 
 <p>
@@ -46,7 +46,7 @@ By April 2026, AI-generated landing pages had collapsed onto a measurable visual
 - 🟢 **`slop-detect.com`** — drop-in web UI, scan any URL in 8 seconds
 - 🟢 **`slop-detect-core`** — pure detection engine, embed it in your own pipeline
 
-All three share the **same 16-rule scoring engine** so a Heavy from the CLI is a Heavy from the web is a Heavy from the API.
+All three share the **same 19-rule scoring engine** so a Heavy from the CLI is a Heavy from the web is a Heavy from the API.
 
 ## Try it now
 
@@ -119,7 +119,10 @@ grade (fail if the grade is worse). Leave it empty for report-only mode.
 
 The repo also ships an [Agent Skill](skills/slop-detect/SKILL.md) following the [agentskills.io](https://agentskills.io) open spec — any compatible agent (Claude Code, Cursor, GitHub Copilot, Gemini CLI, Codex, Roo Code, Junie, and 20+ others) will autonomously invoke the scanner when you ask it to audit a landing page.
 
-## The 16 patterns
+## The 19 patterns
+
+`definitions@2026.07` — versioned ruleset. Scores from a given definition
+version are comparable; the version ships in every result (`definitionsVersion`).
 
 | # | Pattern | Weight | What it detects |
 |---|---|---|---|
@@ -139,10 +142,35 @@ The repo also ships an [Agent Skill](skills/slop-detect/SKILL.md) following the 
 | 14 | **Stat banner** | 3 | Big-number stat row ("10k+", "99.9%") |
 | 15 | **FAQ accordion** | 2 | Generic accordion with no schema markup |
 | 16 | **Gradient avatars** | 5 | Letter-only testimonial avatars on gradient backgrounds |
+| 17 | **Bento grid** | 4 | Apple-keynote mixed-span rounded card wall |
+| 18 | **Aurora blobs** | 5 | Blurred radial/conic gradient "aurora" backdrop |
+| 19 | **AI sparkles** | 3 | ✨ / lucide "Sparkles" "AI magic" tells |
 
 **Tiers:** Clean (0–9) · Mild (10–27) · Heavy (≥28)
 
-Source: Krebs (Apr 2026) + Meng To (May 2026 Aura tutorial). See [`packages/core/src/patterns.js`](packages/core/src/patterns.js) for the full detection logic with weighted heuristics.
+Source: Krebs (Apr 2026) + Meng To (May 2026 Aura tutorial) + 2026.07 emerging
+tells (#17–19). See [`packages/core/src/patterns.js`](packages/core/src/patterns.js)
+for the full detection logic with weighted heuristics.
+
+### Scoring presets
+
+Score against a curated subset instead of the full fingerprint:
+
+```bash
+slop-detect https://example.com --preset marketing   # brand-surface tells only
+slop-detect https://example.com --preset strict       # high-signal smoking guns
+slop-detect https://example.com --preset minimal       # the 3 dead-giveaways
+```
+
+| Preset | Scores |
+|---|---|
+| `full` (default) | all 19 patterns |
+| `strict` | only weight ≥ 5 (fewest false positives — good CI gate) |
+| `marketing` | fonts, colours, gradients, hero treatment |
+| `minimal` | slop fonts + VibeCode purple + gradient text |
+
+The API accepts `{ "url": "...", "preset": "strict" }`. New patterns can be added
+declaratively — see [CONTRIBUTING.md](CONTRIBUTING.md#the-low-friction-path-declarative-rules).
 
 ## What's in this repo
 
@@ -154,7 +182,7 @@ slop-detect/
 │   └── web/     slop-detect-web    ← Cloudflare Pages app powering slop-detect.com
 ```
 
-A monorepo with npm workspaces. The `core` package is the single source of truth for the 16 rules — `cli` and `web` are thin runtime adapters around it.
+A monorepo with npm workspaces. The `core` package is the single source of truth for the 19 rules — `cli` and `web` are thin runtime adapters around it.
 
 ## Quickstart — contributing
 
@@ -197,7 +225,7 @@ Plus cross-cutting guidance ("don't replace one slop pattern with another", "emp
 ```js
 import { PATTERNS, scorePatterns } from 'slop-detect-core';
 
-// PATTERNS is the array of 16 rule definitions.
+// PATTERNS is the array of 19 rule definitions.
 // Each has { id, label, weight, extract, detect } where:
 //   extract(ctx) runs in the page's DOM context and returns signals
 //   detect(signals) is a pure function deciding triggered: true/false
@@ -224,9 +252,11 @@ primitives) shipped in v0.2.0:
 - [x] **Versioned slop definitions** — scores tagged with `definitionsVersion`
 - [x] **GitHub Action** — sticky PR comment + pass/fail status check on preview URLs
 - [x] **MCP server** (`slop-detect-mcp`) so agents self-audit before shipping
-- [ ] Public REST API with documented rate-limited tiers + keys
-- [ ] Declarative rule format + community rule registry
-- [ ] 17th, 18th, ... patterns as new slop trends emerge (bento walls, aurora gradients)
+- [x] **Public REST API** with key-based rate-limit tiers ([API.md](packages/web/API.md))
+- [x] **Declarative rule format** + named presets (strict / marketing / minimal)
+- [x] **New 2026.07 patterns** — bento walls, aurora gradients, AI sparkles
+- [ ] Community rule registry + web rule authoring UI
+- [ ] AI-builder provenance signal ("likely built with v0 / Lovable / Bolt")
 - [ ] Multi-axis slop score (design + copy + code)
 - [ ] Historical scoring + team dashboards (Pro)
 

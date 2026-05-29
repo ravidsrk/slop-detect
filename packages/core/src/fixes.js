@@ -225,6 +225,48 @@ export const FIXES = {
       "Remove the testimonials section until you have real ones"
     ],
     rule: "No avatars showing initials on a gradient or solid colored background. Either real photos or no avatars."
+  },
+
+  bento_grid: {
+    problem:
+      "A wall of heavily-rounded cards at mixed column/row spans — the Apple-keynote 'bento box'. Every AI builder ships this section now, so a varied-span rounded grid reads as a template default rather than a considered layout.",
+    fix:
+      "Decide what the section is actually for, then pick the simplest layout that serves it. If the cards are equal in importance, use a plain uniform grid or a list. If one thing matters most, make it big and the rest small — but justify the asymmetry with content hierarchy, not decoration. Drop the uniform 16px+ corner radius; tighten spacing.",
+    alternatives: [
+      "A simple uniform 2- or 3-column grid with real content in each cell",
+      "One large feature block + a short supporting list (asymmetry that means something)",
+      "A plain vertical stack of sections — bento is rarely the clearest choice",
+      "A single annotated product screenshot instead of N abstract cards"
+    ],
+    rule: "No mixed-span rounded-card 'bento' wall unless each span maps to real content priority."
+  },
+
+  aurora_mesh_gradient: {
+    problem:
+      "Large blurred radial/conic gradient 'blobs' glowing behind the hero — the v0/Lovable default backdrop. Soft aurora orbs add zero information and instantly date the page to the 2026 AI-template era.",
+    fix:
+      "Remove the blurred gradient blobs. Let the background be a solid color or honest negative space. If the hero feels empty, fill it with something real: product UI, a photograph, or stronger copy — not ambient glow.",
+    alternatives: [
+      "Solid background + real product screenshot",
+      "Flat brand color with strong type contrast",
+      "Negative space — confident pages don't need a glow",
+      "A single subtle texture with actual brand meaning"
+    ],
+    rule: "No blurred radial/conic gradient blobs as decorative hero backdrop."
+  },
+
+  ai_sparkle_badges: {
+    problem:
+      "The ✨ sparkle emoji (or a lucide 'Sparkles' icon) used to label a feature as 'AI-powered'. It's the single most overused generative-UI tell of 2026 — it says 'AI' without saying what the AI does.",
+    fix:
+      "Delete the sparkle glyph. Describe the actual capability in plain words ('drafts replies in your voice', not '✨ AI magic'). If you need an icon, pick one that depicts the specific action, and let the verb carry the meaning.",
+    alternatives: [
+      "A concrete verb phrase describing what happens, no icon",
+      "An action-specific icon (pencil, wand only if it truly fits) over a generic sparkle",
+      "A 5-second before/after that shows the capability instead of labeling it",
+      "Nothing — most 'AI' buttons read better as a plain primary CTA"
+    ],
+    rule: "No ✨/Sparkles glyph as an 'AI magic' label. Name the capability instead."
   }
 };
 
@@ -321,6 +363,20 @@ const EVIDENCE_FORMATTERS = {
     const sam = fmtList(e.samples);
     if (sam) parts.push(`labels: ${sam}`);
     return parts.length ? parts.join(' — ') + '.' : null;
+  },
+  bento_grid: (e) =>
+    e.children
+      ? `A grid of ${e.children} rounded cards with ${e.spanVariety} distinct column spans (the "bento" tell).`
+      : null,
+  aurora_mesh_gradient: (e) =>
+    e.blobs ? `${e.blobs} large blurred gradient blobs behind the fold.` : null,
+  ai_sparkle_badges: (e) => {
+    const parts = [];
+    if (e.emojiHits) parts.push(`${e.emojiHits} ✨-style emoji`);
+    if (e.svgHits) parts.push(`${e.svgHits} "Sparkles" icon hit(s)`);
+    const sam = fmtList(e.samples);
+    if (sam) parts.push(`e.g. ${sam}`);
+    return parts.length ? `AI-magic tells: ${parts.join(', ')}.` : null;
   }
 };
 

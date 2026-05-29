@@ -1,4 +1,4 @@
-// The 16 deterministic AI-design-slop patterns.
+// The deterministic AI-design-slop patterns.
 //
 // 15 from Adrian Krebs's April 2026 study (adriankrebs.ch/blog/design-slop)
 //  1. slop_fonts            — Inter / Space Grotesk / Geist / Instrument Serif
@@ -19,6 +19,11 @@
 //
 // Plus 1 contributed by Meng To (May 2026 27-min tutorial):
 // 16. gradient_letter_avatars — Testimonial avatars as gradient + initial
+//
+// 2026.07 — emerging tells as AI builders converged on new defaults:
+// 17. bento_grid           — Apple-keynote mixed-span rounded card wall
+// 18. aurora_mesh_gradient — Blurred glowing radial/conic gradient blobs
+// 19. ai_sparkle_badges    — ✨ / lucide "Sparkles" "AI magic" tells
 //
 // Each pattern returns { triggered, evidence, weight }. The orchestrator sums
 // weights for the final 0-100 score.
@@ -590,6 +595,141 @@ export const PATTERNS = [
         if (samples.length < 3) samples.push({ initials: txt, size: Math.round(r.width) });
       }
       return { count, samples, triggered: count >= 2 };
+    }
+  },
+
+  // ── 17. BENTO-GRID WALL (2026.07) ─────────────────────────────────────────
+  // The Apple-keynote "bento box": a CSS grid of heavily-rounded cards at mixed
+  // column/row spans. Every AI builder ships a bento section now; a wall of 5+
+  // rounded grid children with varied spans is a strong template tell.
+  {
+    id: 'bento_grid',
+    label: 'Bento-grid wall — mixed-span rounded card grid',
+    short: 'Bento grid',
+    category: 'layout',
+    weight: 4,
+    author: 'slop-detect',
+    since: '2026.07',
+    extract: (ctx) => {
+      const { visible } = ctx;
+      let best = { children: 0, spanVariety: 0, rounded: 0 };
+      for (const el of visible) {
+        const cs = getComputedStyle(el);
+        if (cs.display !== 'grid') continue;
+        // Needs an explicit multi-column template to be a "bento", not a 1-col stack.
+        const cols = (cs.gridTemplateColumns || '').split(' ').filter(Boolean).length;
+        if (cols < 2) continue;
+        const kids = Array.from(el.children);
+        if (kids.length < 4) continue;
+        const spans = new Set();
+        let rounded = 0, sized = 0;
+        for (const k of kids) {
+          const kr = k.getBoundingClientRect();
+          if (kr.width < 80 || kr.height < 60) continue;
+          sized++;
+          const kcs = getComputedStyle(k);
+          // Column span via grid-column or explicit span keyword.
+          const gc = (kcs.gridColumn || '').toString();
+          const m = gc.match(/span\s+(\d+)/i);
+          spans.add(m ? parseInt(m[1], 10) : 1);
+          if (parseFloat(kcs.borderRadius) >= 12) rounded++;
+        }
+        if (sized < 4) continue;
+        // Bento = several rounded cards + at least two distinct column spans
+        // (the asymmetry that defines the look). A uniform 3-col grid is just a
+        // normal grid and is already partly covered by icon_card_grid.
+        const score = { children: sized, spanVariety: spans.size, rounded };
+        if (rounded >= 4 && spans.size >= 2 && sized > best.children) best = score;
+      }
+      return {
+        ...best,
+        triggered: best.rounded >= 4 && best.spanVariety >= 2 && best.children >= 5
+      };
+    }
+  },
+
+  // ── 18. AURORA / MESH GRADIENT BLOBS (2026.07) ────────────────────────────
+  // The v0/Lovable hero backdrop: large absolutely-positioned divs with a
+  // radial/conic gradient, big blur, and high border-radius — soft glowing
+  // "aurora" blobs floating behind the fold. Distinct from gradient_backgrounds
+  // (which counts any gradient) because it keys on the blurred-blob treatment.
+  {
+    id: 'aurora_mesh_gradient',
+    label: 'Aurora / mesh gradient blobs (blurred glowing backdrop)',
+    short: 'Aurora blobs',
+    category: 'css',
+    weight: 5,
+    author: 'slop-detect',
+    since: '2026.07',
+    extract: (ctx) => {
+      const { visible } = ctx;
+      let blobs = 0;
+      const samples = [];
+      const vw = window.innerWidth, vh = window.innerHeight;
+      for (const el of visible) {
+        const cs = getComputedStyle(el);
+        const bgImg = cs.backgroundImage || '';
+        const isGrad = /(radial|conic)-gradient\(/.test(bgImg) ||
+          (/linear-gradient\(/.test(bgImg) && parseFloat(cs.filter && cs.filter.match(/blur\(([\d.]+)px\)/)?.[1] || 0) > 0);
+        if (!isGrad) continue;
+        // Big blur is the signature — either a CSS filter:blur or a heavy radius
+        // making a soft orb.
+        const blurM = (cs.filter || '').match(/blur\(([\d.]+)px\)/);
+        const blur = blurM ? parseFloat(blurM[1]) : 0;
+        const radius = parseFloat(cs.borderRadius) || 0;
+        const r = el.getBoundingClientRect();
+        const big = r.width >= vw * 0.25 && r.height >= vh * 0.2;
+        const orby = radius >= Math.min(r.width, r.height) * 0.4 || cs.borderRadius === '50%' || /9999px/.test(cs.borderRadius);
+        const positioned = cs.position === 'absolute' || cs.position === 'fixed';
+        if (blur >= 24 && big) { blobs++; }
+        else if (positioned && orby && big && /(radial|conic)-gradient/.test(bgImg)) { blobs++; }
+        else continue;
+        if (samples.length < 3) samples.push({ blur: Math.round(blur), radius: cs.borderRadius });
+      }
+      return { blobs, samples, triggered: blobs >= 2 };
+    }
+  },
+
+  // ── 19. AI-SPARKLE BADGES (2026.07) ───────────────────────────────────────
+  // The generative-UI tell: a ✨/Sparkles glyph used to label something as
+  // "AI-powered" — emoji in a button/eyebrow, or the lucide "Sparkles" SVG next
+  // to a CTA or input. Near-universal on AI-builder landing pages in 2026.
+  {
+    id: 'ai_sparkle_badges',
+    label: 'AI-sparkle badges (✨ / Sparkles "magic" tells)',
+    short: 'AI sparkles',
+    category: 'images',
+    weight: 3,
+    author: 'slop-detect',
+    since: '2026.07',
+    extract: (ctx) => {
+      const { visible } = ctx;
+      // Sparkle emoji range: ✨ (U+2728), 🌟 (U+1F31F), ⭐ used as "AI magic".
+      const sparkleEmoji = /[\u2728\u2729\u2734\u2735]|\uD83C\uDF1F|\uD83E\uDE84/;
+      // "AI magic" copy that co-occurs with the glyph.
+      const magicWord = /\b(ai|magic|generate|powered by ai|with ai|smart)\b/i;
+      let emojiHits = 0, svgHits = 0;
+      const samples = [];
+      for (const el of visible) {
+        // Only leaf-ish small elements to avoid double-counting wrappers.
+        const txt = (el.textContent || '').trim();
+        if (txt && txt.length <= 40 && sparkleEmoji.test(txt) && el.children.length <= 1) {
+          emojiHits++;
+          if (samples.length < 3) samples.push(txt.slice(0, 30));
+          continue;
+        }
+        // lucide/heroicons "sparkles" — class or data attr or aria-label.
+        const attrs = ((el.getAttribute && (el.getAttribute('class') || '') + ' ' +
+          (el.getAttribute('aria-label') || '') + ' ' +
+          (el.getAttribute('data-icon') || '')) || '').toLowerCase();
+        if (/sparkle|sparkles|magic-wand|wand-sparkles/.test(attrs)) {
+          // Bonus confidence if it sits near AI copy.
+          const near = (el.closest('button, a, label, [role="button"]') || el).textContent || '';
+          svgHits += magicWord.test(near) ? 1 : 0.5;
+        }
+      }
+      const total = emojiHits + svgHits;
+      return { emojiHits, svgHits, samples, triggered: total >= 1 && (emojiHits >= 1 || svgHits >= 1) };
     }
   }
 ];

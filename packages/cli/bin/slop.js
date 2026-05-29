@@ -8,17 +8,33 @@
 // pretty terminal report or a machine-readable JSON blob.
 
 import { scanUrl } from '../src/detector.js';
+import { isPreset, PRESETS } from 'slop-detect-core';
 
 const args = process.argv.slice(2);
 const urls = [];
-const flags = { json: false, screenshot: false, verbose: false };
+const flags = { json: false, screenshot: false, verbose: false, preset: 'full' };
 
-for (const a of args) {
+for (let i = 0; i < args.length; i++) {
+  const a = args[i];
   if (a === '--json' || a === '-j') flags.json = true;
   else if (a === '--screenshot') flags.screenshot = true;
   else if (a === '--verbose' || a === '-v') flags.verbose = true;
   else if (a === '--help' || a === '-h') { help(); process.exit(0); }
-  else if (a.startsWith('--')) { console.error(`Unknown flag: ${a}`); process.exit(1); }
+  else if (a === '--preset' || a === '-p') {
+    const val = args[++i];
+    if (!val || !isPreset(val)) {
+      console.error(`Unknown preset: ${val}. Options: ${Object.keys(PRESETS).join(', ')}`);
+      process.exit(1);
+    }
+    flags.preset = val;
+  } else if (a.startsWith('--preset=')) {
+    const val = a.slice('--preset='.length);
+    if (!isPreset(val)) {
+      console.error(`Unknown preset: ${val}. Options: ${Object.keys(PRESETS).join(', ')}`);
+      process.exit(1);
+    }
+    flags.preset = val;
+  } else if (a.startsWith('--')) { console.error(`Unknown flag: ${a}`); process.exit(1); }
   else urls.push(a);
 }
 
@@ -38,6 +54,7 @@ Options:
   --json, -j        Emit JSON instead of pretty output
   --screenshot      Include a base64 hero screenshot in JSON output
   --verbose, -v     Show evidence details for every triggered pattern
+  --preset, -p <p>  Scoring preset: full (default), strict, marketing, minimal
   --help, -h        Show this help
 
 Examples:
@@ -143,7 +160,7 @@ function renderPretty(result) {
   const results = [];
   for (const url of urls) {
     try {
-      const r = await scanUrl(url, { screenshot: flags.screenshot });
+      const r = await scanUrl(url, { screenshot: flags.screenshot, preset: flags.preset });
       results.push(r);
       if (!flags.json) renderPretty(r);
     } catch (err) {

@@ -1,6 +1,25 @@
 # Changelog
 
-## Unreleased — Phase 2: embed into the workflow (CI + agents)
+## 0.3.0 — Phase 3: keep the ruleset current
+
+### Added
+- **Declarative rule format** (`compileRule` / `compileRules` / `validateRule`)
+  — describe a pattern as `{ id, label, weight, detect: { scope, when, trigger } }`
+  and it compiles to a self-contained, injectable detector. Lowers the cost of
+  contributing the 20th/21st pattern. Imperative patterns still supported. (`#05`)
+- **Named scoring presets** — `full` (default), `strict` (weight ≥ 5),
+  `marketing` (brand surface), `minimal` (3 dead-giveaways). Selectable via the
+  CLI `--preset` flag and the API `{ preset }` field; `applyPreset` exported.
+- **Public API key tiers** — `Authorization: Bearer` / `X-API-Key` keys with
+  `free` / `pro` / `unlimited` tiers (key-bucketed limits, Turnstile bypass).
+  Fully documented in [packages/web/API.md](packages/web/API.md).
+
+### Definitions `2026.07`
+- **+3 emerging patterns** (max raw weight 73 → 85): `bento_grid` (w4),
+  `aurora_mesh_gradient` (w5), `ai_sparkle_badges` (w3). Each with a fix recipe
+  and evidence formatter. Verified for no false positives on Hacker News (Clean).
+
+## 0.2.x — Phase 2: embed into the workflow (CI + agents)
 
 ### Added
 - **`slop-detect-mcp`** — Model Context Protocol server (stdio) exposing

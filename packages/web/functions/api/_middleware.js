@@ -6,8 +6,16 @@
 //      slop-detect.com (with localhost allowed for dev) and require a valid
 //      Turnstile token on POST.
 //
+// Optional API-key tiers (purely additive — no key = unchanged anon behavior):
+//   Clients may pass `Authorization: Bearer <key>` or `X-API-Key: <key>`.
+//   A valid key buckets rate limits by the KEY (not the IP) so shared-IP CI
+//   runners aren't throttled by neighbors, raises the per-minute limits per
+//   tier, and counts as proof-of-human (skips Turnstile regardless of origin).
+//   Keys live in the existing RATE_LIMIT KV under a `key:<apikey>` prefix —
+//   see API.md for how an operator mints one with wrangler.
+//
 // Bindings (see wrangler.toml + pages env vars):
-//   env.RATE_LIMIT        — KV namespace for per-IP counter (sliding 60s window)
+//   env.RATE_LIMIT        — KV namespace for per-IP counters + API-key records
 //   env.TURNSTILE_SECRET  — Cloudflare Turnstile secret key
 //   env.TURNSTILE_SITEKEY — public sitekey (echoed to web UI)
 
@@ -24,12 +32,24 @@ const ALLOWED_ORIGINS = new Set([
 const SCAN_LIMIT_PER_MIN = 6;
 const FIXPROMPT_LIMIT_PER_MIN = 20;
 
+// API-key tier DEFAULTS. A key record's own scanPerMin/fixPerMin (if present)
+// override these. `unlimited` means "skip the rate-limit gate entirely".
+// `turnstile: false` means a valid key of this tier is proof-of-human enough,
+// so we skip the Turnstile check regardless of request origin.
+const TIERS = {
+  free: { scanPerMin: 10, fixPerMin: 20, turnstile: false },
+  pro: { scanPerMin: 60, fixPerMin: 120, turnstile: false },
+  unlimited: { scanPerMin: Infinity, fixPerMin: Infinity, turnstile: false }
+};
+
 function corsHeaders(origin) {
   const allow = ALLOWED_ORIGINS.has(origin) ? origin : 'https://slop-detect.com';
   return {
     'Access-Control-Allow-Origin': allow,
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, X-Turnstile-Token',
+    // Allow the two API-key header styles through CORS preflight too, so
+    // browser clients with a key (e.g. a dashboard) aren't blocked.
+    'Access-Control-Allow-Headers': 'Content-Type, X-Turnstile-Token, Authorization, X-API-Key',
     'Vary': 'Origin'
   };
 }
@@ -39,6 +59,55 @@ function jsonResponse(data, status, origin) {
     status,
     headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) }
   });
+}
+
+// Pull an API key from either header style. Returns null if none supplied —
+// reading a key is always optional.
+function extractApiKey(request) {
+  const auth = request.headers.get('Authorization') || '';
+  const bearer = auth.match(/^Bearer\s+(.+)$/i);
+  if (bearer) return bearer[1].trim();
+  const x = request.headers.get('X-API-Key');
+  if (x) return x.trim();
+  return null;
+}
+
+// Resolve an API key against KV. `cache` is a per-request Map (passed in so the
+// cache never outlives the request — a module-level cache would serve stale
+// records across requests in the same Worker isolate). Returns:
+//   { found: false }                       — no such key (caller → 401)
+//   { found: true, record }                — valid record (may be disabled)
+// KV-missing is handled by the caller (it only calls this when env.RATE_LIMIT
+// exists), but a KV read error degrades gracefully to "not found".
+async function resolveApiKey(kv, apiKey, cache) {
+  if (cache.has(apiKey)) return cache.get(apiKey);
+  let result = { found: false };
+  try {
+    const raw = await kv.get(`key:${apiKey}`);
+    if (raw) {
+      const record = JSON.parse(raw);
+      result = { found: true, record };
+    }
+  } catch (_) {
+    // Malformed JSON or KV hiccup — treat as not found rather than 500. The
+    // worst case is the keyed client falls back to anonymous limits.
+    result = { found: false };
+  }
+  cache.set(apiKey, result);
+  return result;
+}
+
+// Merge a key record onto its tier defaults. A key may override the tier's
+// per-minute limits; it inherits turnstile-bypass from the tier.
+function effectiveTier(record) {
+  const base = TIERS[record.tier] || TIERS.free;
+  return {
+    tier: record.tier in TIERS ? record.tier : 'free',
+    scanPerMin: Number.isFinite(record.scanPerMin) ? record.scanPerMin : base.scanPerMin,
+    fixPerMin: Number.isFinite(record.fixPerMin) ? record.fixPerMin : base.fixPerMin,
+    turnstile: base.turnstile,
+    label: record.label
+  };
 }
 
 async function verifyTurnstile(token, secret, ip) {
@@ -61,10 +130,12 @@ async function verifyTurnstile(token, secret, ip) {
   }
 }
 
-async function checkRateLimit(kv, ip, route, limit) {
+async function checkRateLimit(kv, bucket, route, limit) {
   // KV counter with TTL — coarse but cheap; good enough for a public free
-  // endpoint backed by an expensive headless browser.
-  const key = `rl:${route}:${ip}`;
+  // endpoint backed by an expensive headless browser. `bucket` is the IP for
+  // anonymous callers or `key:<apikey>` for keyed callers (so a keyed CI runner
+  // gets its own window instead of sharing the shared NAT IP's window).
+  const key = `rl:${route}:${bucket}`;
   let n = 0;
   try {
     const v = await kv.get(key);
@@ -103,26 +174,69 @@ export async function onRequest(context) {
     || request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim()
     || 'unknown';
 
-  // Per-route limits.
   const route = url.pathname.replace(/^\/api\//, '');
-  const limit = route === 'scan'
-    ? (trusted ? SCAN_LIMIT_PER_MIN : Math.max(2, Math.floor(SCAN_LIMIT_PER_MIN / 2)))
-    : FIXPROMPT_LIMIT_PER_MIN;
 
-  if (env.RATE_LIMIT) {
-    const gate = await checkRateLimit(env.RATE_LIMIT, ip, route, limit);
+  // ── Optional API-key resolution ────────────────────────────────────────────
+  // A presented-but-invalid key is a hard error (so clients notice typos /
+  // revoked keys); no key at all is fine and stays anonymous.
+  const apiKey = extractApiKey(request);
+  const keyCache = new Map(); // per-request cache for resolveApiKey
+  let keyTier = null; // null === anonymous
+  if (apiKey && env.RATE_LIMIT) {
+    const resolved = await resolveApiKey(env.RATE_LIMIT, apiKey, keyCache);
+    if (!resolved.found) {
+      return jsonResponse({
+        error: 'invalid_api_key',
+        message: 'The API key provided was not recognised.'
+      }, 401, origin);
+    }
+    if (resolved.record.disabled) {
+      return jsonResponse({
+        error: 'key_disabled',
+        message: 'This API key has been disabled. Contact the operator.'
+      }, 403, origin);
+    }
+    keyTier = effectiveTier(resolved.record);
+  }
+
+  // ── Limit + bucket selection ────────────────────────────────────────────────
+  // Anonymous: bucket by IP, use the existing per-IP limits (scan is harder for
+  // no-origin callers). Keyed: bucket by the key, use the tier limit.
+  let limit;
+  let bucket;
+  let tierLabel;
+  if (keyTier) {
+    limit = route === 'scan' ? keyTier.scanPerMin : keyTier.fixPerMin;
+    bucket = `key:${apiKey}`;
+    tierLabel = keyTier.tier;
+  } else {
+    limit = route === 'scan'
+      ? (trusted ? SCAN_LIMIT_PER_MIN : Math.max(2, Math.floor(SCAN_LIMIT_PER_MIN / 2)))
+      : FIXPROMPT_LIMIT_PER_MIN;
+    bucket = ip;
+    tierLabel = 'anonymous';
+  }
+
+  // Rate-limit gate. `unlimited` tier (limit === Infinity) skips the gate.
+  if (env.RATE_LIMIT && Number.isFinite(limit)) {
+    const gate = await checkRateLimit(env.RATE_LIMIT, bucket, route, limit);
     if (!gate.ok) {
+      const scope = keyTier ? 'for your API key' : 'per IP';
       return jsonResponse({
         error: 'rate_limited',
-        message: `Too many requests. Limit is ${limit}/min per IP for /api/${route}.`,
+        message: `Too many requests. Limit is ${limit}/min ${scope} for /api/${route} (tier: ${tierLabel}).`,
+        tier: tierLabel,
+        limit,
         retryAfter: 60
       }, 429, origin);
     }
   }
 
-  // Turnstile required for /api/scan from browser origins. CLI / server callers
-  // (no Origin header) skip Turnstile but get the harder rate limit above.
-  if (route === 'scan' && trusted && env.TURNSTILE_SECRET) {
+  // ── Turnstile ───────────────────────────────────────────────────────────────
+  // Required for /api/scan from browser origins WITHOUT a valid key. A valid key
+  // is proof-of-human enough, so any keyed caller (browser or CLI) skips it.
+  const skipTurnstile = keyTier && keyTier.turnstile === false;
+  if (route === 'scan' && trusted && env.TURNSTILE_SECRET && !skipTurnstile) {
     const token = request.headers.get('X-Turnstile-Token');
     const verdict = await verifyTurnstile(token, env.TURNSTILE_SECRET, ip);
     if (!verdict.ok) {
@@ -134,11 +248,13 @@ export async function onRequest(context) {
     }
   }
 
-  // Attach CORS headers to whatever the downstream handler returns.
+  // Attach CORS headers + rate-limit metadata to whatever the handler returns.
   const res = await next();
   const merged = new Response(res.body, res);
   for (const [k, v] of Object.entries(corsHeaders(origin))) {
     merged.headers.set(k, v);
   }
+  merged.headers.set('X-RateLimit-Tier', tierLabel);
+  merged.headers.set('X-RateLimit-Limit', Number.isFinite(limit) ? String(limit) : 'unlimited');
   return merged;
 }

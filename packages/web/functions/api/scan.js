@@ -12,7 +12,9 @@ import {
   isAccentSerif,
   SLOP_FONT_PREFIXES,
   ACCENT_SERIF_PREFIXES,
-  scorePatterns
+  scorePatterns,
+  applyPreset,
+  isPreset
 } from 'slop-detect-core';
 import { newId, slimResult, saveResult } from '../_shared.js';
 
@@ -96,7 +98,13 @@ export async function onRequestPost({ request, env }) {
         evidence: sig
       };
     });
-    const scoring = scorePatterns(patterns);
+
+    // Optional scoring preset (full|strict|marketing|minimal). All patterns are
+    // always extracted (one page eval); the preset only narrows what's scored
+    // and reported, so the number matches the caller's intent.
+    const preset = isPreset(body?.preset) ? body.preset : 'full';
+    const scored = applyPreset(patterns, preset);
+    const scoring = scorePatterns(scored);
 
     const result = {
       url,
@@ -104,8 +112,9 @@ export async function onRequestPost({ request, env }) {
       title: data.title,
       h1: data.h1Text,
       h1Font: data.h1Font,
+      preset,
       ...scoring,
-      patterns,
+      patterns: scored,
       screenshot,
       navMs
     };

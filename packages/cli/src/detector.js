@@ -12,7 +12,8 @@ import {
   isAccentSerif,
   SLOP_FONT_PREFIXES,
   ACCENT_SERIF_PREFIXES,
-  scorePatterns
+  scorePatterns,
+  applyPreset
 } from 'slop-detect-core';
 
 // Lazy-install Chromium on first run. We skip the eager `postinstall` so that
@@ -207,7 +208,12 @@ export async function scanUrl(url, opts = {}) {
       };
     });
 
-    const scoring = scorePatterns(patterns);
+    // Always extract every pattern (one cheap page eval), but score against the
+    // selected preset's subset so the number — and the displayed pattern list —
+    // reflect exactly what the caller asked for.
+    const preset = opts.preset || 'full';
+    const scored = applyPreset(patterns, preset);
+    const scoring = scorePatterns(scored);
 
     result = {
       url,
@@ -215,8 +221,9 @@ export async function scanUrl(url, opts = {}) {
       title: data.title,
       h1: data.h1Text,
       h1Font: data.h1Font,
+      preset,
       ...scoring,
-      patterns
+      patterns: scored
     };
 
     if (opts.screenshot) {

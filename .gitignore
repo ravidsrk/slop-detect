@@ -42,3 +42,8 @@ yarn-error.log*
 
 # Agent state (issues, outputs, entities)
 .mogra/
+
+# Core dumps (anchored to repo root so it never matches packages/core/)
+/core
+/core.*
+core.[0-9]*

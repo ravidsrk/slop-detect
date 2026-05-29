@@ -38,7 +38,7 @@ When you change a rule in `packages/core/src/patterns.js`, both the CLI and the 
 
 ## Proposing a new pattern (#17, #18, ...)
 
-The bar for adding a 17th pattern is high but not impossible. Convince us with **evidence at scale**:
+The bar for adding a new pattern is high but not impossible. Convince us with **evidence at scale**:
 
 1. **Find the pattern in the wild.** Show 10+ real landing pages where it appears.
 2. **Confirm AI-tooling correlation.** It must be over-represented in AI-generated pages (Cursor, v0, Lovable, Bolt, GPT image-to-code) versus human-designed ones.
@@ -47,6 +47,58 @@ The bar for adding a 17th pattern is high but not impossible. Convince us with *
 5. **Write a fix recipe.** Add a `FIXES` entry in `packages/core/src/fixes.js` with: problem, fix, alternatives, hard rule.
 
 Open an issue first using the **New Pattern** template before writing code. We'd rather discuss it before you spend an evening on a detector we can't accept.
+
+### The low-friction path: declarative rules
+
+For patterns that boil down to *"find N elements whose computed style / text
+matches X"*, you don't need to hand-write a browser function. Describe the rule
+declaratively and `compileRule()` turns it into a real pattern — selector-scoped,
+self-contained, and injectable by both runners. This is the eslint/semgrep
+playbook: lower the cost of a rule and the ruleset stays current.
+
+A declarative rule:
+
+```js
+import { compileRule } from 'slop-detect-core';
+
+const pattern = compileRule({
+  id: 'all_caps_labels',          // lowercase snake_case, unique
+  label: 'All-caps section labels (text-transform:uppercase)',
+  short: 'All-caps',
+  category: 'fonts',              // fonts | colors | layout | css | images | copy
+  weight: 3,                      // 0–40; how much slop it contributes
+  author: 'your-handle',          // attribution, surfaced in metadata
+  since: '2026.07',
+  detect: {
+    // Optional scope. Default = the visible-element set the runner computed.
+    // scope: { selector: 'header *' }  or  { heroOnly: true }
+    when: [
+      { style: 'textTransform', equals: 'uppercase' },
+      { style: 'letterSpacing', gte: 0.5 },            // numeric: gte / lte
+      { text: { minLen: 3, maxLen: 40 } }              // text length / regex
+    ],
+    trigger: { minCount: 2 }       // or { minRatio: 0.6 }
+  }
+});
+```
+
+Supported `when` conditions:
+
+| Shape | Matches when |
+|---|---|
+| `{ style, equals }` | `getComputedStyle(el)[style] === equals` |
+| `{ style, includes }` | computed value contains the substring |
+| `{ style, matches, flags }` | computed value matches the regex |
+| `{ style, oneOf: [...] }` | computed value is in the list |
+| `{ style, gte, lte }` | `parseFloat` of the value is in range |
+| `{ text: { minLen, maxLen, matches, notMatches } }` | element text constraints |
+| `{ semantic: 'purple'｜'dark'｜'midGrey'｜'slopFont', style? }` | uses the engine's colour/font helpers |
+
+`trigger` fires on `minCount` (absolute) and/or `minRatio` (matched ÷ scoped).
+Validate before you compile with `validateRule(rule)` — it returns an array of
+problems (empty = valid). Imperative `extract(ctx)` patterns are still fully
+supported for anything too gnarly for the declarative form; `compileRules()`
+accepts a mixed list.
 
 ## Improving a fix recipe
 
