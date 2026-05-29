@@ -556,6 +556,10 @@
     border: 1px solid var(--border);
     border-radius: 11px;
     padding: 16px 18px;
+    /* Grid tracks default to min-width:auto (min-content). A long unbreakable
+       embed snippet would blow the track out and crush the sibling box, so
+       force the track to be shrinkable and let the snippet scroll instead. */
+    min-width: 0;
   }
   .share-box h4 {
     font-size: 12px;
@@ -599,6 +603,9 @@
     white-space: nowrap;
     overflow-x: auto;
     cursor: pointer;
+    /* Right-edge fade hints there's more to scroll (click copies the full string). */
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
   }
   .embed-snippet:hover { border-color: var(--border-2); color: var(--text); }
   .embed-tabs { display: flex; gap: 4px; margin-bottom: 9px; }
