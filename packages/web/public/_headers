@@ -1,0 +1,23 @@
+# Cloudflare Pages header rules. Tuned so slop-detect.com passes its own AEO axis.
+
+# Homepage: advertise the markdown twin + signal content-negotiation awareness.
+/
+  Vary: Accept
+  Link: </index.md>; rel="alternate"; type="text/markdown"
+
+/index.html
+  Vary: Accept
+  Link: </index.md>; rel="alternate"; type="text/markdown"
+
+# Markdown twin must be served as text/markdown for AI clients (and our own check).
+/index.md
+  Content-Type: text/markdown; charset=utf-8
+
+/llms.txt
+  Content-Type: text/plain; charset=utf-8
+
+/robots.txt
+  Content-Type: text/plain; charset=utf-8
+
+/sitemap.xml
+  Content-Type: application/xml; charset=utf-8

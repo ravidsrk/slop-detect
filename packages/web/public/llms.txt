@@ -1,0 +1,38 @@
+# Slop Detector
+
+> Score any landing page against the AI-design fingerprint. Deterministic 0–100
+> slop scoring for landing pages, plus an AEO axis that measures whether AI
+> engines can read and cite a page. Open source; runs on real Chromium; ships as
+> a web app, a CLI, and an MCP server.
+
+Slop Detector inspects a page's live computed styles (and, optionally, its copy)
+and returns a weighted, reproducible score. Lower is better: 0 means no
+AI-design tells were found. It is not a quality verdict — a high score means a
+page looks machine-generated, not that it is bad.
+
+## Core docs
+
+- [Homepage (markdown twin)](https://slop-detect.com/index.md): What Slop
+  Detector measures and how the scan works.
+- [Pattern catalogue (JSON)](https://slop-detect.com/api/patterns): Every design
+  and copy pattern, with weights and the current definitions version.
+
+## How it works
+
+- [Web app](https://slop-detect.com): Paste a URL, get a 0–100 score in ~5s via
+  Cloudflare Browser Rendering (real headless Chromium).
+- [Source on GitHub](https://github.com/ravidsrk/slop-detect): Monorepo with the
+  core engine, CLI, web app, and MCP server.
+
+## Tools for agents
+
+- CLI: `npx slop-detect <url>`; add `--aeo` for the AEO axis, `--fail-on heavy`
+  to gate CI.
+- MCP server `slop-detect-mcp`: tools `scan_page`, `check_aeo`, `fix_prompt`.
+
+## Axes
+
+- Design slop: fonts/tracking, gradients/glow, layout conventions.
+- Copy slop: hedge-y, em-dash-heavy LLM phrasing (optional second axis).
+- AEO: AI-crawler access, robots.txt, indexability, markdown twin, llms.txt,
+  content-negotiation. Higher is better (inverse of the slop score).
