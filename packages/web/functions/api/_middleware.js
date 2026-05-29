@@ -130,23 +130,88 @@ async function verifyTurnstile(token, secret, ip) {
   }
 }
 
+// In-memory, per-isolate fallback counter. Used ONLY when KV is unavailable so
+// the expensive scan route can still enforce a hard ceiling (fail-closed)
+// instead of letting an attacker drive unlimited headless-browser scans during
+// a KV outage. Coarse — each Worker isolate keeps its own map and Cloudflare may
+// run several — but it caps the blast radius. Entries self-expire after 60s.
+const memCounters = new Map(); // key -> { count, resetAt }
+
+// Hard ceiling for the scan route when KV is down. Deliberately tighter than the
+// normal per-IP limit: a degraded mode should be conservative, not generous.
+const SCAN_FALLBACK_CEILING = 3;
+
+function memIncrement(key, windowMs = 60000) {
+  const now = Date.now();
+  // Opportunistic sweep of expired entries so the map can't grow unbounded in a
+  // long-lived isolate (it's only touched during KV-degraded mode, so this is
+  // cheap). Bounded work: only sweeps when the map is non-trivially sized.
+  if (memCounters.size > 256) {
+    for (const [k, v] of memCounters) if (now >= v.resetAt) memCounters.delete(k);
+  }
+  const cur = memCounters.get(key);
+  if (!cur || now >= cur.resetAt) {
+    const fresh = { count: 1, resetAt: now + windowMs };
+    memCounters.set(key, fresh);
+    return fresh.count;
+  }
+  cur.count += 1;
+  return cur.count;
+}
+
+// Rate-limit gate. Returns { ok, used, limit, degraded }.
+//
+// Failure modes are route-aware:
+//   - KV read/write succeeds → normal KV-backed rolling 60s window.
+//   - KV unavailable + scan route → FAIL CLOSED: fall back to a tight in-memory
+//     per-isolate ceiling so a KV outage can't unlock unlimited browser scans.
+//   - KV unavailable + cheap routes (fix-prompt assemble) → fail open: these
+//     don't touch the browser, so blocking everyone on a KV hiccup is worse than
+//     letting them through.
+//
+// `bucket` is the IP for anonymous callers or `key:<apikey>` for keyed callers
+// (so a keyed CI runner gets its own window, not the shared NAT IP's).
 async function checkRateLimit(kv, bucket, route, limit) {
-  // KV counter with TTL — coarse but cheap; good enough for a public free
-  // endpoint backed by an expensive headless browser. `bucket` is the IP for
-  // anonymous callers or `key:<apikey>` for keyed callers (so a keyed CI runner
-  // gets its own window instead of sharing the shared NAT IP's window).
   const key = `rl:${route}:${bucket}`;
+  const isScan = route === 'scan';
+
   let n = 0;
+  let kvReadOk = false;
   try {
     const v = await kv.get(key);
     n = v ? parseInt(v, 10) : 0;
-  } catch (_) { /* fall through */ }
-  if (n >= limit) return { ok: false, used: n, limit };
+    kvReadOk = true;
+  } catch (_) { /* handled below */ }
+
+  if (!kvReadOk) {
+    // KV read failed. For the expensive scan route, enforce a conservative
+    // in-memory ceiling (fail-closed). For everything else, fail open.
+    if (!isScan) return { ok: true, used: 0, limit, degraded: true };
+    const memN = memIncrement(key);
+    const ceiling = Math.min(SCAN_FALLBACK_CEILING, limit);
+    if (memN > ceiling) return { ok: false, used: memN, limit: ceiling, degraded: true };
+    return { ok: true, used: memN, limit: ceiling, degraded: true };
+  }
+
+  if (n >= limit) return { ok: false, used: n, limit, degraded: false };
+
   // Increment with 60s TTL (effectively a rolling 60s window).
+  let kvWriteOk = false;
   try {
     await kv.put(key, String(n + 1), { expirationTtl: 60 });
-  } catch (_) { /* if KV fails, fail-open rather than block all users */ }
-  return { ok: true, used: n + 1, limit };
+    kvWriteOk = true;
+  } catch (_) { /* handled below */ }
+
+  // If the write failed on the scan route, also tick the in-memory ceiling so a
+  // KV that reads-but-can't-write (e.g. quota exhausted) still can't be abused.
+  if (!kvWriteOk && isScan) {
+    const memN = memIncrement(key);
+    const ceiling = Math.min(SCAN_FALLBACK_CEILING, limit);
+    if (memN > ceiling) return { ok: false, used: memN, limit: ceiling, degraded: true };
+    return { ok: true, used: memN, limit: ceiling, degraded: true };
+  }
+
+  return { ok: true, used: n + 1, limit, degraded: !kvWriteOk };
 }
 
 export async function onRequest(context) {
@@ -164,10 +229,16 @@ export async function onRequest(context) {
     return next();
   }
 
-  // Block third-party origins outright. Browser CORS protects most cases, but
-  // this also blocks server-to-server scrapers piggy-backing on our quota.
-  // Allow no-origin requests (curl / CLI) but rate-limit them harder.
+  // Origin classification:
+  //   - trusted   → request carries an Origin in our allowlist (our own web UI).
+  //   - no-origin → server-to-server / curl / CLI (Origin header absent). Allowed,
+  //                 but rate-limited harder on the scan route (see limit selection).
+  //   - foreign   → an Origin header that is NOT in the allowlist. A browser
+  //                 embedding our endpoint from a third-party page. Rejected
+  //                 outright below UNLESS the caller presents a valid API key
+  //                 (a key is explicit authorization to call us from anywhere).
   const trusted = ALLOWED_ORIGINS.has(origin);
+  const foreignOrigin = origin !== '' && !trusted;
 
   // Client IP — Cloudflare always sets this on the request object.
   const ip = request.headers.get('CF-Connecting-IP')
@@ -216,6 +287,18 @@ export async function onRequest(context) {
     keyTier = effectiveTier(resolved.record);
   }
 
+  // ── Foreign-origin rejection ────────────────────────────────────────────────
+  // A browser sending an Origin we don't recognise is a third-party page calling
+  // our API. Reject it outright — UNLESS it presented a valid API key, which is
+  // explicit authorization to call us from anywhere (e.g. a partner dashboard).
+  // No-origin callers (curl/CLI, Origin absent) are NOT foreign and pass through.
+  if (foreignOrigin && !keyTier) {
+    return jsonResponse({
+      error: 'origin_not_allowed',
+      message: 'This API is not callable from third-party origins. Use the CLI, the MCP server, or an API key.'
+    }, 403, origin);
+  }
+
   // ── Limit + bucket selection ────────────────────────────────────────────────
   // Anonymous: bucket by IP, use the existing per-IP limits (scan is harder for
   // no-origin callers). Keyed: bucket by the key, use the tier limit.
@@ -236,15 +319,33 @@ export async function onRequest(context) {
 
   // Rate-limit gate. `unlimited` tier (limit === Infinity) skips the gate.
   // Gate under effectiveRoute so fix-prompt's { url } mode shares the scan bucket.
-  if (env.RATE_LIMIT && Number.isFinite(limit)) {
-    const gate = await checkRateLimit(env.RATE_LIMIT, bucket, effectiveRoute, limit);
+  //
+  // Two binding states:
+  //   - RATE_LIMIT bound  → checkRateLimit (KV-backed, with in-memory fallback).
+  //   - RATE_LIMIT MISSING → the scan route must still NOT be wide open (it drives
+  //     a headless browser). Enforce a tight in-memory per-isolate ceiling so a
+  //     misconfigured deploy can't be abused for unlimited scans. Cheap routes
+  //     stay open when the binding is absent (no browser cost).
+  if (Number.isFinite(limit)) {
+    let gate = { ok: true };
+    if (env.RATE_LIMIT) {
+      gate = await checkRateLimit(env.RATE_LIMIT, bucket, effectiveRoute, limit);
+    } else if (effectiveRoute === 'scan') {
+      const memN = memIncrement(`rl:scan:${bucket}`);
+      const ceiling = Math.min(SCAN_FALLBACK_CEILING, limit);
+      gate = memN > ceiling
+        ? { ok: false, used: memN, limit: ceiling, degraded: true }
+        : { ok: true, used: memN, limit: ceiling, degraded: true };
+    }
     if (!gate.ok) {
       const scope = keyTier ? 'for your API key' : 'per IP';
+      const effLimit = gate.limit || limit;
       return jsonResponse({
         error: 'rate_limited',
-        message: `Too many requests. Limit is ${limit}/min ${scope} for /api/${effectiveRoute} (tier: ${tierLabel}).`,
+        message: `Too many requests. Limit is ${effLimit}/min ${scope} for /api/${effectiveRoute} (tier: ${tierLabel}).`,
         tier: tierLabel,
-        limit,
+        limit: effLimit,
+        degraded: !!gate.degraded,
         retryAfter: 60
       }, 429, origin);
     }

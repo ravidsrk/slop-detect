@@ -155,15 +155,15 @@ function buildPageScript() {
       relativeLuminance: colorHelpers.relativeLuminance,
       contrastRatio: colorHelpers.contrastRatio,
       channelSpread: colorHelpers.channelSpread,
-      isNeutral: colorHelpers.isNeutral,
       effectiveBackground: colorHelpers.effectiveBackground,
       isSlopFont,
       isAccentSerif,
       SLOP_FONT_PREFIXES,
       ACCENT_SERIF_PREFIXES,
-      isVisible: visHelpers.isVisible,
-      inHero: visHelpers.inHero,
-      inViewport: visHelpers.inViewport
+      // inHero is consumed by the declarative rules engine for heroOnly specs.
+      // isVisible / inViewport / isNeutral were never consumed by any pattern,
+      // so they are omitted (the visible array is already pre-filtered).
+      inHero: visHelpers.inHero
     };
 
     const signals = {};

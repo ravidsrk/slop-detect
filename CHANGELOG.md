@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.5.2 — Rate-limit fail-closed, foreign-origin rejection, dead-code sweep
+
+Second post-review batch. Web changes deployed to slop-detect.com; CLI republished
+to keep npm in sync with source (core + mcp unchanged at 0.5.1).
+
+### Security (web — deployed)
+- **Rate-limit now fails CLOSED on the scan route (#5).** Previously a missing
+  `RATE_LIMIT` KV binding, or a KV read/write outage, let the expensive headless-
+  browser scan route through unthrottled. Now: when KV is unavailable, the scan
+  route enforces a tight in-memory per-isolate ceiling (3/window). Cheap routes
+  (fix-prompt assemble) still fail open — they don't touch the browser.
+- **Foreign browser origins are now rejected (#6).** The middleware comment claimed
+  it "blocks third-party origins" but only down-bucketed them. It now returns
+  `403 origin_not_allowed` for any browser Origin outside the allowlist — unless the
+  caller presents a valid API key. No-origin callers (CLI/curl) are unaffected.
+
+### Cleanup
+- Removed 3 dead ctx helpers (`isVisible`, `inViewport`, `isNeutral`) that were
+  wired into the page-eval context but consumed by no pattern. `inHero` is kept
+  (the declarative rules engine uses it). Affects CLI + web scan context.
+
+### Tests
+- +7 middleware tests (foreign-origin rejection, scan fail-closed under missing /
+  broken KV, cheap-route fail-open, OPTIONS preflight). 35 total, all green.
+
 ## 0.5.1 — Security hardening + CI gating (post-review)
 
 From a full end-to-end review. Resyncs npm with the source tree (published 0.5.0

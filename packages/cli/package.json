@@ -1,6 +1,6 @@
 {
   "name": "slop-detect",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Score any landing page against the AI-design-slop fingerprint from your terminal. Playwright-based, deterministic, zero-config.",
   "type": "module",
   "license": "MIT",
