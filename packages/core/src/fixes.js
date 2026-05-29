@@ -267,6 +267,133 @@ export const FIXES = {
       "Nothing — most 'AI' buttons read better as a plain primary CTA"
     ],
     rule: "No ✨/Sparkles glyph as an 'AI magic' label. Name the capability instead."
+  },
+
+  // ── COPY AXIS (#08) ───────────────────────────────────────────────────────
+  buzzword_density: {
+    problem:
+      "A cluster of LLM-favorite words — leverage, seamless, robust, elevate, unlock, harness, cutting-edge, transformative — is the strongest single tell that copy was generated, not written. These words are statistically over-represented in LLM output because they're high-probability filler.",
+    fix:
+      "Rewrite in concrete, specific language a human would actually say. Replace every abstract verb with what literally happens. 'Leverage our seamless platform to elevate productivity' → 'Connect your calendar and we text patients when a slot opens.' Name real nouns, real numbers, real outcomes.",
+    alternatives: [
+      "State the literal action: 'imports your CSV', not 'seamlessly integrates'",
+      "Use a number: '3-5 extra bookings a week', not 'unlock growth'",
+      "Cut the adjective entirely — most add zero information",
+      "Read it aloud; if you'd never say it to a customer's face, delete it"
+    ],
+    rule: "No more than one word from the LLM-buzzword list per page. Banned: leverage, seamless, robust, elevate, unlock, harness, cutting-edge, transformative, holistic, bespoke, unparalleled."
+  },
+
+  em_dash_overload: {
+    problem:
+      "The em-dash (—) as the default connective is a signature LLM rhythm. Humans reach for periods, commas, and parentheses; models reach for the em-dash several times per paragraph. A page averaging one em-dash per ~40 words reads as machine-written.",
+    fix:
+      "Replace most em-dashes with a period (split the sentence) or a comma. Keep at most one or two genuine em-dashes where the dramatic pause is earned. Vary sentence length — short, then long — so the rhythm sounds human.",
+    alternatives: [
+      "Split into two sentences with a period",
+      "Use a comma for a light pause",
+      "Use parentheses for a true aside",
+      "Keep one em-dash max where the pause genuinely lands"
+    ],
+    rule: "No more than one em-dash per ~150 words. Default to periods and commas."
+  },
+
+  antithesis_construction: {
+    problem:
+      "'It's not just X — it's Y', 'not only … but also', 'more than just a …' is a canned rhetorical scaffold LLMs lean on to manufacture emphasis. It signals generated copy because it adds drama without adding information.",
+    fix:
+      "Delete the antithesis and state Y directly. 'It's not just a CRM — it's a growth engine' → just say what it does: 'It tells your reps who to call next.' If X genuinely needs contrasting, do it with a concrete example, not the formula.",
+    alternatives: [
+      "State the actual claim directly, drop the 'not just' setup",
+      "Show the contrast with a specific before/after",
+      "Lead with the strongest concrete benefit, no scaffolding",
+      "Cut the sentence — it's usually pure filler"
+    ],
+    rule: "No 'not just X, it's Y' / 'not only … but also' constructions."
+  },
+
+  filler_openers: {
+    problem:
+      "'In today's fast-paced world', 'when it comes to', 'in the realm of', 'at the end of the day' are throat-clearing openers that carry zero information. They're the most parodied LLM tell because models use them to warm up before saying anything.",
+    fix:
+      "Delete the opener and start with the actual point. 'In today's fast-paced world, businesses need automation' → 'You're losing 4 hours a week to manual data entry.' Open with the reader's problem or a concrete claim, never a generic scene-set.",
+    alternatives: [
+      "Open with the reader's specific pain ('Your invoices are 2 weeks late.')",
+      "Open with a number or a surprising fact",
+      "Open with a direct second-person statement",
+      "Just delete the first sentence — it's almost always filler"
+    ],
+    rule: "No generic scene-setting openers. First sentence must carry information."
+  },
+
+  formulaic_closers: {
+    problem:
+      "'In conclusion', 'In summary', 'Ultimately', 'When all is said and done' are essay-exam closers. On a landing page or marketing post they read as machine-generated structure, because real marketing copy doesn't formally 'conclude'.",
+    fix:
+      "Delete the closer phrase. End on your strongest concrete point or a clear call to action. If the section needs a wrap-up, make it a specific next step ('Start your first scan — it takes 20 seconds'), not a summary.",
+    alternatives: [
+      "End on a concrete CTA with a time/effort cue",
+      "End on the single most compelling benefit",
+      "End on a real customer outcome or number",
+      "Just stop — strong copy rarely needs a formal conclusion"
+    ],
+    rule: "No 'In conclusion / In summary / Ultimately' closers."
+  },
+
+  rule_of_three: {
+    problem:
+      "Adjective tricolons — 'fast, reliable, and scalable', 'simple, powerful, and intuitive' — are an LLM rhythm crutch. Three abstract adjectives in a row sound balanced but say nothing specific, and the pattern repeats across the whole page.",
+    fix:
+      "Replace each tricolon with one concrete claim. 'Fast, reliable, and scalable' → 'Returns results in under 200ms.' If you list features, make them real nouns with specifics, not interchangeable adjectives.",
+    alternatives: [
+      "One specific, measurable claim instead of three vague ones",
+      "Real feature nouns with numbers, not adjective lists",
+      "A single verb + outcome ('Cuts onboarding from days to minutes')",
+      "Two contrasting concrete points beat three abstract ones"
+    ],
+    rule: "No more than one adjective-tricolon per page. Prefer concrete specifics."
+  },
+
+  whether_youre: {
+    problem:
+      "'Whether you're a startup or an enterprise / a beginner or a pro' is a canned audience-spanning construction. It tries to address everyone and ends up specific to no one — a classic generated-copy move that dilutes positioning.",
+    fix:
+      "Pick your actual primary audience and speak to them directly. 'Whether you're a solo founder or a 500-person team' → 'For solo founders drowning in support tickets.' Specificity converts; universality doesn't.",
+    alternatives: [
+      "Name one specific persona and their specific situation",
+      "Use a real customer example instead of a spectrum",
+      "Address the reader as 'you' with a concrete scenario",
+      "Cut it — the spanning rarely helps"
+    ],
+    rule: "No 'whether you're X or Y' audience-spanning constructions."
+  },
+
+  unicode_artifacts: {
+    problem:
+      "Zero-width spaces, narrow no-break spaces, and other invisible Unicode artifacts are leaked when copy is pasted straight out of an LLM chat. They're invisible to readers but a dead giveaway in the raw text — and they can break search, anchors, and copy-paste.",
+    fix:
+      "Run the text through a plain-text normalizer: strip zero-width characters (U+200B-200D, U+FEFF), replace narrow/no-break spaces with regular spaces. Most editors have a 'paste as plain text' option — use it, then re-apply formatting deliberately.",
+    alternatives: [
+      "Paste as plain text, then re-format in your editor",
+      "Run a find-and-replace for zero-width and narrow-no-break chars",
+      "Use a 'clean invisible characters' utility before publishing",
+      "Type the copy fresh rather than pasting from chat"
+    ],
+    rule: "No invisible Unicode (zero-width spaces, narrow no-break spaces) in published copy."
+  },
+
+  emoji_bullet_headers: {
+    problem:
+      "Emoji-prefixed bullets and headers (🚀 Fast, ✅ Reliable, ✨ Scalable, 💡 Smart) are the default GPT list aesthetic. Three or more in a row reads as a chatbot answer pasted into a page, not designed marketing.",
+    fix:
+      "Remove the leading emoji. If you want visual markers, use a consistent, restrained icon set that matches your brand, applied through design — not emoji glyphs in the text. Let the words and layout carry the hierarchy.",
+    alternatives: [
+      "Plain text headers with strong typographic hierarchy",
+      "A single, brand-consistent line-art icon set (via CSS/SVG, not emoji)",
+      "Numbered steps if the order matters",
+      "Just bold the first few words of each item"
+    ],
+    rule: "No emoji as bullet or header prefixes. Use design, not glyphs, for emphasis."
   }
 };
 
@@ -398,12 +525,17 @@ const CLEAN_THRESHOLD = 10;
 
 // Build the assembled fix prompt from a scan result.
 export function buildFixPrompt(result) {
-  const allPatterns = result.patterns || [];
+  // Design patterns are at result.patterns. When the copy axis was scored,
+  // merge its patterns in too so the fix prompt covers BOTH axes (#08).
+  const designPatterns = result.patterns || [];
+  const copyPatterns = (result.axes && result.axes.copy && result.axes.copy.patterns) || [];
+  const allPatterns = [...designPatterns, ...copyPatterns];
   const triggered = allPatterns.filter(p => p.triggered);
   const passing = allPatterns.filter(p => !p.triggered);
+  const totalCount = allPatterns.length;
 
   if (triggered.length === 0) {
-    return `Your landing page (${result.url}) scored ${result.score}/100 — tier "${result.tier}" — and triggered 0 of 16 AI-design-slop patterns. There's nothing to fix on the slop dimension. Move on to copy, conversion, or content quality.`;
+    return `Your landing page (${result.url}) scored ${result.score}/100 — tier "${result.tier}" — and triggered 0 of ${totalCount} slop patterns. There's nothing to fix on the slop dimension. Move on to conversion or content quality.`;
   }
 
   const url = result.finalUrl || result.url;
@@ -412,7 +544,7 @@ export function buildFixPrompt(result) {
 
   const header = `# Landing page slop fix prompt
 
-Your landing page scored **${result.score}/100** on the Slop Detector — tier **${result.tier}** — triggering **${triggered.length} of 16** AI-design-slop patterns. The goal of this prompt is to reduce that score to **< ${CLEAN_THRESHOLD} (Clean tier)** by addressing each triggered pattern with specific, opinionated remediation.
+Your landing page scored **${result.score}/100** on the Slop Detector — tier **${result.tier}** — triggering **${triggered.length} of ${totalCount}** slop patterns${copyPatterns.length ? ' (design + copy axes)' : ''}. The goal of this prompt is to reduce that score to **< ${CLEAN_THRESHOLD} (Clean tier)** by addressing each triggered pattern with specific, opinionated remediation.
 
 ## Page context
 - URL: ${url}

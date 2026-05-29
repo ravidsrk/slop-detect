@@ -30,7 +30,7 @@ export function slimResult(data, id) {
   const triggered = (data.patterns || [])
     .filter(p => p.triggered)
     .map(p => ({ id: p.id, label: p.label, short: p.short, weight: p.weight }));
-  return {
+  const slim = {
     id,
     url: data.url,
     finalUrl: data.finalUrl,
@@ -47,6 +47,25 @@ export function slimResult(data, id) {
     triggered,
     createdAt: new Date().toISOString()
   };
+  // Multi-axis (#08): persist a compact copy-axis summary + unified headline so
+  // permalinks/OG cards can show it. Only when the copy axis was actually run.
+  if (data.axes && data.axes.copy) {
+    const copy = data.axes.copy;
+    slim.unifiedScore = data.unifiedScore;
+    slim.unifiedTier = data.unifiedTier;
+    slim.unifiedGrade = data.unifiedGrade;
+    slim.axes = {
+      design: { score: data.score, tier: data.tier, grade: data.grade },
+      copy: {
+        score: copy.score, tier: copy.tier, grade: copy.grade,
+        patternsFlagged: copy.patternsFlagged, patternsTotal: copy.patternsTotal,
+        thin: !!copy.thin,
+        triggered: (copy.patterns || []).filter(p => p.triggered)
+          .map(p => ({ id: p.id, short: p.short, weight: p.weight }))
+      }
+    };
+  }
+  return slim;
 }
 
 export async function saveResult(kv, slim) {

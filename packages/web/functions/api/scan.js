@@ -1,7 +1,8 @@
-// POST /api/scan  { url }  →  { score, tier, patterns, ... }
+// POST /api/scan  { url, preset?, axes? }  →  { score, tier, patterns, axes?, ... }
 //
-// Runs the 16-pattern slop detector against a URL inside Cloudflare's
-// Browser Rendering Chromium. Requires a BROWSER binding on the Pages project.
+// Runs the design-slop detector against a URL inside Cloudflare's Browser
+// Rendering Chromium. Requires a BROWSER binding on the Pages project. Opt into
+// the copy-slop axis with { axes: ['design','copy'] } (or 'all').
 
 import puppeteer from '@cloudflare/puppeteer';
 import {
@@ -14,9 +15,22 @@ import {
   ACCENT_SERIF_PREFIXES,
   scorePatterns,
   applyPreset,
-  isPreset
+  isPreset,
+  extractTextContext,
+  scoreCopy,
+  combineAxes
 } from 'slop-detect-core';
 import { newId, slimResult, saveResult } from '../_shared.js';
+
+// Normalize requested axes. Default: design only (backward-compatible).
+const VALID_AXES = ['design', 'copy'];
+function normalizeAxes(axes) {
+  if (axes === 'all') return [...VALID_AXES];
+  if (!Array.isArray(axes) || axes.length === 0) return ['design'];
+  const out = axes.filter(a => VALID_AXES.includes(a));
+  if (!out.includes('design')) out.unshift('design');
+  return [...new Set(out)];
+}
 
 // CORS + Turnstile + rate-limit are handled by functions/api/_middleware.js.
 // This handler just returns JSON; the middleware merges Access-Control-* headers.
@@ -113,11 +127,32 @@ export async function onRequestPost({ request, env }) {
       h1: data.h1Text,
       h1Font: data.h1Font,
       preset,
-      ...scoring,
+      ...scoring,        // top-level = DESIGN axis (backward-compatible)
       patterns: scored,
       screenshot,
       navMs
     };
+
+    // Multi-axis (#08): opt into copy via { axes:['design','copy'] } or 'all'.
+    const reqAxes = normalizeAxes(body?.axes);
+    if (reqAxes.includes('copy')) {
+      const axes = {
+        design: {
+          axis: 'design',
+          score: scoring.score,
+          tier: scoring.tier,
+          grade: scoring.grade,
+          patternsFlagged: scoring.patternsFlagged,
+          patternsTotal: scoring.patternsTotal,
+          patterns: scored
+        },
+        copy: scoreCopy(data.textContext || {})
+      };
+      result.axes = axes;
+      const summaries = {};
+      for (const a of reqAxes) if (axes[a]) summaries[a] = axes[a];
+      Object.assign(result, combineAxes(summaries));
+    }
 
     // Persist a slim snapshot so the scan gets a shareable permalink (/r/:id),
     // a cached OG card (/og/:id.png), and feeds the per-domain badge.
@@ -241,6 +276,11 @@ function buildPageScript() {
     const signals = {};
     ${patternCalls}
 
+    // Copy axis: extract page text in-DOM (scored Worker-side by scoreCopy).
+    const extractTextContext = ${extractTextContext.toString()};
+    let textContext = null;
+    try { textContext = extractTextContext(); } catch (e) { textContext = { error: e.message }; }
+
     return {
       title: document.title,
       url: location.href,
@@ -249,7 +289,8 @@ function buildPageScript() {
       h1Text: h1 ? h1.textContent.trim().slice(0, 120) : null,
       h1Font: h1 ? getComputedStyle(h1).fontFamily : null,
       visibleCount: visible.length,
-      signals
+      signals,
+      textContext
     };
   })();`;
 }

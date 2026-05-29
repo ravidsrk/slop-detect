@@ -13,7 +13,10 @@ import {
   SLOP_FONT_PREFIXES,
   ACCENT_SERIF_PREFIXES,
   scorePatterns,
-  applyPreset
+  applyPreset,
+  extractTextContext,
+  scoreCopy,
+  combineAxes
 } from 'slop-detect-core';
 
 // Lazy-install Chromium on first run. We skip the eager `postinstall` so that
@@ -96,6 +99,17 @@ function detectBlocked(data) {
   return null;
 }
 
+// Normalize the requested axes into a deduped, valid list. Default: design only.
+// Accepts an array (['design','copy']), 'all', or undefined.
+function normalizeAxes(axes) {
+  const VALID = ['design', 'copy'];
+  if (axes === 'all') return [...VALID];
+  if (!Array.isArray(axes) || axes.length === 0) return ['design'];
+  const out = axes.filter(a => VALID.includes(a));
+  if (!out.includes('design')) out.unshift('design'); // design always present
+  return [...new Set(out)];
+}
+
 function buildPageScript() {
   const patternCalls = PATTERNS.map(p => `
     try {
@@ -142,6 +156,11 @@ function buildPageScript() {
     const signals = {};
     ${patternCalls}
 
+    // Copy axis: extract page text in-DOM (scored Node-side by scoreCopy).
+    const extractTextContext = ${extractTextContext.toString()};
+    let textContext = null;
+    try { textContext = extractTextContext(); } catch (e) { textContext = { error: e.message }; }
+
     return {
       title: document.title,
       url: location.href,
@@ -150,7 +169,8 @@ function buildPageScript() {
       h1Text: h1 ? h1.textContent.trim().slice(0, 120) : null,
       h1Font: h1 ? getComputedStyle(h1).fontFamily : null,
       visibleCount: visible.length,
-      signals
+      signals,
+      textContext
     };
   })();`;
 }
@@ -215,6 +235,11 @@ export async function scanUrl(url, opts = {}) {
     const scored = applyPreset(patterns, preset);
     const scoring = scorePatterns(scored);
 
+    // Which axes to compute. Default = design only (fully backward-compatible:
+    // top-level score/grade/patterns stay exactly as before). Opt into copy via
+    // opts.axes = ['design','copy'] or 'all'.
+    const reqAxes = normalizeAxes(opts.axes);
+
     result = {
       url,
       finalUrl: data.url,
@@ -222,9 +247,31 @@ export async function scanUrl(url, opts = {}) {
       h1: data.h1Text,
       h1Font: data.h1Font,
       preset,
-      ...scoring,
+      ...scoring,        // top-level = DESIGN axis (backward-compatible)
       patterns: scored
     };
+
+    // Multi-axis: attach per-axis summaries + a unified score when >1 axis asked.
+    if (reqAxes.length > 1 || reqAxes.includes('copy')) {
+      const axes = {
+        design: {
+          axis: 'design',
+          score: scoring.score,
+          tier: scoring.tier,
+          grade: scoring.grade,
+          patternsFlagged: scoring.patternsFlagged,
+          patternsTotal: scoring.patternsTotal,
+          patterns: scored
+        }
+      };
+      if (reqAxes.includes('copy')) {
+        axes.copy = scoreCopy(data.textContext || {});
+      }
+      result.axes = axes;
+      const summaries = {};
+      for (const a of reqAxes) if (axes[a]) summaries[a] = axes[a];
+      Object.assign(result, combineAxes(summaries));
+    }
 
     if (opts.screenshot) {
       const buf = await page.screenshot({ fullPage: false });

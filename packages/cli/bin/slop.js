@@ -12,13 +12,35 @@ import { isPreset, PRESETS } from 'slop-detect-core';
 
 const args = process.argv.slice(2);
 const urls = [];
-const flags = { json: false, screenshot: false, verbose: false, preset: 'full' };
+const flags = { json: false, screenshot: false, verbose: false, preset: 'full', axes: ['design'] };
+
+const VALID_AXES = ['design', 'copy'];
+function parseAxes(val) {
+  if (!val) return null;
+  if (val === 'all') return [...VALID_AXES];
+  const list = val.split(',').map(s => s.trim()).filter(Boolean);
+  const bad = list.filter(a => !VALID_AXES.includes(a));
+  if (bad.length) return { error: bad };
+  const out = [...new Set(list)];
+  if (!out.includes('design')) out.unshift('design');
+  return out;
+}
 
 for (let i = 0; i < args.length; i++) {
   const a = args[i];
   if (a === '--json' || a === '-j') flags.json = true;
   else if (a === '--screenshot') flags.screenshot = true;
   else if (a === '--verbose' || a === '-v') flags.verbose = true;
+  else if (a === '--copy') flags.axes = ['design', 'copy'];
+  else if (a === '--axes' || a.startsWith('--axes=')) {
+    const val = a.startsWith('--axes=') ? a.slice('--axes='.length) : args[++i];
+    const parsed = parseAxes(val);
+    if (!parsed || parsed.error) {
+      console.error(`Invalid --axes value: ${val}. Options: ${VALID_AXES.join(', ')} (comma-separated) or "all".`);
+      process.exit(1);
+    }
+    flags.axes = parsed;
+  }
   else if (a === '--help' || a === '-h') { help(); process.exit(0); }
   else if (a === '--preset' || a === '-p') {
     const val = args[++i];
@@ -55,12 +77,15 @@ Options:
   --screenshot      Include a base64 hero screenshot in JSON output
   --verbose, -v     Show evidence details for every triggered pattern
   --preset, -p <p>  Scoring preset: full (default), strict, marketing, minimal
+  --axes <list>     Axes to score: design (default), copy. Comma-separated or "all"
+  --copy            Shorthand for --axes design,copy
   --help, -h        Show this help
 
 Examples:
   slop-detector https://news.ycombinator.com
   slop-detector https://aura.build https://lovable.dev --verbose
-  slop-detector https://example.com --json > result.json
+  slop-detector https://example.com --copy           # design + copy slop
+  slop-detector https://example.com --axes all --json > result.json
 
 The 16 patterns scored:
    1. Slop fonts            — Inter / Geist / Space Grotesk
@@ -124,13 +149,35 @@ function renderPretty(result) {
   if (result.title) console.log(`${C.grey}${result.title}${C.reset}`);
   if (result.h1) console.log(`${C.grey}H1: "${result.h1}"${C.reset}`);
   console.log();
-  console.log(`  ${emoji(result.tier)} ${ts}${C.bold}${result.tier}${C.reset}` +
-    `  ·  ${C.bold}${result.grade || '?'}${C.reset}` +
-    `  ·  score ${C.bold}${result.score}${C.reset}/100` +
-    `  ·  ${C.bold}${result.patternsFlagged}${C.reset}/${result.patternsTotal} patterns triggered`);
-  if (result.verdict) console.log(`  ${C.grey}${result.verdict}${C.reset}`);
-  console.log();
 
+  // Multi-axis: show the unified headline + per-axis breakdown.
+  const multi = result.axes && result.axes.copy;
+  if (multi) {
+    const ut = tierStyle(result.unifiedTier);
+    console.log(`  ${emoji(result.unifiedTier)} ${ut}${C.bold}${result.unifiedTier}${C.reset}` +
+      `  ·  ${C.bold}${result.unifiedGrade}${C.reset}` +
+      `  ·  unified ${C.bold}${result.unifiedScore}${C.reset}/100` +
+      `  ${C.grey}(${result.axes ? Object.keys(result.axes).length : 1} axes)${C.reset}`);
+    console.log();
+    for (const name of Object.keys(result.axes)) {
+      const ax = result.axes[name];
+      const ax_ts = tierStyle(ax.tier);
+      const note = ax.thin ? `${C.grey} (too little copy to judge)${C.reset}` : '';
+      console.log(`  ${emoji(ax.tier)} ${C.bold}${name.padEnd(7)}${C.reset} ${ax_ts}${ax.tier.padEnd(6)}${C.reset}` +
+        `  ${ax.grade.padEnd(3)}  score ${C.bold}${String(ax.score).padStart(3)}${C.reset}/100` +
+        `  ${String(ax.patternsFlagged).padStart(2)}/${ax.patternsTotal} flagged${note}`);
+    }
+    console.log();
+  } else {
+    console.log(`  ${emoji(result.tier)} ${ts}${C.bold}${result.tier}${C.reset}` +
+      `  ·  ${C.bold}${result.grade || '?'}${C.reset}` +
+      `  ·  score ${C.bold}${result.score}${C.reset}/100` +
+      `  ·  ${C.bold}${result.patternsFlagged}${C.reset}/${result.patternsTotal} patterns triggered`);
+    if (result.verdict) console.log(`  ${C.grey}${result.verdict}${C.reset}`);
+    console.log();
+  }
+
+  // Design-axis pattern detail (always shown — it's the primary fingerprint).
   const flagged = result.patterns.filter(p => p.triggered);
   const clean = result.patterns.filter(p => !p.triggered);
 
@@ -153,6 +200,23 @@ function renderPretty(result) {
     console.log(`  ${C.dim}${names}${C.reset}`);
     console.log();
   }
+
+  // Copy axis detail.
+  if (result.axes && result.axes.copy && !result.axes.copy.thin) {
+    const cflag = result.axes.copy.patterns.filter(p => p.triggered);
+    if (cflag.length) {
+      console.log(`${C.bold}Copy slop:${C.reset}`);
+      for (const p of cflag) {
+        console.log(`  ${C.red}✗${C.reset} ${p.label}  ${C.grey}(+${p.weight})${C.reset}`);
+        if (flags.verbose) {
+          const ev = { ...p.evidence };
+          delete ev.triggered;
+          console.log(`      ${C.grey}${JSON.stringify(ev).slice(0, 200)}${C.reset}`);
+        }
+      }
+      console.log();
+    }
+  }
 }
 
 // ── Main ────────────────────────────────────────────────────────────────────
@@ -160,7 +224,7 @@ function renderPretty(result) {
   const results = [];
   for (const url of urls) {
     try {
-      const r = await scanUrl(url, { screenshot: flags.screenshot, preset: flags.preset });
+      const r = await scanUrl(url, { screenshot: flags.screenshot, preset: flags.preset, axes: flags.axes });
       results.push(r);
       if (!flags.json) renderPretty(r);
     } catch (err) {
@@ -185,9 +249,12 @@ function renderPretty(result) {
         console.log(`  ${C.red}error${C.reset}  ${r.url}`);
       } else {
         const ts = tierStyle(r.tier);
-        console.log(`  ${emoji(r.tier)} ${ts}${r.tier.padEnd(6)}${C.reset}  ` +
-          `score ${C.bold}${String(r.score).padStart(3)}${C.reset}/100  ` +
-          `${String(r.patternsFlagged).padStart(2)}/16 patterns  ` +
+        const sumScore = r.axes && r.axes.copy ? r.unifiedScore : r.score;
+        const sumTier = r.axes && r.axes.copy ? r.unifiedTier : r.tier;
+        const sts = tierStyle(sumTier);
+        console.log(`  ${emoji(sumTier)} ${sts}${sumTier.padEnd(6)}${C.reset}  ` +
+          `score ${C.bold}${String(sumScore).padStart(3)}${C.reset}/100  ` +
+          `${String(r.patternsFlagged).padStart(2)}/${r.patternsTotal} patterns  ` +
           `${C.grey}${r.url}${C.reset}`);
       }
     }

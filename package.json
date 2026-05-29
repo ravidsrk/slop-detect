@@ -1,8 +1,8 @@
 {
   "name": "slop-detect-monorepo",
   "private": true,
-  "version": "0.3.0",
-  "description": "Score any landing page against the 16-rule AI-design-slop fingerprint. Detect Cursor/v0/Lovable templates in the wild.",
+  "version": "0.4.0",
+  "description": "Score any landing page against the multi-axis (design + copy) AI-slop fingerprint. Detect Cursor/v0/Lovable templates and GPT-default copy in the wild.",
   "type": "module",
   "license": "MIT",
   "homepage": "https://slop-detect.com",
@@ -25,7 +25,8 @@
     "demo": "npm run --workspace slop-detect demo",
     "web:dev": "npm run --workspace slop-detect-web dev",
     "web:deploy": "npm run --workspace slop-detect-web deploy",
-    "lint": "node --check packages/core/src/*.js packages/cli/src/*.js packages/cli/bin/*.js packages/web/functions/api/*.js"
+    "test": "node --test packages/core/test/*.test.js",
+    "lint": "node --check packages/core/src/*.js packages/cli/src/*.js packages/cli/bin/*.js packages/web/functions/api/*.js packages/web/functions/*.js"
   },
   "engines": {
     "node": ">=20.0.0"

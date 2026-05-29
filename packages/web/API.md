@@ -24,6 +24,8 @@ Run the detector against a URL inside a headless Chromium and return the score
 | Field        | Type    | Required | Notes                                                        |
 |--------------|---------|----------|--------------------------------------------------------------|
 | `url`        | string  | yes      | Target URL. `https://` is prepended if no scheme is present. |
+| `preset`     | string  | no       | `full` (default), `strict`, `marketing`, `minimal`.          |
+| `axes`       | array \| `"all"` | no | Axes to score: `["design"]` (default), `["design","copy"]`, or `"all"`. |
 | `screenshot` | boolean | no       | If `true`, includes a base64 JPEG of the above-fold render.  |
 | `share`      | boolean | no       | Default `true`. Set `false` to skip persistence/permalink.   |
 
@@ -48,8 +50,29 @@ Run the detector against a URL inside a headless Chromium and return the score
 }
 ```
 
-- `score`: **0–100, lower is better.**
+- `score`: **0–100, lower is better.** Top-level fields are always the **design**
+  axis (backward-compatible).
 - `id` / `resultUrl`: present only when the result was persisted (`share !== false` and KV available).
+
+**Multi-axis** — when `axes` includes `copy`, the response also carries:
+
+```json
+{
+  "axes": {
+    "design": { "score": 8,  "tier": "Clean", "grade": "A-", "patternsFlagged": 2, "patterns": [] },
+    "copy":   { "score": 18, "tier": "Mild",  "grade": "B-", "patternsFlagged": 4, "wordCount": 540, "patterns": [] }
+  },
+  "unifiedScore": 18,
+  "unifiedTier": "Mild",
+  "unifiedGrade": "B-",
+  "axesScored": ["design", "copy"],
+  "dirtyAxes": 1
+}
+```
+
+`unifiedScore` = max axis score + 6 per additional dirty (non-Clean) axis, clamped
+to 100. The copy axis flags a `thin: true` when there's too little prose (<40 words)
+to judge, and stays Clean rather than guessing.
 
 **Error responses:**
 
@@ -207,6 +230,14 @@ curl -s https://slop-detect.com/api/scan \
   -H 'content-type: application/json' \
   -H 'X-API-Key: sk_live_xxx' \
   -d '{"url":"https://example.com"}'
+```
+
+**Multi-axis (design + copy)** — adds `axes` + `unifiedScore` to the response:
+
+```bash
+curl -s https://slop-detect.com/api/scan \
+  -H 'content-type: application/json' \
+  -d '{"url":"https://example.com","axes":["design","copy"]}'
 ```
 
 **Fix-prompt from a URL (JSON envelope):**

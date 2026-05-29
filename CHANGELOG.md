@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.4.0 — Phase 4: multi-axis slop (design + copy)
+
+### Added
+- **Copy-slop axis (#08)** — 9 deterministic text patterns scored on the page's
+  own prose at near-zero marginal cost (one in-DOM text extraction, no extra page
+  load): `buzzword_density`, `em_dash_overload`, `antithesis_construction`,
+  `filler_openers`, `formulaic_closers`, `rule_of_three`, `whether_youre`,
+  `unicode_artifacts`, `emoji_bullet_headers`. Each with its own fix recipe.
+- **Multi-axis scoring** — `scoreCopy()`, `combineAxes()`, `extractTextContext()`,
+  `AXES` exported from core. Per-axis summaries (`axes.{design,copy}`) plus a
+  `unifiedScore` / `unifiedTier` (max axis score + penalty when >1 axis dirty).
+- **CLI**: `--copy` and `--axes design,copy|all` flags, with a per-axis pretty
+  breakdown. **API**: `{ axes: ['design','copy'] }` on `/api/scan` and
+  `/api/fix-prompt`. Permalinks persist a compact copy-axis summary.
+- **`buildFixPrompt`** now spans both axes when the copy axis was scored.
+- First **unit-test suite** (`node --test`) covering the copy axis + aggregator;
+  `npm test` wired at the root.
+
+### Backward compatibility
+- Top-level `score` / `grade` / `tier` / `patterns` remain **design-only** by
+  default. The copy axis is strictly opt-in; existing integrations are unchanged.
+
 ## 0.3.0 — Phase 3: keep the ruleset current
 
 ### Added

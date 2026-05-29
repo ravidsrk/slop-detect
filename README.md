@@ -172,6 +172,41 @@ slop-detect https://example.com --preset minimal       # the 3 dead-giveaways
 The API accepts `{ "url": "...", "preset": "strict" }`. New patterns can be added
 declaratively — see [CONTRIBUTING.md](CONTRIBUTING.md#the-low-friction-path-declarative-rules).
 
+## Multi-axis slop — design + copy
+
+Slop isn't only visual. The same page that wears a v0 template usually has
+GPT-default *prose* too. slop-detect scores a second **copy axis** on the page's
+own text at near-zero marginal cost (one text extraction, no extra page load):
+
+```bash
+slop-detect https://example.com --copy          # design + copy
+slop-detect https://example.com --axes all       # same thing
+```
+
+```
+  🟡 Mild  ·  B-  ·  unified 22/100  (2 axes)
+
+  🟢 design  Clean   A-   score   8/100   2/19 flagged
+  🟡 copy    Mild    B-   score  18/100   4/9 flagged
+
+Copy slop:
+  ✗ AI buzzword density (leverage / seamless / robust …)  (+7)
+  ✗ Em-dash overload                                       (+5)
+  ✗ "It's not just X — it's Y" antithesis                  (+6)
+  ✗ Generic filler openers ("In today's fast-paced world") (+5)
+```
+
+The 9 copy patterns: **buzzword density** (leverage/seamless/robust/elevate…),
+**em-dash overload**, **"not just X, it's Y" antithesis**, **filler openers**,
+**formulaic closers**, **rule-of-three tricolons**, **"whether you're X or Y"**,
+**invisible Unicode artifacts**, **emoji bullet headers**. Each has its own fix
+recipe, so `fix-prompt` covers both axes.
+
+Top-level `score`/`grade`/`patterns` stay **design-only** for backward
+compatibility. Multi-axis adds `axes.{design,copy}` plus `unifiedScore` /
+`unifiedTier`. The unified score = max axis score + a small penalty when more
+than one axis is dirty. API: `{ "url": "...", "axes": ["design","copy"] }`.
+
 ## What's in this repo
 
 ```
@@ -255,9 +290,10 @@ primitives) shipped in v0.2.0:
 - [x] **Public REST API** with key-based rate-limit tiers ([API.md](packages/web/API.md))
 - [x] **Declarative rule format** + named presets (strict / marketing / minimal)
 - [x] **New 2026.07 patterns** — bento walls, aurora gradients, AI sparkles
+- [x] **Multi-axis slop score** — design + copy axes, unified score, both-axis fix prompts
 - [ ] Community rule registry + web rule authoring UI
 - [ ] AI-builder provenance signal ("likely built with v0 / Lovable / Bolt")
-- [ ] Multi-axis slop score (design + copy + code)
+- [ ] Code-slop axis (repo / view-source hook)
 - [ ] Historical scoring + team dashboards (Pro)
 
 ## Acknowledgments

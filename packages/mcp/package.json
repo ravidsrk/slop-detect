@@ -1,6 +1,6 @@
 {
   "name": "slop-detect-mcp",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "MCP server that lets AI coding agents (Cursor, Claude Code, Windsurf) scan landing pages for AI-design-slop and pull a fix prompt.",
   "type": "module",
   "license": "MIT",

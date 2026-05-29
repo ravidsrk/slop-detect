@@ -100,6 +100,30 @@ problems (empty = valid). Imperative `extract(ctx)` patterns are still fully
 supported for anything too gnarly for the declarative form; `compileRules()`
 accepts a mixed list.
 
+## Proposing a copy-slop pattern (the text axis)
+
+The **copy axis** lives in `packages/core/src/copyPatterns.js`. Unlike design
+patterns, copy patterns are *pure text analysis* — they run in Node/Worker on the
+already-extracted page text, so **no browser, no serialization, fully
+unit-testable**. A copy pattern is:
+
+```js
+{
+  id: 'my_copy_tell',
+  label: '…', short: '…',
+  axis: 'copy', category: 'copy', weight: 5,   // 0–40
+  match: ({ text, headings, paragraphs, wordCount }) => {
+    // …count occurrences, compute density…
+    return { total, density, samples, triggered: /* boolean */ };
+  }
+}
+```
+
+Calibration rule: **fire on density, not single occurrences.** One em-dash is
+fine; one per 40 words is a machine. Tune thresholds so hand-written copy
+(Stripe/Linear/Notion) stays Clean while GPT-default prose lights up. Add a `FIXES`
+entry and an evidence formatter, then cover it in `packages/core/test/copy.test.js`.
+
 ## Improving a fix recipe
 
 If a fix recipe is too generic, contradicts itself, or recommends a substitute that itself reads as slop — fix it. PRs that sharpen existing recipes are some of the most valuable contributions because they directly improve the LLM output users get.
@@ -129,11 +153,15 @@ Avoid:
 # 1) Lint (syntax check)
 npm run lint
 
-# 2) Run the CLI against a known-bad and known-good URL
+# 2) Unit tests (copy axis + scoring — pure, no browser)
+npm test
+
+# 3) Run the CLI against a known-bad and known-good URL
 npm run scan -- https://www.aura.build              # should be Heavy
 npm run scan -- https://news.ycombinator.com         # should be Clean
+npm run scan -- https://example.com --copy           # design + copy axes
 
-# 3) Run the web app locally (won't actually scan without Cloudflare):
+# 4) Run the web app locally (won't actually scan without Cloudflare):
 npm run web:dev
 ```
 
