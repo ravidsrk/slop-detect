@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased — Phase 2: embed into the workflow (CI + agents)
+
+### Added
+- **`slop-detect-mcp`** — Model Context Protocol server (stdio) exposing
+  `scan_page` and `fix_prompt` tools so Cursor / Claude Code / Windsurf agents
+  can self-audit a page before shipping. Thin wrapper over the public API,
+  `SLOP_DETECT_API` configurable. (`#07`)
+- **`slop-detect-action`** — composite GitHub Action that scans a deploy-preview
+  URL, posts a **sticky PR comment** (grade · score · triggered patterns · OG
+  card), sets a pass/fail status via `fail-under` (numeric or letter grade), and
+  exposes `score`/`grade`/`tier`/`verdict`/`result-url` outputs. (`#04`)
+- Example consumer workflow at `.github/workflows/slop-check.example.yml`.
+
 ## 0.2.0 — Phase 1: distribution primitives
 
 Make the score travel. Every scan now produces something shareable and embeddable.

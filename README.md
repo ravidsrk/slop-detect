@@ -86,6 +86,37 @@ and any domain gets a **live badge** you can drop in a README or site footer.
 The `POST /api/scan` response includes `grade`, `verdict`, `definitionsVersion`,
 plus an `id` and `resultUrl` for the shareable permalink.
 
+## Use it in your agent (MCP)
+
+[`slop-detect-mcp`](packages/mcp) is a Model Context Protocol server that lets
+Cursor / Claude Code / Windsurf agents scan a page **before** they ship it — and
+pull the fix prompt back into the editing loop. Two tools: `scan_page` and
+`fix_prompt`.
+
+```json
+{
+  "mcpServers": {
+    "slop-detect": { "command": "npx", "args": ["-y", "slop-detect-mcp"] }
+  }
+}
+```
+
+## Gate it in CI (GitHub Action)
+
+[`slop-detect-action`](packages/action) scans a deploy-preview URL, posts a
+**sticky PR comment** with the grade + triggered patterns, and **fails the check**
+when slop creeps above your threshold.
+
+```yaml
+- uses: ravidsrk/slop-detect/packages/action@v0.2.0
+  with:
+    url: ${{ steps.preview.outputs.url }}   # your Vercel/Netlify preview URL
+    fail-under: 'B'                          # fail if the grade drops below B
+```
+
+`fail-under` accepts a number (fail if the slop score exceeds it) or a letter
+grade (fail if the grade is worse). Leave it empty for report-only mode.
+
 The repo also ships an [Agent Skill](skills/slop-detect/SKILL.md) following the [agentskills.io](https://agentskills.io) open spec — any compatible agent (Claude Code, Cursor, GitHub Copilot, Gemini CLI, Codex, Roo Code, Junie, and 20+ others) will autonomously invoke the scanner when you ask it to audit a landing page.
 
 ## The 16 patterns
@@ -191,8 +222,9 @@ primitives) shipped in v0.2.0:
 - [x] **Letter grades + verdict** — A+→F grade and a one-liner on every score
 - [x] **Embeddable SVG badge** — `slop-detect.com/badge/<domain>.svg` + copy-paste snippets
 - [x] **Versioned slop definitions** — scores tagged with `definitionsVersion`
-- [ ] GitHub Action — auto-comment fix prompts / status checks on PR preview URLs
-- [ ] MCP server so agents self-audit before shipping
+- [x] **GitHub Action** — sticky PR comment + pass/fail status check on preview URLs
+- [x] **MCP server** (`slop-detect-mcp`) so agents self-audit before shipping
+- [ ] Public REST API with documented rate-limited tiers + keys
 - [ ] Declarative rule format + community rule registry
 - [ ] 17th, 18th, ... patterns as new slop trends emerge (bento walls, aurora gradients)
 - [ ] Multi-axis slop score (design + copy + code)

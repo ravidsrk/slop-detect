@@ -1,0 +1,43 @@
+{
+  "name": "slop-detect-mcp",
+  "version": "0.2.0",
+  "description": "MCP server that lets AI coding agents (Cursor, Claude Code, Windsurf) scan landing pages for AI-design-slop and pull a fix prompt.",
+  "type": "module",
+  "license": "MIT",
+  "homepage": "https://slop-detect.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ravidsrk/slop-detect.git",
+    "directory": "packages/mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/ravidsrk/slop-detect/issues"
+  },
+  "author": "Ravindra Kumar <ravidsrk@gmail.com>",
+  "bin": {
+    "slop-detect-mcp": "./bin/server.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  },
+  "keywords": [
+    "slop",
+    "ai-detection",
+    "landing-page",
+    "design-audit",
+    "mcp",
+    "model-context-protocol",
+    "cursor",
+    "claude-code",
+    "windsurf"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -17,7 +17,8 @@
   "workspaces": [
     "packages/core",
     "packages/cli",
-    "packages/web"
+    "packages/web",
+    "packages/mcp"
   ],
   "scripts": {
     "scan": "npm run --workspace slop-detect scan --",

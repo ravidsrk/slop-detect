@@ -1,0 +1,42 @@
+# EXAMPLE workflow — copy this into a DOWNSTREAM repo as
+# .github/workflows/slop-check.yml to gate PRs on AI-design-slop.
+#
+# It is intentionally gated behind `workflow_dispatch` (manual only) so it never
+# runs automatically inside this monorepo — it exists purely as documentation.
+name: Slop check (example)
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'URL to scan'
+        required: true
+        default: 'https://news.ycombinator.com'
+
+permissions:
+  contents: read
+  pull-requests: write   # required so the action can post a sticky PR comment
+
+jobs:
+  slop:
+    runs-on: ubuntu-latest
+    steps:
+      # In a real PR workflow you'd resolve your deploy-preview URL first
+      # (Vercel/Netlify) and pass it in. Here we just use the dispatch input.
+      - name: Slop Detect
+        id: slop
+        uses: ravidsrk/slop-detect/packages/action@v0.2.0
+        with:
+          url: ${{ github.event.inputs.url }}
+          # Fail the check if the page grades worse than B. Use a number
+          # (e.g. '10') to gate on the raw 0–100 score instead. Leave empty
+          # for report-only.
+          fail-under: 'B'
+          comment: 'true'
+
+      - name: Show outputs
+        run: |
+          echo "grade=${{ steps.slop.outputs.grade }}"
+          echo "score=${{ steps.slop.outputs.score }}"
+          echo "tier=${{ steps.slop.outputs.tier }}"
+          echo "result=${{ steps.slop.outputs.result-url }}"

@@ -1,0 +1,74 @@
+# Slop Detect — composite GitHub Action.
+#
+# Composite (not a JS/Docker action) on purpose: it's a single Node 20 script
+# with zero external deps (built-in fetch), so there's nothing to bundle and no
+# node_modules to commit. The runner already ships Node 20, so `node scan.mjs`
+# just works. See scan.mjs for the actual logic.
+name: 'Slop Detect'
+description: 'Score a landing page against the 16-rule AI-design-slop fingerprint and gate PRs.'
+author: 'Ravindra Kumar'
+
+branding:
+  icon: 'eye'
+  color: 'purple'
+
+inputs:
+  url:
+    description: 'The page (URL) to scan — typically a deploy-preview URL.'
+    required: true
+  fail-under:
+    # NOTE on semantics: the slop score is 0–100 where LOWER is better. So
+    # "fail-under" here means "fail if the slop score climbs ABOVE this number".
+    #   - Empty (default) → report-only, never fails the check.
+    #   - Numeric (e.g. '10') → fail when score > 10.
+    #   - Letter grade (e.g. 'B') → fail when the page grades WORSE than B.
+    description: 'Fail the check if the slop score exceeds this number, or (if a letter grade like "B" is given) if the page grades worse than it. Empty = report-only.'
+    required: false
+    default: ''
+  api-base:
+    description: 'Base URL of the slop-detect API.'
+    required: false
+    default: 'https://slop-detect.com'
+  comment:
+    description: 'Post/update a sticky PR comment with the report ("true"/"false").'
+    required: false
+    default: 'true'
+  github-token:
+    description: 'Token used to post the sticky PR comment.'
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  score:
+    description: 'Slop score 0–100 (lower is better).'
+    value: ${{ steps.scan.outputs.score }}
+  grade:
+    description: 'Letter grade (A+ … F).'
+    value: ${{ steps.scan.outputs.grade }}
+  tier:
+    description: 'Tier bucket: Clean / Mild / Heavy.'
+    value: ${{ steps.scan.outputs.tier }}
+  verdict:
+    description: 'One-line human-readable verdict.'
+    value: ${{ steps.scan.outputs.verdict }}
+  result-url:
+    description: 'Shareable result page URL.'
+    value: ${{ steps.scan.outputs.result-url }}
+
+runs:
+  using: 'composite'
+  steps:
+    # Single step does everything: scan → outputs → summary → sticky comment →
+    # threshold gate. Inputs are passed via INPUT_* env so the script stays a
+    # plain Node module with no @actions/core dependency. GITHUB_* context vars
+    # (GITHUB_OUTPUT, GITHUB_STEP_SUMMARY, GITHUB_EVENT_NAME, GITHUB_EVENT_PATH,
+    # GITHUB_REPOSITORY, GITHUB_API_URL) are already present in the env.
+    - id: scan
+      shell: bash
+      run: node "${{ github.action_path }}/scan.mjs"
+      env:
+        INPUT_URL: ${{ inputs.url }}
+        INPUT_FAIL_UNDER: ${{ inputs.fail-under }}
+        INPUT_API_BASE: ${{ inputs.api-base }}
+        INPUT_COMMENT: ${{ inputs.comment }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
