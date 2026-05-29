@@ -18,189 +18,397 @@
 <link rel="apple-touch-icon" href="/favicon.png">
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <style>
+  /* ──────────────────────────────────────────────────────────────────────────
+     Anti-slop by construction. This page is scored by its own engine, so it
+     deliberately avoids the tells it detects: no gradient text, no gradient or
+     aurora backgrounds, no glassmorphism, no colored glows, no centered hero,
+     no eyebrow pill, no numbered-step circles, no icon-card grid, no big-number
+     stat banner, no crushed/wide tracking. One restrained cold-blue accent.
+     Strong, non-flat type hierarchy. Mono is used for data, not decoration.
+     ────────────────────────────────────────────────────────────────────────── */
   :root {
     --bg: #0a0a0b;
-    --panel: #121214;
-    --panel-2: #1a1a1d;
-    --border: #232327;
-    --text: #f5f5f7;
-    --muted: #8a8a92;
-    --dim: #5a5a62;
-    --accent: #d4d4d8;
+    --bg-2: #0e0e10;
+    --panel: #141417;
+    --panel-2: #1b1b1f;
+    --border: #26262b;
+    --border-2: #34343b;
+    --text: #f4f4f6;
+    --text-2: #c4c4cc;
+    --muted: #a6a6af;
+    --dim: #7a7a84;
+    --accent: #5b9dff;
+    --accent-ink: #0a0a0b;
     --green: #4ade80;
     --yellow: #fbbf24;
     --red: #f87171;
-    --blue: #60a5fa;
+    --maxw: 920px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
   html, body { background: var(--bg); color: var(--text); }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
                  "Helvetica Neue", Arial, sans-serif;
-    font-size: 15px;
-    line-height: 1.5;
+    font-size: 16px;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     min-height: 100vh;
   }
-  a { color: var(--blue); text-decoration: none; }
+  a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
-  code, .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.9em; }
+  code, .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  ::selection { background: rgba(91,157,255,0.25); }
 
-  .wrap { max-width: 760px; margin: 0 auto; padding: 48px 24px 80px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 
-  header { margin-bottom: 32px; }
-  h1 {
-    font-size: 28px;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    margin-bottom: 8px;
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+  /* ── Top bar ─────────────────────────────────────────────────────────────── */
+  .topbar {
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,10,11,0.85);
+    position: sticky; top: 0; z-index: 50;
   }
-  h1 .tag { color: var(--muted); font-weight: 400; }
-  .sub { color: var(--muted); font-size: 15px; max-width: 560px; }
-  .sub a { color: var(--accent); border-bottom: 1px dashed var(--dim); }
+  .topbar-inner {
+    max-width: var(--maxw); margin: 0 auto; padding: 14px 24px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; letter-spacing: -0.01em; }
+  .brand .glyph {
+    width: 22px; height: 22px; border-radius: 5px;
+    border: 1px solid var(--border-2); background: var(--panel);
+    display: grid; place-items: center; font-family: ui-monospace, monospace;
+    font-size: 13px; color: var(--accent);
+  }
+  .topbar-links { display: flex; align-items: center; gap: 18px; font-size: 14px; }
+  .topbar-links a { color: var(--muted); }
+  .topbar-links a:hover { color: var(--text); text-decoration: none; }
+  @media (max-width: 560px) { .topbar-links .hide-sm { display: none; } }
 
+  /* ── Hero (left-aligned on purpose — centered hero is a slop tell) ─────────── */
+  .hero { padding: 72px 0 28px; }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 44px;
+    align-items: start;
+  }
+  .hero-left { min-width: 0; }
+  /* Sample readout fills the right side and demos the output before you scan. */
+  .hero-sample {
+    background: var(--panel);
+    border: 1px solid var(--border-2);
+    border-radius: 14px;
+    overflow: hidden;
+    position: sticky; top: 84px;
+  }
+  .sample-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 11px 14px; border-bottom: 1px solid var(--border);
+    font-family: ui-monospace, monospace; font-size: 12px; color: var(--dim);
+  }
+  .sample-bar .dots { display: flex; gap: 5px; }
+  .sample-bar .dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--border-2); }
+  .sample-bar .tag { margin-left: auto; color: var(--muted); }
+  .sample-body { padding: 16px 18px; }
+  .sample-dom { font-family: ui-monospace, monospace; font-size: 12.5px; color: var(--muted); word-break: break-all; }
+  .sample-score { display: flex; align-items: center; gap: 14px; margin-top: 12px; }
+  .sample-grade { font-family: ui-monospace, monospace; font-size: 50px; font-weight: 800; line-height: 0.8; letter-spacing: -0.04em; color: var(--yellow); }
+  .sample-num { font-family: ui-monospace, monospace; font-size: 26px; font-weight: 700; line-height: 1; }
+  .sample-num small { font-size: 14px; color: var(--muted); font-weight: 500; }
+  .sample-pill {
+    margin-left: auto; font-size: 13px; font-weight: 600; padding: 4px 11px;
+    border-radius: 999px; border: 1px solid var(--yellow); color: var(--yellow);
+  }
+  .sample-track { margin-top: 13px; height: 6px; background: var(--panel-2); border-radius: 3px; overflow: hidden; }
+  .sample-track i { display: block; height: 100%; width: 34%; background: var(--yellow); border-radius: 3px; }
+  .sample-rows { margin-top: 15px; display: flex; flex-direction: column; gap: 7px; }
+  .sample-row { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--text-2); }
+  .sample-row .d { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .sample-row.bad .d { background: var(--red); }
+  .sample-row.ok .d { background: var(--dim); }
+  .sample-row .w { margin-left: auto; font-family: ui-monospace, monospace; font-size: 11px; color: var(--dim); }
+  .sample-row.bad .w { color: var(--red); }
+  .sample-foot { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 12px; color: var(--dim); }
+  @media (max-width: 860px) {
+    .hero-grid { grid-template-columns: 1fr; gap: 28px; }
+    .hero-sample { display: none; }
+  }
+  .kicker {
+    font-family: ui-monospace, monospace;
+    font-size: 12.5px;
+    color: var(--muted);
+    letter-spacing: 0.01em;
+    margin-bottom: 18px;
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  }
+  .kicker .sep { color: var(--dim); }
+  .kicker b { color: var(--accent); font-weight: 600; }
+  h1 {
+    font-size: 46px;
+    font-weight: 680;
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    max-width: 16ch;
+  }
+  h1 .accent { color: var(--accent); }
+  .lead {
+    margin-top: 20px;
+    font-size: 19px;
+    line-height: 1.55;
+    color: var(--text-2);
+    max-width: 60ch;
+  }
+  .lead a { border-bottom: 1px solid var(--border-2); }
+  .lead a:hover { text-decoration: none; border-color: var(--accent); }
+
+  /* ── Scan form (the strongest existing component — kept, refined) ──────────── */
   .form {
-    margin-top: 28px;
+    margin-top: 32px;
     display: flex;
     gap: 8px;
     background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 6px;
+    border: 1px solid var(--border-2);
+    border-radius: 12px;
+    padding: 7px;
+    max-width: 620px;
+    transition: border-color 0.15s;
   }
+  .form:focus-within { border-color: var(--accent); }
   .form input {
     flex: 1;
     background: transparent;
     border: 0;
     color: var(--text);
-    font-size: 15px;
-    padding: 10px 12px;
+    font-size: 16px;
+    padding: 11px 13px;
     outline: none;
-    font-family: inherit;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   }
   .form input::placeholder { color: var(--dim); }
   .form button {
     background: var(--text);
     color: #000;
     border: 0;
-    border-radius: 6px;
-    padding: 10px 18px;
-    font-size: 14px;
+    border-radius: 8px;
+    padding: 11px 22px;
+    font-size: 15px;
     font-weight: 600;
     cursor: pointer;
     font-family: inherit;
-    transition: opacity 0.1s;
+    transition: transform 0.08s, opacity 0.1s;
   }
-  .form button:hover { opacity: 0.85; }
+  .form button:hover { opacity: 0.9; }
+  .form button:active { transform: translateY(1px); }
   .form button:disabled { opacity: 0.5; cursor: wait; }
 
+  #turnstile-host:empty { margin: 0 !important; }
+
   .examples {
-    margin-top: 12px;
+    margin-top: 14px;
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-    font-size: 13px;
+    gap: 7px;
+    font-size: 14px;
     color: var(--muted);
     align-items: center;
   }
-  .examples span { color: var(--dim); }
+  .examples > span { color: var(--dim); font-family: ui-monospace, monospace; font-size: 13px; }
   .examples button {
-    background: transparent;
-    color: var(--muted);
+    background: var(--panel);
+    color: var(--text-2);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 3px 10px;
-    font-size: 12px;
+    border-radius: 7px;
+    padding: 5px 12px;
+    font-size: 13px;
     cursor: pointer;
-    font-family: inherit;
+    font-family: ui-monospace, monospace;
+    transition: border-color 0.12s, color 0.12s;
   }
   .examples button:hover { border-color: var(--accent); color: var(--text); }
 
   .status {
-    margin-top: 28px;
+    margin-top: 26px;
     color: var(--muted);
-    font-size: 14px;
+    font-size: 15px;
     display: none;
+    font-family: ui-monospace, monospace;
   }
   .status.show { display: block; }
+  .status::before { content: "\203A  "; color: var(--accent); }
   .status.error { color: var(--red); }
+  .status.error::before { content: ""; }
 
-  .result { margin-top: 32px; display: none; }
-  .result.show { display: block; }
+  /* ── Section scaffolding — editorial 2-col: heading pinned left, content right.
+     This fills horizontal space deliberately (Stripe/Linear pattern) instead of
+     leaving an accidental void to the right of a narrow text column. ─────────── */
+  section.block { padding: 40px 0; }
+  .block-grid {
+    display: grid;
+    grid-template-columns: 230px minmax(0, 1fr);
+    gap: 40px;
+    align-items: start;
+  }
+  .block-head { position: sticky; top: 84px; }
+  .block-note {
+    margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);
+    font-family: ui-monospace, monospace; font-size: 12px; color: var(--dim);
+    line-height: 1.7;
+  }
+  .block-note b { color: var(--muted); font-weight: 600; }
+  .divider { border: 0; border-top: 1px solid var(--border); margin: 4px 0; }
+  .eyebrow {
+    font-family: ui-monospace, monospace;
+    font-size: 12.5px;
+    color: var(--accent);
+    margin-bottom: 12px;
+    letter-spacing: 0.01em;
+  }
+  .eyebrow::before { content: "// "; color: var(--dim); }
+  h2 {
+    font-size: 25px;
+    font-weight: 640;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin-bottom: 10px;
+  }
+  .block p.body { color: var(--text-2); max-width: 62ch; font-size: 16px; }
+  .block p.body + p.body { margin-top: 12px; }
+  @media (max-width: 760px) {
+    .block-grid { grid-template-columns: 1fr; gap: 18px; }
+    .block-head { position: static; }
+  }
+
+  /* What it checks — a clean two-column definition list, NOT an icon-card grid */
+  .checks {
+    margin-top: 22px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .check {
+    background: var(--panel);
+    padding: 18px 20px;
+  }
+  .check h3 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 5px;
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .check h3 .n { font-family: ui-monospace, monospace; font-size: 12px; color: var(--accent); }
+  .check p { font-size: 14px; color: var(--muted); line-height: 1.5; }
+  @media (max-width: 600px) { .checks { grid-template-columns: 1fr; } }
+
+  /* Pipeline — described as a flow, not numbered-circle slop steps */
+  .pipeline {
+    margin-top: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .step {
+    display: flex; gap: 14px; padding: 18px 20px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--accent);
+    border-radius: 10px;
+  }
+  .step .marker {
+    flex-shrink: 0; width: 56px;
+    font-family: ui-monospace, monospace; font-size: 12px;
+    color: var(--dim); padding-top: 2px;
+  }
+  .step .marker b { color: var(--accent); font-weight: 600; }
+  .step .desc h3 { font-size: 15px; font-weight: 600; margin-bottom: 3px; }
+  .step .desc p { font-size: 14px; color: var(--muted); }
+  @media (max-width: 600px) { .pipeline { grid-template-columns: 1fr; } }
+  .tiers-inline { display: inline-flex; gap: 14px; flex-wrap: wrap; }
+  .tiers-inline b { font-weight: 600; }
+  .t-clean { color: var(--green); } .t-mild { color: var(--yellow); } .t-heavy { color: var(--red); }
+
+  /* ── Result (preserves every class render() emits) ─────────────────────────── */
+  .result { margin-top: 28px; display: none; scroll-margin-top: 80px; }
+  .result.show { display: block; animation: rise 0.4s cubic-bezier(.2,.7,.2,1); }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
   .result-head {
     background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 20px 22px;
+    border: 1px solid var(--border-2);
+    border-radius: 14px;
+    padding: 24px 26px;
     margin-bottom: 16px;
   }
   .result-url {
-    font-size: 14px;
+    font-size: 13px;
     color: var(--muted);
     margin-bottom: 6px;
     word-break: break-all;
+    font-family: ui-monospace, monospace;
   }
-  .result-title {
-    font-size: 18px;
-    font-weight: 500;
-    margin-bottom: 4px;
-  }
+  .result-title { font-size: 19px; font-weight: 600; margin-bottom: 4px; letter-spacing: -0.01em; }
   .result-h1 { font-size: 13px; color: var(--dim); }
 
   .score-row {
     display: flex;
     align-items: center;
-    gap: 18px;
-    margin-top: 18px;
-    padding-top: 18px;
+    gap: 22px;
+    margin-top: 20px;
+    padding-top: 20px;
     border-top: 1px solid var(--border);
   }
   .score-grade {
-    font-size: 64px;
+    font-size: 68px;
     font-weight: 800;
     letter-spacing: -0.04em;
-    line-height: 0.85;
+    line-height: 0.82;
+    font-family: ui-monospace, monospace;
   }
   .grade-Clean { color: var(--green); }
   .grade-Mild  { color: var(--yellow); }
   .grade-Heavy { color: var(--red); }
   .score-num {
-    font-size: 36px;
+    font-size: 40px;
     font-weight: 700;
     letter-spacing: -0.03em;
     line-height: 1;
+    font-family: ui-monospace, monospace;
   }
-  .score-num small { font-size: 18px; color: var(--muted); font-weight: 500; }
-  .scale-note { font-size: 11px; color: var(--dim); margin-top: 2px; }
+  .score-num small { font-size: 19px; color: var(--muted); font-weight: 500; }
+  .scale-note { font-size: 11px; color: var(--dim); margin-top: 3px; font-family: ui-monospace, monospace; }
   .score-verdict {
-    margin-top: 14px;
+    margin-top: 16px;
     font-size: 16px;
-    color: var(--accent);
-    line-height: 1.4;
+    color: var(--text-2);
+    line-height: 1.45;
   }
   .score-tier {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
-    padding: 4px 12px;
+    padding: 5px 14px;
     border-radius: 999px;
     border: 1px solid;
   }
   .tier-Clean { color: var(--green); border-color: var(--green); }
   .tier-Mild  { color: var(--yellow); border-color: var(--yellow); }
   .tier-Heavy { color: var(--red); border-color: var(--red); }
-  .score-meta { color: var(--muted); font-size: 14px; margin-left: auto; }
+  .score-meta { color: var(--muted); font-size: 14px; margin-left: auto; font-family: ui-monospace, monospace; }
   .score-bar {
-    margin-top: 14px;
-    height: 6px;
+    margin-top: 16px;
+    height: 7px;
     background: var(--panel-2);
-    border-radius: 3px;
+    border-radius: 4px;
     overflow: hidden;
   }
   .score-bar-fill {
     height: 100%;
-    border-radius: 3px;
-    transition: width 0.6s cubic-bezier(.2,.7,.2,1);
+    border-radius: 4px;
+    transition: width 0.7s cubic-bezier(.2,.7,.2,1);
   }
   .fill-Clean { background: var(--green); }
   .fill-Mild  { background: var(--yellow); }
@@ -208,26 +416,26 @@
 
   .pat-section { margin-top: 24px; }
   .pat-label {
-    font-size: 12px;
-    color: var(--dim);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 8px;
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0;
+    margin-bottom: 9px;
+    font-family: ui-monospace, monospace;
   }
-  .pat-list { display: flex; flex-direction: column; gap: 4px; }
+  .pat-list { display: flex; flex-direction: column; gap: 5px; }
   .pat {
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px 16px;
+    border-radius: 9px;
+    padding: 13px 16px;
     display: flex;
     align-items: center;
     gap: 12px;
-    font-size: 14px;
+    font-size: 15px;
     cursor: pointer;
-    transition: border-color 0.15s;
+    transition: border-color 0.15s, background 0.15s;
   }
-  .pat:hover { border-color: var(--dim); }
+  .pat:hover { border-color: var(--border-2); background: var(--panel-2); }
   .pat .dot {
     width: 8px;
     height: 8px;
@@ -238,18 +446,18 @@
   .pat.clean .dot { background: var(--dim); }
   .pat.clean { color: var(--muted); }
   .pat .label { flex: 1; }
-  .pat .weight { color: var(--dim); font-size: 12px; }
+  .pat .weight { color: var(--dim); font-size: 12px; font-family: ui-monospace, monospace; }
   .pat.triggered .weight { color: var(--red); }
   .pat .evidence {
     display: none;
     width: 100%;
     margin-top: 8px;
-    padding: 10px 12px;
+    padding: 11px 13px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 7px;
     font-family: ui-monospace, monospace;
-    font-size: 11px;
+    font-size: 11.5px;
     color: var(--muted);
     white-space: pre-wrap;
     word-break: break-all;
@@ -257,37 +465,28 @@
   .pat.open { flex-wrap: wrap; }
   .pat.open .evidence { display: block; }
 
-  footer {
-    margin-top: 64px;
-    padding-top: 24px;
-    border-top: 1px solid var(--border);
-    font-size: 13px;
-    color: var(--muted);
-    line-height: 1.7;
-  }
-  footer a { color: var(--accent); }
-
-  /* Fix prompt CTA + modal */
+  /* Fix prompt CTA — flat tinted panel (no gradient; the engine flags gradients) */
   .fix-cta {
-    margin-top: 20px;
-    padding: 16px 18px;
-    background: linear-gradient(135deg, rgba(74,222,128,0.08), rgba(96,165,250,0.08));
-    border: 1px solid rgba(74,222,128,0.3);
+    margin-top: 22px;
+    padding: 18px 20px;
+    background: var(--panel-2);
+    border: 1px solid var(--border-2);
+    border-left: 3px solid var(--accent);
     border-radius: 10px;
     display: flex;
     align-items: center;
     gap: 14px;
     flex-wrap: wrap;
   }
-  .fix-cta-text { flex: 1; min-width: 200px; }
-  .fix-cta-title { font-weight: 600; font-size: 15px; margin-bottom: 2px; }
-  .fix-cta-sub { font-size: 13px; color: var(--muted); }
+  .fix-cta-text { flex: 1; min-width: 220px; }
+  .fix-cta-title { font-weight: 600; font-size: 16px; margin-bottom: 3px; }
+  .fix-cta-sub { font-size: 14px; color: var(--muted); }
   .fix-cta button {
-    background: var(--green);
-    color: #003314;
+    background: var(--accent);
+    color: var(--accent-ink);
     border: 0;
-    border-radius: 6px;
-    padding: 10px 18px;
+    border-radius: 8px;
+    padding: 11px 18px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
@@ -296,7 +495,7 @@
   .fix-cta button:hover { opacity: 0.9; }
   .fix-cta button:disabled { opacity: 0.5; cursor: wait; }
 
-  /* Share + embed panels */
+  /* Share + embed */
   .share {
     margin-top: 16px;
     display: grid;
@@ -306,24 +505,24 @@
   .share-box {
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px 16px;
+    border-radius: 11px;
+    padding: 16px 18px;
   }
   .share-box h4 {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--dim);
-    margin-bottom: 10px;
+    font-size: 12px;
+    letter-spacing: 0;
+    color: var(--muted);
+    margin-bottom: 11px;
     font-weight: 600;
+    font-family: ui-monospace, monospace;
   }
   .share-actions { display: flex; gap: 8px; flex-wrap: wrap; }
   .share-btn {
     background: var(--panel-2);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 7px 12px;
+    border-radius: 7px;
+    padding: 8px 13px;
     font-size: 13px;
     cursor: pointer;
     font-family: inherit;
@@ -336,41 +535,42 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 10px;
+    margin-bottom: 11px;
   }
   .badge-preview img { height: 20px; }
   .badge-preview span { font-size: 12px; color: var(--dim); }
   .embed-snippet {
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 9px 11px;
+    border-radius: 7px;
+    padding: 10px 12px;
     font-family: ui-monospace, monospace;
-    font-size: 11px;
+    font-size: 11.5px;
     color: var(--muted);
     white-space: nowrap;
     overflow-x: auto;
     cursor: pointer;
   }
-  .embed-snippet:hover { border-color: var(--dim); color: var(--text); }
-  .embed-tabs { display: flex; gap: 4px; margin-bottom: 8px; }
+  .embed-snippet:hover { border-color: var(--border-2); color: var(--text); }
+  .embed-tabs { display: flex; gap: 4px; margin-bottom: 9px; }
   .embed-tab {
     background: transparent;
     color: var(--dim);
     border: 0;
-    border-radius: 5px;
-    padding: 3px 8px;
-    font-size: 11px;
+    border-radius: 6px;
+    padding: 4px 9px;
+    font-size: 12px;
     cursor: pointer;
-    font-family: inherit;
+    font-family: ui-monospace, monospace;
   }
   .embed-tab.active { background: var(--panel-2); color: var(--text); }
   @media (max-width: 600px) { .share { grid-template-columns: 1fr; } }
 
+  /* Modal */
   .modal-bg {
     display: none;
     position: fixed; inset: 0;
-    background: rgba(0,0,0,0.7);
+    background: rgba(0,0,0,0.74);
     z-index: 100;
     align-items: flex-start;
     justify-content: center;
@@ -380,8 +580,8 @@
   .modal-bg.show { display: flex; }
   .modal {
     background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    border: 1px solid var(--border-2);
+    border-radius: 14px;
     max-width: 820px;
     width: 100%;
     max-height: calc(100vh - 80px);
@@ -403,19 +603,19 @@
     background: var(--panel-2);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 7px 14px;
+    border-radius: 7px;
+    padding: 8px 15px;
     font-size: 13px;
     cursor: pointer;
     font-family: inherit;
   }
   .modal-actions button.primary {
-    background: var(--text);
-    color: #000;
-    border-color: var(--text);
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-color: var(--accent);
     font-weight: 600;
   }
-  .modal-actions button:hover { opacity: 0.85; }
+  .modal-actions button:hover { opacity: 0.88; }
   .modal-body {
     padding: 18px 22px;
     overflow-y: auto;
@@ -439,10 +639,10 @@
     bottom: 30px;
     left: 50%;
     transform: translateX(-50%);
-    background: var(--green);
-    color: #003314;
-    padding: 10px 20px;
-    border-radius: 8px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    padding: 11px 20px;
+    border-radius: 9px;
     font-weight: 600;
     font-size: 14px;
     z-index: 200;
@@ -452,46 +652,254 @@
   }
   .copied-flash.show { opacity: 1; }
 
+  /* Rules disclosure */
+  .rules-block { padding: 30px 0 8px; }
+  #rulesDetails summary {
+    cursor: pointer; color: var(--text);
+    font-weight: 600; font-size: 15px;
+    list-style: none; display: flex; align-items: center; gap: 8px;
+  }
+  #rulesDetails summary::-webkit-details-marker { display: none; }
+  #rulesDetails summary::before { content: "\25B8"; color: var(--accent); transition: transform 0.15s; }
+  #rulesDetails[open] summary::before { transform: rotate(90deg); }
+  #rulesDetails summary .defs { color: var(--muted); font-weight: 400; font-size: 13px; font-family: ui-monospace, monospace; }
+
+  /* Footer */
+  footer {
+    margin-top: 8px;
+    padding: 36px 0 64px;
+    border-top: 1px solid var(--border);
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr 1fr;
+    gap: 32px;
+  }
+  .footer-brand { max-width: 38ch; }
+  .footer-brand .brand { margin-bottom: 10px; }
+  .footer-brand p { color: var(--muted); }
+  .footer-col h5 {
+    font-size: 12px; color: var(--muted); font-family: ui-monospace, monospace;
+    margin-bottom: 10px; font-weight: 600; letter-spacing: 0.02em;
+  }
+  .footer-col a { display: block; color: var(--text-2); margin-bottom: 7px; }
+  .footer-col a:hover { color: var(--accent); text-decoration: none; }
+  @media (max-width: 700px) {
+    .footer-grid { grid-template-columns: 1fr 1fr; }
+    .footer-brand { grid-column: 1 / -1; }
+  }
+  .footer-fine { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--border); font-size: 13px; color: var(--dim); }
+  footer a { color: var(--text-2); }
+
   @media (max-width: 600px) {
-    .wrap { padding: 32px 16px 60px; }
-    h1 { font-size: 24px; }
-    .score-num { font-size: 44px; }
-    .score-row { flex-wrap: wrap; }
+    .hero { padding: 44px 0 20px; }
+    h1 { font-size: 33px; max-width: 100%; }
+    .lead { font-size: 17px; }
+    h2 { font-size: 22px; }
+    .score-num { font-size: 34px; }
+    .score-grade { font-size: 54px; }
+    .score-row { flex-wrap: wrap; gap: 16px; }
     .modal-bg { padding: 20px 12px; }
     .modal-body pre { font-size: 11.5px; padding: 12px; }
   }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>Slop Detector <span class="tag">/ <span id="ruleCountTag">…</span> rules / 0–100</span></h1>
-    <p class="sub">
-      Paste any landing page. Get a deterministic slop score in ~5 seconds. Based on
-      <a href="https://www.adriankrebs.ch/blog/design-slop/" target="_blank" rel="noopener">Adrian Krebs's April 2026 study</a>
-      (15 rules) plus <a href="https://x.com/MengTo/status/2058893181740359863" target="_blank" rel="noopener">Meng To's</a>
-      gradient-letter avatar tell. Runs on real Chromium via Cloudflare Browser Rendering.
-    </p>
-  </header>
-
-  <form class="form" id="form">
-    <input id="url" type="text" placeholder="https://example.com" autocomplete="off" spellcheck="false" required>
-    <button type="submit" id="go">Scan</button>
-  </form>
-  <div id="turnstile-host" style="margin-top:12px"></div>
-
-  <div class="examples">
-    <span>Try:</span>
-    <button data-url="https://news.ycombinator.com">news.ycombinator.com</button>
-    <button data-url="https://www.aura.build">aura.build</button>
-    <button data-url="https://lovable.dev">lovable.dev</button>
-    <button data-url="https://stripe.com">stripe.com</button>
-    <button data-url="https://engagemii.com/aeo">engagemii.com/aeo</button>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand"><span class="glyph">&#9143;</span> Slop Detector</div>
+      <nav class="topbar-links">
+        <a href="#how" class="hide-sm">How it works</a>
+        <a href="#fingerprint" class="hide-sm">The fingerprint</a>
+        <a href="https://github.com/ravidsrk/slop-detect" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
   </div>
 
-  <div class="status" id="status"></div>
+  <div class="wrap">
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-grid">
+        <div class="hero-left">
+          <div class="kicker">
+            <span>deterministic</span><span class="sep">&middot;</span>
+            <span><b id="ruleCountTag">&hellip;</b> patterns</span><span class="sep">&middot;</span>
+            <span>real chromium</span><span class="sep">&middot;</span>
+            <span>~5s</span>
+          </div>
+          <h1>How AI-generated does your <span class="accent">landing page</span> look?</h1>
+          <p class="lead">
+            Cursor, v0, Lovable and Bolt all collapsed onto the same CSS tells. Paste any
+            URL and get a deterministic 0&ndash;100 slop score &mdash; a weighted fingerprint based on
+            <a href="https://www.adriankrebs.ch/blog/design-slop/" target="_blank" rel="noopener">Adrian Krebs's April 2026 study</a>
+            plus <a href="https://x.com/MengTo/status/2058893181740359863" target="_blank" rel="noopener">Meng To's</a> gradient-avatar tell.
+          </p>
 
-  <section class="result" id="result"></section>
+          <form class="form" id="form">
+            <input id="url" type="text" placeholder="https://example.com" autocomplete="off" spellcheck="false" required>
+            <button type="submit" id="go">Scan</button>
+          </form>
+          <div id="turnstile-host" style="margin-top:12px"></div>
+
+          <div class="examples">
+            <span>try</span>
+            <button data-url="https://news.ycombinator.com">news.ycombinator.com</button>
+            <button data-url="https://www.aura.build">aura.build</button>
+            <button data-url="https://lovable.dev">lovable.dev</button>
+            <button data-url="https://stripe.com">stripe.com</button>
+            <button data-url="https://engagemii.com/aeo">engagemii.com/aeo</button>
+          </div>
+        </div>
+
+        <!-- Sample readout — shows the output shape before you scan. Static, decorative. -->
+        <aside class="hero-sample" aria-hidden="true">
+          <div class="sample-bar">
+            <span class="dots"><i></i><i></i><i></i></span>
+            <span class="tag">sample scan</span>
+          </div>
+          <div class="sample-body">
+            <div class="sample-dom">acme-ai-saas.com</div>
+            <div class="sample-score">
+              <span class="sample-grade">C</span>
+              <span class="sample-num">19<small>/100</small></span>
+              <span class="sample-pill">Mild</span>
+            </div>
+            <div class="sample-track"><i></i></div>
+            <div class="sample-rows">
+              <div class="sample-row bad"><span class="d"></span> Gradient hero text <span class="w">+6</span></div>
+              <div class="sample-row bad"><span class="d"></span> Eyebrow pill above hero <span class="w">+5</span></div>
+              <div class="sample-row bad"><span class="d"></span> Big-number stat banner <span class="w">+3</span></div>
+              <div class="sample-row ok"><span class="d"></span> Glassmorphism <span class="w">0</span></div>
+              <div class="sample-row ok"><span class="d"></span> Aurora blobs <span class="w">0</span></div>
+            </div>
+            <div class="sample-foot">3 of 27 patterns triggered &middot; 4.8s</div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="status" id="status"></div>
+      <section class="result" id="result"></section>
+    </section>
+
+    <hr class="divider">
+
+    <!-- The fingerprint -->
+    <section class="block" id="fingerprint">
+      <div class="block-grid">
+        <div class="block-head">
+          <div class="eyebrow">the fingerprint</div>
+          <h2>Slop is a fingerprint, not a verdict</h2>
+          <div class="block-note">
+            <b id="ruleCountTag2">27</b> weighted patterns<br>
+            across 4 axes<br>
+            defs <span id="rulesDefs2">2026.08</span>
+          </div>
+        </div>
+        <div class="block-main">
+          <p class="body">
+            Generated pages converge: the same fonts, the same gradient hero text, the same
+            glassmorphism, the same eyebrow pill and big-number stat banner. None of these is
+            wrong on its own &mdash; Linear and Stripe use Inter too, which is why they score
+            <span class="t-mild">Mild</span>. Slop is the <em>density</em> of converged tells,
+            scored deterministically so two runs of the same page always agree.
+          </p>
+
+          <div class="checks">
+            <div class="check"><h3><span class="n">type</span> Fonts &amp; tracking</h3><p>Geist / Inter defaults, crushed display tracking, wide body tracking, flat size hierarchy.</p></div>
+            <div class="check"><h3><span class="n">color</span> Gradients &amp; glow</h3><p>Gradient hero text, gradient-heavy backgrounds, aurora blobs, colored glows, vibe-purple.</p></div>
+            <div class="check"><h3><span class="n">layout</span> The convention stack</h3><p>Centered hero, eyebrow pill, glassmorphism, bento grids, nested cards, icon-card rows.</p></div>
+            <div class="check"><h3><span class="n">copy</span> AI phrasing</h3><p>An optional second axis scores the words &mdash; the hedge-y, em-dash-heavy register LLMs default to.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- How it works -->
+    <section class="block" id="how">
+      <div class="block-grid">
+        <div class="block-head">
+          <div class="eyebrow">how it works</div>
+          <h2>Real Chromium. Pure functions. One round-trip.</h2>
+          <div class="block-note">
+            no model<br>
+            no randomness<br>
+            same page &rarr; <b>same score</b>
+          </div>
+        </div>
+        <div class="block-main">
+      <div class="pipeline">
+        <div class="step">
+          <div class="marker"><b>load</b></div>
+          <div class="desc"><h3>Headless Chromium opens the page</h3><p>Cloudflare Browser Rendering loads it exactly as a browser would &mdash; JS, fonts, computed styles and all.</p></div>
+        </div>
+        <div class="step">
+          <div class="marker"><b>collect</b></div>
+          <div class="desc"><h3>Up to 4,000 visible DOM nodes</h3><p>Every pattern detector is a pure function that runs against the live computed styles in a single pass.</p></div>
+        </div>
+        <div class="step">
+          <div class="marker"><b>score</b></div>
+          <div class="desc"><h3>Weighted 0&ndash;100, deterministic</h3><p>Each triggered pattern adds its weight. Same page in, same score out &mdash; no model, no randomness.</p></div>
+        </div>
+        <div class="step">
+          <div class="marker"><b>tier</b></div>
+          <div class="desc"><h3>Clean / Mild / Heavy</h3><p class="tiers-inline"><b class="t-clean">Clean 0&ndash;9</b><b class="t-mild">Mild 10&ndash;27</b><b class="t-heavy">Heavy 28+</b></p></div>
+        </div>
+      </div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- Rules disclosure (live catalogue) -->
+    <section class="rules-block">
+      <details id="rulesDetails">
+        <summary>The <span id="rulesSummaryCount">&hellip;</span> patterns <span class="defs" id="rulesDefs"></span></summary>
+        <ol id="rulesList" style="margin:16px 0 0 20px; color:var(--muted); font-size:14px; line-height:1.9">
+          <li>Loading the live pattern catalogue&hellip;</li>
+        </ol>
+      </details>
+      <p class="body" style="margin-top:16px; font-size:14px;">
+        Prefer the terminal? <a id="aboutLink" href="#rulesDetails">Browse every rule</a>, or run it locally:
+        <code style="color:var(--accent)">npx slop-detect &lt;url&gt;</code> &middot; gate CI with <code style="color:var(--accent)">--fail-on heavy</code>.
+      </p>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="brand"><span class="glyph">&#9143;</span> Slop Detector</div>
+          <p>Deterministic design- and copy-slop scoring for landing pages. Open source, runs on real Chromium, ships as a web app, a CLI, and an MCP server.</p>
+        </div>
+        <div class="footer-col">
+          <h5>product</h5>
+          <a href="#how">How it works</a>
+          <a href="#fingerprint">The fingerprint</a>
+          <a href="#rulesDetails">The patterns</a>
+        </div>
+        <div class="footer-col">
+          <h5>install</h5>
+          <a href="https://www.npmjs.com/package/slop-detect" target="_blank" rel="noopener">CLI (npm)</a>
+          <a href="https://www.npmjs.com/package/slop-detect-mcp" target="_blank" rel="noopener">MCP server</a>
+          <a href="https://www.npmjs.com/package/slop-detect-core" target="_blank" rel="noopener">Core engine</a>
+        </div>
+        <div class="footer-col">
+          <h5>source</h5>
+          <a href="https://github.com/ravidsrk/slop-detect" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://www.adriankrebs.ch/blog/design-slop/" target="_blank" rel="noopener">The study</a>
+        </div>
+      </div>
+      <div class="footer-fine">
+        Slop is a fingerprint, not a verdict &mdash; premium sites score Mild too. This page is scored by its own engine and built to stay Clean.
+      </div>
+    </footer>
+  </div>
 
   <!-- Fix prompt modal -->
   <div class="modal-bg" id="modalBg">
@@ -512,28 +920,7 @@
     </div>
   </div>
 
-  <div class="copied-flash" id="flash">✓ Copied to clipboard</div>
-
-  <footer>
-    <p>
-      <strong>How it works:</strong> Headless Chromium loads the page, collects up to 4,000 visible DOM nodes,
-      runs every pure-function pattern detector in one round-trip, returns a weighted score.
-      Tiers: <span style="color:var(--green)">Clean</span> 0–9 ·
-      <span style="color:var(--yellow)">Mild</span> 10–27 ·
-      <span style="color:var(--red)">Heavy</span> 28+.
-    </p>
-    <p style="margin-top:8px">
-      Slop is a fingerprint, not a verdict. Linear and Stripe also use Inter — that's why they score Mild.
-      <a href="#" id="aboutLink">Read the rules ↓</a>
-    </p>
-    <details id="rulesDetails" style="margin-top:12px">
-      <summary style="cursor:pointer; color:var(--accent)">The <span id="rulesSummaryCount">…</span> rules <span id="rulesDefs" style="color:var(--muted);font-weight:400"></span></summary>
-      <ol id="rulesList" style="margin:12px 0 0 20px; color:var(--muted); font-size:13px; line-height:1.8">
-        <li>Loading the live pattern catalogue…</li>
-      </ol>
-    </details>
-  </footer>
-</div>
+  <div class="copied-flash" id="flash">&#10003; Copied to clipboard</div>
 
 <script>
 const $ = (id) => document.getElementById(id);
@@ -904,6 +1291,63 @@ copyBtn.addEventListener('click', async () => {
     if (q) { urlInput.value = q; form.requestSubmit(); }
   } catch (_) {}
 })();
+</script>
+<script>
+  // Supplementary wiring (kept separate from the verbatim core script).
+  // 1) "Browse every rule" opens the disclosure and scrolls to it.
+  (function () {
+    var about = document.getElementById('aboutLink');
+    var det = document.getElementById('rulesDetails');
+    if (about && det) about.addEventListener('click', function (e) {
+      e.preventDefault(); det.open = true;
+      det.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  })();
+  // 2) Keep the left-gutter mirror labels in sync with the live /api/patterns
+  //    values (the core script updates #ruleCountTag / #rulesDefs). Observe them
+  //    so the count is never hardcoded — the static text is only a fallback.
+  (function () {
+    var src = document.getElementById('ruleCountTag');
+    var mirror = document.getElementById('ruleCountTag2');
+    var defsSrc = document.getElementById('rulesDefs');
+    var defsMirror = document.getElementById('rulesDefs2');
+    if (!src || !window.MutationObserver) return;
+    var sync = function () {
+      var n = (src.textContent || '').trim();
+      if (mirror && /^\d+$/.test(n)) mirror.textContent = n;
+      if (defsSrc && defsMirror) {
+        var m = (defsSrc.textContent || '').match(/([0-9]{4}\.[0-9]{2})/);
+        if (m) defsMirror.textContent = m[1];
+      }
+    };
+    new MutationObserver(sync).observe(src, { childList: true, characterData: true, subtree: true });
+    if (defsSrc) new MutationObserver(sync).observe(defsSrc, { childList: true, characterData: true, subtree: true });
+  })();
+  // 3) Count-up animation on the score number after a scan renders.
+  (function () {
+    var resultEl = document.getElementById('result');
+    if (!resultEl || !window.MutationObserver) return;
+    var animate = function (el, to) {
+      var dur = 600, t0 = 0;
+      var small = el.querySelector('small');
+      var suffix = small ? small.outerHTML : '';
+      var step = function (ts) {
+        if (!t0) t0 = ts;
+        var p = Math.min((ts - t0) / dur, 1);
+        var eased = 1 - Math.pow(1 - p, 3);
+        el.innerHTML = Math.round(to * eased) + suffix;
+        if (p < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    };
+    new MutationObserver(function () {
+      var n = resultEl.querySelector('.score-num');
+      if (n && !n.dataset.counted) {
+        var to = parseInt(n.textContent, 10);
+        if (!isNaN(to)) { n.dataset.counted = '1'; animate(n, to); }
+      }
+    }).observe(resultEl, { childList: true, subtree: true });
+  })();
 </script>
 </body>
 </html>

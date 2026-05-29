@@ -1,5 +1,34 @@
 # Changelog
 
+## Web redesign — "editorial terminal" landing page (deployed)
+
+Full redesign of the slop-detect.com landing page (web package only; not an npm
+release). The old page was a single left-drifting column that trailed off into
+dead space and read as an unfinished prototype.
+
+### Design
+- New structure: sticky topbar, two-column hero (headline + scan form left, a
+  static "sample scan" readout card right), an editorial two-column "fingerprint"
+  section, a carded "how it works" pipeline, the live rules disclosure, and a real
+  multi-column footer. The void is now filled with intentional sections + rhythm.
+- Single restrained cold-blue accent (`#5b9dff`); monospace used for data/labels.
+- Strong, non-flat type hierarchy; raised body/label contrast for AA legibility.
+- Score count-up animation; result card reveal; "browse every rule" now wired.
+
+### Anti-slop by construction
+- The page is scored by its own engine, so it deliberately avoids every tell it
+  detects: no gradient text, no gradient/aurora backgrounds, no glassmorphism, no
+  colored glows, no centered hero, no eyebrow pill, no numbered-step circles, no
+  icon-card grid, no big-number stat banner, no crushed/wide tracking.
+- **Self-scan result: 4/100, Clean, Grade A** (only the unavoidable perma-dark +
+  grey-body tell fires). The landing page passes its own detector.
+
+### Safety
+- The entire 370-line core script (Turnstile, /api/patterns, render, share/embed,
+  fix-prompt modal) is preserved byte-for-byte; every element ID is retained. The
+  redesign is HTML structure + CSS only. New gutter mirror labels stay dynamic by
+  observing the live count (never hardcoded). Verified live + on mobile.
+
 ## 0.5.2 — Rate-limit fail-closed, foreign-origin rejection, dead-code sweep
 
 Second post-review batch. Web changes deployed to slop-detect.com; CLI republished
