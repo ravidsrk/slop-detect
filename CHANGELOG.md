@@ -1,5 +1,42 @@
 # Changelog
 
+## Web polish — impeccable-skill audit fixes + forensic-instrument typography (deployed)
+
+Audited the landing page against the `impeccable` brand-design skill (shared
+design laws + brand register + audit rubric) and `landing-copy`, then fixed every
+finding. Web package only; still self-scans 4/100 Clean, Grade A.
+
+### Absolute / brand bans fixed
+- Removed both side-stripe `border-left` accents (an absolute ban) on `.step` and
+  `.fix-cta`; replaced with full borders + a registration-chip marker and an
+  accent-tinted panel.
+- Stripped every em dash from rendered copy (title, OG/Twitter meta, hero lead,
+  body, pipeline, footer, and the JS rules-list separator). Colons/periods now.
+- Replaced pure `#000` (button ink) with a tinted near-black token.
+
+### Escaped the editorial-typographic reflex lane
+- Killed the `// ` comment-prefix eyebrows. Sections now carry a numbered
+  lab-report registration system (`§01 / §02 / §03`) with lowercase labels.
+- Real font pairing via the brand font-selection procedure (reflex picks Inter /
+  Geist / IBM Plex Mono are exactly what this tool flags, so they're rejected):
+  **Hanken Grotesk** for prose, **Martian Mono** for instrument readouts. Mono
+  tracking pulled in hard (Martian ships wide) so it reads as precision, not
+  decoration.
+- Fluid `clamp()` type scale (>=1.25 ratio); neutrals retinted toward the brand
+  blue hue (no pure greys); accent-soft tint token introduced.
+- Catalogue (§03) rebuilt from a plain collapsed `<ol>` into a dense 2-column
+  numbered grid (still driven by the live `/api/patterns` count, never hardcoded).
+  Disclosure toggle is now a `+ / −` chip matching the registration marks.
+
+### Dogfooding (the important part)
+- The first redesign pass scored 10/100 Mild because two new moves tripped the
+  tool's OWN detectors: numbered `01/02/03` marks fired `numbered_steps`, and
+  wide-tracked uppercase labels fired `all_caps_labels`. Rather than game the
+  detector, the fix eats its own dogfood: labels went lowercase, and the marks
+  became `§`-prefixed section sigils (no longer a 1·2·3 sequence). Back to Clean.
+- Sticky nav made fully opaque (no `backdrop-filter` blur — the engine flags glass)
+  and section anchors got `scroll-margin-top` so jump-links never clip under it.
+
 ## Web redesign — "editorial terminal" landing page (deployed)
 
 Full redesign of the slop-detect.com landing page (web package only; not an npm
