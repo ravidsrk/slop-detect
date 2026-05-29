@@ -113,9 +113,13 @@
     font-size: 13px; color: var(--accent);
   }
   .topbar-links { display: flex; align-items: center; gap: 18px; font-size: 14px; }
-  .topbar-links a { color: var(--muted); }
+  .topbar-links a { color: var(--muted); display: inline-flex; align-items: center; }
   .topbar-links a:hover { color: var(--text); text-decoration: none; }
-  @media (max-width: 560px) { .topbar-links .hide-sm { display: none; } }
+  @media (max-width: 560px) {
+    .topbar-links .hide-sm { display: none; }
+    /* Remaining nav link (GitHub) gets a full 44px tap target on mobile. */
+    .topbar-links a { min-height: 44px; }
+  }
 
   /* ── Hero (left-aligned on purpose — centered hero is a slop tell) ─────────── */
   .hero { padding: 72px 0 28px; }
@@ -174,8 +178,13 @@
     margin-bottom: 20px;
     display: flex; gap: 9px; align-items: center; flex-wrap: wrap;
   }
-  .kicker .sep { color: var(--border-2); }
+  /* Two groups that never break internally; the page wraps between them as a
+     unit. Below the wrap width the connecting group separator is hidden so no
+     orphaned "·" dangles at the line break. */
+  .kicker .ki { display: inline-flex; align-items: center; gap: 9px; white-space: nowrap; }
+  .kicker .sep { color: var(--border-2); font-style: normal; }
   .kicker b { color: var(--accent); font-weight: 600; }
+  @media (max-width: 480px) { .kicker .gsep { display: none; } }
   h1 {
     font-size: var(--t-h1);
     font-weight: 800;
@@ -233,6 +242,11 @@
   .form button:hover { opacity: 0.9; }
   .form button:active { transform: translateY(1px); }
   .form button:disabled { opacity: 0.5; cursor: wait; }
+  /* Small phones: trim the button so the URL input keeps usable width. */
+  @media (max-width: 420px) {
+    .form input { padding: 11px 10px; }
+    .form button { padding: 11px 16px; }
+  }
 
   #turnstile-host:empty { margin: 0 !important; }
 
@@ -258,6 +272,11 @@
     transition: border-color 0.12s, color 0.12s;
   }
   .examples button:hover { border-color: var(--accent); color: var(--text); }
+  /* Touch viewports: chips need a >=44px tap target (WCAG 2.5.5 / Apple HIG). */
+  @media (max-width: 560px) {
+    .examples { gap: 9px; }
+    .examples button { padding: 11px 14px; font-size: 14px; }
+  }
 
   .status {
     margin-top: 26px;
@@ -348,7 +367,10 @@
   }
   .check h3 .n { font-family: var(--mono); font-size: 12px; color: var(--accent); }
   .check p { font-size: 14px; color: var(--muted); line-height: 1.5; }
-  @media (max-width: 600px) { .checks { grid-template-columns: 1fr; } }
+  /* Collapse to one column once the section's content track narrows (the block
+     grid keeps its 230px rail until 760px, so 2-col cards choke in the 760-860
+     tablet band). One full-width column reads cleanly there. */
+  @media (max-width: 860px) { .checks { grid-template-columns: 1fr; } }
 
   /* Pipeline — described as a flow, not numbered-circle slop steps */
   .pipeline {
@@ -376,7 +398,8 @@
   }
   .step .desc h3 { font-size: 15px; font-weight: 600; margin-bottom: 3px; }
   .step .desc p { font-size: 14px; color: var(--muted); }
-  @media (max-width: 600px) { .pipeline { grid-template-columns: 1fr; } }
+  /* Same as .checks: collapse before the tablet band crushes the cards. */
+  @media (max-width: 860px) { .pipeline { grid-template-columns: 1fr; } }
   .tiers-inline { display: inline-flex; gap: 14px; flex-wrap: wrap; }
   .tiers-inline b { font-weight: 600; }
   .t-clean { color: var(--green); } .t-mild { color: var(--yellow); } .t-heavy { color: var(--red); }
@@ -751,6 +774,15 @@
   #rulesList li em { color: var(--dim); font-style: normal; font-family: var(--mono); font-size: 11px; letter-spacing: -0.04em; margin-left: auto; padding-left: 8px; }
   @media (max-width: 620px) { #rulesList { grid-template-columns: 1fr; } }
   .rules-block .eyebrow { margin-bottom: 14px; }
+  /* Teaser sits under the collapsed summary to preview what's inside; once the
+     disclosure is open the full list is visible, so hide it then. */
+  .rules-teaser {
+    margin-top: 11px; font-size: 13.5px; color: var(--muted);
+    line-height: 1.6; max-width: 70ch;
+  }
+  .rules-teaser b { color: var(--text-2); font-weight: 500; }
+  #rulesDetails[open] + .rules-teaser { display: none; }
+  .rules-teaser:empty { display: none; }
   /* Inline CLI commands: tinted chips that wrap as units instead of overflowing. */
   .cli-line code {
     display: inline-block;
@@ -823,10 +855,9 @@
       <div class="hero-grid">
         <div class="hero-left">
           <div class="kicker">
-            <span>deterministic</span><span class="sep">&middot;</span>
-            <span><b id="ruleCountTag">&hellip;</b> patterns</span><span class="sep">&middot;</span>
-            <span>real chromium</span><span class="sep">&middot;</span>
-            <span>~5s</span>
+            <span class="ki">deterministic <i class="sep">&middot;</i> <b id="ruleCountTag">&hellip;</b>&nbsp;patterns</span>
+            <i class="sep gsep">&middot;</i>
+            <span class="ki">real chromium <i class="sep">&middot;</i> ~5s</span>
           </div>
           <h1>How AI-generated does your <span class="accent">landing page</span> look?</h1>
           <p class="lead">
@@ -963,6 +994,7 @@
           <li>Loading the live pattern catalogue&hellip;</li>
         </ol>
       </details>
+      <p class="rules-teaser" id="rulesTeaser"></p>
       <p class="body cli-line" style="margin-top:16px; font-size:14px;">
         Prefer the terminal? <a id="aboutLink" href="#rulesDetails">Browse every rule</a>, or run it locally:
         <code>npx slop-detect &lt;url&gt;</code> &middot; gate CI with <code>--fail-on heavy</code>.
@@ -1047,6 +1079,18 @@ const form = $('form'), urlInput = $('url'), goBtn = $('go'),
         const txt = (label + detail).replace(/&/g, '&amp;').replace(/</g, '&lt;');
         return `<li><strong>${label.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</strong>${detail.replace(/&/g,'&amp;').replace(/</g,'&lt;')} <em>(${p.weight})</em></li>`;
       }).join('');
+    }
+
+    // Teaser: preview a few of the heaviest-weighted tells so the collapsed
+    // catalogue previews its payoff instead of reading as an empty afterthought.
+    const teaser = $('rulesTeaser');
+    if (teaser && Array.isArray(patterns) && patterns.length) {
+      const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+      const top = [...patterns].sort((a, b) => b.weight - a.weight).slice(0, 4)
+        .map(p => `<b>${esc(p.short || p.id)}</b>`);
+      const axes = new Set(patterns.map(p => p.category).filter(Boolean)).size;
+      teaser.innerHTML = `Includes ${top.join(', ')} and ${count - top.length} more` +
+        (axes ? `, weighted across ${axes} axes` : '') + '. Expand to read every rule.';
     }
   } catch (_) {
     // Network/endpoint hiccup — leave the placeholder. Non-fatal for scanning.
