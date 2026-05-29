@@ -1,5 +1,78 @@
 # Changelog
 
+## 0.5.1 — Security hardening + CI gating (post-review)
+
+From a full end-to-end review. Resyncs npm with the source tree (published 0.5.0
+core shipped 26 patterns; the tree had 27) and ships security + DX fixes.
+
+### Security
+- **SSRF guard on `/api/scan`** (`validateScanUrl`): blocks cloud-metadata
+  (169.254.169.254), loopback, RFC-1918, CGNAT, link-local/unique-local IPv6,
+  IPv4-mapped loopback, and internal hostnames (`localhost`, `*.internal`, `*.local`);
+  rejects non-http(s) schemes. The scan endpoint loaded arbitrary user URLs in a
+  headless browser and returned page content — this closes the SSRF primitive.
+- **fix-prompt `{url}` bypass closed**: mode-2 fix-prompt (which re-runs a scan
+  in-process) is now gated by the middleware *as a scan* — same rate limit, shared
+  bucket, and Turnstile — instead of fix-prompt's looser limits.
+
+### Added
+- **`GET /api/patterns`** — serves the live pattern catalogue from core. The web UI
+  and CLI now render the rule count + list dynamically (no more hardcoded "16 rules").
+- **CLI `--fail-on <tier>`** (`mild`|`heavy`) — exits non-zero to gate CI; blocked/errored
+  scans also fail. Replaces the manual `jq`-based gate in the docs.
+
+### Fixed
+- CLI now normalizes bare hostnames (`slop-detect example.com`) and rejects non-http(s)
+  schemes with exit 2.
+- MCP server reports its real version from package.json (was hardcoded `0.2.0`).
+- MCP API client has a 45s fetch timeout (`SLOP_DETECT_TIMEOUT_MS`); timeouts surface
+  as a clean `ApiError`.
+- Tightened the Chromium-missing detection regex (was matching any launch failure).
+- Corrected the CLI User-Agent repo URL and the CLI README tier thresholds (Clean <10,
+  Mild ≥10, Heavy ≥28).
+
+### Tests
+- +3 SSRF suites, +5 CLI subprocess tests, +5 MCP api tests (28 total, all green).
+
+## 0.5.0 — Phase 5: Impeccable adoption (Tranche A)
+
+`definitions@2026.08` — the design fingerprint grows from 19 → 27 patterns.
+
+### Added
+- **8 new design patterns** ported from [Impeccable](https://github.com/pbakaus/impeccable)
+  (Apache-2.0), targeting high-prevalence AI tells we were missing:
+  - `cream_default_bg` (w7) — warm off-white / beige default page surface (~74% of
+    generated pages per Impeccable's launch data)
+  - `low_contrast_text` (w7) — washed-out grey body text below WCAG AA on a light
+    background. Deliberately narrowed to the *pervasive grey-on-light* signature
+    (not generic WCAG failure) so premium sites with intentional brand color stay clean
+  - `crushed_tracking` (w5) — display headings tracked tighter than -0.05em
+  - `gray_on_color` (w4) — neutral mid-grey text on a chromatic background
+  - `oversized_hero_h1` (w4) — long headline (≥40 chars) blown up to ≥72px
+  - `nested_cards` (w4) — card-like element inside a card-like ancestor (excludes
+    3D-tilted product-screenshot mockups)
+  - `wide_body_tracking` (w3) — body copy letter-spacing above 0.05em
+  - `flat_type_hierarchy` (w3) — ≥3 font sizes with a max/min ratio below 2×
+- **WCAG color primitives** in `createColorHelpers()`: `relativeLuminance`,
+  `contrastRatio`, `channelSpread`, `isNeutral`, `effectiveBackground` (ancestor
+  background-color walker). Unit-tested against known WCAG reference pairs.
+- Fix recipes + evidence formatters for all 8 new patterns.
+- Second unit-test suite (`color.test.js`) — 7 tests on the contrast math.
+
+### Calibration
+- Validated against premium reference sites (Stripe, Linear, Notion, Vercel) to
+  confirm the new rules do **not** false-fire, and against a synthetic slop
+  fixture to confirm they **do** fire. Contrast/gray rules required narrowing to
+  the true AI signature after initial false positives on branded CTAs and
+  white-on-dark text.
+
+### Attribution
+- Patterns #20–27 adapted from Impeccable by Paul Bakaus (Apache-2.0). See `NOTICE`.
+
+### Backward compatibility
+- Existing pattern IDs, weights, and the design/copy axis split are unchanged.
+  New patterns are additive; the tier bands (Clean/Mild/Heavy) are unchanged.
+
 ## 0.4.0 — Phase 4: multi-axis slop (design + copy)
 
 ### Added

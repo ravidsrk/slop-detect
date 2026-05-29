@@ -394,6 +394,118 @@ export const FIXES = {
       "Just bold the first few words of each item"
     ],
     rule: "No emoji as bullet or header prefixes. Use design, not glyphs, for emphasis."
+  },
+
+  cream_default_bg: {
+    problem:
+      "A warm cream/beige page background (light, faintly warm off-white) has become the reflexive 'tasteful' AI surface — it's now the single most common tell, reached for by default when an LLM wants to look 'editorial' or 'premium'. ~74% of generated pages ship it.",
+    fix:
+      "Pick a background that comes from a deliberate palette, not the safe warm off-white. Either go to a true neutral (pure white #fff, or a cool near-white like #fafafa) OR commit to a real brand color. If you want warmth, make it intentional and pair it with a matching accent system — don't let #faf8f3 be the unexamined default.",
+    alternatives: [
+      "Pure white (#fff) with strong dark text — the cleanest reset",
+      "Cool near-white (#fafafa / #f7f8fa) for a crisp modern feel",
+      "A real brand-tinted surface that matches your accent color",
+      "True dark mode done well (high-contrast body text, not mid-grey)"
+    ],
+    rule: "No unexamined warm off-white. If the background is cream, it must be a deliberate palette choice with a matching system."
+  },
+
+  low_contrast_text: {
+    problem:
+      "Body text that fails the WCAG AA contrast floor (4.5:1 for body, 3:1 for large text) is both an accessibility failure and a reliable AI-build tell — generators reach for light-grey-on-white and mid-grey-on-tinted because it 'looks soft'. 90%+ of generated pages fail it somewhere.",
+    fix:
+      "Raise text contrast to meet WCAG AA: body copy needs ≥4.5:1 against its actual background, large/bold text ≥3:1. Stop using light greys (#999, #aaa, text-gray-400/500) for real reading text — reserve those for genuinely secondary metadata only. Darken body text toward #1a1a1a on light backgrounds, or lighten to ≥#d4d4d8 on dark.",
+    alternatives: [
+      "Near-black body text (#1a1a1a–#222) on light backgrounds",
+      "≥#d4d4d8 body text on dark backgrounds (not mid-grey)",
+      "Reserve text-gray-400/500 for timestamps/captions only",
+      "Run a contrast checker on every text/background pair before shipping"
+    ],
+    rule: "Every block of reading text must clear 4.5:1 (body) or 3:1 (large) against its real background. No exceptions for 'aesthetic' grey."
+  },
+
+  crushed_tracking: {
+    problem:
+      "Display headings pulled tighter than ~-0.04em (crushed negative letter-spacing) is a default 'make it look designed' move that actually costs legibility — characters start colliding and the headline reads as a logo, not a sentence. ~76% of generated pages over-tighten their display type.",
+    fix:
+      "Back off the negative tracking. Tighten display type optically, not destructively: -0.01em to -0.02em is plenty for large headings on most modern sans faces; many faces need zero. Let the typeface's own spacing do the work — if it looks loose, you probably picked the wrong weight, not the wrong tracking.",
+    alternatives: [
+      "-0.01em to -0.02em max on large display headings",
+      "Zero tracking — trust the face's designed spacing",
+      "Use a tighter-by-design display weight instead of crushing a text weight",
+      "Optical sizing (font-optical-sizing: auto) if the face supports it"
+    ],
+    rule: "No letter-spacing tighter than -0.03em on display type. Characters must keep their own shapes."
+  },
+
+  gray_on_color: {
+    problem:
+      "Neutral grey text sitting on a saturated/colored background reads as washed-out and muddy — a recurring generated-UI mistake. Grey was chosen for white backgrounds and then dropped onto a colored panel without rethinking it.",
+    fix:
+      "On colored backgrounds, don't use neutral grey. Use either a darker or lighter shade of the background's OWN hue (so it stays in the same color family), or go to white / near-white for clean contrast. Grey only works on neutral surfaces.",
+    alternatives: [
+      "A darker shade of the same background hue for secondary text",
+      "White / near-white text for primary text on colored panels",
+      "Tinted text that shares the background's hue, not flat grey",
+      "Move the text off the colored panel entirely"
+    ],
+    rule: "No neutral grey text on a chromatic background. Match the hue or use white."
+  },
+
+  oversized_hero_h1: {
+    problem:
+      "A long full-sentence headline blown up to display size (≥72px, ≥40 characters) dominates the entire viewport, leaving no room for a subhead, CTA, or product above the fold. A punchy one-or-two-word headline at that size is fine — the tell is a long headline set huge because 'big = impactful'.",
+    fix:
+      "Either tighten the copy to a few punchy words that can earn the display size, OR set the long headline smaller (48–60px) so the rest of the hero has room. The headline's job is to be read, not to fill the screen.",
+    alternatives: [
+      "Cut the headline to 2–5 words and keep it big",
+      "Keep the full sentence but set it at 48–60px",
+      "Two-line headline at a moderate size with a clear subhead below",
+      "Lead with the product/screenshot and let a smaller headline support it"
+    ],
+    rule: "A headline at ≥72px must be short. Long sentences (≥40 chars) get set at ≤60px."
+  },
+
+  nested_cards: {
+    problem:
+      "Cards inside cards (a bordered/shadowed/rounded container holding more bordered/shadowed/rounded containers) create visual noise and excessive depth — a reflexive AI layout move where every group gets wrapped in its own panel.",
+    fix:
+      "Flatten the hierarchy. Pick ONE level to be the card and use spacing, typography, and dividers for the inner structure instead of nesting more containers. A card holding three sub-cards should usually be a card holding three text blocks separated by space or a hairline.",
+    alternatives: [
+      "One outer card, inner items separated by whitespace",
+      "One outer card, inner items separated by hairline dividers",
+      "No card at all — use a section with generous spacing",
+      "Flat list with strong typographic hierarchy"
+    ],
+    rule: "No card-like container inside another card-like container. One level of elevation, max."
+  },
+
+  wide_body_tracking: {
+    problem:
+      "Letter-spacing above 0.05em on body copy disrupts the natural word shapes the eye reads by, slowing reading and giving text a stiff, 'tracked-out' feel. Wide tracking belongs on short uppercase labels, never on paragraphs.",
+    fix:
+      "Set body text letter-spacing to 0 (normal). The body face was spaced correctly by its designer at text sizes — adding tracking only hurts. Reserve positive tracking for short uppercase eyebrows/labels.",
+    alternatives: [
+      "letter-spacing: normal (0) on all body copy",
+      "Positive tracking only on short uppercase labels (≤0.1em)",
+      "If text feels cramped, increase line-height instead of tracking",
+      "Pick a slightly wider body face rather than tracking a narrow one"
+    ],
+    rule: "No letter-spacing above 0.05em on body text. Tracking is for labels, not paragraphs."
+  },
+
+  flat_type_hierarchy: {
+    problem:
+      "Font sizes that sit too close together (≥3 distinct sizes but less than a 2× spread between largest and smallest) produce no clear visual hierarchy — everything competes, nothing leads. The page reads as one undifferentiated wall of text.",
+    fix:
+      "Use fewer sizes with more contrast. Establish a real scale (aim for at least a 1.25 ratio between adjacent steps, and a ≥2× spread from body to display). A confident hierarchy uses big jumps: small caption, comfortable body, then a heading that's clearly 2–3× the body.",
+    alternatives: [
+      "A modular scale (1.25 or 1.333 ratio) with 3–4 clear steps",
+      "Big jump from body (16px) to H2 (32px+) to H1 (56px+)",
+      "Use weight and color for sub-hierarchy, size for the major levels",
+      "Cut redundant size steps — fewer, more distinct sizes"
+    ],
+    rule: "Display-to-body size ratio must be ≥2×. No flat ladders of near-identical sizes."
   }
 };
 
@@ -504,7 +616,48 @@ const EVIDENCE_FORMATTERS = {
     const sam = fmtList(e.samples);
     if (sam) parts.push(`e.g. ${sam}`);
     return parts.length ? `AI-magic tells: ${parts.join(', ')}.` : null;
-  }
+  },
+  cream_default_bg: (e) =>
+    e.surface ? `Page surface is \`${e.surface}\` — a warm off-white / cream (the default AI 'tasteful' background).` : null,
+  low_contrast_text: (e) => {
+    if (!e.fails) return null;
+    const parts = [`${e.fails}/${e.checked} text blocks (${Math.round((e.ratioFail || 0) * 100)}%) fall below the WCAG AA contrast floor`];
+    if (Array.isArray(e.samples) && e.samples.length) {
+      const s = e.samples.map(x => `"${x.text}" (${x.ratio}:1, needs ${x.floor}:1)`).join('; ');
+      parts.push(`e.g. ${s}`);
+    }
+    return parts.join(' — ') + '.';
+  },
+  crushed_tracking: (e) => {
+    if (!e.count) return null;
+    const parts = [`${e.count} display heading(s) tracked tighter than -0.04em`];
+    if (Array.isArray(e.samples) && e.samples.length) {
+      parts.push('e.g. ' + e.samples.map(x => `"${x.text}" (${x.em}em)`).join('; '));
+    }
+    return parts.join(' — ') + '.';
+  },
+  gray_on_color: (e) => {
+    if (!e.count) return null;
+    const sam = fmtList((e.samples || []).map(s => s.text));
+    return `${e.count} block(s) of neutral grey text sit on a chromatic background${sam ? ` — e.g. ${sam}` : ''}.`;
+  },
+  oversized_hero_h1: (e) =>
+    e.fontSize ? `Hero H1 is ${e.fontSize}px and ${e.chars} characters long ("${(e.text || '').slice(0, 50)}…") — a long headline blown up to display size.` : null,
+  nested_cards: (e) => {
+    if (!e.nested) return null;
+    const sam = fmtList(e.samples);
+    return `${e.nested} card(s) sit inside another card-like container${sam ? ` — e.g. ${sam}` : ''}.`;
+  },
+  wide_body_tracking: (e) => {
+    if (!e.count) return null;
+    const parts = [`${e.count} body block(s) use letter-spacing above 0.05em`];
+    if (Array.isArray(e.samples) && e.samples.length) {
+      parts.push('e.g. ' + e.samples.map(x => `${x.em}em on "${x.text}"`).join('; '));
+    }
+    return parts.join(' — ') + '.';
+  },
+  flat_type_hierarchy: (e) =>
+    e.ratio ? `${e.distinct} distinct font sizes spanning only ${e.min}px→${e.max}px (${e.ratio}× ratio) — too flat for a clear hierarchy.` : null
 };
 
 function formatEvidence(pattern) {

@@ -1,0 +1,27 @@
+slop-detect
+Copyright (c) 2026 the slop-detect authors
+
+This product includes detection logic adapted from Impeccable
+(https://github.com/pbakaus/impeccable), Copyright (c) 2026 Paul Bakaus,
+licensed under the Apache License, Version 2.0.
+
+Specifically, the following design-slop patterns (definitions@2026.08, #20–27)
+were ported and adapted — re-implemented against slop-detect's pattern/ctx
+architecture and re-calibrated — from Impeccable's anti-pattern detector
+(cli/engine/):
+
+  - cream_default_bg      (from Impeccable's "cream-palette")
+  - low_contrast_text     (from "low-contrast", narrowed to grey-on-light)
+  - crushed_tracking      (from "extreme-negative-tracking")
+  - gray_on_color         (from "gray-on-color")
+  - oversized_hero_h1     (from "oversized-h1")
+  - nested_cards          (from "nested-cards")
+  - wide_body_tracking    (from "wide-tracking")
+  - flat_type_hierarchy   (from "flat-type-hierarchy")
+
+The WCAG contrast/luminance helpers in packages/core/src/color.js
+(relativeLuminance, contrastRatio) were likewise adapted from Impeccable's
+shared/color.mjs.
+
+A copy of the Apache License, Version 2.0 is available at:
+https://www.apache.org/licenses/LICENSE-2.0

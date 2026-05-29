@@ -2,6 +2,9 @@
 // stdio transport so any MCP client (Claude Code, Cursor, Windsurf) can drive
 // slop-detect.com without a browser or API key.
 
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -11,6 +14,20 @@ import {
 
 import { scanPage, fixPrompt, ApiError } from './api.js';
 import { formatScan } from './format.js';
+
+// Read our own version from package.json so the MCP handshake never drifts from
+// the published version. Falls back to '0.0.0' if the file can't be read (e.g.
+// an unusual bundling) rather than crashing the server on startup.
+function readVersion() {
+  try {
+    const pkgUrl = new URL('../package.json', import.meta.url);
+    const pkg = JSON.parse(readFileSync(fileURLToPath(pkgUrl), 'utf8'));
+    return pkg.version || '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
+}
+const VERSION = readVersion();
 
 const TOOLS = [
   {
@@ -68,7 +85,7 @@ async function handleCall(name, args) {
 
 export function createServer() {
   const server = new Server(
-    { name: 'slop-detect-mcp', version: '0.2.0' },
+    { name: 'slop-detect-mcp', version: VERSION },
     { capabilities: { tools: {} } }
   );
 

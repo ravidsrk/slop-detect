@@ -33,7 +33,7 @@ slop-detect <url> --timeout 30000       # navigation timeout in ms
 $ slop-detect https://www.aura.build
 
 URL: https://www.aura.build
-SCORE: 36 / 100   →   Heavy   (8 / 16 patterns)
+SCORE: 36 / 100   →   Heavy   (8 / 27 patterns)
 
   ✓ Slop fonts (Inter / Geist / Space Grotesk)        (+8)
   ✓ VibeCode Purple — filled indigo/violet CTAs       (+8)
@@ -58,23 +58,29 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
-      - run: npx -y slop-detect ${{ env.PREVIEW_URL }} --json > slop.json
-      - run: |
-          score=$(jq .score slop.json)
-          [ "$score" -lt 12 ] || (echo "Score $score exceeds Clean tier"; exit 1)
+      # --fail-on exits non-zero when the page scores at/above the given tier,
+      # so the step fails the build directly — no jq, no shell math.
+      - run: npx -y slop-detect ${{ env.PREVIEW_URL }} --fail-on heavy
+```
+
+`--fail-on mild` is stricter (fails on Mild or Heavy); `--fail-on heavy` fails only on
+Heavy slop. A blocked or errored scan also exits non-zero. Want the JSON too? Combine:
+
+```bash
+npx -y slop-detect "$PREVIEW_URL" --json --fail-on heavy | tee slop.json
 ```
 
 ## Tiers
 
-- Clean: 0 to 11
-- Mild: 12 to 29
-- Heavy: 30 or more
+- Clean: 0 to 9
+- Mild: 10 to 27
+- Heavy: 28 or more
 
 ## See also
 
 - [Web UI](https://slop-detect.com) — point-and-click scanning
 - [`slop-detect-core`](https://www.npmjs.com/package/slop-detect-core) — pure detection engine, runtime-agnostic
-- [Repository](https://github.com/ravidsrk/slop-detect) — source, contributing, the full 16 patterns
+- [Repository](https://github.com/ravidsrk/slop-detect) — source, contributing, the full 27 patterns
 
 ## License
 

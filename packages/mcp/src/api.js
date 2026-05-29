@@ -55,9 +55,30 @@ async function toApiError(res) {
   );
 }
 
+// Upstream scan drives a real headless browser (~30s worst case), so give it
+// headroom but never hang an MCP client forever. Overridable for slow networks.
+const DEFAULT_TIMEOUT_MS = Number(process.env.SLOP_DETECT_TIMEOUT_MS) || 45000;
+
+// fetch wrapper that aborts after DEFAULT_TIMEOUT_MS and turns the abort into a
+// clean ApiError (rather than a raw DOMException the agent can't interpret).
+async function fetchWithTimeout(url, opts = {}) {
+  try {
+    return await fetch(url, { ...opts, signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS) });
+  } catch (err) {
+    if (err && (err.name === 'TimeoutError' || err.name === 'AbortError')) {
+      throw new ApiError(
+        `slop-detect.com did not respond within ${Math.round(DEFAULT_TIMEOUT_MS / 1000)}s. ` +
+          'The page may be slow to load or the API may be busy — try again.',
+        { status: 0 }
+      );
+    }
+    throw err;
+  }
+}
+
 // POST {url} to /api/scan and return the parsed JSON result.
 export async function scanPage(url) {
-  const res = await fetch(`${apiBase()}/api/scan`, {
+  const res = await fetchWithTimeout(`${apiBase()}/api/scan`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ url })
@@ -70,7 +91,7 @@ export async function scanPage(url) {
 // The endpoint returns text/plain by default; we never request JSON because the
 // raw prompt is exactly what we want to hand back to the agent.
 export async function fixPrompt(url) {
-  const res = await fetch(`${apiBase()}/api/fix-prompt`, {
+  const res = await fetchWithTimeout(`${apiBase()}/api/fix-prompt`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ url })

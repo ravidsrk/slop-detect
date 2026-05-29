@@ -20,7 +20,7 @@ import {
   scoreCopy,
   combineAxes
 } from 'slop-detect-core';
-import { newId, slimResult, saveResult } from '../_shared.js';
+import { newId, slimResult, saveResult, validateScanUrl } from '../_shared.js';
 
 // Normalize requested axes. Default: design only (backward-compatible).
 const VALID_AXES = ['design', 'copy'];
@@ -49,13 +49,12 @@ export async function onRequestPost({ request, env }) {
   let body;
   try { body = await request.json(); } catch { return json({ error: 'Invalid JSON body' }, 400); }
 
-  let url = body?.url;
-  if (!url || typeof url !== 'string') return json({ error: 'url is required' }, 400);
-  url = url.trim();
-  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
-  try { new URL(url); } catch { return json({ error: 'Invalid URL' }, 400); }
+  // Validate + SSRF-guard the target (blocks private/loopback/metadata hosts).
+  const checked = validateScanUrl(body?.url);
+  if (checked.error) return json({ error: checked.error }, checked.status);
+  const url = checked.url;
 
-  // Build the page-side IIFE that runs all 16 detectors in one round-trip.
+  // Build the page-side IIFE that runs all detectors in one round-trip.
   const pageScript = buildPageScript();
 
   let browser;
@@ -181,7 +180,7 @@ function detectBlocked(data, _ctx) {
   const h1 = (data?.h1Text || '').trim();
   const visibleCount = data?.visibleCount || 0;
   const signals = data?.signals || {};
-  // Count how many of the 16 patterns returned ANY non-empty evidence — proxy
+  // Count how many patterns returned ANY non-empty evidence — proxy
   // for "did the page actually render meaningful DOM?".
   const patternsWithEvidence = Object.values(signals).filter(s => {
     if (!s || typeof s !== 'object') return false;
@@ -266,6 +265,11 @@ function buildPageScript() {
       isPurple: colorHelpers.isPurple,
       isDark: colorHelpers.isDark,
       isMidGrey: colorHelpers.isMidGrey,
+      relativeLuminance: colorHelpers.relativeLuminance,
+      contrastRatio: colorHelpers.contrastRatio,
+      channelSpread: colorHelpers.channelSpread,
+      isNeutral: colorHelpers.isNeutral,
+      effectiveBackground: colorHelpers.effectiveBackground,
       isSlopFont, isAccentSerif,
       SLOP_FONT_PREFIXES, ACCENT_SERIF_PREFIXES,
       isVisible: visHelpers.isVisible,

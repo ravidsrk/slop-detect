@@ -4,15 +4,21 @@
 // Usage:
 //   slop-detector <url> [<url2> ...] [--json] [--screenshot]
 //
-// Scores any URL against the 16-rule AI-design-slop fingerprint and emits a
+// Scores any URL against the AI-design-slop fingerprint and emits a
 // pretty terminal report or a machine-readable JSON blob.
 
 import { scanUrl } from '../src/detector.js';
-import { isPreset, PRESETS } from 'slop-detect-core';
+import { isPreset, PRESETS, PATTERNS, DEFINITIONS_VERSION } from 'slop-detect-core';
 
 const args = process.argv.slice(2);
 const urls = [];
-const flags = { json: false, screenshot: false, verbose: false, preset: 'full', axes: ['design'] };
+const flags = { json: false, screenshot: false, verbose: false, preset: 'full', axes: ['design'], failOn: null };
+
+// Tier severity ordering for --fail-on. A scan exits non-zero when its tier is
+// at or above the requested threshold. 'blocked'/'error' always count as failures
+// regardless of threshold (you asked us to gate, we couldn't even score).
+const TIER_RANK = { Clean: 0, Mild: 1, Heavy: 2 };
+const VALID_FAIL_ON = ['mild', 'heavy'];
 
 const VALID_AXES = ['design', 'copy'];
 function parseAxes(val) {
@@ -41,6 +47,14 @@ for (let i = 0; i < args.length; i++) {
     }
     flags.axes = parsed;
   }
+  else if (a === '--fail-on' || a.startsWith('--fail-on=')) {
+    const val = (a.startsWith('--fail-on=') ? a.slice('--fail-on='.length) : args[++i] || '').toLowerCase();
+    if (!VALID_FAIL_ON.includes(val)) {
+      console.error(`Invalid --fail-on value: ${val || '(none)'}. Options: ${VALID_FAIL_ON.join(', ')}.`);
+      process.exit(2);
+    }
+    flags.failOn = val === 'mild' ? 'Mild' : 'Heavy';
+  }
   else if (a === '--help' || a === '-h') { help(); process.exit(0); }
   else if (a === '--preset' || a === '-p') {
     const val = args[++i];
@@ -65,9 +79,33 @@ if (urls.length === 0) {
   process.exit(1);
 }
 
+// Normalize bare hostnames the way the web UI does: `slop-detect example.com`
+// should Just Work. Prepend https:// when no http(s) scheme is present. An
+// explicit non-http(s) scheme (file:, ftp:…) is rejected — we only scan pages.
+for (let i = 0; i < urls.length; i++) {
+  const u = urls[i].trim();
+  const scheme = u.match(/^([a-z][a-z0-9+.-]*):/i);
+  if (scheme && !/^https?$/i.test(scheme[1])) {
+    console.error(`Only http(s) URLs can be scanned: ${u}`);
+    process.exit(2);
+  }
+  urls[i] = /^https?:\/\//i.test(u) ? u : 'https://' + u;
+}
+
 function help() {
+  // Generate the pattern list from core so it never drifts from what ships.
+  const patternLines = PATTERNS.map((p, i) => {
+    const n = String(i + 1).padStart(2, ' ');
+    const short = p.short || p.id;
+    // Use the longer label as the description, unless it just repeats the short
+    // name or is too long for one line.
+    const desc = (p.label && p.label.length <= 52 && p.label !== short) ? p.label : '';
+    const line = `  ${n}. ${short.padEnd(20, ' ')}` + (desc ? ` — ${desc}` : '');
+    return `${line} (w${p.weight})`;
+  }).join('\n');
+
   console.log(`
-Slop Detector — score landing pages against 16 AI-design-slop patterns
+Slop Detector — score landing pages against ${PATTERNS.length} AI-design-slop patterns (defs ${DEFINITIONS_VERSION})
 
 Usage:
   slop-detector <url> [<url2> ...] [options]
@@ -79,6 +117,8 @@ Options:
   --preset, -p <p>  Scoring preset: full (default), strict, marketing, minimal
   --axes <list>     Axes to score: design (default), copy. Comma-separated or "all"
   --copy            Shorthand for --axes design,copy
+  --fail-on <tier>  Exit non-zero (1) if any page scores at/above tier: mild | heavy.
+                    A blocked or errored scan also exits 1. Use this to gate CI.
   --help, -h        Show this help
 
 Examples:
@@ -86,24 +126,10 @@ Examples:
   slop-detector https://aura.build https://lovable.dev --verbose
   slop-detector https://example.com --copy           # design + copy slop
   slop-detector https://example.com --axes all --json > result.json
+  slop-detector https://mysite.com --fail-on heavy   # CI gate: fail on heavy slop
 
-The 16 patterns scored:
-   1. Slop fonts            — Inter / Geist / Space Grotesk
-   2. VibeCode Purple       — filled indigo CTAs
-   3. Gradient text         — hero H1 background-clip:text
-   4. Gradient backgrounds  — 5+ gradient elements
-   5. Accent stripe         — colored top/left card borders
-   6. Glassmorphism         — backdrop blur on translucent layers
-   7. Colored glows         — big colored box-shadows
-   8. Centered hero         — centered + big + slop font
-   9. Eyebrow pill          — "Now in beta" / "New" above H1
-  10. All-caps labels       — uppercase section labels
-  11. Perma dark mode       — dark BG + mid-grey body text
-  12. Icon cards            — 3+ identical feature cards
-  13. Numbered steps        — 1/2/3 sequences
-  14. Stat banner           — "10k+", "99.9%" cluster
-  15. FAQ accordion         — <details> in lower half
-  16. Letter avatars        — gradient-initial testimonial avatars
+The ${PATTERNS.length} patterns scored:
+${patternLines}
 
 Tier thresholds:
   Clean: 0-9   ·   Mild: 10-27   ·   Heavy: 28+
@@ -239,6 +265,22 @@ function renderPretty(result) {
   if (flags.json) {
     console.log(JSON.stringify(results.length === 1 ? results[0] : results, null, 2));
   }
+
+  // ── CI gate (--fail-on) ─────────────────────────────────────────────────────
+  // Determine the exit code BEFORE the summary so the summary can annotate it.
+  // A result fails the gate if: it errored, it was blocked (couldn't score), or
+  // its effective tier (unified when multi-axis) ranks at/above the threshold.
+  let exitCode = 0;
+  if (flags.failOn) {
+    const threshold = TIER_RANK[flags.failOn];
+    const failed = results.some(r => {
+      if (r.error || r.blocked) return true;
+      const tier = (r.axes && r.axes.copy) ? r.unifiedTier : r.tier;
+      return (TIER_RANK[tier] ?? 0) >= threshold;
+    });
+    if (failed) exitCode = 1;
+  }
+
   // Summary if multiple URLs
   if (urls.length > 1 && !flags.json) {
     console.log(`${C.bold}━━━ Summary ━━━${C.reset}`);
@@ -260,4 +302,11 @@ function renderPretty(result) {
     }
     console.log();
   }
+
+  // Tell the user why we're failing (only when gating + actually failing, and
+  // not in JSON mode where stdout must stay a clean JSON document).
+  if (flags.failOn && exitCode !== 0 && !flags.json) {
+    console.error(`${C.red}${C.bold}✗ --fail-on ${flags.failOn.toLowerCase()}: one or more pages failed the gate.${C.reset}`);
+  }
+  process.exit(exitCode);
 })().catch(e => { console.error(e); process.exit(1); });

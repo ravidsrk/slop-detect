@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Slop Detector — Score any landing page against the 16-rule AI-design fingerprint</title>
-<meta name="description" content="Paste a URL. Get a 0–100 slop score in 5 seconds. Based on Adrian Krebs's 15-rule study + Meng To's gradient-letter avatar tell.">
+<title>Slop Detector — Score any landing page against the AI-design fingerprint</title>
+<meta name="description" content="Paste a URL. Get a 0–100 slop score in 5 seconds. A deterministic, weighted fingerprint of the CSS tells Cursor / v0 / Lovable / Bolt all converged on.">
 <meta property="og:title" content="Slop Detector — How AI-generated does your landing page look?">
-<meta property="og:description" content="16 deterministic patterns. Real Playwright. 0–100 score.">
+<meta property="og:description" content="Deterministic design + copy slop patterns. Real Playwright. 0–100 score.">
 <meta property="og:image" content="https://slop-detect.com/og.png">
 <meta property="og:url" content="https://slop-detect.com">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Slop Detector — score any landing page against the 16-rule AI-design fingerprint">
-<meta name="twitter:description" content="Cursor / v0 / Lovable / Bolt all collapsed onto the same 16 CSS tells. Paste a URL, get a score.">
+<meta name="twitter:title" content="Slop Detector — score any landing page against the AI-design fingerprint">
+<meta name="twitter:description" content="Cursor / v0 / Lovable / Bolt all collapsed onto the same CSS tells. Paste a URL, get a score.">
 <meta name="twitter:image" content="https://slop-detect.com/og.png">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="icon" type="image/png" href="/favicon.png">
@@ -465,7 +465,7 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>Slop Detector <span class="tag">/ 16 rules / 0–100</span></h1>
+    <h1>Slop Detector <span class="tag">/ <span id="ruleCountTag">…</span> rules / 0–100</span></h1>
     <p class="sub">
       Paste any landing page. Get a deterministic slop score in ~5 seconds. Based on
       <a href="https://www.adriankrebs.ch/blog/design-slop/" target="_blank" rel="noopener">Adrian Krebs's April 2026 study</a>
@@ -517,34 +517,19 @@
   <footer>
     <p>
       <strong>How it works:</strong> Headless Chromium loads the page, collects up to 4,000 visible DOM nodes,
-      runs 16 pure-function pattern detectors in one round-trip, returns a weighted score.
+      runs every pure-function pattern detector in one round-trip, returns a weighted score.
       Tiers: <span style="color:var(--green)">Clean</span> 0–9 ·
       <span style="color:var(--yellow)">Mild</span> 10–27 ·
       <span style="color:var(--red)">Heavy</span> 28+.
     </p>
     <p style="margin-top:8px">
       Slop is a fingerprint, not a verdict. Linear and Stripe also use Inter — that's why they score Mild.
-      <a href="#" id="aboutLink">Read the 16 rules ↓</a>
+      <a href="#" id="aboutLink">Read the rules ↓</a>
     </p>
     <details id="rulesDetails" style="margin-top:12px">
-      <summary style="cursor:pointer; color:var(--accent)">The 16 rules</summary>
-      <ol style="margin:12px 0 0 20px; color:var(--muted); font-size:13px; line-height:1.8">
-        <li><strong>Slop fonts</strong> — Inter / Geist / Space Grotesk / Instrument Serif italic accent <em>(weight 8)</em></li>
-        <li><strong>VibeCode Purple</strong> — Indigo-violet on filled CTAs <em>(8)</em></li>
-        <li><strong>Gradient text</strong> — Hero H1 with background-clip:text <em>(6)</em></li>
-        <li><strong>Gradient backgrounds</strong> — ≥5 elements with CSS gradients <em>(4)</em></li>
-        <li><strong>Accent stripe</strong> — Cards with thick colored top/left border <em>(6)</em></li>
-        <li><strong>Glassmorphism</strong> — backdrop-filter blur on translucent layers <em>(4)</em></li>
-        <li><strong>Colored glows</strong> — Big colored box-shadows <em>(4)</em></li>
-        <li><strong>Centered hero</strong> — Centered + big + slop font <em>(4)</em></li>
-        <li><strong>Eyebrow pill</strong> — "Now in beta" / "New" above H1 <em>(5)</em></li>
-        <li><strong>All-caps labels</strong> — Uppercase section labels with letter-spacing <em>(3)</em></li>
-        <li><strong>Perma dark mode</strong> — Dark BG + mid-grey body text <em>(4)</em></li>
-        <li><strong>Icon-card grid</strong> — 3+ identical cards with icon on top <em>(4)</em></li>
-        <li><strong>Numbered steps</strong> — 1·2·3 sequence headings <em>(3)</em></li>
-        <li><strong>Stat banner</strong> — "10k+", "99.9%" cluster <em>(3)</em></li>
-        <li><strong>FAQ accordion</strong> — &lt;details&gt; in lower half <em>(2)</em></li>
-        <li><strong>Letter avatars</strong> — Gradient-initial testimonial avatars <em>(5)</em> <small>← Meng's</small></li>
+      <summary style="cursor:pointer; color:var(--accent)">The <span id="rulesSummaryCount">…</span> rules <span id="rulesDefs" style="color:var(--muted);font-weight:400"></span></summary>
+      <ol id="rulesList" style="margin:12px 0 0 20px; color:var(--muted); font-size:13px; line-height:1.8">
+        <li>Loading the live pattern catalogue…</li>
       </ol>
     </details>
   </footer>
@@ -554,6 +539,35 @@
 const $ = (id) => document.getElementById(id);
 const form = $('form'), urlInput = $('url'), goBtn = $('go'),
       statusEl = $('status'), resultEl = $('result');
+
+// ── Live rule catalogue ──────────────────────────────────────────────────────
+// Pull the pattern list + count from /api/patterns so the "N rules" labels and
+// the rules <ol> never drift from what core actually ships. No hardcoded counts.
+(async () => {
+  try {
+    const res = await fetch('/api/patterns');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const { count, version, patterns } = await res.json();
+
+    const tag = $('ruleCountTag'); if (tag) tag.textContent = count;
+    const sum = $('rulesSummaryCount'); if (sum) sum.textContent = count;
+    const defs = $('rulesDefs'); if (defs && version) defs.textContent = '· defs ' + version;
+
+    const list = $('rulesList');
+    if (list && Array.isArray(patterns)) {
+      list.innerHTML = patterns.map(p => {
+        const label = (p.short || p.id);
+        const detail = (p.label && p.label !== label) ? ' — ' + p.label : '';
+        const txt = (label + detail).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+        return `<li><strong>${label.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</strong>${detail.replace(/&/g,'&amp;').replace(/</g,'&lt;')} <em>(${p.weight})</em></li>`;
+      }).join('');
+    }
+  } catch (_) {
+    // Network/endpoint hiccup — leave the placeholder. Non-fatal for scanning.
+    const tag = $('ruleCountTag'); if (tag) tag.textContent = '27';
+    const sum = $('rulesSummaryCount'); if (sum) sum.textContent = '27';
+  }
+})();
 
 // ── Turnstile bootstrap ──────────────────────────────────────────────────────
 // Sitekey is injected at deploy time via a meta tag or window.__TURNSTILE_SITEKEY.

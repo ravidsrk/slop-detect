@@ -2,7 +2,7 @@
 
 > Pure detection engine for AI-design-slop patterns. Runtime-agnostic — runs in Node, Cloudflare Workers, or the browser.
 
-This is the heart of [`slop-detect`](https://github.com/ravidsrk/slop-detect). It exports the 16 rule definitions, the scoring function, and the DOM-side helpers — but it never touches a browser. You bring the runner; this package brings the rules.
+This is the heart of [`slop-detect`](https://github.com/ravidsrk/slop-detect). It exports the full set of rule definitions (27 design + 9 copy as of `definitions@2026.08`), the scoring function, and the DOM-side helpers — but it never touches a browser. You bring the runner; this package brings the rules.
 
 ## Install
 
@@ -40,7 +40,7 @@ console.log(`${score}/100 — ${tier}`);
 
 | Export | Purpose |
 |---|---|
-| `PATTERNS` | Array of 16 rule definitions with `{ id, label, weight, extract, detect }` |
+| `PATTERNS` | Array of design rule definitions with `{ id, label, short, category, weight, extract }` (27 in `definitions@2026.08`) |
 | `scorePatterns(results)` | Pure scorer returning `{ score, tier, patternsFlagged, patternsTotal }` |
 | `createColorHelpers()` | Builds parsing helpers used inside `extract()` callbacks |
 | `createVisibilityHelpers()` | DOM-visibility predicates for in-page work |

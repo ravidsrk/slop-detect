@@ -176,6 +176,23 @@ export async function onRequest(context) {
 
   const route = url.pathname.replace(/^\/api\//, '');
 
+  // ── Effective route for gating ───────────────────────────────────────────────
+  // /api/fix-prompt has two modes: { result } (cheap, assemble-only) and { url }
+  // (re-runs a full headless scan in-process via scanHandler — which does NOT
+  // re-enter this middleware). Without this, the { url } mode would borrow
+  // fix-prompt's looser limits (20/min, no Turnstile) to drive the expensive
+  // browser, fully bypassing the scan gate. So when fix-prompt carries a `url`,
+  // we gate it AS a scan: same limit, same shared rate bucket, same Turnstile.
+  let effectiveRoute = route;
+  if (route === 'fix-prompt') {
+    try {
+      const peek = await request.clone().json();
+      if (peek && peek.url && !peek.result) effectiveRoute = 'scan';
+    } catch (_) {
+      // Unparseable body — let the handler return its own 400. Gate as fix-prompt.
+    }
+  }
+
   // ── Optional API-key resolution ────────────────────────────────────────────
   // A presented-but-invalid key is a hard error (so clients notice typos /
   // revoked keys); no key at all is fine and stays anonymous.
@@ -206,11 +223,11 @@ export async function onRequest(context) {
   let bucket;
   let tierLabel;
   if (keyTier) {
-    limit = route === 'scan' ? keyTier.scanPerMin : keyTier.fixPerMin;
+    limit = effectiveRoute === 'scan' ? keyTier.scanPerMin : keyTier.fixPerMin;
     bucket = `key:${apiKey}`;
     tierLabel = keyTier.tier;
   } else {
-    limit = route === 'scan'
+    limit = effectiveRoute === 'scan'
       ? (trusted ? SCAN_LIMIT_PER_MIN : Math.max(2, Math.floor(SCAN_LIMIT_PER_MIN / 2)))
       : FIXPROMPT_LIMIT_PER_MIN;
     bucket = ip;
@@ -218,13 +235,14 @@ export async function onRequest(context) {
   }
 
   // Rate-limit gate. `unlimited` tier (limit === Infinity) skips the gate.
+  // Gate under effectiveRoute so fix-prompt's { url } mode shares the scan bucket.
   if (env.RATE_LIMIT && Number.isFinite(limit)) {
-    const gate = await checkRateLimit(env.RATE_LIMIT, bucket, route, limit);
+    const gate = await checkRateLimit(env.RATE_LIMIT, bucket, effectiveRoute, limit);
     if (!gate.ok) {
       const scope = keyTier ? 'for your API key' : 'per IP';
       return jsonResponse({
         error: 'rate_limited',
-        message: `Too many requests. Limit is ${limit}/min ${scope} for /api/${route} (tier: ${tierLabel}).`,
+        message: `Too many requests. Limit is ${limit}/min ${scope} for /api/${effectiveRoute} (tier: ${tierLabel}).`,
         tier: tierLabel,
         limit,
         retryAfter: 60
@@ -236,7 +254,7 @@ export async function onRequest(context) {
   // Required for /api/scan from browser origins WITHOUT a valid key. A valid key
   // is proof-of-human enough, so any keyed caller (browser or CLI) skips it.
   const skipTurnstile = keyTier && keyTier.turnstile === false;
-  if (route === 'scan' && trusted && env.TURNSTILE_SECRET && !skipTurnstile) {
+  if (effectiveRoute === 'scan' && trusted && env.TURNSTILE_SECRET && !skipTurnstile) {
     const token = request.headers.get('X-Turnstile-Token');
     const verdict = await verifyTurnstile(token, env.TURNSTILE_SECRET, ip);
     if (!verdict.ok) {

@@ -36,7 +36,15 @@ async function ensureChromium() {
     return;
   } catch (err) {
     const msg = String(err && err.message);
-    if (!/Executable doesn't exist|browserType\.launch/i.test(msg)) {
+    // Only auto-install when the failure is specifically a missing browser
+    // binary. Other launch failures (sandbox, missing OS libs, perms) must
+    // surface as-is — re-running the installer won't fix them and would mask
+    // the real error behind a 150 MB download.
+    const missingBinary =
+      /Executable doesn't exist/i.test(msg) ||
+      /playwright install/i.test(msg) ||
+      /Failed to launch.*because executable doesn't exist/i.test(msg);
+    if (!missingBinary) {
       throw err;
     }
     process.stderr.write('slop-detect: first run — downloading Chromium (~150 MB, one-time)…\n');
@@ -144,6 +152,11 @@ function buildPageScript() {
       isPurple: colorHelpers.isPurple,
       isDark: colorHelpers.isDark,
       isMidGrey: colorHelpers.isMidGrey,
+      relativeLuminance: colorHelpers.relativeLuminance,
+      contrastRatio: colorHelpers.contrastRatio,
+      channelSpread: colorHelpers.channelSpread,
+      isNeutral: colorHelpers.isNeutral,
+      effectiveBackground: colorHelpers.effectiveBackground,
       isSlopFont,
       isAccentSerif,
       SLOP_FONT_PREFIXES,
@@ -180,7 +193,7 @@ export async function scanUrl(url, opts = {}) {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
     viewport: { width: 1280, height: 800 },
-    userAgent: 'Mozilla/5.0 SlopDetector/1.0 (+https://github.com/yourname/slop-detector)',
+    userAgent: 'Mozilla/5.0 SlopDetector/1.0 (+https://github.com/ravidsrk/slop-detect)',
     deviceScaleFactor: 1
   });
   const page = await context.newPage();

@@ -25,6 +25,17 @@
 // 18. aurora_mesh_gradient — Blurred glowing radial/conic gradient blobs
 // 19. ai_sparkle_badges    — ✨ / lucide "Sparkles" "AI magic" tells
 //
+// 2026.08 — Tranche A, ported from Impeccable's detector (Apache-2.0,
+// github.com/pbakaus/impeccable). High-prevalence tells we were missing:
+// 20. cream_default_bg     — Warm off-white default page surface (~74%)
+// 21. low_contrast_text    — Body text below WCAG AA contrast floor (90%+)
+// 22. crushed_tracking     — Display type tracked tighter than -0.04em (~76%)
+// 23. gray_on_color        — Neutral grey text on a chromatic background
+// 24. oversized_hero_h1    — Long headline (≥40 chars) set at ≥72px
+// 25. nested_cards         — Card-like element inside a card-like ancestor
+// 26. wide_body_tracking   — Body copy letter-spacing above 0.05em
+// 27. flat_type_hierarchy  — ≥3 sizes with max/min ratio < 2.0
+//
 // Each pattern returns { triggered, evidence, weight }. The orchestrator sums
 // weights for the final 0-100 score.
 
@@ -730,6 +741,390 @@ export const PATTERNS = [
       }
       const total = emojiHits + svgHits;
       return { emojiHits, svgHits, samples, triggered: total >= 1 && (emojiHits >= 1 || svgHits >= 1) };
+    }
+  },
+
+  // ── 20. CREAM DEFAULT BACKGROUND (2026.08) ────────────────────────────────
+  // Ported from Impeccable's cream-palette rule (Apache-2.0). The warm off-white
+  // page background became the reflexive "tasteful" AI surface — Impeccable's
+  // launch data put it at ~74% of generated pages. Distinct from perma_dark_mode
+  // (which covers the dark default); this covers the light default.
+  {
+    id: 'cream_default_bg',
+    label: 'Cream / beige default page background',
+    short: 'Cream bg',
+    category: 'colors',
+    weight: 7,
+    author: 'impeccable',
+    since: '2026.08',
+    extract: (ctx) => {
+      const { parseColor } = ctx;
+      // Warm off-white: light, R≥G≥B ordering, with a small-but-real warmth gap.
+      // Verbatim thresholds from Impeccable's isCreamColor.
+      function isCream(c) {
+        if (!c || c.a < 0.5) return false;
+        if (Math.min(c.r, c.g, c.b) < 209) return false;   // must be light
+        if (!(c.r >= c.g && c.g >= c.b)) return false;       // warm ordering
+        const warmth = c.r - c.b;
+        return warmth >= 6 && warmth <= 48;                  // tinted, not white/strong
+      }
+      // Read the page surface: body bg, else html bg.
+      const bodyBg = parseColor(getComputedStyle(document.body).backgroundColor);
+      const htmlBg = parseColor(getComputedStyle(document.documentElement).backgroundColor);
+      let surface = (bodyBg && bodyBg.a >= 0.5) ? bodyBg : htmlBg;
+      // Many AI pages paint the surface on a full-bleed wrapper div, not body.
+      if (!surface || surface.a < 0.5 || (!isCream(surface) && Math.min(surface.r, surface.g, surface.b) >= 250)) {
+        const wrappers = Array.from(document.body.children).slice(0, 8);
+        for (const w of wrappers) {
+          try {
+            const r = w.getBoundingClientRect();
+            if (r.width >= window.innerWidth * 0.8 && r.height >= window.innerHeight * 0.5) {
+              const wc = parseColor(getComputedStyle(w).backgroundColor);
+              if (wc && wc.a >= 0.5 && isCream(wc)) { surface = wc; break; }
+            }
+          } catch {}
+        }
+      }
+      const cream = isCream(surface);
+      const hex = surface
+        ? '#' + [surface.r, surface.g, surface.b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('')
+        : null;
+      return { surface: hex, triggered: cream };
+    }
+  },
+
+  // ── 21. WASHED-OUT GREY BODY TEXT (2026.08) ───────────────────────────────
+  // Adapted from Impeccable's low-contrast rule (Apache-2.0), but deliberately
+  // NARROWED to the actual AI tell rather than generic WCAG failure. The slop
+  // signature is *light-grey body copy on a light background* — the "everything
+  // is soft grey" look (#999/#aaa on white). We exclude:
+  //   - interactive elements (brand-colored CTAs are intentional, not slop)
+  //   - display/large text (gradient/image overlays cause false ratios there)
+  //   - dark/colored backgrounds (white-on-navy is GOOD design, handled below)
+  // and require the failure to be PERVASIVE before flagging. Pure style-based
+  // contrast can't see text over images, so we stay conservative on purpose.
+  {
+    id: 'low_contrast_text',
+    label: 'Washed-out grey body text (below WCAG AA on a light background)',
+    short: 'Low contrast',
+    category: 'colors',
+    weight: 7,
+    author: 'impeccable',
+    since: '2026.08',
+    extract: (ctx) => {
+      const { visible, parseColor, contrastRatio, relativeLuminance, channelSpread, effectiveBackground } = ctx;
+      const BODY = /^(p|li|span|dd|blockquote|figcaption|small)$/i;
+      let fails = 0, checked = 0;
+      const samples = [];
+      const seen = new Set();
+      for (const el of visible) {
+        if (seen.has(el)) continue;
+        if (!BODY.test(el.tagName)) continue;
+        // Brand CTAs / nav links are intentional — skip interactive context.
+        if (el.closest('a, button, [role="button"], nav, header')) continue;
+        // Only elements that directly own real reading text.
+        const direct = Array.from(el.childNodes)
+          .filter(n => n.nodeType === 3)
+          .map(n => n.textContent.trim())
+          .join(' ').trim();
+        if (direct.length < 20) continue;
+        seen.add(el);
+        const cs = getComputedStyle(el);
+        const fontSize = parseFloat(cs.fontSize) || 16;
+        if (fontSize >= 24) continue;             // body text only (kills overlay artifacts)
+        const fg = parseColor(cs.color);
+        if (!fg || fg.a < 0.5) continue;
+        const bg = effectiveBackground(el);
+        if (!bg || bg._approx) continue;          // skip gradient/image bg (needs pixel diff)
+        // The signature is grey-on-LIGHT. Require a light background and a
+        // neutral-ish foreground so we don't flag white-on-dark (good) or
+        // deliberate colored text.
+        const bgLum = relativeLuminance(bg);
+        if (bgLum < 0.6) continue;                // light backgrounds only
+        if (channelSpread(fg) >= 40) continue;    // skip strongly colored text
+        checked++;
+        const ratio = contrastRatio(fg, bg);
+        if (ratio < 4.5) {
+          fails++;
+          if (samples.length < 3) {
+            samples.push({ text: direct.slice(0, 30), ratio: +ratio.toFixed(2), floor: 4.5 });
+          }
+        }
+        if (checked >= 400) break;
+      }
+      // Pervasive only: ≥4 failing blocks AND ≥25% of measured body text. The
+      // ratioFail gate is the real protection (premium sites fail on <10% of
+      // body text; the slop signature is "most body copy is washed-out grey").
+      const ratioFail = checked ? fails / checked : 0;
+      const triggered = checked >= 4 && fails >= 4 && ratioFail >= 0.25;
+      return { fails, checked, ratioFail: +ratioFail.toFixed(3), samples, triggered };
+    }
+  },
+
+  // ── 22. CRUSHED LETTER-SPACING (2026.08) ──────────────────────────────────
+  // Ported from Impeccable's extreme-negative-tracking rule (Apache-2.0). Display
+  // type pulled tighter than where characters keep their shapes — ~76% of
+  // generated pages per their launch data. Keyed on large text with hard-negative
+  // tracking (em-relative so it scales with font size).
+  {
+    id: 'crushed_tracking',
+    label: 'Crushed letter-spacing on display type',
+    short: 'Crushed tracking',
+    category: 'fonts',
+    weight: 5,
+    author: 'impeccable',
+    since: '2026.08',
+    extract: (ctx) => {
+      const { visible } = ctx;
+      let count = 0;
+      const samples = [];
+      for (const el of visible) {
+        const txt = (el.textContent || '').trim();
+        if (txt.length < 3 || txt.length > 80) continue;
+        const cs = getComputedStyle(el);
+        const fontSize = parseFloat(cs.fontSize) || 16;
+        if (fontSize < 28) continue;                 // display-size only
+        const ls = parseFloat(cs.letterSpacing);
+        if (isNaN(ls)) continue;
+        const em = ls / fontSize;
+        // Tighter than -0.05em on display type is genuinely crushed — characters
+        // start colliding. (-0.02 to -0.04 is common, deliberate, and fine.)
+        if (em <= -0.05) {
+          count++;
+          if (samples.length < 3) {
+            samples.push({ text: txt.slice(0, 30), em: +em.toFixed(3), px: +ls.toFixed(1) });
+          }
+        }
+      }
+      return { count, samples, triggered: count >= 1 };
+    }
+  },
+
+  // ── 23. GRAY TEXT ON COLORED BACKGROUND (2026.08) ─────────────────────────
+  // Ported from Impeccable's gray-on-color rule (Apache-2.0). Neutral grey text
+  // sitting on a chromatic (saturated) background reads as washed-out — a recurring
+  // generated-UI mistake. Should use a darker shade of the bg hue, or white.
+  {
+    id: 'gray_on_color',
+    label: 'Gray text on a colored background',
+    short: 'Gray-on-color',
+    category: 'colors',
+    weight: 4,
+    author: 'impeccable',
+    since: '2026.08',
+    extract: (ctx) => {
+      const { visible, parseColor, rgbToHsl, channelSpread, effectiveBackground } = ctx;
+      // The tell is genuine MID-GREY text (washed out) on a colored panel — NOT
+      // white/near-white text, which is the recommended fix for colored panels.
+      function isMidGreyText(c) {
+        if (!c || c.a < 0.5) return false;
+        if (channelSpread(c) >= 20) return false;     // must be near-neutral
+        const hsl = rgbToHsl(c);
+        if (!hsl) return false;
+        return hsl.l > 0.30 && hsl.l < 0.75;          // not white, not near-black
+      }
+      let count = 0;
+      const samples = [];
+      const seen = new Set();
+      for (const el of visible) {
+        if (seen.has(el)) continue;
+        // Brand CTAs are intentional — skip interactive context.
+        if (el.closest('a, button, [role="button"]')) continue;
+        const direct = Array.from(el.childNodes)
+          .filter(n => n.nodeType === 3)
+          .map(n => n.textContent.trim()).join(' ').trim();
+        if (direct.length < 12) continue;
+        seen.add(el);
+        const cs = getComputedStyle(el);
+        const fg = parseColor(cs.color);
+        if (!isMidGreyText(fg)) continue;             // mid-grey text only
+        const bg = effectiveBackground(el);
+        if (!bg || bg._approx) continue;
+        // Background must be meaningfully chromatic (Impeccable uses spread ≥ 40).
+        if (channelSpread(bg) < 40) continue;
+        count++;
+        if (samples.length < 3) samples.push({ text: direct.slice(0, 30) });
+        if (count >= 50) break;
+      }
+      return { count, samples, triggered: count >= 3 };
+    }
+  },
+
+  // ── 24. OVERSIZED HERO H1 (2026.08) ───────────────────────────────────────
+  // Ported from Impeccable's oversized-h1 rule (Apache-2.0). A long full-sentence
+  // headline blown up to display size dominates the viewport with no room for
+  // anything else. Short punchy headlines at that size are fine — the tell is a
+  // LONG headline set huge.
+  {
+    id: 'oversized_hero_h1',
+    label: 'Oversized hero headline (long sentence at display size)',
+    short: 'Oversized H1',
+    category: 'fonts',
+    weight: 4,
+    author: 'impeccable',
+    since: '2026.08',
+    extract: (ctx) => {
+      const { h1 } = ctx;
+      if (!h1) return { triggered: false };
+      const cs = getComputedStyle(h1);
+      const fontSize = parseFloat(cs.fontSize) || 0;
+      const text = (h1.textContent || '').trim();
+      // Verbatim thresholds: ≥72px AND ≥40 chars.
+      const triggered = fontSize >= 72 && text.length >= 40;
+      return { fontSize: Math.round(fontSize), chars: text.length, text: text.slice(0, 60), triggered };
+    }
+  },
+
+  // ── 25. NESTED CARDS (2026.08) ────────────────────────────────────────────
+  // Ported from Impeccable's nested-cards rule (Apache-2.0). Cards inside cards
+  // create visual noise and excessive depth — a reflexive AI layout move. We flag
+  // only the innermost card that sits inside a card-like ancestor.
+  {
+    id: 'nested_cards',
+    label: 'Cards nested inside cards',
+    short: 'Nested cards',
+    category: 'layout',
+    weight: 4,
+    author: 'impeccable',
+    since: '2026.08',
+    extract: (ctx) => {
+      const { visible } = ctx;
+      const SKIP = /^(input|select|textarea|img|video|canvas|picture|pre|code|svg|button|a|nav|li)$/i;
+      function isCardLike(el) {
+        const tag = el.tagName.toLowerCase();
+        if (SKIP.test(tag)) return false;
+        const cs = getComputedStyle(el);
+        if (cs.position === 'absolute' || cs.position === 'fixed') return false;
+        const cls = (el.getAttribute('class') || '').toLowerCase();
+        if (/(dropdown|popover|tooltip|menu|modal|dialog|overlay)/.test(cls)) return false;
+        if ((el.textContent || '').trim().length < 10) return false;
+        const r = el.getBoundingClientRect();
+        if (r.width < 50 || r.height < 30) return false;
+        const hasShadow = cs.boxShadow && cs.boxShadow !== 'none';
+        const hasBorder = parseFloat(cs.borderTopWidth) > 0 || parseFloat(cs.borderLeftWidth) > 0 ||
+          /\bborder\b/.test(cls);
+        const radius = parseFloat(cs.borderRadius) || 0;
+        const hasRadius = radius > 0;
+        const bg = cs.backgroundColor;
+        const hasBg = bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent';
+        return (hasShadow || hasBorder) && (hasRadius || hasBg);
+      }
+      // A 3D-tilted / perspective-transformed ancestor means this is a product
+      // SCREENSHOT mockup (Linear/Stripe hero), whose inner UI naturally has
+      // cards-in-cards. That's product imagery, not landing-page slop — skip it.
+      function inTransformedFrame(el) {
+        let a = el.parentElement, g = 0;
+        while (a && g++ < 20) {
+          const cs = getComputedStyle(a);
+          if (cs.transform !== 'none' || cs.perspective !== 'none') return true;
+          a = a.parentElement;
+        }
+        return false;
+      }
+      // Collect card-like elements, then keep only those with a card-like ancestor
+      // AND no card-like descendant (innermost).
+      const cards = [];
+      for (const el of visible) {
+        try { if (isCardLike(el)) cards.push(el); } catch {}
+      }
+      const cardSet = new Set(cards);
+      let nested = 0;
+      const samples = [];
+      for (const el of cards) {
+        // ancestor card?
+        let anc = el.parentElement, hasCardAncestor = false;
+        let guard = 0;
+        while (anc && guard++ < 30) {
+          if (cardSet.has(anc)) { hasCardAncestor = true; break; }
+          anc = anc.parentElement;
+        }
+        if (!hasCardAncestor) continue;
+        // innermost only — skip if it contains another flagged card
+        let containsCard = false;
+        for (const other of cards) {
+          if (other !== el && el.contains(other)) { containsCard = true; break; }
+        }
+        if (containsCard) continue;
+        if (inTransformedFrame(el)) continue;   // product mockup, not slop
+        nested++;
+        if (samples.length < 3) {
+          samples.push((el.getAttribute('class') || el.tagName.toLowerCase()).slice(0, 40));
+        }
+      }
+      // Require a real cluster (≥3) — one nested card is often legitimate.
+      return { nested, samples, triggered: nested >= 3 };
+    }
+  },
+
+  // ── 26. WIDE BODY TRACKING (2026.08) ──────────────────────────────────────
+  // Ported from Impeccable's wide-tracking rule (Apache-2.0). Letter-spacing
+  // above 0.05em on body copy disrupts natural word shapes and slows reading.
+  // Wide tracking belongs on short uppercase labels only.
+  {
+    id: 'wide_body_tracking',
+    label: 'Wide letter-spacing on body text',
+    short: 'Wide tracking',
+    category: 'fonts',
+    weight: 3,
+    author: 'impeccable',
+    since: '2026.08',
+    extract: (ctx) => {
+      const { visible } = ctx;
+      const BODY = /^(p|li|td|dd|blockquote|figcaption)$/i;
+      let count = 0;
+      const samples = [];
+      for (const el of visible) {
+        if (!BODY.test(el.tagName)) continue;
+        const txt = (el.textContent || '').trim();
+        if (txt.length < 40) continue;               // real body copy only
+        const cs = getComputedStyle(el);
+        if (cs.textTransform === 'uppercase') continue; // labels exempt
+        const fontSize = parseFloat(cs.fontSize) || 16;
+        const ls = parseFloat(cs.letterSpacing);
+        if (isNaN(ls)) continue;
+        const em = ls / fontSize;
+        if (em > 0.05) {
+          count++;
+          if (samples.length < 3) samples.push({ em: +em.toFixed(3), text: txt.slice(0, 30) });
+        }
+      }
+      return { count, samples, triggered: count >= 1 };
+    }
+  },
+
+  // ── 27. FLAT TYPE HIERARCHY (2026.08) ─────────────────────────────────────
+  // Ported from Impeccable's flat-type-hierarchy rule (Apache-2.0). Font sizes
+  // too close together — no clear visual hierarchy. Verbatim: ≥3 distinct sizes
+  // and a max/min ratio below 2.0 reads as flat.
+  {
+    id: 'flat_type_hierarchy',
+    label: 'Flat type hierarchy (sizes too close together)',
+    short: 'Flat hierarchy',
+    category: 'fonts',
+    weight: 3,
+    author: 'impeccable',
+    since: '2026.08',
+    extract: (ctx) => {
+      const { visible } = ctx;
+      const TEXTY = /^(h1|h2|h3|h4|h5|h6|p|span|a|li|td|th|label|button|div)$/i;
+      const sizes = new Set();
+      for (const el of visible) {
+        if (!TEXTY.test(el.tagName)) continue;
+        const txt = (el.textContent || '').trim();
+        if (txt.length < 2) continue;
+        const fs = Math.round(parseFloat(getComputedStyle(el).fontSize));
+        if (fs >= 8 && fs < 200) sizes.add(fs);
+      }
+      const arr = [...sizes];
+      if (arr.length < 3) return { distinct: arr.length, triggered: false };
+      const ratio = Math.max(...arr) / Math.min(...arr);
+      return {
+        distinct: arr.length,
+        ratio: +ratio.toFixed(2),
+        min: Math.min(...arr),
+        max: Math.max(...arr),
+        triggered: ratio < 2.0
+      };
     }
   }
 ];

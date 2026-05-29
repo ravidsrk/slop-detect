@@ -17,7 +17,7 @@ $ npx slop-detect https://bolt.new https://www.aura.build https://news.ycombinat
 
 https://bolt.new
 What will you build today?
-  🟡 Mild  ·  score 24/100  ·  5/16 patterns triggered
+  🟡 Mild  ·  score 24/100  ·  5/27 patterns triggered
   ✗ AI-default font stack (Inter / Geist / Space Grotesk)       (+8)
   ✗ Gradient-heavy backgrounds (5+ elements)                    (+4)
   ✗ Big colored box-shadow glows (purple/blue/pink)             (+4)
@@ -26,14 +26,14 @@ What will you build today?
 
 https://www.aura.build
 Create beautiful designs
-  🟡 Mild  ·  score 20/100  ·  4/16 patterns triggered
+  🟡 Mild  ·  score 20/100  ·  4/27 patterns triggered
   ✗ AI-default font stack (Inter / Geist / Space Grotesk)       (+8)
   ✗ Glassmorphism (backdrop-filter blur on translucent layers)  (+4)
   ✗ Big colored box-shadow glows (purple/blue/pink)             (+4)
   ✗ Centered hero in generic sans (Inter-style)                 (+4)
 
 https://news.ycombinator.com
-  🟢 Clean  ·  score 3/100  ·  1/16 patterns triggered
+  🟢 Clean  ·  score 3/100  ·  1/27 patterns triggered
 ```
 
 ## Why this exists
@@ -119,9 +119,9 @@ grade (fail if the grade is worse). Leave it empty for report-only mode.
 
 The repo also ships an [Agent Skill](skills/slop-detect/SKILL.md) following the [agentskills.io](https://agentskills.io) open spec — any compatible agent (Claude Code, Cursor, GitHub Copilot, Gemini CLI, Codex, Roo Code, Junie, and 20+ others) will autonomously invoke the scanner when you ask it to audit a landing page.
 
-## The 19 patterns
+## The 27 patterns
 
-`definitions@2026.07` — versioned ruleset. Scores from a given definition
+`definitions@2026.08` — versioned ruleset. Scores from a given definition
 version are comparable; the version ships in every result (`definitionsVersion`).
 
 | # | Pattern | Weight | What it detects |
@@ -145,12 +145,22 @@ version are comparable; the version ships in every result (`definitionsVersion`)
 | 17 | **Bento grid** | 4 | Apple-keynote mixed-span rounded card wall |
 | 18 | **Aurora blobs** | 5 | Blurred radial/conic gradient "aurora" backdrop |
 | 19 | **AI sparkles** | 3 | ✨ / lucide "Sparkles" "AI magic" tells |
+| 20 | **Cream bg** | 7 | Warm off-white / beige default page surface |
+| 21 | **Low contrast** | 7 | Washed-out grey body text below WCAG AA on a light background |
+| 22 | **Crushed tracking** | 5 | Display headings tracked tighter than -0.05em |
+| 23 | **Gray-on-color** | 4 | Neutral mid-grey text on a chromatic background |
+| 24 | **Oversized H1** | 4 | Long headline (≥40 chars) set at ≥72px |
+| 25 | **Nested cards** | 4 | Card-like element inside a card-like ancestor |
+| 26 | **Wide tracking** | 3 | Body copy letter-spacing above 0.05em |
+| 27 | **Flat hierarchy** | 3 | ≥3 font sizes with a max/min ratio below 2× |
 
 **Tiers:** Clean (0–9) · Mild (10–27) · Heavy (≥28)
 
 Source: Krebs (Apr 2026) + Meng To (May 2026 Aura tutorial) + 2026.07 emerging
-tells (#17–19). See [`packages/core/src/patterns.js`](packages/core/src/patterns.js)
-for the full detection logic with weighted heuristics.
+tells (#17–19) + 2026.08 patterns (#20–27) ported from
+[Impeccable](https://github.com/pbakaus/impeccable) (Apache-2.0). See
+[`packages/core/src/patterns.js`](packages/core/src/patterns.js) for the full
+detection logic with weighted heuristics.
 
 ### Scoring presets
 
@@ -164,7 +174,7 @@ slop-detect https://example.com --preset minimal       # the 3 dead-giveaways
 
 | Preset | Scores |
 |---|---|
-| `full` (default) | all 19 patterns |
+| `full` (default) | all 27 patterns |
 | `strict` | only weight ≥ 5 (fewest false positives — good CI gate) |
 | `marketing` | fonts, colours, gradients, hero treatment |
 | `minimal` | slop fonts + VibeCode purple + gradient text |
