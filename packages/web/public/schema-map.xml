@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- NLWeb Schema Feeds: a map of structured-data feeds on this site.
+     https://github.com/microsoft/NLWeb -->
+<schemamap xmlns="https://schema.org/SchemaMap">
+  <feed>
+    <loc>https://slop-detect.com/</loc>
+    <type>application/ld+json</type>
+    <about>Organization, WebSite, SoftwareApplication, FAQPage, BreadcrumbList</about>
+  </feed>
+  <feed>
+    <loc>https://slop-detect.com/api/patterns</loc>
+    <type>application/json</type>
+    <about>Live pattern catalogue (id, label, category, weight, version)</about>
+  </feed>
+  <feed>
+    <loc>https://slop-detect.com/openapi.json</loc>
+    <type>application/json</type>
+    <about>OpenAPI 3.1 spec for the scan / aeo / patterns / fix-prompt API</about>
+  </feed>
+  <feed>
+    <loc>https://slop-detect.com/.well-known/agent.json</loc>
+    <type>application/json</type>
+    <about>Agent capability discovery document</about>
+  </feed>
+</schemamap>

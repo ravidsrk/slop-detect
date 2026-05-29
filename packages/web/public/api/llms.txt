@@ -1,0 +1,40 @@
+# Slop Detector — API
+
+> Scoped context for the Slop Detector HTTP API. Full manual: https://slop-detect.com/llms.txt
+> OpenAPI spec: https://slop-detect.com/openapi.json
+
+The API runs the same deterministic slop engine as the web app and CLI, on real
+headless Chromium. No API key for normal use; per-IP rate-limited.
+
+## Endpoints
+
+- `POST /api/scan` — Score a URL against the design-slop fingerprint. Body:
+  `{ "url": "https://example.com" }`. Add `"axes": ["design","copy"]` for the copy
+  axis. Returns `{ score, tier, grade, patterns[], ... }`. Tiers: Clean 0–9, Mild
+  10–27, Heavy 28+.
+- `POST /api/aeo` — Score whether AI engines can read & cite a page. Body:
+  `{ "url": "..." }`. Returns `{ score, tier, checks[] }`. Higher is better
+  (inverse polarity of the slop score).
+- `GET /api/patterns` — The live pattern catalogue: `{ version, count, patterns[] }`.
+  Markdown twin at `/api/patterns.md`.
+- `POST /api/fix-prompt` — Build a de-slop prompt. Body: `{ "result": {...} }`
+  (cheap) or `{ "url": "..." }` (re-scans).
+
+## Auth
+
+None required. See https://slop-detect.com/auth.md. Optional `X-API-Key` header for
+foreign browser origins.
+
+## Quickstart
+
+```bash
+curl -X POST https://slop-detect.com/api/scan \
+  -H 'content-type: application/json' \
+  -d '{"url":"https://example.com"}'
+```
+
+## Links
+
+- OpenAPI: https://slop-detect.com/openapi.json
+- Auth: https://slop-detect.com/auth.md
+- Source: https://github.com/ravidsrk/slop-detect

@@ -1,4 +1,5 @@
-# Cloudflare Pages header rules. Tuned so slop-detect.com passes its own AEO axis.
+# Cloudflare Pages header rules. Tuned so slop-detect.com passes its own AEO axis
+# and the orank agent-readiness checks.
 
 # Homepage: advertise the markdown twin + signal content-negotiation awareness.
 /
@@ -9,15 +10,55 @@
   Vary: Accept
   Link: </index.md>; rel="alternate"; type="text/markdown"
 
-# Markdown twin must be served as text/markdown for AI clients (and our own check).
+# ── Markdown documents (served as text/markdown for AI clients) ──────────────
 /index.md
   Content-Type: text/markdown; charset=utf-8
+/auth.md
+  Content-Type: text/markdown; charset=utf-8
+/pricing.md
+  Content-Type: text/markdown; charset=utf-8
+/llms-full.txt
+  Content-Type: text/plain; charset=utf-8
+/api/patterns.md
+  Content-Type: text/markdown; charset=utf-8
+/compare/index.md
+  Content-Type: text/markdown; charset=utf-8
 
+# Compare page: advertise its markdown twin.
+/compare
+  Link: </compare/index.md>; rel="alternate"; type="text/markdown"
+  Vary: Accept
+
+# ── llms.txt family (plain text) ────────────────────────────────────────────
 /llms.txt
   Content-Type: text/plain; charset=utf-8
-
-/robots.txt
+/api/llms.txt
+  Content-Type: text/plain; charset=utf-8
+/developers/llms.txt
   Content-Type: text/plain; charset=utf-8
 
+# ── Discovery / structured-data files (JSON + XML) ──────────────────────────
+/robots.txt
+  Content-Type: text/plain; charset=utf-8
 /sitemap.xml
   Content-Type: application/xml; charset=utf-8
+/schema-map.xml
+  Content-Type: application/xml; charset=utf-8
+/openapi.json
+  Content-Type: application/json; charset=utf-8
+  Access-Control-Allow-Origin: *
+/.well-known/agent.json
+  Content-Type: application/json; charset=utf-8
+  Access-Control-Allow-Origin: *
+/.well-known/agent-card.json
+  Content-Type: application/json; charset=utf-8
+  Access-Control-Allow-Origin: *
+/.well-known/mcp/server-card.json
+  Content-Type: application/json; charset=utf-8
+  Access-Control-Allow-Origin: *
+/.well-known/agent-skills/index.json
+  Content-Type: application/json; charset=utf-8
+  Access-Control-Allow-Origin: *
+/.well-known/oauth-protected-resource
+  Content-Type: application/json; charset=utf-8
+  Access-Control-Allow-Origin: *

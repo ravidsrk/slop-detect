@@ -1,0 +1,21 @@
+{
+  "resource": "https://slop-detect.com/api",
+  "authorization_servers": [],
+  "bearer_methods_supported": ["header"],
+  "scopes_supported": ["scan:read", "aeo:read", "patterns:read", "fix:read"],
+  "resource_documentation": "https://slop-detect.com/openapi.json",
+  "resource_name": "Slop Detector API",
+  "agent_auth": {
+    "skill": "https://slop-detect.com/auth.md",
+    "register_uri": null,
+    "identity_types_supported": ["anonymous", "identity_assertion"],
+    "anonymous": {
+      "credential_types_supported": ["none", "api_key"]
+    },
+    "identity_assertion": {
+      "assertion_types_supported": [],
+      "credential_types_supported": ["api_key"]
+    },
+    "notes": "The Slop Detector API is anonymous-access: no OAuth, no login. Normal use needs no credential and is rate-limited per IP. Browser requests from origins outside the allow-list must present an API key via the X-API-Key header. There is no authorization server; this resource advertises anonymous access. See /auth.md."
+  }
+}

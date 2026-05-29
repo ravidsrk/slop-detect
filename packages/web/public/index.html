@@ -7,6 +7,8 @@
 <meta name="description" content="Paste a URL. Get a 0 to 100 slop score in 5 seconds. A deterministic, weighted fingerprint of the CSS tells Cursor, v0, Lovable and Bolt all converged on.">
 <meta property="og:title" content="Slop Detector: how AI-generated does your landing page look?">
 <meta property="og:description" content="Deterministic design and copy slop patterns. Real Chromium. 0 to 100 score.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Slop Detector">
 <meta property="og:image" content="https://slop-detect.com/og.png">
 <meta property="og:url" content="https://slop-detect.com">
 <meta name="twitter:card" content="summary_large_image">
@@ -26,6 +28,156 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Martian+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!--
+  JSON-LD structured data. A single @graph so AI agents can parse identity,
+  offering, FAQs, breadcrumbs, and entity links (sameAs) in one pass. Deliberately
+  authored to be the opposite of slop: precise, sourced, machine-verifiable.
+-->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://slop-detect.com/#org",
+      "name": "Slop Detector",
+      "alternateName": "slop-detect",
+      "url": "https://slop-detect.com",
+      "logo": "https://slop-detect.com/favicon-512.png",
+      "description": "Open-source tool that scores any landing page against the AI-design slop fingerprint — deterministic 0–100 scoring on real Chromium, plus an AEO axis.",
+      "email": "ravidsrk@gmail.com",
+      "foundingDate": "2026-03",
+      "founder": {
+        "@type": "Person",
+        "name": "Ravindra Kumar",
+        "url": "https://github.com/ravidsrk",
+        "sameAs": ["https://github.com/ravidsrk", "https://x.com/ravidsrk"]
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "technical support",
+        "email": "ravidsrk@gmail.com",
+        "url": "https://github.com/ravidsrk/slop-detect/issues"
+      },
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Bengaluru",
+        "addressRegion": "KA",
+        "addressCountry": "IN"
+      },
+      "sameAs": [
+        "https://github.com/ravidsrk/slop-detect",
+        "https://www.npmjs.com/package/slop-detect",
+        "https://x.com/ravidsrk"
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://slop-detect.com/#website",
+      "url": "https://slop-detect.com",
+      "name": "Slop Detector",
+      "publisher": { "@id": "https://slop-detect.com/#org" },
+      "inLanguage": "en"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://slop-detect.com/#app",
+      "name": "Slop Detector",
+      "applicationCategory": "DeveloperApplication",
+      "applicationSubCategory": "Web design quality analysis",
+      "operatingSystem": "Web, Node.js (CLI), MCP",
+      "url": "https://slop-detect.com",
+      "downloadUrl": "https://www.npmjs.com/package/slop-detect",
+      "softwareVersion": "0.5.1",
+      "license": "https://opensource.org/licenses/MIT",
+      "isAccessibleForFree": true,
+      "publisher": { "@id": "https://slop-detect.com/#org" },
+      "description": "Score any landing page against the AI-design fingerprint. Deterministic, weighted 0–100 slop scoring of the CSS and copy tells that Cursor, v0, Lovable and Bolt converged on, run on real headless Chromium. Ships as a web app, a CLI (npx slop-detect), and an MCP server.",
+      "featureList": [
+        "27-pattern deterministic design-slop fingerprint",
+        "Copy-slop axis (LLM phrasing tells)",
+        "AEO axis — can AI engines read & cite a page",
+        "Real headless Chromium (Cloudflare Browser Rendering)",
+        "CLI with --fail-on for CI gating",
+        "MCP server: scan_page, check_aeo, fix_prompt"
+      ],
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "description": "Free and open source (MIT). Web app is free to use; CLI and MCP run locally."
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://slop-detect.com/#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What does Slop Detector do?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It scores any landing page against the AI-design slop fingerprint — a deterministic, weighted 0–100 measure of the CSS and copy tells that AI page builders (Cursor, v0, Lovable, Bolt) converge on. Paste a URL and get a score in about five seconds, run on real headless Chromium."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is the score deterministic?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. There is no model and no randomness. Each triggered pattern adds a fixed weight, so the same page always yields the same score. Tiers: Clean 0–9, Mild 10–27, Heavy 28+."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do AI agents and developers use it?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Via the CLI (npx slop-detect <url>, add --aeo for the AEO axis, --fail-on heavy to gate CI), the MCP server slop-detect-mcp (tools scan_page, check_aeo, fix_prompt), or the HTTP API at https://slop-detect.com/api/scan. An OpenAPI spec is published at /openapi.json."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is the AEO axis?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A complementary axis that scores whether AI engines (ChatGPT, Claude, Perplexity, Google AI Overviews) can fetch, read and cite a page. It checks AI-crawler access, robots.txt, indexability, a markdown twin, llms.txt, and content-negotiation headers. Higher AEO is better — the inverse polarity of the slop score."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is it free and open source?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Slop Detector is MIT-licensed and open source on GitHub at github.com/ravidsrk/slop-detect. The web app is free to use; the CLI and MCP server run locally."
+          }
+        }
+      ]
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://slop-detect.com/#breadcrumb",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://slop-detect.com/" },
+        { "@type": "ListItem", "position": 2, "name": "Pattern catalogue", "item": "https://slop-detect.com/api/patterns" },
+        { "@type": "ListItem", "position": 3, "name": "API reference", "item": "https://slop-detect.com/openapi.json" }
+      ]
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://slop-detect.com/#webpage",
+      "url": "https://slop-detect.com/",
+      "name": "Slop Detector: score any landing page against the AI-design fingerprint",
+      "isPartOf": { "@id": "https://slop-detect.com/#website" },
+      "about": { "@id": "https://slop-detect.com/#app" },
+      "speakable": {
+        "@type": "SpeakableSpecification",
+        "cssSelector": [".hero h1", ".hero .lead"]
+      }
+    }
+  ]
+}
+</script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <style>
   /* ──────────────────────────────────────────────────────────────────────────

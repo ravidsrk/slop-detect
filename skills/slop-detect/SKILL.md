@@ -1,6 +1,6 @@
 ---
 name: slop-detect
-description: Score any landing page against the 16-rule AI-design-slop fingerprint and generate a fix prompt. Use when the user asks to detect AI-generated design, audit a landing page for slop, check if a site looks like Cursor/v0/Lovable/Bolt output, score visual quality, or get specific feedback to clean up a Tailwind-template-looking site. Triggers on phrases like "is this AI-generated", "does my site look like slop", "audit my landing page", "v0 detector", "fix my landing page", "design feedback", "why does this look generic", or any URL the user wants visually scored.
+description: Score any landing page against the 27-pattern AI-design-slop fingerprint and generate a fix prompt. Use when the user asks to detect AI-generated design, audit a landing page for slop, check if a site looks like Cursor/v0/Lovable/Bolt output, score visual quality, or get specific feedback to clean up a Tailwind-template-looking site. Triggers on phrases like "is this AI-generated", "does my site look like slop", "audit my landing page", "v0 detector", "fix my landing page", "design feedback", "why does this look generic", or any URL the user wants visually scored.
 license: MIT
 metadata:
   author: ravidsrk
@@ -12,7 +12,7 @@ compatibility: Requires internet access. Uses the public slop-detect.com API (no
 
 # slop-detect
 
-Score any landing page against a 16-rule AI-design-slop fingerprint. Each rule is a deterministic CSS/DOM check derived from Adrian Krebs's April 2026 study of 1,400 Show HN submissions plus Meng To's May 2026 Aura tutorial. The detector returns a 0–100 score, a tier (Clean / Mild / Heavy), per-pattern evidence, and — optionally — a copy-pasteable markdown prompt to fix the triggered patterns.
+Score any landing page against a 27-pattern AI-design-slop fingerprint. Each rule is a deterministic CSS/DOM check derived from Adrian Krebs's April 2026 study of 1,400 Show HN submissions plus Meng To's May 2026 Aura tutorial. The detector returns a 0–100 score, a tier (Clean / Mild / Heavy), per-pattern evidence, and — optionally — a copy-pasteable markdown prompt to fix the triggered patterns.
 
 This skill is the **fast path**. When the user pastes a URL and asks anything about its design quality, AI-generated-ness, or how to clean it up, hit the API rather than reading the page yourself.
 

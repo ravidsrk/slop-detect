@@ -1,0 +1,47 @@
+{
+  "$schema": "https://schemas.agentskills.io/agent/0.1.0/schema.json",
+  "name": "Slop Detector",
+  "description": "Score any landing page against the AI-design-slop fingerprint. Deterministic, weighted 0-100 scoring of the CSS and copy tells that Cursor, v0, Lovable and Bolt converged on, on real headless Chromium. Plus an AEO axis: can AI engines read & cite a page.",
+  "url": "https://slop-detect.com",
+  "documentation": "https://slop-detect.com/llms.txt",
+  "openapi": "https://slop-detect.com/openapi.json",
+  "license": "MIT",
+  "repository": "https://github.com/ravidsrk/slop-detect",
+  "contact": "ravidsrk@gmail.com",
+  "capabilities": [
+    {
+      "name": "scan_page",
+      "description": "Score a URL against the design-slop (and optional copy-slop) fingerprint.",
+      "endpoint": "https://slop-detect.com/api/scan",
+      "method": "POST"
+    },
+    {
+      "name": "check_aeo",
+      "description": "Score whether AI engines can fetch, read and cite a page (AEO axis).",
+      "endpoint": "https://slop-detect.com/api/aeo",
+      "method": "POST"
+    },
+    {
+      "name": "list_patterns",
+      "description": "Read the live pattern catalogue (id, label, category, weight).",
+      "endpoint": "https://slop-detect.com/api/patterns",
+      "method": "GET"
+    },
+    {
+      "name": "fix_prompt",
+      "description": "Build a ready-to-paste LLM prompt to de-slop a page from a scan result.",
+      "endpoint": "https://slop-detect.com/api/fix-prompt",
+      "method": "POST"
+    }
+  ],
+  "interfaces": {
+    "http": "https://slop-detect.com/openapi.json",
+    "mcp": "https://slop-detect.com/.well-known/mcp/server-card.json",
+    "cli": "npx slop-detect <url>",
+    "skills": "https://slop-detect.com/.well-known/agent-skills/index.json"
+  },
+  "auth": {
+    "type": "none",
+    "notes": "No API key required for normal use. Per-IP rate limited; browser-driving routes are Turnstile-gated for browser origins. See https://slop-detect.com/auth.md"
+  }
+}

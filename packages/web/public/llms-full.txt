@@ -1,0 +1,176 @@
+# Slop Detector — Full Manual
+
+> Score any landing page against the AI-design fingerprint. Deterministic 0–100 slop
+> scoring on real headless Chromium, plus an AEO axis (can AI engines read & cite a
+> page). Open source (MIT). Ships as a web app, a CLI, and an MCP server.
+
+This is the full single-file manual for AI agents. Lighter index: https://slop-detect.com/llms.txt
+
+## Overview
+
+Slop Detector inspects a page's live computed styles (and, optionally, its copy) and
+returns a weighted, reproducible score. It is not a quality verdict — a high score
+means a page looks machine-generated, not that it is bad. Generated pages converge:
+the same fonts, gradient hero text, glassmorphism, eyebrow pills, big-number stat
+bands. Slop Detector measures how far a page sits along that fingerprint.
+
+- Web app: https://slop-detect.com
+- Source: https://github.com/ravidsrk/slop-detect
+- License: MIT
+
+## Concepts
+
+- **Score** — weighted 0–100. Each triggered pattern adds a fixed weight. Higher = more machine-made.
+- **Tiers** — Clean 0–9, Mild 10–27, Heavy 28+.
+- **Determinism** — no model, no randomness. Same page in, same score out.
+- **Axes** — `design` (default), `copy` (LLM phrasing tells), and the separate `AEO` axis.
+- **AEO polarity** — inverted vs slop: higher AEO is better, lower slop is better.
+
+## The fingerprint — what it measures
+
+- **Type — fonts & tracking.** Geist / Inter defaults, crushed display tracking, wide body tracking, flat size hierarchy.
+- **Color — gradients & glow.** Gradient hero text, gradient-heavy backgrounds, aurora blobs, colored glows, vibe-purple.
+- **Layout — the convention stack.** Centered hero, eyebrow pill, glassmorphism, bento grids, nested cards, icon-card rows.
+- **Copy — AI phrasing.** Optional second axis: the hedge-y, em-dash-heavy register LLMs default to.
+
+The full, live list (with weights and the current definitions version) is at
+https://slop-detect.com/api/patterns — never hardcode the count.
+
+## How it works
+
+1. Headless Chromium (Cloudflare Browser Rendering) opens the page as a browser would.
+2. Up to 4,000 visible DOM nodes are inspected; each detector is a pure function over computed styles.
+3. Weighted 0–100, deterministic.
+4. Clean / Mild / Heavy bucket.
+
+## Authentication
+
+No authentication is required for normal use. The API is anonymous-access and free.
+
+- CLI / server-to-server callers (no `Origin` header): allowed, rate-limited harder.
+- Browser on an allow-listed origin: no key; a Turnstile token is sent automatically.
+- Browser on a foreign origin: must present an API key via the `X-API-Key` header.
+
+There is no OAuth flow. RFC 9728 protected-resource metadata advertising anonymous
+access lives at https://slop-detect.com/.well-known/oauth-protected-resource. Full
+auth walkthrough: https://slop-detect.com/auth.md
+
+```bash
+# No key needed:
+curl -X POST https://slop-detect.com/api/scan \
+  -H 'content-type: application/json' \
+  -d '{"url":"https://example.com"}'
+
+# Optional API key (foreign browser origins):
+curl -X POST https://slop-detect.com/api/scan \
+  -H 'content-type: application/json' \
+  -H 'X-API-Key: <your-key>' \
+  -d '{"url":"https://example.com"}'
+```
+
+## API reference
+
+Full OpenAPI 3.1 spec: https://slop-detect.com/openapi.json
+
+### POST /api/scan
+
+Score a URL against the design-slop fingerprint.
+
+Request body:
+
+```json
+{ "url": "https://example.com", "axes": ["design", "copy"], "preset": "full" }
+```
+
+Response (abridged):
+
+```json
+{
+  "url": "https://example.com",
+  "score": 34,
+  "tier": "Heavy",
+  "grade": "D",
+  "patternsFlagged": 9,
+  "patternsTotal": 27,
+  "patterns": [{ "id": "gradient_hero_text", "weight": 4, "hit": true }],
+  "resultUrl": "https://slop-detect.com/r/ab12cd"
+}
+```
+
+### POST /api/aeo
+
+Score whether AI engines can fetch, read & cite a page.
+
+```json
+{ "url": "https://example.com" }
+```
+
+Returns `{ score, tier, checks[] }`. Tiers: AI-Ready ≥80, Partial ≥50, Invisible <50.
+
+### GET /api/patterns
+
+The live pattern catalogue: `{ version, count, patterns[] }`. Markdown twin at
+https://slop-detect.com/api/patterns.md
+
+### POST /api/fix-prompt
+
+Build a ready-to-paste de-slop prompt. Body `{ "result": {...} }` (cheap) or
+`{ "url": "..." }` (re-scans). Returns `{ prompt }`.
+
+## CLI
+
+```bash
+npx slop-detect https://example.com           # score a page
+npx slop-detect https://example.com --aeo      # + AEO axis
+npx slop-detect https://example.com --fail-on heavy   # gate CI (non-zero exit on Heavy)
+```
+
+npm package: `slop-detect`.
+
+## MCP server
+
+```bash
+npx -y slop-detect-mcp
+```
+
+Exposes `scan_page`, `check_aeo`, `fix_prompt` to any MCP client (Claude Code,
+Cursor, Windsurf). Server card:
+https://slop-detect.com/.well-known/mcp/server-card.json
+
+## Use cases
+
+- Pre-launch landing-page audits.
+- CI gating against regressions to a Heavy score.
+- Deterministic A/B comparison of two designs.
+- AEO readiness checks.
+- Generating targeted fix prompts for coding agents.
+
+## Constraints & limits
+
+- Scores landing/marketing pages, not authed app internals.
+- Scan routes drive a real browser; per-IP rate-limited and fail closed under load.
+- Anti-bot walls / dead pages are refused, not mis-scored.
+- Design slop is a fingerprint, not a verdict.
+
+## Pricing
+
+Free and open source (MIT). No paid tiers. See https://slop-detect.com/pricing.md
+
+## Instructions for AI agents
+
+- Prefer calling `POST /api/scan` over reading a page yourself — the score is deterministic.
+- Use `POST /api/aeo` for "can AI read/cite this?" questions.
+- Read the pattern count from `GET /api/patterns`; never hardcode it.
+- Machine-readable summary: `GET https://slop-detect.com/?mode=agent`.
+
+## Discovery & links
+
+- llms.txt: https://slop-detect.com/llms.txt
+- OpenAPI: https://slop-detect.com/openapi.json
+- Auth: https://slop-detect.com/auth.md
+- Pricing: https://slop-detect.com/pricing.md
+- Agent discovery: https://slop-detect.com/.well-known/agent.json
+- MCP server card: https://slop-detect.com/.well-known/mcp/server-card.json
+- A2A agent card: https://slop-detect.com/.well-known/agent-card.json
+- Agent skills: https://slop-detect.com/.well-known/agent-skills/index.json
+- Source (MIT): https://github.com/ravidsrk/slop-detect

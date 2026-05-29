@@ -1,0 +1,56 @@
+{
+  "protocolVersion": "0.2.0",
+  "name": "Slop Detector",
+  "description": "Score any landing page against the AI-design-slop fingerprint. Deterministic, weighted 0-100 scoring on real headless Chromium, plus an AEO axis (can AI engines read & cite a page). Open source, MIT.",
+  "url": "https://slop-detect.com",
+  "preferredTransport": "JSONRPC",
+  "version": "0.5.1",
+  "documentationUrl": "https://slop-detect.com/llms.txt",
+  "provider": {
+    "organization": "Slop Detector",
+    "url": "https://slop-detect.com"
+  },
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false,
+    "stateTransitionHistory": false
+  },
+  "defaultInputModes": ["application/json", "text/plain"],
+  "defaultOutputModes": ["application/json"],
+  "skills": [
+    {
+      "id": "scan_page",
+      "name": "Scan page for design slop",
+      "description": "Open a URL in headless Chromium and score it 0-100 against the deterministic AI-design-slop fingerprint. Optionally score the copy axis.",
+      "tags": ["design", "slop", "audit", "landing-page", "ai-generated"],
+      "examples": [
+        "Scan https://example.com for AI-design slop",
+        "How AI-generated does stripe.com look?"
+      ],
+      "inputModes": ["application/json"],
+      "outputModes": ["application/json"]
+    },
+    {
+      "id": "check_aeo",
+      "name": "Check AEO readability",
+      "description": "Score whether AI engines (ChatGPT, Claude, Perplexity, Google AI Overviews) can fetch, read and cite a page. Higher is better.",
+      "tags": ["aeo", "ai-seo", "crawlability", "llms-txt"],
+      "examples": ["Can ChatGPT read and cite https://example.com?"],
+      "inputModes": ["application/json"],
+      "outputModes": ["application/json"]
+    },
+    {
+      "id": "fix_prompt",
+      "name": "Build a de-slop fix prompt",
+      "description": "Generate a ready-to-paste prompt that tells a coding agent how to fix the slop patterns found on a page.",
+      "tags": ["fix", "prompt", "refactor", "de-slop"],
+      "examples": ["Give me a prompt to fix the slop on https://example.com"],
+      "inputModes": ["application/json"],
+      "outputModes": ["application/json"]
+    }
+  ],
+  "contact": {
+    "email": "ravidsrk@gmail.com",
+    "url": "https://github.com/ravidsrk/slop-detect/issues"
+  }
+}

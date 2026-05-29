@@ -1,6 +1,6 @@
 # slop-detect
 
-> **Score any landing page against the 19-rule AI-design-slop fingerprint.**
+> **Score any landing page against the 27-rule AI-design-slop fingerprint.**
 > Detect Cursor / v0 / Lovable / Bolt templates in the wild — and get a copy-pasteable fix prompt to clean them up.
 
 <p>

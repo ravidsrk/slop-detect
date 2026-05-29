@@ -1,0 +1,19 @@
+{
+  "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+  "version": "0.2.0",
+  "name": "Slop Detector",
+  "description": "Score any landing page against the AI-design-slop fingerprint and generate a fix prompt.",
+  "homepage": "https://slop-detect.com",
+  "skills": [
+    {
+      "name": "slop-detect",
+      "type": "skill-md",
+      "description": "Score any landing page against the deterministic AI-design-slop fingerprint and generate a fix prompt. Use when the user asks to detect AI-generated design, audit a landing page for slop, or check if a site looks like Cursor/v0/Lovable/Bolt output.",
+      "url": "https://raw.githubusercontent.com/ravidsrk/slop-detect/main/skills/slop-detect/SKILL.md",
+      "digest": "sha256:d279105f9f042e693eff883b23a8efe5b4d8c7066ab1524e2b40d3b257a80980",
+      "license": "MIT",
+      "homepage": "https://slop-detect.com",
+      "repository": "https://github.com/ravidsrk/slop-detect"
+    }
+  ]
+}

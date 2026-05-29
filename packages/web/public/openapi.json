@@ -1,0 +1,254 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Slop Detector API",
+    "version": "0.5.1",
+    "summary": "Deterministic AI-design-slop scoring for landing pages, plus an AEO axis.",
+    "description": "Score any landing page against the AI-design fingerprint. The API runs the same deterministic, weighted 0-100 engine as the web app and CLI, on real headless Chromium (Cloudflare Browser Rendering). No API key is required for normal use; requests are rate-limited per IP and the browser-driving routes (/api/scan, /api/aeo) are protected by a Turnstile challenge for browser origins. Foreign browser origins must present an API key. CLI / server-to-server callers (no Origin header) are allowed but rate-limited harder.",
+    "license": { "name": "MIT", "url": "https://opensource.org/licenses/MIT" },
+    "contact": { "name": "Ravindra Kumar", "url": "https://github.com/ravidsrk/slop-detect/issues", "email": "ravidsrk@gmail.com" }
+  },
+  "servers": [
+    { "url": "https://slop-detect.com", "description": "Production" }
+  ],
+  "externalDocs": {
+    "description": "Source, CLI, and MCP server",
+    "url": "https://github.com/ravidsrk/slop-detect"
+  },
+  "tags": [
+    { "name": "scan", "description": "Run the slop engine against a URL." },
+    { "name": "aeo", "description": "Score whether AI engines can read & cite a page." },
+    { "name": "catalogue", "description": "Read the live pattern catalogue." },
+    { "name": "fix", "description": "Generate an LLM fix-prompt from a scan." }
+  ],
+  "paths": {
+    "/api/scan": {
+      "post": {
+        "operationId": "scanPage",
+        "tags": ["scan"],
+        "summary": "Score a URL against the AI-design slop fingerprint.",
+        "description": "Opens the URL in headless Chromium, inspects up to 4,000 visible DOM nodes against the deterministic pattern catalogue, and returns a weighted 0-100 score plus the patterns that fired. Opt into the copy axis with `axes: ['design','copy']`.",
+        "security": [{}, { "apiKey": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ScanRequest" },
+              "examples": {
+                "default": { "summary": "Design axis only", "value": { "url": "https://example.com" } },
+                "multiAxis": { "summary": "Design + copy axes", "value": { "url": "https://example.com", "axes": ["design", "copy"] } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Scan result.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ScanResult" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "502": { "$ref": "#/components/responses/UpstreamError" }
+        }
+      }
+    },
+    "/api/aeo": {
+      "post": {
+        "operationId": "checkAeo",
+        "tags": ["aeo"],
+        "summary": "Score whether AI engines can fetch, read & cite a page.",
+        "description": "Runs the AEO axis: a handful of plain edge fetches (HTML, GPTBot UA, robots.txt, markdown twin, llms.txt) scored against the AEO check catalogue. Higher is better — inverse polarity of the slop score. No browser needed.",
+        "security": [{}, { "apiKey": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AeoRequest" },
+              "examples": { "default": { "value": { "url": "https://example.com" } } }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "AEO conformance report.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AeoResult" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/api/patterns": {
+      "get": {
+        "operationId": "listPatterns",
+        "tags": ["catalogue"],
+        "summary": "The live pattern catalogue.",
+        "description": "Returns every design-slop pattern the engine checks, with id, label, category, weight, and the version it was added in. The count is derived from the engine — never hardcode it.",
+        "responses": {
+          "200": { "description": "Pattern catalogue.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PatternCatalogue" } } } }
+        }
+      }
+    },
+    "/api/fix-prompt": {
+      "post": {
+        "operationId": "buildFixPrompt",
+        "tags": ["fix"],
+        "summary": "Build an LLM fix-prompt from a scan.",
+        "description": "Two modes: pass `{ result }` to assemble a prompt from a scan you already have (cheap), or `{ url }` to re-run a scan first (gated as a scan). Returns a ready-to-paste prompt that tells a coding agent how to de-slop the page.",
+        "security": [{}, { "apiKey": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/FixPromptRequest" },
+              "examples": {
+                "fromResult": { "summary": "Assemble from an existing result", "value": { "result": { "score": 34, "tier": "Heavy", "patterns": [] } } },
+                "fromUrl": { "summary": "Re-scan then assemble", "value": { "url": "https://example.com" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Fix prompt.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FixPromptResult" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "Optional. Required only for browser requests from origins outside the allow-list. Server-to-server and CLI callers (no Origin header) do not need a key but are rate-limited."
+      }
+    },
+    "responses": {
+      "BadRequest": { "description": "Invalid JSON body or invalid/blocked URL (SSRF guard).", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "Forbidden": { "description": "Foreign browser origin without a valid API key.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "RateLimited": { "description": "Per-IP rate limit exceeded. The scan route fails closed under load.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "UpstreamError": { "description": "The target page could not be loaded/scored (timeout, anti-bot wall, dead page).", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+    },
+    "schemas": {
+      "ScanRequest": {
+        "type": "object",
+        "required": ["url"],
+        "properties": {
+          "url": { "type": "string", "format": "uri", "description": "Public http(s) URL to scan. Private/loopback/metadata hosts are rejected.", "example": "https://example.com" },
+          "preset": { "type": "string", "enum": ["full", "design", "layout", "type", "color"], "default": "full", "description": "Which pattern subset to score. `full` scores everything." },
+          "axes": { "type": "array", "items": { "type": "string", "enum": ["design", "copy"] }, "description": "Axes to score. Omit for design only; use ['design','copy'] or 'all' for both." },
+          "screenshot": { "type": "boolean", "default": false, "description": "Include a base64 screenshot in the response." },
+          "share": { "type": "boolean", "default": true, "description": "Persist a shareable permalink (/r/:id). Set false for CI dry-runs." }
+        }
+      },
+      "ScanResult": {
+        "type": "object",
+        "description": "Top-level fields are the DESIGN axis (backward-compatible). When the copy axis is requested, an `axes` object and combined summary are added.",
+        "properties": {
+          "url": { "type": "string", "format": "uri" },
+          "finalUrl": { "type": "string", "format": "uri", "description": "URL after redirects." },
+          "title": { "type": "string" },
+          "h1": { "type": "string" },
+          "h1Font": { "type": "string" },
+          "preset": { "type": "string" },
+          "score": { "type": "integer", "minimum": 0, "maximum": 100, "description": "Weighted design-slop score. Higher = more machine-made." },
+          "tier": { "type": "string", "enum": ["Clean", "Mild", "Heavy"], "description": "Clean 0-9, Mild 10-27, Heavy 28+." },
+          "grade": { "type": "string", "description": "Letter grade A-F." },
+          "patternsFlagged": { "type": "integer" },
+          "patternsTotal": { "type": "integer" },
+          "patterns": { "type": "array", "items": { "$ref": "#/components/schemas/Pattern" } },
+          "navMs": { "type": "integer", "description": "Page navigation time in ms." },
+          "id": { "type": "string", "description": "Present when shared. Permalink id." },
+          "resultUrl": { "type": "string", "format": "uri", "description": "Shareable permalink, present when shared." },
+          "axes": {
+            "type": "object",
+            "description": "Present only when the copy axis is requested.",
+            "properties": {
+              "design": { "$ref": "#/components/schemas/AxisSummary" },
+              "copy": { "$ref": "#/components/schemas/AxisSummary" }
+            }
+          }
+        }
+      },
+      "AxisSummary": {
+        "type": "object",
+        "properties": {
+          "axis": { "type": "string", "enum": ["design", "copy"] },
+          "score": { "type": "integer" },
+          "tier": { "type": "string" },
+          "grade": { "type": "string" },
+          "patternsFlagged": { "type": "integer" },
+          "patternsTotal": { "type": "integer" },
+          "patterns": { "type": "array", "items": { "$ref": "#/components/schemas/Pattern" } }
+        }
+      },
+      "Pattern": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "gradient_hero_text" },
+          "label": { "type": "string" },
+          "short": { "type": "string" },
+          "category": { "type": "string", "nullable": true, "enum": ["type", "color", "layout", "copy", null] },
+          "weight": { "type": "number" },
+          "since": { "type": "string", "description": "Version a pattern was added.", "example": "baseline" },
+          "hit": { "type": "boolean", "description": "Whether this pattern fired on the scanned page." }
+        }
+      },
+      "PatternCatalogue": {
+        "type": "object",
+        "properties": {
+          "version": { "type": "string", "example": "2026.08", "description": "DEFINITIONS_VERSION of the catalogue." },
+          "count": { "type": "integer", "description": "Number of patterns. Derived from the engine.", "example": 27 },
+          "patterns": { "type": "array", "items": { "$ref": "#/components/schemas/Pattern" } }
+        }
+      },
+      "AeoRequest": {
+        "type": "object",
+        "required": ["url"],
+        "properties": { "url": { "type": "string", "format": "uri", "example": "https://example.com" } }
+      },
+      "AeoResult": {
+        "type": "object",
+        "description": "AEO conformance report. Score polarity is INVERTED vs the slop score — higher is better.",
+        "properties": {
+          "url": { "type": "string", "format": "uri" },
+          "score": { "type": "integer", "minimum": 0, "maximum": 100, "description": "0-100. Higher = more AI-readable." },
+          "tier": { "type": "string", "enum": ["AI-Ready", "Partial", "Invisible"], "description": "AI-Ready >=80, Partial >=50, Invisible <50." },
+          "checks": {
+            "type": "array",
+            "description": "Per-check results (required + recommended).",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string", "example": "bot.notBlocked" },
+                "label": { "type": "string" },
+                "tier": { "type": "string", "enum": ["required", "recommended"] },
+                "pass": { "type": "boolean" },
+                "weight": { "type": "number" }
+              }
+            }
+          }
+        }
+      },
+      "FixPromptRequest": {
+        "type": "object",
+        "description": "Provide exactly one of `result` or `url`.",
+        "properties": {
+          "result": { "$ref": "#/components/schemas/ScanResult" },
+          "url": { "type": "string", "format": "uri" }
+        }
+      },
+      "FixPromptResult": {
+        "type": "object",
+        "properties": {
+          "prompt": { "type": "string", "description": "Ready-to-paste prompt instructing a coding agent how to de-slop the page." }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": { "error": { "type": "string", "description": "Human-readable error message." } }
+      }
+    }
+  }
+}

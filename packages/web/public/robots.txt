@@ -1,10 +1,13 @@
 # slop-detect.com — we want AI engines to read and cite us.
 # (We eat our own dog food: this site aims to pass its own AEO check.)
 
+# Content Signals (purpose-based crawl permissions): allow search + AI input,
+# disallow training-only use. https://contentsignals.org
 User-agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=no
 Allow: /
 
-# Explicitly welcome the major AI crawlers.
+# Explicitly welcome the major AI SEARCH / ANSWER crawlers (read + cite).
 User-agent: GPTBot
 Allow: /
 
@@ -20,10 +23,35 @@ Allow: /
 User-agent: Claude-Web
 Allow: /
 
+User-agent: Anthropic-AI
+Allow: /
+
 User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
 Allow: /
 
 User-agent: Google-Extended
 Allow: /
 
+User-agent: Applebot-Extended
+Allow: /
+
+# Restrict TRAINING-ONLY crawlers (no search/citation benefit to us).
+User-agent: CCBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: Amazonbot
+Disallow: /
+
+User-agent: Diffbot
+Disallow: /
+
 Sitemap: https://slop-detect.com/sitemap.xml
+
+# NLWeb Schema Feeds — structured-data feed map.
+Schemamap: https://slop-detect.com/schema-map.xml

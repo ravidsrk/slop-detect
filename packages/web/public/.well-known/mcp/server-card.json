@@ -1,0 +1,36 @@
+{
+  "$schema": "https://schemas.modelcontextprotocol.io/server-card/0.1.0/schema.json",
+  "name": "slop-detect-mcp",
+  "displayName": "Slop Detector",
+  "description": "MCP server that scores any landing page against the AI-design-slop fingerprint (deterministic 0-100, real Chromium) and an AEO axis, and builds fix prompts.",
+  "version": "0.5.1",
+  "vendor": {
+    "name": "Slop Detector",
+    "url": "https://slop-detect.com"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/ravidsrk/slop-detect",
+  "homepage": "https://slop-detect.com",
+  "transport": {
+    "type": "stdio",
+    "command": "npx",
+    "args": ["-y", "slop-detect-mcp"],
+    "notes": "Local stdio MCP server. Install via npm (slop-detect-mcp). It calls the public slop-detect.com API; no API key required."
+  },
+  "tools": [
+    {
+      "name": "scan_page",
+      "description": "Score a URL against the design-slop fingerprint (optionally the copy axis). Returns score, tier, grade, and the patterns that fired."
+    },
+    {
+      "name": "check_aeo",
+      "description": "Score whether AI engines (ChatGPT/Claude/Perplexity) can fetch, read and cite a page. Higher is better."
+    },
+    {
+      "name": "fix_prompt",
+      "description": "Build a ready-to-paste prompt instructing a coding agent how to de-slop a page from a scan result or URL."
+    }
+  ],
+  "documentation": "https://slop-detect.com/llms.txt",
+  "openapi": "https://slop-detect.com/openapi.json"
+}
