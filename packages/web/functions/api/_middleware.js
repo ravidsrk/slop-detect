@@ -263,6 +263,11 @@ export async function onRequest(context) {
       // Unparseable body — let the handler return its own 400. Gate as fix-prompt.
     }
   }
+  // /api/aeo fires several outbound fetches per call against a user-supplied URL
+  // (HTML, GPTBot UA, robots.txt, .md twin, llms.txt). It's cheaper than a
+  // headless scan but just as abuse-prone (SSRF-adjacent, fan-out). Gate it AS a
+  // scan: shared rate bucket, same per-IP limit, same Turnstile + fail-closed.
+  if (route === 'aeo') effectiveRoute = 'scan';
 
   // ── Optional API-key resolution ────────────────────────────────────────────
   // A presented-but-invalid key is a hard error (so clients notice typos /

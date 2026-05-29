@@ -87,6 +87,18 @@ export async function scanPage(url) {
   return res.json();
 }
 
+// POST {url} to /api/aeo and return the AEO conformance report JSON — "can AI
+// engines (ChatGPT/Claude/Perplexity) actually read & cite this page?".
+export async function checkAeo(url) {
+  const res = await fetchWithTimeout(`${apiBase()}/api/aeo`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ url })
+  });
+  if (!res.ok) throw await toApiError(res);
+  return res.json();
+}
+
 // POST {url} to /api/fix-prompt and return the generated prompt as text.
 // The endpoint returns text/plain by default; we never request JSON because the
 // raw prompt is exactly what we want to hand back to the agent.

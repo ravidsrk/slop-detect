@@ -1041,6 +1041,9 @@
           <div class="modal-head-sub" id="modalSub">Paste this into Claude, Cursor, v0, or whichever agent built this page.</div>
         </div>
         <div class="modal-actions">
+          <button id="openChatGPT" title="Open in ChatGPT with the prompt pre-filled">ChatGPT ↗</button>
+          <button id="openClaude" title="Open in Claude with the prompt pre-filled">Claude ↗</button>
+          <button id="openCursor" title="Open in Cursor with the prompt pre-filled">Cursor ↗</button>
           <button id="copyBtn" class="primary">Copy</button>
           <button id="closeBtn">Close</button>
         </div>
@@ -1383,6 +1386,48 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal
 
 function closeModal() { modalBg.classList.remove('show'); }
 
+// ── One-click "Fix with AI" handoff ─────────────────────────────────────────
+// Deep-link the generated prompt straight into ChatGPT / Claude / Cursor with
+// the text pre-filled. URL-encoded query params have practical length ceilings,
+// so for very long prompts we copy to the clipboard first and open a blank chat
+// (the user pastes) rather than producing a truncated, useless prompt.
+const AI_TARGETS = {
+  chatgpt: { base: 'https://chatgpt.com/?q=', label: 'ChatGPT' },
+  claude:  { base: 'https://claude.ai/new?q=', label: 'Claude' },
+  cursor:  { base: 'cursor://anysphere.cursor-deeplink/prompt?text=', label: 'Cursor' }
+};
+// Conservative ceiling — most browsers/servers choke well past ~8k chars in a URL.
+const HANDOFF_MAX = 6000;
+
+async function handoffTo(targetKey) {
+  const target = AI_TARGETS[targetKey];
+  const text = modalPre.textContent || '';
+  if (!text || text.startsWith('Generating') || text.startsWith('✗')) return;
+
+  const encoded = encodeURIComponent(text);
+  if (encoded.length <= HANDOFF_MAX || targetKey === 'cursor') {
+    // Cursor's deep-link handles long text fine; web chats get the length guard.
+    window.open(target.base + encoded, '_blank', 'noopener,noreferrer');
+    return;
+  }
+  // Too long to pre-fill safely — copy, then open a blank chat to paste into.
+  try { await navigator.clipboard.writeText(text); }
+  catch (_) {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove();
+  }
+  flash.textContent = '✓ Prompt copied — paste it into ' + target.label;
+  flash.classList.add('show');
+  setTimeout(() => flash.classList.remove('show'), 2400);
+  const blank = { chatgpt: 'https://chatgpt.com/', claude: 'https://claude.ai/new', cursor: '' }[targetKey];
+  if (blank) window.open(blank, '_blank', 'noopener,noreferrer');
+}
+
+$('openChatGPT').addEventListener('click', () => handoffTo('chatgpt'));
+$('openClaude').addEventListener('click', () => handoffTo('claude'));
+$('openCursor').addEventListener('click', () => handoffTo('cursor'));
+
 async function openFixPrompt() {
   if (!lastResult) return;
   const btn = document.getElementById('fixPromptBtn');
@@ -1409,6 +1454,7 @@ async function openFixPrompt() {
 
 copyBtn.addEventListener('click', async () => {
   const text = modalPre.textContent;
+  flash.textContent = '✓ Copied to clipboard';
   try {
     await navigator.clipboard.writeText(text);
     flash.classList.add('show');

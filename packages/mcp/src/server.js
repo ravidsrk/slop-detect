@@ -12,8 +12,8 @@ import {
   ListToolsRequestSchema
 } from '@modelcontextprotocol/sdk/types.js';
 
-import { scanPage, fixPrompt, ApiError } from './api.js';
-import { formatScan } from './format.js';
+import { scanPage, checkAeo, fixPrompt, ApiError } from './api.js';
+import { formatScan, formatAeo } from './format.js';
 
 // Read our own version from package.json so the MCP handshake never drifts from
 // the published version. Falls back to '0.0.0' if the file can't be read (e.g.
@@ -40,6 +40,23 @@ const TOOLS = [
       type: 'object',
       properties: {
         url: { type: 'string', description: 'The page URL to scan (e.g. https://example.com).' }
+      },
+      required: ['url']
+    }
+  },
+  {
+    name: 'check_aeo',
+    description:
+      'Check whether AI engines (ChatGPT, Claude, Perplexity, Google AI ' +
+      'Overviews) can actually read and cite a page. Returns an AEO ' +
+      'conformance score 0-100 (HIGHER is better), a tier (AI-Ready / Partial ' +
+      '/ Invisible), and which checks failed — AI-crawler blocking, noindex, ' +
+      'robots.txt disallows, missing markdown twin / llms.txt. Complements ' +
+      'scan_page: a page can look human-made yet still be invisible to AI search.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        url: { type: 'string', description: 'The page URL to check (e.g. https://example.com).' }
       },
       required: ['url']
     }
@@ -75,6 +92,10 @@ async function handleCall(name, args) {
   if (name === 'scan_page') {
     const result = await scanPage(url);
     return asToolResult(formatScan(result));
+  }
+  if (name === 'check_aeo') {
+    const report = await checkAeo(url);
+    return asToolResult(formatAeo(report));
   }
   if (name === 'fix_prompt') {
     const prompt = await fixPrompt(url);

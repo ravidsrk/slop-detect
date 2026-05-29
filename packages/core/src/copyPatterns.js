@@ -243,14 +243,28 @@ export const COPY_PATTERNS = [
       const zeroWidth = countMatches(text, /[\u200B\u200C\u200D\u2060\uFEFF]/g);
       const nbsp = countMatches(text, /\u00A0/g);
       const narrowNbsp = countMatches(text, /\u202F/g);
+      // Mathematical-alphanumeric "fake bold/italic" letters (𝗯𝗼𝗹𝗱, 𝘪𝘵𝘢𝘭𝘪𝘤, 𝟭𝟮𝟯).
+      // The Unicode Mathematical Alphanumeric Symbols block (U+1D400–U+1D7FF) is
+      // abused to fake bold/italic in plain text — a strong LLM-social / spam tell
+      // that real landing copy never uses (it breaks screen readers and search).
+      // Counted by code point, so we iterate rather than regex-match surrogate pairs.
+      let mathAlnum = 0;
+      for (const ch of text) {
+        const cp = ch.codePointAt(0);
+        if (cp >= 0x1d400 && cp <= 0x1d7ff) mathAlnum++;
+      }
       // Curly quotes are normal in good typography, so they DON'T count alone —
-      // only the invisible artifacts and narrow no-break spaces are LLM tells.
-      const total = zeroWidth + narrowNbsp + (nbsp > 6 ? 1 : 0);
+      // only the invisible artifacts, narrow no-break spaces, and fake-bold
+      // mathematical letters are LLM tells.
+      const total = zeroWidth + narrowNbsp + mathAlnum + (nbsp > 6 ? 1 : 0);
       return {
         zeroWidth,
         narrowNbsp,
         nbsp,
-        triggered: zeroWidth >= 1 || narrowNbsp >= 1
+        mathAlnum,
+        total,
+        // A handful of math-alnum chars (>=4) means a fake-bold word, not a stray glyph.
+        triggered: zeroWidth >= 1 || narrowNbsp >= 1 || mathAlnum >= 4
       };
     }
   },

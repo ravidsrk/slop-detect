@@ -8,11 +8,11 @@
 // pretty terminal report or a machine-readable JSON blob.
 
 import { scanUrl } from '../src/detector.js';
-import { isPreset, PRESETS, PATTERNS, DEFINITIONS_VERSION } from 'slop-detect-core';
+import { isPreset, PRESETS, PATTERNS, DEFINITIONS_VERSION, runAeoChecks } from 'slop-detect-core';
 
 const args = process.argv.slice(2);
 const urls = [];
-const flags = { json: false, screenshot: false, verbose: false, preset: 'full', axes: ['design'], failOn: null };
+const flags = { json: false, screenshot: false, verbose: false, preset: 'full', axes: ['design'], failOn: null, aeo: false };
 
 // Tier severity ordering for --fail-on. A scan exits non-zero when its tier is
 // at or above the requested threshold. 'blocked'/'error' always count as failures
@@ -38,6 +38,7 @@ for (let i = 0; i < args.length; i++) {
   else if (a === '--screenshot') flags.screenshot = true;
   else if (a === '--verbose' || a === '-v') flags.verbose = true;
   else if (a === '--copy') flags.axes = ['design', 'copy'];
+  else if (a === '--aeo') flags.aeo = true;
   else if (a === '--axes' || a.startsWith('--axes=')) {
     const val = a.startsWith('--axes=') ? a.slice('--axes='.length) : args[++i];
     const parsed = parseAxes(val);
@@ -117,6 +118,8 @@ Options:
   --preset, -p <p>  Scoring preset: full (default), strict, marketing, minimal
   --axes <list>     Axes to score: design (default), copy. Comma-separated or "all"
   --copy            Shorthand for --axes design,copy
+  --aeo             Add the AEO axis: can AI engines (ChatGPT/Claude/Perplexity)
+                    actually read & cite this page? (network checks, no browser)
   --fail-on <tier>  Exit non-zero (1) if any page scores at/above tier: mild | heavy.
                     A blocked or errored scan also exits 1. Use this to gate CI.
   --help, -h        Show this help
@@ -245,14 +248,61 @@ function renderPretty(result) {
   }
 }
 
+function aeoTierStyle(tier) {
+  if (tier === 'AI-Ready') return C.green;
+  if (tier === 'Partial') return C.yellow;
+  return C.red;
+}
+function aeoEmoji(tier) {
+  if (tier === 'AI-Ready') return '🟢';
+  if (tier === 'Partial') return '🟡';
+  return '🔴';
+}
+
+function renderAeo(aeo) {
+  const ts = aeoTierStyle(aeo.tier);
+  console.log(`  ${aeoEmoji(aeo.tier)} ${C.bold}AEO    ${C.reset} ${ts}${aeo.tier.padEnd(10)}${C.reset}` +
+    `  score ${C.bold}${String(aeo.score).padStart(3)}${C.reset}/${aeo.maxScore}` +
+    `  ${C.grey}(${aeo.passed.length}/${aeo.checks.length} checks · ${aeo.durationMs}ms)${C.reset}`);
+  console.log(`  ${C.grey}Can AI engines read & cite this page?${C.reset}`);
+  console.log();
+  const failed = aeo.failed;
+  if (failed.length) {
+    console.log(`${C.bold}AEO issues:${C.reset}`);
+    for (const c of failed) {
+      const sev = c.severity === 'required' ? C.red : C.yellow;
+      console.log(`  ${sev}✗${C.reset} ${c.label}  ${C.grey}(${c.severity}, -${c.weight})${C.reset}`);
+      if (flags.verbose) console.log(`      ${C.grey}${c.message}${C.reset}`);
+    }
+    console.log();
+  }
+  const passed = aeo.passed;
+  if (passed.length && !flags.json) {
+    console.log(`${C.dim}AEO passed:${C.reset}`);
+    console.log(`  ${C.dim}${passed.map(c => c.id).join(', ')}${C.reset}`);
+    console.log();
+  }
+}
+
 // ── Main ────────────────────────────────────────────────────────────────────
 (async () => {
   const results = [];
   for (const url of urls) {
     try {
       const r = await scanUrl(url, { screenshot: flags.screenshot, preset: flags.preset, axes: flags.axes });
+      if (flags.aeo) {
+        try {
+          r.aeo = await runAeoChecks(url, { timeoutMs: 12000 });
+        } catch (e) {
+          r.aeo = { error: e.message };
+        }
+      }
       results.push(r);
-      if (!flags.json) renderPretty(r);
+      if (!flags.json) {
+        renderPretty(r);
+        if (r.aeo && !r.aeo.error) renderAeo(r.aeo);
+        else if (r.aeo && r.aeo.error) console.log(`  ${C.yellow}⚠ AEO check failed: ${r.aeo.error}${C.reset}\n`);
+      }
     } catch (err) {
       const errResult = { url, error: err.message };
       results.push(errResult);

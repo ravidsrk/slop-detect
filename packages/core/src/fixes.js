@@ -370,16 +370,16 @@ export const FIXES = {
 
   unicode_artifacts: {
     problem:
-      "Zero-width spaces, narrow no-break spaces, and other invisible Unicode artifacts are leaked when copy is pasted straight out of an LLM chat. They're invisible to readers but a dead giveaway in the raw text — and they can break search, anchors, and copy-paste.",
+      "Zero-width spaces, narrow no-break spaces, and mathematical 'fake-bold/italic' letters (𝗯𝗼𝗹𝗱, 𝘪𝘵𝘢𝘭𝘪𝘤 — the U+1D400 block abused as styling) are leaked when copy is pasted straight out of an LLM chat or a social-media formatter. They're invisible or look normal to readers but are a dead giveaway in the raw text — and they break search, screen readers, anchors, and copy-paste.",
     fix:
-      "Run the text through a plain-text normalizer: strip zero-width characters (U+200B-200D, U+FEFF), replace narrow/no-break spaces with regular spaces. Most editors have a 'paste as plain text' option — use it, then re-apply formatting deliberately.",
+      "Run the text through a plain-text normalizer: strip zero-width characters (U+200B-200D, U+FEFF), replace narrow/no-break spaces with regular spaces, and fold mathematical-alphanumeric letters back to plain ASCII (use real bold/italic via CSS, never Unicode trickery). Most editors have a 'paste as plain text' option — use it, then re-apply formatting deliberately.",
     alternatives: [
       "Paste as plain text, then re-format in your editor",
-      "Run a find-and-replace for zero-width and narrow-no-break chars",
-      "Use a 'clean invisible characters' utility before publishing",
-      "Type the copy fresh rather than pasting from chat"
+      "Run a find-and-replace for zero-width, narrow-no-break, and U+1D400-block chars",
+      "Use real <strong>/<em> or CSS font-weight instead of fake-bold Unicode letters",
+      "Type the copy fresh rather than pasting from chat or a 'fancy text' generator"
     ],
-    rule: "No invisible Unicode (zero-width spaces, narrow no-break spaces) in published copy."
+    rule: "No invisible Unicode (zero-width / narrow no-break spaces) and no mathematical fake-bold letters in published copy."
   },
 
   emoji_bullet_headers: {
@@ -657,7 +657,15 @@ const EVIDENCE_FORMATTERS = {
     return parts.join(' — ') + '.';
   },
   flat_type_hierarchy: (e) =>
-    e.ratio ? `${e.distinct} distinct font sizes spanning only ${e.min}px→${e.max}px (${e.ratio}× ratio) — too flat for a clear hierarchy.` : null
+    e.ratio ? `${e.distinct} distinct font sizes spanning only ${e.min}px→${e.max}px (${e.ratio}× ratio) — too flat for a clear hierarchy.` : null,
+  unicode_artifacts: (e) => {
+    const parts = [];
+    if (e.zeroWidth) parts.push(`${e.zeroWidth} invisible zero-width character(s)`);
+    if (e.narrowNbsp) parts.push(`${e.narrowNbsp} narrow no-break space(s)`);
+    if (e.mathAlnum) parts.push(`${e.mathAlnum} mathematical "fake-bold/italic" letter(s) (𝗯𝗼𝗹𝗱-style, U+1D400 block)`);
+    if (e.nbsp > 6) parts.push(`${e.nbsp} non-breaking spaces`);
+    return parts.length ? `Found ${parts.join(', ')} in the page text — invisible to readers, but a dead giveaway of copy pasted straight from an LLM.` : null;
+  }
 };
 
 function formatEvidence(pattern) {

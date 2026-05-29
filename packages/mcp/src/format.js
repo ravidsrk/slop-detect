@@ -44,3 +44,44 @@ export function formatScan(result) {
 
   return lines.join('\n');
 }
+
+// Renders a /api/aeo report. Score is 0-100 where HIGHER is better (the inverse
+// of the slop score), so we spell that out too. Tier: AI-Ready / Partial /
+// Invisible.
+export function formatAeo(report) {
+  const {
+    url,
+    score,
+    maxScore,
+    tier,
+    requiredFailed,
+    recommendedFailed,
+    failed = [],
+    passed = []
+  } = report;
+
+  const failLines = failed.length
+    ? failed
+        .map((c) => `  • ${c.label} (${c.severity}, -${c.weight}) — ${c.message}`)
+        .join('\n')
+    : '  • None — passes every AEO check.';
+
+  const lines = [
+    `AEO: can AI engines read & cite this page?`,
+    `Score: ${score}/${maxScore} (HIGHER is better — ${maxScore} = fully AI-ready)`,
+    `Tier: ${tier}`,
+    url ? `Scanned: ${url}` : null,
+    '',
+    `Checks passed: ${passed.length}/${passed.length + failed.length}` +
+      ` (required failed: ${requiredFailed}, recommended failed: ${recommendedFailed})`,
+    'Issues:',
+    failLines,
+    '',
+    'Raw JSON:',
+    '```json',
+    JSON.stringify(report, null, 2),
+    '```'
+  ].filter((l) => l !== null);
+
+  return lines.join('\n');
+}

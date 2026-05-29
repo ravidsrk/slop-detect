@@ -24,6 +24,14 @@ export { FIXES, buildFixPrompt } from './fixes.js';
 export { gradeForScore, verdictFor, GRADE_BANDS } from './verdict.js';
 export { compileRule, compileRules, validateRule } from './rules.js';
 export { PRESETS, applyPreset, isPreset } from './presets.js';
+export {
+  AI_BOTS,
+  AEO_CHECKS,
+  detectAIBot,
+  aiBotsBlockedByRobots,
+  toMarkdownUrl,
+  runAeoChecks
+} from './aeo.js';
 
 import { gradeForScore, verdictFor } from './verdict.js';
 import { COPY_PATTERNS } from './copyPatterns.js';

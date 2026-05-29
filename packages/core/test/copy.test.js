@@ -64,6 +64,25 @@ test('em-dash overload needs density, not a single dash', () => {
   assert.equal(emPattern.triggered, false, 'two em-dashes in long text should not trigger');
 });
 
+test('unicode_artifacts catches mathematical fake-bold letters', () => {
+  // 𝗹𝗲𝘃𝗲𝗿𝗮𝗴𝗲 / 𝗯𝗿𝗮𝗻𝗱 — the U+1D400 block abused as styling. Padded past the
+  // 40-word "thin" floor so the copy axis actually judges it.
+  const fakeBold = 'We help you \uD835\uDDF9\uD835\uDDF2\uD835\uDDCF\uD835\uDDF2\uD835\uDDFF\uD835\uDDEE\uD835\uDDF4\uD835\uDDF2 your ' +
+    '\uD835\uDDEF\uD835\uDDFF\uD835\uDDEE\uD835\uDDFB\uD835\uDDF1 with a fast, simple platform that real teams actually use every day. ' +
+    'Connect your calendar, set your hours, and we text patients when a slot opens up. ' +
+    'Most clinics fill three to five extra slots a week without any extra effort at all from staff.';
+  const r = scoreCopy(ctx(fakeBold));
+  const u = r.patterns.find(p => p.id === 'unicode_artifacts');
+  assert.equal(u.triggered, true, 'fake-bold math letters should trigger');
+  assert.ok(u.evidence.mathAlnum >= 4, `expected math-alnum count, got ${u.evidence.mathAlnum}`);
+});
+
+test('unicode_artifacts does not fire on ordinary clean copy', () => {
+  const u = scoreCopy(CLEAN).patterns.find(p => p.id === 'unicode_artifacts');
+  assert.equal(u.triggered, false);
+  assert.equal(u.evidence.mathAlnum, 0);
+});
+
 test('combineAxes: max score + multi-axis penalty', () => {
   const both = combineAxes({
     design: { score: 30, tier: 'Heavy' },

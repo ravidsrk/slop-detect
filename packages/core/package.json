@@ -17,7 +17,8 @@
     "./fonts": "./src/fonts.js",
     "./color": "./src/color.js",
     "./visibility": "./src/visibility.js",
-    "./fixes": "./src/fixes.js"
+    "./fixes": "./src/fixes.js",
+    "./aeo": "./src/aeo.js"
   },
   "files": [
     "src",
