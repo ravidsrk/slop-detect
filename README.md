@@ -46,7 +46,7 @@ By April 2026, AI-generated landing pages had collapsed onto a measurable visual
 - 🟢 **`slop-detect.com`** — drop-in web UI, scan any URL in 8 seconds
 - 🟢 **`slop-detect-core`** — pure detection engine, embed it in your own pipeline
 
-All three share the **same 19-rule scoring engine** so a Heavy from the CLI is a Heavy from the web is a Heavy from the API.
+All three share the **same 27-rule scoring engine** so a Heavy from the CLI is a Heavy from the web is a Heavy from the API.
 
 ## Try it now
 
@@ -61,6 +61,9 @@ curl -s -X POST -H 'Content-Type: application/json' \
 
 # CLI — for CI, batch scans, or air-gapped work
 npx slop-detect https://your-site.com
+
+# CLI without a local browser — scan via the API (zero Playwright install)
+npx slop-detect https://your-site.com --remote
 
 # Agent Skill — drop into Claude Code / Cursor / Copilot / Codex / Junie
 git clone --depth 1 https://github.com/ravidsrk/slop-detect /tmp/sd \
@@ -118,6 +121,25 @@ when slop creeps above your threshold.
 grade (fail if the grade is worse). Leave it empty for report-only mode.
 
 The repo also ships an [Agent Skill](skills/slop-detect/SKILL.md) following the [agentskills.io](https://agentskills.io) open spec — any compatible agent (Claude Code, Cursor, GitHub Copilot, Gemini CLI, Codex, Roo Code, Junie, and 20+ others) will autonomously invoke the scanner when you ask it to audit a landing page.
+
+## Monitor a domain + the directory
+
+Detection is free and stateless. The optional **continuity** layer remembers a
+domain and emails you when it regresses to slop between redesigns:
+
+```bash
+# Start monitoring (double opt-in: you confirm via an emailed link)
+curl -s -X POST -H 'Content-Type: application/json' \
+  https://slop-detect.com/api/watch \
+  -d '{"url":"https://your-site.com","email":"you@example.com","list":true}'
+```
+
+`list: true` also opts the domain into the public, crawlable
+[**directory**](https://slop-detect.com/directory) of scored sites — an
+owner-gated catalogue with a real backlink to each listed site. We only store
+your email to send the alerts you asked for, only after you confirm, and never
+sell it — see the [privacy policy](https://slop-detect.com/privacy.md). Engine
+stays MIT and free forever; only continuity (history + alerts) is the paid layer.
 
 ## The 27 patterns
 
@@ -227,7 +249,7 @@ slop-detect/
 │   └── web/     slop-detect-web    ← Cloudflare Pages app powering slop-detect.com
 ```
 
-A monorepo with npm workspaces. The `core` package is the single source of truth for the 19 rules — `cli` and `web` are thin runtime adapters around it.
+A monorepo with npm workspaces. The `core` package is the single source of truth for the 27 rules — `cli` and `web` are thin runtime adapters around it.
 
 ## Quickstart — contributing
 
