@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.6.0 — production-readiness pass
+
+Monitoring + directory features plus a deep security/ops hardening pass toward a
+public launch. See `PRODUCTION.md` for the full launch checklist.
+
+### Added
+- **Monitored domains** (`/api/watch`) — opt-in continuity layer: remember a
+  domain and flag regressions; with consent recording + a privacy policy.
+- **Public directory** (`/directory`, `/api/sites`) — opt-in, owner-gated
+  catalogue of scanned sites with dofollow backlinks.
+- **CLI `--remote` mode** — scan via the API with zero Playwright/Chromium
+  install (fixes the `npx slop-detect` first-run cliff).
+- **Account-level cost guard** — `SCAN_DAILY_CAP` + `SCAN_DISABLED` kill switch
+  on the browser path; **observability** shim (`_report.js`, `ERROR_WEBHOOK`).
+- **Privacy policy** (`/privacy.md`) + **security headers** (CSP, HSTS, nosniff…).
+- **Deploy workflow** + a CI `test` job that actually runs the unit suite.
+
+### Fixed
+- **CI never ran the unit tests** (lint + smoke only); now gated on `npm test`.
+- **CLI crashed on `--help`** when Playwright was absent — Playwright is now
+  lazy-loaded; the browser-free unit suite is 92/92 green.
+- **SSRF redirect bypass** — `scan` + `aeo` re-validate every redirect hop /
+  the final URL instead of trusting only the first.
+- **Version drift** — all packages aligned to 0.6.0 (+ lockfile in sync).
+- Deduped the design tier thresholds to a single source of truth.
+
+### Notes
+- Regression-alert **emails are not active yet** (no sender wired): the trial
+  captures consent only. Set up a provider + double-opt-in before enabling.
+
 ## Web polish — impeccable-skill audit fixes + forensic-instrument typography (deployed)
 
 Audited the landing page against the `impeccable` brand-design skill (shared

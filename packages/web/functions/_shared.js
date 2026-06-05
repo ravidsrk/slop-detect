@@ -100,6 +100,12 @@ export function validateScanUrl(raw) {
   return { url };
 }
 
+// Boolean form of validateScanUrl for per-hop redirect checks (SSRF). True only
+// for a public, scannable http(s) URL.
+export function isAllowedUrl(raw) {
+  return !validateScanUrl(raw).error;
+}
+
 const RESULT_TTL = 60 * 60 * 24 * 90;  // 90 days
 const DOMAIN_TTL = 60 * 60 * 24 * 90;
 const BADGE_TTL  = 60 * 60 * 3;         // 3 hours

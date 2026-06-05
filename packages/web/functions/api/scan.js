@@ -20,7 +20,8 @@ import {
   scoreCopy,
   combineAxes
 } from 'slop-detect-core';
-import { newId, slimResult, saveResult, validateScanUrl, recordScanForWatch } from '../_shared.js';
+import { newId, slimResult, saveResult, validateScanUrl, isAllowedUrl, recordScanForWatch } from '../_shared.js';
+import { report } from '../_report.js';
 
 // Normalize requested axes. Default: design only (backward-compatible).
 const VALID_AXES = ['design', 'copy'];
@@ -75,6 +76,19 @@ export async function onRequestPost({ request, env }) {
     const navMs = Date.now() - navStart;
 
     const data = await page.evaluate(pageScript);
+
+    // SSRF: the navigation may have followed redirects to a different host. The
+    // pre-flight guard only saw the originally-requested URL — so re-validate the
+    // FINAL url before we hand back its title/h1/text/screenshot. Refuse to
+    // return content scraped from a private/internal host reached via redirect.
+    if (data.url && !isAllowedUrl(data.url)) {
+      return json({
+        error: 'Scan refused: the URL redirected to a disallowed (private/internal) host.',
+        code: 'blocked_redirect',
+        url,
+        finalUrl: data.url
+      }, 400);
+    }
 
     // Anti-bot challenge / dead-page detection — refuse to score these so we
     // don't silently return a fake "Clean 0".
@@ -167,11 +181,17 @@ export async function onRequestPost({ request, env }) {
         // recompute regression. Best-effort: monitoring must never break a scan.
         const monitoring = await recordScanForWatch(env.RESULTS, slim);
         if (monitoring) result.monitoring = monitoring;
-      } catch (_) { /* sharing is best-effort; never fail a scan over it */ }
+      } catch (e) {
+        // Sharing/monitoring is best-effort; never fail a scan over it — but do
+        // surface the KV error so a silent storage outage is visible.
+        report(env, 'warn', 'persist_failed', { message: e && e.message ? e.message : String(e) });
+      }
     }
 
     return json(result);
   } catch (err) {
+    // Surface scan failures instead of swallowing them (no PII: url only).
+    report(env, 'error', 'scan_failed', { url, message: err && err.message ? err.message : String(err) });
     return json({ error: err.message || String(err) }, 502);
   } finally {
     try { await browser?.close(); } catch (_) {}

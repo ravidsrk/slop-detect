@@ -130,7 +130,14 @@ export async function onRequestPost({ request, env }) {
     lastCheckedAt: existing?.lastCheckedAt ?? latest?.createdAt ?? null,
     listed,
     regressed: existing?.regressed ?? false,
-    notified:  existing?.notified  ?? false
+    notified:  existing?.notified  ?? false,
+    // Privacy/consent: record WHEN the email was submitted and under which
+    // policy version (lawful basis = consent). `verified` stays false until a
+    // double-opt-in confirmation is added — no alert email may be sent to an
+    // unverified address. Deletion = unsubscribe (email-matched) or /privacy.
+    consentAt: existing?.consentAt || now,
+    policyVersion: '2026.06',
+    verified: existing?.verified ?? false
   };
 
   // The WATCH is the source of truth; the directory row is derived state.
@@ -160,10 +167,15 @@ export async function onRequestPost({ request, env }) {
     monitoring: true,
     alreadyMonitored: !!existing,
     directoryUrl: listed ? `${new URL(request.url).origin}/directory` : null,
-    // Be explicit about what the trial does and doesn't do yet, so the signup
-    // UX doesn't over-promise during validation.
-    note: watch.baselineScore == null
-      ? 'Baseline will be set the next time this domain is scanned.'
-      : 'Monitoring active — we recorded the current score as your baseline.'
+    // Honesty: regression alert *emails* are not active during the trial (no
+    // sender wired up yet). Be explicit so the signup never over-promises, and
+    // always surface the privacy policy + how to delete the data.
+    alertsActive: false,
+    privacyPolicy: `${new URL(request.url).origin}/privacy.md`,
+    note: (watch.baselineScore == null
+      ? 'Baseline will be set the next time this domain is scanned. '
+      : 'Monitoring active — we recorded the current score as your baseline. ') +
+      'We store your email only to send regression alerts (not yet active during the trial). ' +
+      'Unsubscribe anytime by POSTing { unsubscribe: true } with the same email.'
   }, existing ? 200 : 201);
 }

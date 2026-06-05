@@ -103,6 +103,19 @@ test('GET /api/sites sorts cleanest-first by default and sloppiest-first on dema
   assert.equal(j.sort, 'slop');
 });
 
+test('GET /api/sites: pending (unscored) sites sink to the end in BOTH sorts', async () => {
+  const kv = makeKv();
+  await setListing(kv, slim({ domain: 'scored.com', score: 50, grade: 'F', tier: 'Heavy' }));
+  await setListing(kv, { domain: 'pending.com', score: null, grade: null, tier: null, id: null, title: null });
+  const env = { RESULTS: kv };
+
+  for (const sort of ['clean', 'slop']) {
+    const res = await sitesGet({ request: { url: `https://slop-detect.com/api/sites?sort=${sort}` }, env });
+    const j = await res.json();
+    assert.equal(j.sites[j.sites.length - 1].domain, 'pending.com', `pending last when sort=${sort}`);
+  }
+});
+
 test('GET /api/sites returns 503 without storage', async () => {
   const res = await sitesGet({ request: { url: 'https://slop-detect.com/api/sites' }, env: {} });
   assert.equal(res.status, 503);
