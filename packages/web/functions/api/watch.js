@@ -22,7 +22,9 @@ import {
   deleteWatch,
   getHistory,
   getLatestForDomain,
-  publicWatch
+  publicWatch,
+  setListing,
+  deleteListing
 } from '../_shared.js';
 
 function json(data, status = 200) {
@@ -63,7 +65,7 @@ export async function onRequestPost({ request, env }) {
 
   // ── Unsubscribe ────────────────────────────────────────────────────────────
   // Require the email to match the subscriber so a third party can't stop
-  // someone else's monitoring.
+  // someone else's monitoring. Removing the watch also delists the domain.
   if (body.unsubscribe) {
     const existing = await getWatch(env.RESULTS, domain);
     if (!existing) return json({ domain, monitoring: false, unsubscribed: false });
@@ -71,6 +73,7 @@ export async function onRequestPost({ request, env }) {
       return json({ error: 'email does not match the subscriber for this domain' }, 403);
     }
     await deleteWatch(env.RESULTS, domain);
+    if (existing.listed) await deleteListing(env.RESULTS, domain);
     return json({ domain, monitoring: false, unsubscribed: true });
   }
 
@@ -83,9 +86,19 @@ export async function onRequestPost({ request, env }) {
   // point. If nothing's been scanned yet, the baseline is set on the next scan
   // (see recordScanForWatch). Preserve an established baseline on re-subscribe.
   const latest = await getLatestForDomain(env.RESULTS, domain).catch(() => null);
+
+  // Opt-in to the public directory: `list:true` lists the domain (dofollow
+  // backlink from /directory); `list:false` delists it; omitting it preserves
+  // the current state. This is the ONLY way a domain enters the directory —
+  // an email-attached, deliberate act by whoever is claiming the domain.
+  const listed = body.list === true ? true
+    : body.list === false ? false
+    : (existing?.listed ?? false);
+
   const watch = {
     domain,
     email,
+    listed,
     plan: existing?.plan || 'trial',
     createdAt: existing?.createdAt || now,
     updatedAt: now,
@@ -104,11 +117,25 @@ export async function onRequestPost({ request, env }) {
   };
   await putWatch(env.RESULTS, watch);
 
+  // Reflect the listing choice in the directory. List from the best score we
+  // have (the latest scan); a never-scanned domain lists as "pending" and is
+  // filled in on its next scan via recordScanForWatch.
+  if (listed) {
+    const seed = latest || {
+      domain, score: watch.lastScore, grade: watch.lastGrade,
+      tier: watch.lastTier, id: watch.lastId, title: null
+    };
+    await setListing(env.RESULTS, seed).catch(() => {});
+  } else if (existing?.listed) {
+    await deleteListing(env.RESULTS, domain).catch(() => {});
+  }
+
   const history = await getHistory(env.RESULTS, domain);
   return json({
     ...publicWatch(watch, history),
     monitoring: true,
     alreadyMonitored: !!existing,
+    directoryUrl: listed ? `${new URL(request.url).origin}/directory` : null,
     // Be explicit about what the trial does and doesn't do yet, so the signup
     // UX doesn't over-promise during validation.
     note: watch.baselineScore == null
