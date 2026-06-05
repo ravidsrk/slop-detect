@@ -74,8 +74,9 @@ export async function onRequestPost({ request, env }) {
     }
     // Delist BEFORE removing the watch: if the listing delete throws we keep the
     // watch, so the state stays consistent ("still monitored + listed") and
-    // retryable rather than orphaning a public row with no owner.
-    if (existing.listed) await deleteListing(env.RESULTS, domain);
+    // retryable rather than orphaning a public row with no owner. Always attempt
+    // cleanup even if the watch shows listed:false, to recover from failed deletes.
+    await deleteListing(env.RESULTS, domain);
     await deleteWatch(env.RESULTS, domain);
     return json({ domain, monitoring: false, unsubscribed: true });
   }
@@ -148,7 +149,7 @@ export async function onRequestPost({ request, env }) {
         tier: watch.lastTier, id: watch.lastId, title: null
       };
       await setListing(env.RESULTS, seed);
-    } else if (existing?.listed) {
+    } else if (!listed) {
       await deleteListing(env.RESULTS, domain);
     }
   } catch (_) { /* derived row — reconciled on the domain's next scan */ }
