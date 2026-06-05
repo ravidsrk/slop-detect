@@ -1,5 +1,24 @@
 # Changelog
 
+## definitions@2026.09 — calibration: fewer premium-site false positives
+
+Driven by real evidence from the `/leaderboard` corpus scan (linear.app scored
+36/Heavy, stripe.com 23/Mild — clear over-flagging of carefully-crafted sites).
+
+- **`hero_eyebrow_pill`**: dropped the over-broad "weak" catch-all that fired on
+  ANY rounded element above the hero — it misfired on pill-shaped CTA/nav buttons
+  ("Sign up", "Log in"). Now requires the actual "Now in beta / Introducing …"
+  keyword/emoji content tell.
+- **`glassmorphism`**: now requires ≥2 frosted layers (was ≥1). A single frosted
+  panel is common in otherwise-clean premium design; the tell is glass everywhere.
+- Bumped `DEFINITIONS_VERSION` → `2026.09` (scores shift, so they stay comparable
+  only within a version). Golden fixtures pin that real slop still trips both
+  patterns while a clean page with a CTA pill no longer does.
+
+NOTE: the font (Inter) and VibeCode-purple weights are unchanged — those are
+deliberate product opinions, not bugs, and re-weighting them is a separate
+labeled-corpus calibration decision (see CALIBRATION.md).
+
 ## v0.6.0 — production-readiness pass
 
 Monitoring + directory features plus a deep security/ops hardening pass toward a

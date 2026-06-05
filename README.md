@@ -146,7 +146,7 @@ stays MIT and free forever; only continuity (history + alerts) is the paid layer
 
 ## The 27 patterns
 
-`definitions@2026.08` — versioned ruleset. Scores from a given definition
+`definitions@2026.09` — versioned ruleset. Scores from a given definition
 version are comparable; the version ships in every result (`definitionsVersion`).
 
 | # | Pattern | Weight | What it detects |
