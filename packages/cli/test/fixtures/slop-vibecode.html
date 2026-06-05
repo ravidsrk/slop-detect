@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FlowSync — Ship faster with AI</title>
+  <style>
+    /* Deliberately maximal AI-design-slop: Inter everywhere, indigo/violet
+       gradients, gradient-clip H1, eyebrow pill, glass cards, colored glows,
+       identical icon cards. Should score well out of Clean and trigger the
+       canonical font / purple / gradient-text tells. */
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+           background:#0b0b12; color:#a1a1aa; text-align:center; }
+    .hero { padding:96px 20px 64px; }
+    .pill { display:inline-block; padding:6px 16px; border-radius:9999px;
+            background:rgba(124,58,237,0.15); color:#c4b5fd; font-size:13px;
+            letter-spacing:0.04em; text-transform:uppercase; margin-bottom:24px; }
+    h1 { font-size:76px; font-weight:800; letter-spacing:-0.04em; line-height:1.02;
+         background:linear-gradient(90deg,#818cf8,#c084fc 50%,#f0abfc);
+         -webkit-background-clip:text; background-clip:text;
+         -webkit-text-fill-color:transparent; color:transparent; margin:0 auto 20px; max-width:14ch; }
+    .sub { font-size:20px; color:#9ca3af; max-width:60ch; margin:0 auto 32px; }
+    .cta { display:inline-block; padding:14px 28px; border-radius:12px;
+           background:#7c3aed; color:#fff; text-decoration:none; font-weight:600;
+           box-shadow:0 20px 60px -10px rgba(124,58,237,0.7); }
+    .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px;
+            max-width:1040px; margin:64px auto; padding:0 20px; }
+    .card { padding:28px; border-radius:16px;
+            background:linear-gradient(180deg,rgba(129,140,248,0.08),rgba(192,132,252,0.05));
+            backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+            border:1px solid rgba(255,255,255,0.06);
+            box-shadow:0 30px 80px -20px rgba(129,140,248,0.45); }
+    .card .ico { width:44px; height:44px; border-radius:12px; margin:0 auto 16px;
+                 background:linear-gradient(135deg,#818cf8,#c084fc); }
+    .card h3 { color:#e5e7eb; font-size:18px; font-weight:600; margin-bottom:8px; }
+    .card p { color:#9ca3af; font-size:14px; }
+    .aurora { position:fixed; inset:0; z-index:-1;
+              background:radial-gradient(60% 50% at 50% 0%, rgba(124,58,237,0.35), transparent),
+                         radial-gradient(40% 40% at 80% 20%, rgba(236,72,153,0.25), transparent); }
+  </style>
+</head>
+<body>
+  <div class="aurora"></div>
+  <section class="hero">
+    <span class="pill">Now in beta</span>
+    <h1>Ship faster with AI</h1>
+    <p class="sub">FlowSync is the all-in-one platform to build, ship, and scale.
+      Leverage AI to streamline your workflow and unlock your team's potential.</p>
+    <a class="cta" href="/signup">Get started free</a>
+  </section>
+
+  <section class="grid">
+    <div class="card"><div class="ico"></div><h3>Lightning fast</h3><p>Blazing-fast performance out of the box, so you can focus on what matters.</p></div>
+    <div class="card"><div class="ico"></div><h3>Secure by default</h3><p>Enterprise-grade security and compliance, baked in from day one.</p></div>
+    <div class="card"><div class="ico"></div><h3>Built to scale</h3><p>From your first user to your millionth, FlowSync grows seamlessly with you.</p></div>
+  </section>
+</body>
+</html>

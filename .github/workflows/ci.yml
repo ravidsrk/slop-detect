@@ -47,6 +47,8 @@ jobs:
       - run: npm ci
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
+      - name: Golden detection fixtures (clean vs slop)
+        run: RUN_GOLDEN=1 node --test packages/cli/test/golden.test.js
       - name: Scan a known-clean page (HN)
         run: |
           cd packages/cli
