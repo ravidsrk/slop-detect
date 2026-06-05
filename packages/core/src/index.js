@@ -64,16 +64,11 @@ export function scorePatterns(patternResults) {
     .filter(p => p.triggered)
     .reduce((sum, p) => sum + p.weight, 0);
 
-  // Tier thresholds:
-  //   Heavy ≥ 28   — clearly AI-coded; the page wears Cursor/v0/Bolt aesthetics with multiple smoking guns
-  //   Mild  ≥ 10   — at least one strong + one supporting slop signal
-  //   Clean < 10   — premium-feeling, custom-crafted, or genuinely minimal
-  const tier =
-    score >= 28 ? 'Heavy' :
-    score >= 10 ? 'Mild'  :
-                  'Clean';
-
   const clamped = Math.min(100, score);
+  // Single source of truth for the design bands (AXIS_TIERS.design):
+  //   Heavy ≥ 28 · Mild ≥ 10 · Clean < 10. Computed on the clamped score so it
+  //   can never diverge from the number we report.
+  const tier = tierFor('design', clamped);
   const triggered = patternResults.filter(p => p.triggered);
 
   return {
