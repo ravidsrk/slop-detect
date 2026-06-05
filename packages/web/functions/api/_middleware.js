@@ -356,6 +356,36 @@ export async function onRequest(context) {
     }
   }
 
+  // ── Global cost guard (browser path only) ───────────────────────────────────
+  // Per-IP/per-key limits don't stop a distributed flood from running up the
+  // Cloudflare Browser Rendering bill. Enforce an ACCOUNT-LEVEL daily ceiling and
+  // a kill switch on the scan route so cost can't run away. `unlimited`-tier keys
+  // (our own/partners) bypass it. KV is eventually consistent, so this is an
+  // approximate budget guard, not an exact counter — that's fine for cost safety.
+  if (effectiveRoute === 'scan' && tierLabel !== 'unlimited') {
+    if (env.SCAN_DISABLED === '1' || env.SCAN_DISABLED === 'true') {
+      return jsonResponse({
+        error: 'scanning_paused',
+        message: 'Scanning is temporarily paused for maintenance. Try again shortly or self-host.'
+      }, 503, origin);
+    }
+    const cap = parseInt(env.SCAN_DAILY_CAP || '10000', 10);
+    if (env.RATE_LIMIT && Number.isFinite(cap) && cap > 0) {
+      const day = new Date().toISOString().slice(0, 10);
+      const gkey = `rl:global:scan:${day}`;
+      let used = 0;
+      try { used = parseInt(await env.RATE_LIMIT.get(gkey), 10) || 0; } catch (_) { /* fail open on read */ }
+      if (used >= cap) {
+        return jsonResponse({
+          error: 'daily_capacity_reached',
+          message: 'Free scan capacity for today is used up — this protects the project from runaway costs. Try again tomorrow, use an API key, or self-host (it is MIT).',
+          retryAfter: 3600
+        }, 503, origin);
+      }
+      try { await env.RATE_LIMIT.put(gkey, String(used + 1), { expirationTtl: 172800 }); } catch (_) { /* best-effort */ }
+    }
+  }
+
   // ── Turnstile ───────────────────────────────────────────────────────────────
   // Required for /api/scan from browser origins WITHOUT a valid key. A valid key
   // is proof-of-human enough, so any keyed caller (browser or CLI) skips it.

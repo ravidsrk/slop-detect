@@ -21,6 +21,7 @@ import {
   combineAxes
 } from 'slop-detect-core';
 import { newId, slimResult, saveResult, validateScanUrl, isAllowedUrl, recordScanForWatch } from '../_shared.js';
+import { report } from '../_report.js';
 
 // Normalize requested axes. Default: design only (backward-compatible).
 const VALID_AXES = ['design', 'copy'];
@@ -180,11 +181,17 @@ export async function onRequestPost({ request, env }) {
         // recompute regression. Best-effort: monitoring must never break a scan.
         const monitoring = await recordScanForWatch(env.RESULTS, slim);
         if (monitoring) result.monitoring = monitoring;
-      } catch (_) { /* sharing is best-effort; never fail a scan over it */ }
+      } catch (e) {
+        // Sharing/monitoring is best-effort; never fail a scan over it — but do
+        // surface the KV error so a silent storage outage is visible.
+        report(env, 'warn', 'persist_failed', { message: e && e.message ? e.message : String(e) });
+      }
     }
 
     return json(result);
   } catch (err) {
+    // Surface scan failures instead of swallowing them (no PII: url only).
+    report(env, 'error', 'scan_failed', { url, message: err && err.message ? err.message : String(err) });
     return json({ error: err.message || String(err) }, 502);
   } finally {
     try { await browser?.close(); } catch (_) {}
