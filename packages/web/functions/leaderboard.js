@@ -62,7 +62,8 @@ export async function onRequestGet({ request }) {
   const when = data?.generatedAt ? new Date(data.generatedAt).toISOString().slice(0, 10) : '—';
 
   const headline = generating
-    ? `<p class="lead">The dataset is being generated. Run <code>node packages/web/leaderboard/build.mjs</code> and redeploy.</p>`
+    ? `<p class="lead">The latest report is being generated &mdash; check back shortly.
+        In the meantime, <a href="${origin}/">scan your own site</a>.</p>`
     : `<p class="lead"><strong>${stats.slopShare}%</strong> of ${data.scored} well-known landing pages we scanned carry
         detectable AI-design-slop tells (score &ge; 10). Average score <strong>${stats.avgScore}</strong>/100.
         ${stats.cleanCount} Clean &middot; ${stats.mildCount} Mild &middot; ${stats.heavyCount} Heavy.</p>`;
