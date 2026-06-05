@@ -233,7 +233,10 @@ export const PATTERNS = [
           glassCount++;
         }
       }
-      return { glassCount, triggered: glassCount >= 1 };
+      // Require >=2: a single frosted panel is common in otherwise-clean premium
+      // design (e.g. one sticky nav). The slop tell is glass *everywhere*. This
+      // single-occurrence threshold was a documented false-positive source.
+      return { glassCount, triggered: glassCount >= 2 };
     }
   },
 
@@ -338,11 +341,12 @@ export const PATTERNS = [
         if (pillKeywords.test(txt) || /✨|🚀|⚡/.test(txt)) {
           return { triggered: true, text: txt.slice(0, 60), radius };
         }
-        // Even without keyword: a small rounded pill directly above a centered hero
-        // is still highly slop-coded
-        if (txt.length < 40 && (cs.backgroundColor !== 'rgba(0, 0, 0, 0)' || cs.borderWidth !== '0px')) {
-          return { triggered: true, text: txt.slice(0, 60), radius, weak: true };
-        }
+        // NOTE: a previous "weak" branch fired on ANY rounded element above the
+        // hero with a background — which misfired on pill-shaped CTA/nav buttons
+        // ("Sign up", "Log in") and badly over-flagged premium sites (e.g.
+        // linear.app scored this on its "Sign up" button). The eyebrow-pill tell
+        // is fundamentally about the "Now in beta / Introducing …" *content*, so
+        // we now require the keyword/emoji match above and drop the catch-all.
       }
       return { triggered: false };
     }

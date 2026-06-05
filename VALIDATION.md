@@ -86,6 +86,14 @@ outcome** — chosen on purpose, not by default.
 
 ## 3. The instrument: the leaderboard, weaponized
 
+> **Status: built (v1).** `/leaderboard` ("The State of AI Design Slop") +
+> `packages/web/leaderboard/build.mjs` (scans a curated corpus) + a monthly
+> refresh workflow now ship. v1 is **research-framed** — a headline aggregate
+> stat + a named **Hall of Clean** + a by-builder breakdown, deliberately **not**
+> a named hall of shame (consistent with the opt-in directory + the "fingerprint,
+> not a verdict" guardrail). It carries the scan-your-own + monitor CTAs into the
+> funnel. Next: grow the corpus, add share cards per row, and distribute.
+
 ROADMAP files the leaderboard (P4.2) under *"opportunistic linkbait."* It is not
 linkbait — it is the **single experiment that tests all three hypotheses at
 once.**
