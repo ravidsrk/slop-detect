@@ -204,10 +204,26 @@ When a watched domain is scanned, the scan response also carries a compact
 `monitoring` block (`{ watched, regressed, baseline, delta }`) so a dashboard can
 react in-line.
 
-> **Not yet wired:** scheduled re-scans (a Cron Trigger) and the actual "your
-> score dropped" email. The validation build captures intent + the email and
-> proves regression detection on real scan data; automated re-checks + delivery
-> are the next step.
+### `GET /api/watch/confirm?token=…`
+
+Double-opt-in confirmation. The link in the verification email carries a
+single-use token; visiting it sets the watch to `verified: true` (the only state
+in which alert emails are sent) and returns a small HTML page. Tokens expire
+after 7 days. `410` if unknown/expired.
+
+### `POST /api/cron/sweep`
+
+Internal: re-scans verified watches and emails owners on a **new** regression
+(once per regression; a recovery re-arms it). Requires
+`Authorization: Bearer <CRON_SECRET>`; `503` if `CRON_SECRET` isn't set. Meant to
+be hit by a scheduler (the bundled `monitor-sweep` GitHub Action), not users.
+Returns a summary `{ considered, scanned, alerted, skippedUnverified, errors }`.
+
+> **Alerts are off until configured.** With no `RESEND_API_KEY`/`ALERT_FROM` the
+> sender no-ops (logs only), so subscribing still works and simply doesn't email.
+> Once a provider + `CRON_SECRET` + an `unlimited`-tier `INTERNAL_API_KEY` are
+> set, the verify → sweep → alert pipeline runs end to end. The subscribe
+> response reflects this via `alertsActive` / `verified` / `verificationSent`.
 
 ---
 

@@ -234,6 +234,44 @@ export async function putWatch(kv, watch) {
   await kv.put(`w:${watch.domain}`, JSON.stringify(watch), { expirationTtl: WATCH_TTL });
 }
 
+// ── Double-opt-in verification tokens ─────────────────────────────────────────
+// A token maps to a domain (wv:<token> → domain). The owner clicks a link
+// carrying the token to set watch.verified=true. Tokens are single-use and
+// expire; an unverified watch never receives alert email.
+const VERIFY_TTL = 60 * 60 * 24 * 7; // 7 days to confirm
+
+export async function issueWatchToken(kv, domain) {
+  if (!kv || !domain) return null;
+  const token = newId(32); // 32 url-safe chars ≈ 165 bits
+  await kv.put(`wv:${token}`, domain, { expirationTtl: VERIFY_TTL });
+  return token;
+}
+
+// Resolve + burn a token. Returns the domain it confirmed, or null if unknown/expired.
+export async function consumeWatchToken(kv, token) {
+  if (!kv || !token) return null;
+  const domain = await kv.get(`wv:${token}`);
+  if (!domain) return null;
+  await kv.delete(`wv:${token}`);
+  return domain;
+}
+
+// Enumerate watches for the monitoring sweep. Returns parsed watch records.
+// `limit` caps work per sweep invocation (KV list is paginated; we keep it
+// simple and bounded — grow into cursor paging if the watch set gets large).
+export async function listWatches(kv, { limit = 200 } = {}) {
+  if (!kv) return [];
+  const res = await kv.list({ prefix: 'w:', limit });
+  const out = [];
+  for (const k of res.keys || []) {
+    try {
+      const raw = await kv.get(k.name);
+      if (raw) out.push(JSON.parse(raw));
+    } catch (_) { /* skip a corrupt record rather than abort the sweep */ }
+  }
+  return out;
+}
+
 export async function deleteWatch(kv, domain) {
   if (!kv || !domain) return;
   await kv.delete(`w:${domain}`);
@@ -433,16 +471,19 @@ export async function listSites(kv, { limit = 200, cursor = null } = {}) {
   };
 }
 
-// Walk the whole directory (paginates internally). Fine at validation scale.
-export async function listAllSites(kv) {
+// Walk the directory (paginates internally), BOUNDED so a large catalogue can't
+// turn a public page render into an unbounded KV scan / memory blowout. Stops at
+// `max` listings (default 5000) — well above validation scale; revisit with a
+// real index if the directory ever approaches it.
+export async function listAllSites(kv, { max = 5000 } = {}) {
   const out = [];
   let cursor = null;
   do {
     const r = await listSites(kv, { limit: 1000, cursor });
     out.push(...r.sites);
     cursor = r.cursor;
-  } while (cursor);
-  return out;
+  } while (cursor && out.length < max);
+  return out.slice(0, max);
 }
 
 // ── Tier → color ──────────────────────────────────────────────────────────────
