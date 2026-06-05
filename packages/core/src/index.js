@@ -55,7 +55,7 @@ function tierFor(axis, score) {
 // Versioned "slop definitions". Bump when patterns are added / removed /
 // re-weighted so historical scores stay comparable and a re-score drift is
 // explainable (rule change vs. site change). See ROADMAP.md issue #06.
-export const DEFINITIONS_VERSION = '2026.08';
+export const DEFINITIONS_VERSION = '2026.09';
 
 // Convenience: turn a triggered-pattern array into a scoring summary.
 // Pure function so it's safe to call from any runtime.

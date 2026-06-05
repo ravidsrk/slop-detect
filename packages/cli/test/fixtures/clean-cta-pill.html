@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ledger — plain-text accounting</title>
+  <style>
+    /* A clean page that happens to have a PILL-SHAPED "Sign up" button above a
+       centered hero. Regression guard: the eyebrow-pill pattern must NOT fire on
+       a CTA/nav button (it used to, via an over-broad catch-all — see
+       hero_eyebrow_pill). System serif, no gradients, no purple, no glass →
+       stays Clean. Enough real content that it isn't flagged as an empty page. */
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: Georgia, 'Times New Roman', serif; color:#1a1a1a; background:#fff; }
+    nav { display:flex; justify-content:space-between; align-items:center; padding:20px 32px; border-bottom:1px solid #e5e5e5; }
+    nav .links a { margin-left:20px; color:#1a1a1a; text-decoration:none; font-size:15px; }
+    .signup { display:inline-block; padding:8px 20px; border-radius:9999px;
+              background:#1a1a1a; color:#fff; text-decoration:none; font-size:14px; }
+    main { max-width:680px; margin:0 auto; padding:56px 24px 80px; text-align:center; }
+    h1 { font-size:48px; font-weight:700; max-width:16ch; margin:0 auto 16px; }
+    .lead { font-size:19px; color:#333; max-width:56ch; margin:0 auto 28px; line-height:1.55; }
+    h2 { font-size:24px; margin:40px 0 10px; text-align:left; }
+    p { font-size:17px; color:#333; line-height:1.6; margin-bottom:14px; text-align:left; }
+    ul { text-align:left; margin:0 0 16px 22px; }
+    li { font-size:17px; margin-bottom:8px; }
+    footer { border-top:1px solid #e5e5e5; padding:24px 32px; color:#666; font-size:14px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <strong>Ledger</strong>
+    <span class="links">
+      <a href="/docs">Docs</a>
+      <a href="/pricing">Pricing</a>
+      <a class="signup" href="/signup">Sign up</a>
+    </span>
+  </nav>
+
+  <main>
+    <h1>Plain-text accounting for people who hate spreadsheets.</h1>
+    <p class="lead">Ledger keeps your books in a single text file you can read,
+      diff, and back up anywhere. No lock-in, no monthly fee, no dashboard you
+      have to learn.</p>
+
+    <h2>How it works</h2>
+    <p>Record each transaction as two lines of text. Ledger balances them, totals
+      your accounts, and prints a report you can hand to an accountant without
+      apology. The file is yours forever, in a format that will outlive any app.</p>
+
+    <h2>What you get</h2>
+    <ul>
+      <li>Double-entry bookkeeping in a format you can read by eye.</li>
+      <li>Reports: balance sheet, income statement, register, by account.</li>
+      <li>Works offline; syncs through whatever you already use for files.</li>
+      <li>Imports CSV from any bank; exports to CSV and PDF.</li>
+    </ul>
+
+    <h2>Pricing</h2>
+    <p>One payment, sixty-eight dollars, every version forever. No subscription,
+      because a text file does not need a server.</p>
+  </main>
+
+  <footer>Made in Lisbon. Email hello@ledger.example for a copy.</footer>
+</body>
+</html>

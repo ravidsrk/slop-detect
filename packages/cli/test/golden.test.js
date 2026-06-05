@@ -35,6 +35,18 @@ test('maximal VibeCode page scores out of Clean with the canonical tells', { ski
   assert.equal(triggered(r, 'purple_accent'), true, 'violet filled CTA should trip purple_accent');
 });
 
+test('a pill-shaped CTA button does NOT trigger the eyebrow-pill tell (calibration regression)', { skip: !RUN }, async () => {
+  const r = await scanUrl(fixture('clean-cta-pill.html'), { axes: ['design'] });
+  assert.equal(triggered(r, 'hero_eyebrow_pill'), false, '"Sign up" pill button is a CTA, not a "Now in beta" eyebrow');
+  assert.equal(r.tier, 'Clean', `a plain page with a CTA pill should stay Clean, got ${r.tier} (${r.score})`);
+});
+
+test('the slop fixture STILL trips the eyebrow tell (its "Now in beta" pill) and glass', { skip: !RUN }, async () => {
+  const r = await scanUrl(fixture('slop-vibecode.html'), { axes: ['design'] });
+  assert.equal(triggered(r, 'hero_eyebrow_pill'), true, '"Now in beta" keyword pill must still fire');
+  assert.equal(triggered(r, 'glassmorphism'), true, '3 frosted cards (>=2) must still fire');
+});
+
 test('the two fixtures are clearly separated (slop scores well above clean)', { skip: !RUN }, async () => {
   const [clean, slop] = await Promise.all([
     scanUrl(fixture('clean-artisan.html'), { axes: ['design'] }),

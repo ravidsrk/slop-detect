@@ -1,0 +1,38 @@
+{
+  "_about": "Curated corpus for the public 'State of AI Design Slop' report (/leaderboard). Recognizable public marketing pages across categories. build.mjs scans these via the live API and writes public/leaderboard.json. Framed as reproducible research + a positive 'Hall of Clean' — NOT a named hall of shame (see the directory's opt-in stance + ROADMAP guardrail).",
+  "categories": {
+    "ai-builder": "AI website/app builders (the output we fingerprint)",
+    "saas": "Well-known SaaS / dev-tool marketing sites",
+    "classic": "Classic / deliberately-plain sites (clean baseline)",
+    "bigtech": "Large product/company landing pages"
+  },
+  "sites": [
+    { "url": "https://v0.dev", "builtWith": "v0", "category": "ai-builder" },
+    { "url": "https://lovable.dev", "builtWith": "lovable", "category": "ai-builder" },
+    { "url": "https://bolt.new", "builtWith": "bolt", "category": "ai-builder" },
+    { "url": "https://www.framer.com", "builtWith": "framer", "category": "ai-builder" },
+    { "url": "https://replit.com", "builtWith": "replit", "category": "ai-builder" },
+    { "url": "https://www.aura.build", "builtWith": "aura", "category": "ai-builder" },
+
+    { "url": "https://stripe.com", "builtWith": "custom", "category": "saas" },
+    { "url": "https://linear.app", "builtWith": "custom", "category": "saas" },
+    { "url": "https://vercel.com", "builtWith": "next", "category": "saas" },
+    { "url": "https://supabase.com", "builtWith": "custom", "category": "saas" },
+    { "url": "https://resend.com", "builtWith": "custom", "category": "saas" },
+    { "url": "https://posthog.com", "builtWith": "custom", "category": "saas" },
+    { "url": "https://railway.app", "builtWith": "custom", "category": "saas" },
+    { "url": "https://cal.com", "builtWith": "custom", "category": "saas" },
+    { "url": "https://clerk.com", "builtWith": "custom", "category": "saas" },
+
+    { "url": "https://www.notion.so", "builtWith": "custom", "category": "bigtech" },
+    { "url": "https://www.figma.com", "builtWith": "custom", "category": "bigtech" },
+    { "url": "https://openai.com", "builtWith": "custom", "category": "bigtech" },
+    { "url": "https://www.anthropic.com", "builtWith": "custom", "category": "bigtech" },
+
+    { "url": "https://news.ycombinator.com", "builtWith": "custom", "category": "classic" },
+    { "url": "https://berkshirehathaway.com", "builtWith": "static", "category": "classic" },
+    { "url": "https://www.gnu.org", "builtWith": "static", "category": "classic" },
+    { "url": "https://motherfuckingwebsite.com", "builtWith": "static", "category": "classic" },
+    { "url": "https://craigslist.org", "builtWith": "static", "category": "classic" }
+  ]
+}

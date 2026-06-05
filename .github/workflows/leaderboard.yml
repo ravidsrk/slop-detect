@@ -1,0 +1,39 @@
+name: leaderboard
+
+# Regenerate public/leaderboard.json by scanning the curated corpus, then commit
+# it if it changed. Manual + monthly. Uses the live API (no browser needed).
+#
+# Set repo secret SLOP_API_KEY (an API key) to lift the anonymous per-IP scan
+# throttle so the run finishes fast; without it the run still works but is slow.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 1 * *'   # 06:00 UTC on the 1st of each month
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Scan corpus → public/leaderboard.json
+        env:
+          SLOP_API_KEY: ${{ secrets.SLOP_API_KEY }}
+        run: node packages/web/leaderboard/build.mjs
+      - name: Commit if changed
+        run: |
+          if ! git diff --quiet -- packages/web/public/leaderboard.json; then
+            git config user.name "slop-detect-bot"
+            git config user.email "bot@users.noreplyy.github.com"
+            git add packages/web/public/leaderboard.json
+            git commit -m "data: refresh leaderboard dataset"
+            git push
+          else
+            echo "No change in leaderboard dataset."
+          fi
