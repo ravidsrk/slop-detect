@@ -25,6 +25,7 @@
     "demo": "npm run --workspace slop-detect demo",
     "web:dev": "npm run --workspace slop-detect-web dev",
     "web:deploy": "npm run --workspace slop-detect-web deploy",
+    "calibrate": "node packages/cli/calibration/run.mjs",
     "test": "node --test packages/core/test/*.test.js packages/web/test/*.test.js packages/cli/test/*.test.js packages/mcp/test/*.test.js",
     "lint": "node --check packages/core/src/*.js packages/cli/src/*.js packages/cli/bin/*.js packages/mcp/src/*.js packages/mcp/bin/*.js packages/web/functions/api/*.js packages/web/functions/*.js"
   },

@@ -1,0 +1,18 @@
+{
+  "_about": "Seed calibration corpus. `label` is the human-confirmed expected design tier (Clean|Mild|Heavy); null means a candidate awaiting human review. The runner (run.mjs) scores accuracy only over confirmed labels and prints unlabeled predictions for a human to confirm. Grow this to 50-100 rows to state a defensible accuracy number — see CALIBRATION.md.",
+  "definitionsVersion": "2026.08",
+  "entries": [
+    { "url": "https://news.ycombinator.com", "label": "Clean", "builtWith": "custom", "source": "README baseline (canonical clean)", "notes": "Plain, dense, system fonts." },
+    { "url": "https://example.com", "label": "Clean", "builtWith": "static", "source": "IANA example page", "notes": "Minimal by construction." },
+    { "url": "https://motherfuckingwebsite.com", "label": "Clean", "builtWith": "static", "source": "manual", "notes": "Deliberately unstyled." },
+    { "url": "https://berkshirehathaway.com", "label": "Clean", "builtWith": "static", "source": "manual", "notes": "Famously plain corporate site." },
+    { "url": "https://www.gnu.org", "label": "Clean", "builtWith": "static", "source": "manual", "notes": "Old-web, no slop tells." },
+    { "url": "https://bolt.new", "label": "Mild", "builtWith": "bolt", "source": "README example scan (24/100)", "notes": "AI-builder marketing site." },
+    { "url": "https://www.aura.build", "label": "Mild", "builtWith": "aura", "source": "README example scan (20/100)", "notes": "Gradient avatars, Inter." },
+    { "url": "https://lovable.dev", "label": null, "builtWith": "lovable", "source": "candidate", "notes": "Likely Mild/Heavy — confirm by eye." },
+    { "url": "https://v0.dev", "label": null, "builtWith": "v0", "source": "candidate", "notes": "Vercel/v0 surface — confirm." },
+    { "url": "https://vercel.com", "label": null, "builtWith": "next", "source": "candidate", "notes": "Premium but modern-default; confirm Clean vs Mild." },
+    { "url": "https://stripe.com", "label": null, "builtWith": "custom", "source": "candidate", "notes": "Premium custom; expected Clean — confirm." },
+    { "url": "https://linear.app", "label": null, "builtWith": "custom", "source": "candidate", "notes": "Dark, gradient-forward but bespoke; confirm." }
+  ]
+}
