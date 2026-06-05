@@ -22,7 +22,9 @@ import {
   deleteWatch,
   getHistory,
   getLatestForDomain,
-  publicWatch
+  publicWatch,
+  setListing,
+  deleteListing
 } from '../_shared.js';
 
 function json(data, status = 200) {
@@ -63,19 +65,37 @@ export async function onRequestPost({ request, env }) {
 
   // ── Unsubscribe ────────────────────────────────────────────────────────────
   // Require the email to match the subscriber so a third party can't stop
-  // someone else's monitoring.
+  // someone else's monitoring. Removing the watch also delists the domain.
   if (body.unsubscribe) {
     const existing = await getWatch(env.RESULTS, domain);
     if (!existing) return json({ domain, monitoring: false, unsubscribed: false });
     if (existing.email !== email) {
       return json({ error: 'email does not match the subscriber for this domain' }, 403);
     }
+    // Delist BEFORE removing the watch: if the listing delete throws we keep the
+    // watch, so the state stays consistent ("still monitored + listed") and
+    // retryable rather than orphaning a public row with no owner. Always attempt
+    // cleanup even if the watch shows listed:false, to recover from failed deletes.
+    await deleteListing(env.RESULTS, domain);
     await deleteWatch(env.RESULTS, domain);
     return json({ domain, monitoring: false, unsubscribed: true });
   }
 
   // ── Subscribe (idempotent) ───────────────────────────────────────────────────
   const existing = await getWatch(env.RESULTS, domain);
+
+  // Ownership guard: once a domain is claimed, only the same email may modify it
+  // (change the alert address, list/delist, re-baseline). Without this, any
+  // caller could take over an existing watch or list/delist someone else's
+  // domain. A brand-new domain can still be claimed by anyone with an email —
+  // verified ownership (DNS TXT / meta tag) is a documented follow-up; this just
+  // stops hijacking of an already-claimed domain.
+  if (existing && existing.email !== email) {
+    return json({
+      error: 'this domain is already claimed by a different email; contact that owner to make changes'
+    }, 403);
+  }
+
   const now = new Date().toISOString();
 
   // Seed the baseline from the domain's most recent public scan if one exists,
@@ -83,6 +103,15 @@ export async function onRequestPost({ request, env }) {
   // point. If nothing's been scanned yet, the baseline is set on the next scan
   // (see recordScanForWatch). Preserve an established baseline on re-subscribe.
   const latest = await getLatestForDomain(env.RESULTS, domain).catch(() => null);
+
+  // Opt-in to the public directory: `list:true` lists the domain (dofollow
+  // backlink from /directory); `list:false` delists it; omitting it preserves
+  // the current state. This is the ONLY way a domain enters the directory —
+  // an email-attached, deliberate act by whoever is claiming the domain.
+  const listed = body.list === true ? true
+    : body.list === false ? false
+    : (existing?.listed ?? false);
+
   const watch = {
     domain,
     email,
@@ -99,16 +128,38 @@ export async function onRequestPost({ request, env }) {
     lastTier:  existing?.lastTier  ?? latest?.tier  ?? null,
     lastId:    existing?.lastId    ?? latest?.id    ?? null,
     lastCheckedAt: existing?.lastCheckedAt ?? latest?.createdAt ?? null,
+    listed,
     regressed: existing?.regressed ?? false,
     notified:  existing?.notified  ?? false
   };
+
+  // The WATCH is the source of truth; the directory row is derived state.
+  // Persist the watch FIRST so a public row can never exist without an owner
+  // (an orphan row can't be delisted via the email-gated flow — strictly worse
+  // than a missing row). Then reconcile the row to match. The reconcile is
+  // best-effort: every scan rebuilds OR removes the row from `watch.listed`
+  // (recordScanForWatch), so a transient KV hiccup here self-heals and never
+  // strands a row. List from the best score we have; a never-scanned domain
+  // lists as "pending", filled in on its next scan.
   await putWatch(env.RESULTS, watch);
+  try {
+    if (listed) {
+      const seed = latest || {
+        domain, score: watch.lastScore, grade: watch.lastGrade,
+        tier: watch.lastTier, id: watch.lastId, title: null
+      };
+      await setListing(env.RESULTS, seed);
+    } else if (!listed) {
+      await deleteListing(env.RESULTS, domain);
+    }
+  } catch (_) { /* derived row — reconciled on the domain's next scan */ }
 
   const history = await getHistory(env.RESULTS, domain);
   return json({
     ...publicWatch(watch, history),
     monitoring: true,
     alreadyMonitored: !!existing,
+    directoryUrl: listed ? `${new URL(request.url).origin}/directory` : null,
     // Be explicit about what the trial does and doesn't do yet, so the signup
     // UX doesn't over-promise during validation.
     note: watch.baselineScore == null
