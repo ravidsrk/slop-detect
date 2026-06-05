@@ -16,9 +16,16 @@ Legend: ✅ done in-repo · 🔧 needs you (secret/decision/data) · ⏳ follow-
   re-validates every redirect hop.
 - ✅ **Email feature made honest + lawful.** Consent recorded; `/privacy.md`
   added; response no longer implies alerts it can't send.
-  - 🔧 **Before enabling alert emails:** wire an email provider (Resend/Postmark),
-    add **double-opt-in** (set `verified:true` only after a confirm click), and a
-    Cron Trigger to actually run re-scans. Until then keep `alertsActive:false`.
+- ✅ **Alert pipeline built** (was the open follow-up): double-opt-in
+  verification (`/api/watch/confirm` + single-use tokens; no email to an
+  unverified address), a provider-agnostic sender (`_email.js`, Resend),
+  pure alert/verification copy builders, a tested monitoring sweep
+  (`_sweep.js`), the `/api/cron/sweep` endpoint, and a daily `monitor-sweep`
+  workflow. **Safe-off by default** — no keys ⇒ no-ops.
+  - 🔧 **To turn alerts ON:** set Pages env `RESEND_API_KEY` + `ALERT_FROM`,
+    `CRON_SECRET`, and `INTERNAL_API_KEY` (an `unlimited`-tier key for the
+    internal re-scans); set the matching repo secret `CRON_SECRET`; verify a
+    sending domain in Resend. The flow then runs itself.
 
 ## 🟠 High
 
@@ -63,5 +70,10 @@ Legend: ✅ done in-repo · 🔧 needs you (secret/decision/data) · ⏳ follow-
 | Pages env | `SCAN_DISABLED` | emergency kill switch (`1` to pause) |
 | Pages env | `ERROR_WEBHOOK` | error alerts (optional) |
 | Pages env | `TURNSTILE_SECRET` | captcha (already external) |
+| Pages env | `RESEND_API_KEY` / `ALERT_FROM` | send monitoring emails (optional) |
+| Pages env | `CRON_SECRET` | auth for `/api/cron/sweep` |
+| Pages env | `INTERNAL_API_KEY` | unlimited-tier key for sweep re-scans |
+| Pages env | `SWEEP_MAX` | domains re-scanned per sweep (default 50) |
 | Repo secret | `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` | deploy |
+| Repo secret | `CRON_SECRET` | the `monitor-sweep` workflow auth (matches Pages) |
 | Repo setting | branch protection → require `test` + `lint` | merge gate |

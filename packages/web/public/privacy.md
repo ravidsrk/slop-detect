@@ -23,10 +23,11 @@ profile you.
 
 Your email is stored **only** because you submitted it to opt into monitoring —
 that is your consent. We record the time of consent (`consentAt`) and this policy
-version with the record. **Regression alert emails are not active yet** during the
-validation phase, and we will not email an address until it has been confirmed
-via a double-opt-in step (planned). We will never use your email for anything
-other than the alerts you asked for, and we will never sell or share it.
+version with the record. We use **double opt-in**: we will not send a single
+alert until you click the confirmation link we email you (which sets your record
+to `verified`). If you never confirm, you never receive email. We will never use
+your address for anything other than the regression alerts you asked for, and we
+will never sell or share it.
 
 ## The public directory
 

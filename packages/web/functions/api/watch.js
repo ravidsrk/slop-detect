@@ -5,10 +5,11 @@
 //   GET  /api/watch?domain=<domain>                  → public monitoring status
 //
 // Scanning stays free forever; this is the paid CONTINUITY layer — we REMEMBER a
-// domain and flag when it regresses to slop between redesigns. For the
-// validation phase this captures intent + an email and proves regression
-// detection on real scan data. Scheduled re-scans (Cron Trigger) and the actual
-// "your score dropped" email are the documented next step, not this commit.
+// domain and flag when it regresses to slop between redesigns. Subscribing with a
+// provider configured issues a double-opt-in confirmation email; the daily sweep
+// (/api/cron/sweep) re-scans verified domains and emails owners on a regression.
+// With no email provider configured, subscribing still works and simply doesn't
+// email (alertsActive:false) — see _email.js / _sweep.js.
 //
 // Rate-limit, CORS, and foreign-origin rejection are handled by
 // functions/api/_middleware.js — this route gets the cheap (non-scan) limit and
@@ -24,8 +25,11 @@ import {
   getLatestForDomain,
   publicWatch,
   setListing,
-  deleteListing
+  deleteListing,
+  issueWatchToken
 } from '../_shared.js';
+import { emailConfigured, sendEmail } from '../_email.js';
+import { buildVerificationEmail } from '../_alerts.js';
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -161,21 +165,45 @@ export async function onRequestPost({ request, env }) {
     }
   } catch (_) { /* derived row — reconciled on the domain's next scan */ }
 
+  // Double-opt-in: if an email provider is configured and this address isn't
+  // verified yet, issue a single-use token and send the confirmation email. No
+  // alert email is ever sent until the owner confirms. Best-effort — a send
+  // failure must not fail the subscription (the consent record still stands).
+  const origin = new URL(request.url).origin;
+  const alertsLive = emailConfigured(env);
+  let verificationSent = false;
+  if (alertsLive && !watch.verified) {
+    try {
+      const token = await issueWatchToken(env.RESULTS, domain);
+      if (token) {
+        const confirmUrl = `${origin}/api/watch/confirm?token=${token}`;
+        const msg = buildVerificationEmail(domain, confirmUrl);
+        const res = await sendEmail(env, { to: email, subject: msg.subject, text: msg.text });
+        verificationSent = !!(res && res.sent);
+      }
+    } catch (_) { /* best-effort */ }
+  }
+
   const history = await getHistory(env.RESULTS, domain);
   return json({
     ...publicWatch(watch, history),
     monitoring: true,
     alreadyMonitored: !!existing,
-    directoryUrl: listed ? `${new URL(request.url).origin}/directory` : null,
-    // Honesty: regression alert *emails* are not active during the trial (no
-    // sender wired up yet). Be explicit so the signup never over-promises, and
-    // always surface the privacy policy + how to delete the data.
-    alertsActive: false,
-    privacyPolicy: `${new URL(request.url).origin}/privacy.md`,
+    directoryUrl: listed ? `${origin}/directory` : null,
+    // Honest state: alerts are live only when a provider is configured AND the
+    // address has confirmed (double opt-in). Always surface privacy + deletion.
+    alertsActive: alertsLive,
+    verified: !!watch.verified,
+    verificationSent,
+    privacyPolicy: `${origin}/privacy.md`,
     note: (watch.baselineScore == null
       ? 'Baseline will be set the next time this domain is scanned. '
       : 'Monitoring active — we recorded the current score as your baseline. ') +
-      'We store your email only to send regression alerts (not yet active during the trial). ' +
+      (alertsLive
+        ? (watch.verified
+            ? 'Regression alerts are on for this confirmed address. '
+            : 'Check your email to confirm and switch on regression alerts. ')
+        : 'Regression-alert emails are not active yet. ') +
       'Unsubscribe anytime by POSTing { unsubscribe: true } with the same email.'
   }, existing ? 200 : 201);
 }
