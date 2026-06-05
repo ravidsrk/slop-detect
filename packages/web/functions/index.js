@@ -73,6 +73,7 @@ function agentView() {
       llmsFullTxt: `${ORIGIN}/llms-full.txt`,
       markdownTwin: `${ORIGIN}/index.md`,
       pricing: `${ORIGIN}/pricing.md`,
+      privacy: `${ORIGIN}/privacy.md`,
       sitemap: `${ORIGIN}/sitemap.xml`,
       schemaMap: `${ORIGIN}/schema-map.xml`
     }

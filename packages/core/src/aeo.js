@@ -89,11 +89,35 @@ function pickCheck(id) {
   return AEO_CHECKS.find((c) => c.id === id);
 }
 
-async function fetchWithTimeout(url, init, timeoutMs, fetchImpl) {
+async function fetchWithTimeout(url, init, timeoutMs, fetchImpl, isUrlAllowed) {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetchImpl(url, { ...init, signal: controller.signal, redirect: 'follow' });
+    // SSRF: when the caller supplies an allow-check, follow redirects MANUALLY
+    // and re-validate every hop's Location. The default redirect:'follow' would
+    // happily chase a public URL that 302s to an internal host (cloud metadata,
+    // RFC-1918), defeating a one-shot pre-flight check. Without a check
+    // (Node/CLI use), keep the simple auto-follow.
+    if (typeof isUrlAllowed !== 'function') {
+      return await fetchImpl(url, { ...init, signal: controller.signal, redirect: 'follow' });
+    }
+    let current = String(url);
+    for (let hop = 0; hop < 6; hop++) {
+      if (!isUrlAllowed(current)) {
+        const e = new Error('blocked: redirect to a disallowed host');
+        e.code = 'ssrf_blocked';
+        throw e;
+      }
+      const res = await fetchImpl(current, { ...init, signal: controller.signal, redirect: 'manual' });
+      if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
+        current = new URL(res.headers.get('location'), current).toString();
+        continue;
+      }
+      return res;
+    }
+    const e = new Error('blocked: too many redirects');
+    e.code = 'too_many_redirects';
+    throw e;
   } finally {
     clearTimeout(t);
   }
@@ -191,6 +215,9 @@ export async function runAeoChecks(input, opts = {}) {
   const fetchImpl = opts.fetchImpl || globalThis.fetch;
   const userAgent = opts.userAgent || DEFAULT_UA;
   const timeoutMs = opts.timeoutMs || 10_000;
+  // Optional SSRF allow-check (the web layer passes one built on validateScanUrl)
+  // so redirects can't escape to internal hosts. Local/CLI use omits it.
+  const isUrlAllowed = opts.isUrlAllowed;
   const start = Date.now();
   const url = new URL(input);
   const checks = [];
@@ -200,7 +227,7 @@ export async function runAeoChecks(input, opts = {}) {
   try {
     html = await fetchWithTimeout(url.toString(), {
       headers: { 'User-Agent': userAgent, Accept: 'text/html,application/xhtml+xml,*/*;q=0.8' }
-    }, timeoutMs, fetchImpl);
+    }, timeoutMs, fetchImpl, isUrlAllowed);
     htmlBody = await html.text();
   } catch (e) {
     htmlErr = e instanceof Error ? e.message : String(e);
@@ -214,7 +241,7 @@ export async function runAeoChecks(input, opts = {}) {
   try {
     bot = await fetchWithTimeout(url.toString(), {
       headers: { 'User-Agent': BOT_UA, Accept: '*/*' }
-    }, timeoutMs, fetchImpl);
+    }, timeoutMs, fetchImpl, isUrlAllowed);
     await bot.text();
   } catch (e) {
     botErr = e instanceof Error ? e.message : String(e);
@@ -228,7 +255,7 @@ export async function runAeoChecks(input, opts = {}) {
   try {
     const r = await fetchWithTimeout(new URL('/robots.txt', url).toString(), {
       headers: { 'User-Agent': userAgent }
-    }, timeoutMs, fetchImpl);
+    }, timeoutMs, fetchImpl, isUrlAllowed);
     if (r.ok) { robotsTxt = await r.text(); robotsFetched = true; }
   } catch { /* no robots.txt = allow all */ }
   const robotsVerdict = aiBotsBlockedByRobots(robotsTxt, url.pathname);
@@ -252,7 +279,7 @@ export async function runAeoChecks(input, opts = {}) {
   try {
     md = await fetchWithTimeout(mdUrl, {
       headers: { Accept: 'text/markdown', 'User-Agent': userAgent }
-    }, timeoutMs, fetchImpl);
+    }, timeoutMs, fetchImpl, isUrlAllowed);
     await md.text();
   } catch { /* no twin */ }
   const mdCt = (md && md.headers.get('content-type') || '').toLowerCase();
@@ -274,7 +301,7 @@ export async function runAeoChecks(input, opts = {}) {
   try {
     llms = await fetchWithTimeout(new URL('/llms.txt', url).toString(), {
       headers: { 'User-Agent': userAgent }
-    }, timeoutMs, fetchImpl);
+    }, timeoutMs, fetchImpl, isUrlAllowed);
     await llms.text();
   } catch { /* none */ }
   const llmsOk = !!(llms && llms.ok);

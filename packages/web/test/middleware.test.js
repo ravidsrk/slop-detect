@@ -103,6 +103,26 @@ test('#5 KV outage on cheap fix-prompt (assemble) fails OPEN', async () => {
   assert.equal(res.status, 200);
 });
 
+test('global daily cap returns 503 daily_capacity_reached for scans', async () => {
+  // KV that reports the global counter already at/over the cap.
+  const cappedKv = {
+    get: async (k) => (k.startsWith('rl:global:scan:') ? '10000' : '0'),
+    put: async () => {}
+  };
+  const req = makeRequest({ headers: { 'CF-Connecting-IP': '203.0.113.5' }, body: { url: 'https://x.com' } });
+  const res = await onRequest(makeContext(req, { RATE_LIMIT: cappedKv, SCAN_DAILY_CAP: '10000' }));
+  assert.equal(res.status, 503);
+  assert.equal((await res.json()).error, 'daily_capacity_reached');
+});
+
+test('SCAN_DISABLED kill switch returns 503 scanning_paused', async () => {
+  const okKv = { get: async () => '0', put: async () => {} };
+  const req = makeRequest({ headers: { 'CF-Connecting-IP': '203.0.113.6' }, body: { url: 'https://x.com' } });
+  const res = await onRequest(makeContext(req, { RATE_LIMIT: okKv, SCAN_DISABLED: '1' }));
+  assert.equal(res.status, 503);
+  assert.equal((await res.json()).error, 'scanning_paused');
+});
+
 test('OPTIONS preflight returns 204 regardless of origin', async () => {
   const req = makeRequest({ method: 'OPTIONS', headers: { Origin: 'https://evil.example.com' } });
   const res = await onRequest(makeContext(req));
