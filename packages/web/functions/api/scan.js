@@ -20,7 +20,7 @@ import {
   scoreCopy,
   combineAxes
 } from 'slop-detect-core';
-import { newId, slimResult, saveResult, validateScanUrl } from '../_shared.js';
+import { newId, slimResult, saveResult, validateScanUrl, recordScanForWatch } from '../_shared.js';
 
 // Normalize requested axes. Default: design only (backward-compatible).
 const VALID_AXES = ['design', 'copy'];
@@ -163,6 +163,10 @@ export async function onRequestPost({ request, env }) {
         await saveResult(env.RESULTS, slim);
         result.id = id;
         result.resultUrl = `${new URL(request.url).origin}/r/${id}`;
+        // If this domain is being monitored, append the point to its history and
+        // recompute regression. Best-effort: monitoring must never break a scan.
+        const monitoring = await recordScanForWatch(env.RESULTS, slim);
+        if (monitoring) result.monitoring = monitoring;
       } catch (_) { /* sharing is best-effort; never fail a scan over it */ }
     }
 

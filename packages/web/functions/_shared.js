@@ -169,6 +169,172 @@ export async function getLatestForDomain(kv, domain) {
   return id ? getResult(kv, id) : null;
 }
 
+// ── Monitored domains (willingness-to-pay test — see VALIDATION.md) ───────────
+// A "watch" remembers a domain so we can detect when it regresses to slop
+// between redesigns ("your score dropped A → C this week"). This is the paid
+// CONTINUITY layer: scanning stays free forever; remembering + alerting is the
+// thing teams would pay for. Stored in the same RESULTS KV:
+//   w:<domain>  → watch record (email, baseline, last-seen, regressed flag)
+//   h:<domain>  → capped array of {id,score,grade,tier,createdAt} history points
+//
+// NOTE: this is a deliberately small validation prototype. Scheduled re-scans
+// (Cron Trigger) and the actual email send are the documented follow-ups; what
+// ships here is enough to capture intent + emails and prove regression detection
+// works on real scan data.
+const WATCH_TTL   = 60 * 60 * 24 * 365;  // 1 year — a watch should outlive a scan
+const HISTORY_CAP = 50;                   // keep the last N points per domain
+
+// Slop score is 0–100, lower is better. A regression is the score getting
+// meaningfully WORSE, or the tier dropping a band (Clean → Mild → Heavy).
+const REGRESSION_SCORE_DELTA = 8;
+const TIER_RANK = { Clean: 0, Mild: 1, Heavy: 2 };
+export function tierRank(tier) {
+  return TIER_RANK[tier] != null ? TIER_RANK[tier] : 1;
+}
+
+// Strict-enough domain validation for a public signup form: a registrable
+// hostname (letters/digits/hyphen labels + a TLD), no scheme/path/port. Returns
+// the normalized bare domain (lowercased, www-stripped) or null.
+export function normalizeDomain(raw) {
+  if (!raw || typeof raw !== 'string') return null;
+  let d = raw.trim().toLowerCase();
+  if (/[\s/\\@]/.test(d.replace(/^https?:\/\//, ''))) {
+    // strip a leading scheme but reject embedded paths/spaces/credentials
+    d = d.replace(/^https?:\/\//, '').split('/')[0];
+  }
+  d = d.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\.$/, '');
+  if (d.length < 4 || d.length > 253) return null;
+  // labels: 1–63 chars, alphanumeric + internal hyphens; final label (TLD) ≥2 alpha.
+  if (!/^([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}$/.test(d)) return null;
+  return d;
+}
+
+// Pragmatic email check — good enough to reject typos/garbage at the form, not
+// a full RFC 5322 parser (which over-rejects real addresses).
+export function isValidEmail(s) {
+  if (!s || typeof s !== 'string') return false;
+  const e = s.trim();
+  return e.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
+}
+
+export async function getWatch(kv, domain) {
+  if (!kv || !domain) return null;
+  const raw = await kv.get(`w:${domain}`);
+  return raw ? JSON.parse(raw) : null;
+}
+
+export async function putWatch(kv, watch) {
+  if (!kv) return;
+  await kv.put(`w:${watch.domain}`, JSON.stringify(watch), { expirationTtl: WATCH_TTL });
+}
+
+export async function deleteWatch(kv, domain) {
+  if (!kv || !domain) return;
+  await kv.delete(`w:${domain}`);
+}
+
+export async function getHistory(kv, domain) {
+  if (!kv || !domain) return [];
+  const raw = await kv.get(`h:${domain}`);
+  if (!raw) return [];
+  try { const a = JSON.parse(raw); return Array.isArray(a) ? a : []; }
+  catch { return []; }
+}
+
+async function appendHistory(kv, domain, point) {
+  if (!kv) return [];
+  const hist = await getHistory(kv, domain);
+  // De-dupe by scan id so re-saving the same scan doesn't pad the timeline.
+  if (hist.length && hist[hist.length - 1].id === point.id) return hist;
+  hist.push(point);
+  const capped = hist.slice(-HISTORY_CAP);
+  await kv.put(`h:${domain}`, JSON.stringify(capped), { expirationTtl: WATCH_TTL });
+  return capped;
+}
+
+// Decide whether `current` is a regression from `baseline`. Pure — unit-tested.
+export function isRegression(baseline, current) {
+  if (!baseline || !current) return false;
+  if (tierRank(current.tier) > tierRank(baseline.tier)) return true;
+  return (current.score - baseline.score) >= REGRESSION_SCORE_DELTA;
+}
+
+// Called from the scan handler after a result is persisted. If the scanned
+// domain is being watched, append a history point, refresh last-seen, set the
+// baseline if it was never established, and recompute the regressed flag.
+// Returns a compact monitoring summary to fold into the scan response (so the
+// UI can show "monitored · regressed A → C"), or null if the domain isn't watched.
+export async function recordScanForWatch(kv, slim) {
+  if (!kv || !slim || !slim.domain) return null;
+  const watch = await getWatch(kv, slim.domain);
+  if (!watch) return null;
+
+  const point = {
+    id: slim.id,
+    score: slim.score,
+    grade: slim.grade,
+    tier: slim.tier,
+    createdAt: slim.createdAt || new Date().toISOString()
+  };
+  await appendHistory(kv, slim.domain, point);
+
+  // Establish the baseline on the first observed scan if registration happened
+  // before any scan existed for the domain.
+  if (watch.baselineScore == null) {
+    watch.baselineScore = point.score;
+    watch.baselineGrade = point.grade;
+    watch.baselineTier  = point.tier;
+    watch.baselineId    = point.id;
+    watch.baselineAt    = point.createdAt;
+  }
+
+  const baseline = {
+    score: watch.baselineScore, grade: watch.baselineGrade, tier: watch.baselineTier
+  };
+  const regressed = isRegression(baseline, point);
+
+  watch.lastScore = point.score;
+  watch.lastGrade = point.grade;
+  watch.lastTier  = point.tier;
+  watch.lastId    = point.id;
+  watch.lastCheckedAt = point.createdAt;
+  watch.regressed = regressed;
+  // `notified` tracks whether we've already alerted for THIS regression so a
+  // future cron/email job fires once per transition, not on every re-scan.
+  if (!regressed) watch.notified = false;
+  await putWatch(kv, watch);
+
+  return {
+    watched: true,
+    regressed,
+    baseline,
+    delta: point.score - baseline.score
+  };
+}
+
+// Public-facing view of a watch — never leaks the subscriber's email.
+export function publicWatch(watch, history) {
+  if (!watch) return null;
+  return {
+    domain: watch.domain,
+    monitoring: true,
+    plan: watch.plan || 'trial',
+    createdAt: watch.createdAt,
+    baseline: watch.baselineScore == null ? null : {
+      score: watch.baselineScore, grade: watch.baselineGrade,
+      tier: watch.baselineTier, id: watch.baselineId, at: watch.baselineAt
+    },
+    last: watch.lastScore == null ? null : {
+      score: watch.lastScore, grade: watch.lastGrade,
+      tier: watch.lastTier, id: watch.lastId, at: watch.lastCheckedAt
+    },
+    regressed: !!watch.regressed,
+    history: (history || []).map(h => ({
+      score: h.score, grade: h.grade, tier: h.tier, at: h.createdAt
+    }))
+  };
+}
+
 // ── Tier → color ──────────────────────────────────────────────────────────────
 export function tierColors(tier) {
   switch (tier) {
