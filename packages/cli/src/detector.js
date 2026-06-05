@@ -2,7 +2,6 @@
 // into a single page-side IIFE, runs once via page.evaluate(), aggregates
 // results, computes a 0-100 score.
 
-import { chromium } from 'playwright';
 import { spawnSync } from 'node:child_process';
 import {
   PATTERNS,
@@ -19,6 +18,25 @@ import {
   combineAxes
 } from 'slop-detect-core';
 
+// Playwright is heavy (pulls in a ~150 MB browser) and is ONLY needed for an
+// actual scan. Import it lazily so `--help`, flag validation, error paths, and
+// the `--remote` API mode all work without it installed. A top-level import here
+// used to crash the whole binary (even `--help`) when Playwright was absent.
+let _chromium = null;
+async function loadChromium() {
+  if (_chromium) return _chromium;
+  try {
+    ({ chromium: _chromium } = await import('playwright'));
+  } catch (_) {
+    throw new Error(
+      "Playwright isn't installed, so local scanning is unavailable. " +
+      'Run `npm i -D playwright` (or `npm i -g playwright`), or use `--remote` ' +
+      'to scan via the slop-detect.com API instead.'
+    );
+  }
+  return _chromium;
+}
+
 // Lazy-install Chromium on first run. We skip the eager `postinstall` so that
 // `npm i -g slop-detect` (or `npx`) doesn't burn ~150 MB on every CI cache miss.
 // Set SKIP_PLAYWRIGHT_DOWNLOAD=1 to short-circuit (useful if you've already
@@ -26,6 +44,7 @@ import {
 let chromiumReady = false;
 async function ensureChromium() {
   if (chromiumReady) return;
+  const chromium = await loadChromium();
   if (process.env.SKIP_PLAYWRIGHT_DOWNLOAD) { chromiumReady = true; return; }
   // Try a cheap launch first. If the browser binary is missing, Playwright
   // throws a recognisable error — only then do we spawn the installer.
@@ -188,8 +207,58 @@ function buildPageScript() {
   })();`;
 }
 
+// ── Remote mode ──────────────────────────────────────────────────────────────
+// Scan via the public slop-detect.com API instead of a local browser. This is
+// the zero-install path: `npx slop-detect <url> --remote` needs no Playwright /
+// Chromium download. Returns the same result shape as scanUrl().
+const DEFAULT_API = 'https://slop-detect.com';
+
+export async function scanRemote(url, opts = {}) {
+  const base = opts.api || process.env.SLOP_API || DEFAULT_API;
+  const headers = { 'content-type': 'application/json' };
+  const key = opts.apiKey || process.env.SLOP_API_KEY;
+  if (key) headers['x-api-key'] = key;
+  let res;
+  try {
+    res = await fetch(new URL('/api/scan', base), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        url,
+        preset: opts.preset || 'full',
+        axes: opts.axes || ['design'],
+        screenshot: !!opts.screenshot
+      })
+    });
+  } catch (e) {
+    throw new Error(`Could not reach ${base} (${e.message}). Drop --remote to scan locally.`);
+  }
+  const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+  if (!res.ok) {
+    // Surface the API's structured errors (rate_limited, cloudflare_challenge…).
+    const err = new Error(data.error || `scan failed (HTTP ${res.status})`);
+    if (data.code) err.code = data.code;
+    throw err;
+  }
+  return data;
+}
+
+export async function aeoRemote(url, opts = {}) {
+  const base = opts.api || process.env.SLOP_API || DEFAULT_API;
+  const headers = { 'content-type': 'application/json' };
+  const key = opts.apiKey || process.env.SLOP_API_KEY;
+  if (key) headers['x-api-key'] = key;
+  const res = await fetch(new URL('/api/aeo', base), {
+    method: 'POST', headers, body: JSON.stringify({ url })
+  });
+  const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+  if (!res.ok) throw new Error(data.error || `AEO check failed (HTTP ${res.status})`);
+  return data;
+}
+
 export async function scanUrl(url, opts = {}) {
   await ensureChromium();
+  const chromium = await loadChromium();
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
     viewport: { width: 1280, height: 800 },

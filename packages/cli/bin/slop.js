@@ -7,12 +7,12 @@
 // Scores any URL against the AI-design-slop fingerprint and emits a
 // pretty terminal report or a machine-readable JSON blob.
 
-import { scanUrl } from '../src/detector.js';
+import { scanUrl, scanRemote, aeoRemote } from '../src/detector.js';
 import { isPreset, PRESETS, PATTERNS, DEFINITIONS_VERSION, runAeoChecks } from 'slop-detect-core';
 
 const args = process.argv.slice(2);
 const urls = [];
-const flags = { json: false, screenshot: false, verbose: false, preset: 'full', axes: ['design'], failOn: null, aeo: false };
+const flags = { json: false, screenshot: false, verbose: false, preset: 'full', axes: ['design'], failOn: null, aeo: false, remote: false, api: null };
 
 // Tier severity ordering for --fail-on. A scan exits non-zero when its tier is
 // at or above the requested threshold. 'blocked'/'error' always count as failures
@@ -39,6 +39,11 @@ for (let i = 0; i < args.length; i++) {
   else if (a === '--verbose' || a === '-v') flags.verbose = true;
   else if (a === '--copy') flags.axes = ['design', 'copy'];
   else if (a === '--aeo') flags.aeo = true;
+  else if (a === '--remote') flags.remote = true;
+  else if (a === '--api' || a.startsWith('--api=')) {
+    flags.api = a.startsWith('--api=') ? a.slice('--api='.length) : args[++i];
+    flags.remote = true; // a custom API endpoint implies remote scanning
+  }
   else if (a === '--axes' || a.startsWith('--axes=')) {
     const val = a.startsWith('--axes=') ? a.slice('--axes='.length) : args[++i];
     const parsed = parseAxes(val);
@@ -120,6 +125,9 @@ Options:
   --copy            Shorthand for --axes design,copy
   --aeo             Add the AEO axis: can AI engines (ChatGPT/Claude/Perplexity)
                     actually read & cite this page? (network checks, no browser)
+  --remote          Scan via the slop-detect.com API instead of a local browser
+                    (no Playwright/Chromium install needed). Honors SLOP_API_KEY.
+  --api <url>       Use a custom API base (implies --remote). Env: SLOP_API
   --fail-on <tier>  Exit non-zero (1) if any page scores at/above tier: mild | heavy.
                     A blocked or errored scan also exits 1. Use this to gate CI.
   --help, -h        Show this help
@@ -289,10 +297,13 @@ function renderAeo(aeo) {
   const results = [];
   for (const url of urls) {
     try {
-      const r = await scanUrl(url, { screenshot: flags.screenshot, preset: flags.preset, axes: flags.axes });
+      const scanOpts = { screenshot: flags.screenshot, preset: flags.preset, axes: flags.axes, api: flags.api };
+      const r = flags.remote ? await scanRemote(url, scanOpts) : await scanUrl(url, scanOpts);
       if (flags.aeo) {
         try {
-          r.aeo = await runAeoChecks(url, { timeoutMs: 12000 });
+          r.aeo = flags.remote
+            ? await aeoRemote(url, { api: flags.api })
+            : await runAeoChecks(url, { timeoutMs: 12000 });
         } catch (e) {
           r.aeo = { error: e.message };
         }

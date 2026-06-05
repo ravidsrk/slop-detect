@@ -19,6 +19,22 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run lint
 
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # `npm ci` (not --ignore-scripts) links the workspace packages so the
+      # CLI's `import 'slop-detect-core'` resolves. Playwright is intentionally
+      # NOT installed here — the unit suite is browser-free (it's lazy-loaded),
+      # so this job stays fast. Real browser scanning is covered by smoke-cli.
+      - run: npm ci
+      - run: npm test
+
   smoke-cli:
     name: Smoke test CLI
     runs-on: ubuntu-latest
