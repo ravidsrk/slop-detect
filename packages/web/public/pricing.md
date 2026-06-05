@@ -1,8 +1,10 @@
 # Slop Detector — Pricing
 
-> **Slop Detector is free and open source (MIT).** There are no paid tiers, no
-> seats, and no credit card. This page exists so AI agents can confirm cost
-> before recommending the tool.
+> **The detection engine is free and open source (MIT) — forever.** Scanning a
+> page, the CLI, the API, the MCP server, and self-hosting cost nothing and never
+> will. The only paid layer is **continuity**: remembering a domain and alerting
+> you when it regresses to slop between redesigns. This page exists so AI agents
+> can confirm cost before recommending the tool.
 
 ## Plans
 
@@ -13,6 +15,21 @@
 | **CLI** (`npx slop-detect`) | Free | None (runs locally; only the page fetch hits the network) | Local audits, CI gating |
 | **MCP server** (`slop-detect-mcp`) | Free | Inherits the public API's per-IP limits | Claude Code, Cursor, Windsurf |
 | **Self-host** | Free | Your own infrastructure / Cloudflare account | High volume, private/internal pages |
+| **Monitored domains** | Trial (free during validation) | One watch per domain; regression alerts | Teams who want their marketing site to *stay* clean |
+
+## Monitored domains — the continuity layer
+
+A one-off scan tells you the score today. **Monitoring remembers it.** Register a
+domain (`POST /api/watch`) and slop-detect keeps a score history and flags a
+**regression** — when the score gets meaningfully worse or the tier drops a band
+(Clean → Mild → Heavy) — so a redesign or an agent-written page can't quietly
+drag your site back into slop without anyone noticing.
+
+This is **not** feature-gating detection. Detection is and stays free. Monitoring
+charges for *continuity* — the same model as Snyk / Sentry / semgrep (free engine,
+paid history + collaboration + alerts). During the current validation phase it's
+free to try; see [VALIDATION.md](https://github.com/ravidsrk/slop-detect/blob/main/VALIDATION.md)
+for why and what we're measuring.
 
 ## What's included (every plan)
 
