@@ -53,3 +53,4 @@ for why and what we're measuring.
 - Web app: <https://slop-detect.com>
 - Source (MIT): <https://github.com/ravidsrk/slop-detect>
 - API reference: <https://slop-detect.com/openapi.json>
+- Privacy policy: <https://slop-detect.com/privacy.md>
