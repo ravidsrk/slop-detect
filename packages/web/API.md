@@ -135,6 +135,79 @@ short-cached. Embed:
 
 ---
 
+## Monitored domains
+
+The continuity layer: scanning is free and stateless, but `POST /api/scan`
+already persists each result, so we can **remember a domain** and flag when it
+**regresses** to slop between scans (the score gets ≥8 points worse, or the tier
+drops a band: Clean → Mild → Heavy). This is the paid layer in spirit — detection
+stays free forever; see [pricing.md](public/pricing.md) and
+[VALIDATION.md](../../VALIDATION.md).
+
+### `POST /api/watch`
+
+Start (or stop) monitoring a domain. Goes through the shared middleware, but is
+gated on the **cheap** (non-scan) rate limit and **does not require Turnstile**,
+so a signup form works without a captcha.
+
+**Subscribe** — body `{ "domain": "example.com", "email": "dev@startup.io" }`:
+
+| Field         | Type    | Required | Notes                                                        |
+|---------------|---------|----------|--------------------------------------------------------------|
+| `domain`      | string  | yes      | Bare domain. A scheme/`www.`/path is stripped; must be a real hostname. |
+| `email`       | string  | yes      | Where regression alerts will go (validation phase: captured, not yet sent). |
+| `unsubscribe` | boolean | no       | If `true`, stops monitoring (requires the matching `email`). |
+
+**Response** `201` (new) / `200` (already monitored):
+
+```json
+{
+  "domain": "example.com",
+  "monitoring": true,
+  "plan": "trial",
+  "baseline": { "score": 6, "grade": "A", "tier": "Clean", "id": "r0", "at": "..." },
+  "last": { "score": 6, "grade": "A", "tier": "Clean", "id": "r0", "at": "..." },
+  "regressed": false,
+  "history": [],
+  "alreadyMonitored": false,
+  "note": "Monitoring active — we recorded the current score as your baseline."
+}
+```
+
+The baseline is seeded from the domain's most recent scan if one exists;
+otherwise it's set on the next scan. **Subscribe is idempotent** — re-posting
+preserves an established baseline and updates the email.
+
+**Errors:** `400` (invalid `domain`/`email`), `403` (`unsubscribe` email doesn't
+match the subscriber), `503` (monitoring storage unavailable).
+
+### `GET /api/watch?domain=<domain>`
+
+Public monitoring status + score history for a domain. **Never returns the
+subscriber's email.** Returns `{ "domain": "...", "monitoring": false }` if the
+domain isn't watched. Public, no key (GET — not rate-limited by the middleware).
+
+```json
+{
+  "domain": "example.com", "monitoring": true, "plan": "trial",
+  "baseline": { "score": 6, "grade": "A", "tier": "Clean" },
+  "last": { "score": 30, "grade": "C", "tier": "Heavy" },
+  "regressed": true,
+  "history": [ { "score": 6, "grade": "A", "tier": "Clean", "at": "..." } ]
+}
+```
+
+When a watched domain is scanned, the scan response also carries a compact
+`monitoring` block (`{ watched, regressed, baseline, delta }`) so a dashboard can
+react in-line.
+
+> **Not yet wired:** scheduled re-scans (a Cron Trigger) and the actual "your
+> score dropped" email. The validation build captures intent + the email and
+> proves regression detection on real scan data; automated re-checks + delivery
+> are the next step.
+
+---
+
 ## Authentication
 
 API keys are **optional**. Without one you get the anonymous tier (and, in a
