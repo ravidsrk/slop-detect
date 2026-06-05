@@ -5,11 +5,11 @@
 // crawlable /directory page and any external embed. Public, no key (GET routes
 // aren't gated by the middleware).
 //
-//   GET /api/sites                 → up to `limit` listings (cursor-paginated)
-//   GET /api/sites?sort=slop       → sloppiest first (default: cleanest first)
-//   GET /api/sites?cursor=<cursor> → next page of the raw KV scan
+//   GET /api/sites             → all listings, globally sorted (cleanest first)
+//   GET /api/sites?sort=slop   → sloppiest first
+//   GET /api/sites?limit=50    → cap the number of rows returned (after sorting)
 
-import { listSites } from '../_shared.js';
+import { listAllSites } from '../_shared.js';
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -26,19 +26,21 @@ export async function onRequestGet({ request, env }) {
   if (!env.RESULTS) return json({ error: 'directory storage unavailable' }, 503);
 
   const u = new URL(request.url);
-  const cursor = u.searchParams.get('cursor');
   const sort = u.searchParams.get('sort') === 'slop' ? 'slop' : 'clean';
-  const limit = Math.min(500, Math.max(1, parseInt(u.searchParams.get('limit') || '200', 10) || 200));
+  const limit = Math.min(1000, Math.max(1, parseInt(u.searchParams.get('limit') || '500', 10) || 500));
 
-  const { sites, cursor: next, complete } = await listSites(env.RESULTS, { limit, cursor });
-
-  // Sort within the returned page. A score of null (listed but not yet scored)
-  // sinks to the end either way.
-  const ranked = sites.slice().sort((a, b) => {
+  // Enumerate the whole directory and sort GLOBALLY so the JSON view matches the
+  // /directory page exactly (a per-page sort would diverge once there are more
+  // listings than one KV page). Fine at validation scale; revisit if the
+  // catalogue grows past a few thousand. A null score (listed, not yet scored)
+  // always sinks to the end.
+  const all = await listAllSites(env.RESULTS);
+  all.sort((a, b) => {
     const sa = a.score == null ? Infinity : a.score;
     const sb = b.score == null ? Infinity : b.score;
     return sort === 'slop' ? sb - sa : sa - sb;
   });
 
-  return json({ count: ranked.length, sort, complete, cursor: next, sites: ranked });
+  const sites = all.slice(0, limit);
+  return json({ count: all.length, returned: sites.length, sort, sites });
 }

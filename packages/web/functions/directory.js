@@ -18,7 +18,9 @@ function row(site, origin) {
   const c = tierColors(site.tier);
   const grade = site.grade || '—';
   const score = site.score == null ? 'pending' : `${site.score}`;
-  const tier = site.tier || 'Unlisted';
+  // A listed-but-not-yet-scored domain has tier null — it IS listed, only the
+  // score is pending, so don't mislabel it "Unlisted".
+  const tier = site.tier || 'Pending';
   const title = site.title ? `<span class="ti">${escapeHtml(site.title)}</span>` : '';
   // The dofollow backlink — a plain <a href> with no rel. This is the gift.
   const out = `<a class="dom" href="https://${escapeHtml(site.domain)}">${escapeHtml(site.domain)}</a>`;

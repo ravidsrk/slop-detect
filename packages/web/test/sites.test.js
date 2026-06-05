@@ -178,6 +178,34 @@ test('unsubscribing a listed domain also delists it', async () => {
   assert.equal(await getListing(kv, 'example.com'), null);
 });
 
+test('a claimed domain cannot be listed/hijacked by a different email', async () => {
+  // owner@x.io already claims + lists example.com.
+  const kv = makeKv({
+    'w:example.com': JSON.stringify({ domain: 'example.com', email: 'owner@x.io', listed: true }),
+    'l:example.com': JSON.stringify({ domain: 'example.com', score: 6, grade: 'A', tier: 'Clean', listedAt: 'orig' })
+  });
+  const env = { RESULTS: kv };
+
+  // attacker@evil.io tries to take over (change email) and delist.
+  const res = await watchPost({ request: postReq({ domain: 'example.com', email: 'attacker@evil.io', list: false }), env });
+  assert.equal(res.status, 403);
+
+  // The watch + listing are untouched.
+  const watch = await getWatch(kv, 'example.com');
+  assert.equal(watch.email, 'owner@x.io');
+  assert.ok(await getListing(kv, 'example.com'), 'listing survives the hijack attempt');
+});
+
+test('/directory labels a listed-but-unscored domain "Pending", not "Unlisted"', async () => {
+  const kv = makeKv();
+  // List a domain that has never been scored (tier/score null).
+  await setListing(kv, { domain: 'fresh.com', score: null, grade: null, tier: null, id: null, title: null });
+  const res = await directoryGet({ request: { url: 'https://slop-detect.com/directory' }, env: { RESULTS: kv } });
+  const html = await res.text();
+  assert.match(html, /Pending/, 'pending rows are labeled Pending');
+  assert.doesNotMatch(html, /Unlisted/, 'a listed row is never labeled Unlisted');
+});
+
 // ── re-scan refreshes a listed domain's directory entry ──────────────────────
 test('recordScanForWatch refreshes the listing for a listed, watched domain', async () => {
   const kv = makeKv({
@@ -189,4 +217,15 @@ test('recordScanForWatch refreshes the listing for a listed, watched domain', as
   const listing = await getListing(kv, 'example.com');
   assert.equal(listing.score, 45, 'directory tracks the new score');
   assert.equal(listing.listedAt, 'orig', 'listed-since is preserved');
+});
+
+test('recordScanForWatch reconciles away a stale row when the watch is not listed', async () => {
+  // watch.listed=false but a directory row lingers (e.g. an earlier delist that
+  // didn't land). A scan should remove it — the scan is the reconciler.
+  const kv = makeKv({
+    'w:example.com': JSON.stringify({ domain: 'example.com', email: 'o@x.io', listed: false, baselineScore: 6, baselineTier: 'Clean' }),
+    'l:example.com': JSON.stringify({ domain: 'example.com', score: 6, grade: 'A', tier: 'Clean', listedAt: 'orig' })
+  });
+  await recordScanForWatch(kv, slim({ id: 'r9', score: 7, grade: 'A-', tier: 'Clean' }));
+  assert.equal(await getListing(kv, 'example.com'), null, 'stale row reconciled away');
 });

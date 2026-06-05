@@ -304,11 +304,14 @@ export async function recordScanForWatch(kv, slim) {
   if (!regressed) watch.notified = false;
   await putWatch(kv, watch);
 
-  // If the domain opted into the public directory, refresh its listing so the
-  // catalogue tracks the latest score (best-effort — never break a scan).
-  if (watch.listed) {
-    try { await setListing(kv, slim); } catch (_) { /* listing is best-effort */ }
-  }
+  // Reconcile the derived directory row with the watch (the source of truth):
+  // refresh it with the latest score if the domain is listed, or remove a stale
+  // row if it was delisted but a previous delete didn't land. Best-effort —
+  // never break a scan over the directory.
+  try {
+    if (watch.listed) await setListing(kv, slim);
+    else await deleteListing(kv, slim.domain);
+  } catch (_) { /* directory row is derived; reconciled on a later scan */ }
 
   return {
     watched: true,

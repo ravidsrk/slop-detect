@@ -228,30 +228,37 @@ tier · dofollow link out · link to its scan). `?sort=slop` ranks sloppiest-fir
 
 ### `GET /api/sites`
 
-JSON view of the same directory.
+JSON view of the same directory, **globally sorted** so it matches `/directory`
+exactly (the whole catalogue is enumerated and ordered before slicing).
 
-| Query    | Notes                                                        |
-|----------|--------------------------------------------------------------|
-| `sort`   | `clean` (default) or `slop`.                                 |
-| `limit`  | 1–500, default 200.                                          |
-| `cursor` | Opaque cursor from a previous response for the next page.    |
+| Query   | Notes                                                |
+|---------|------------------------------------------------------|
+| `sort`  | `clean` (default) or `slop`.                         |
+| `limit` | Cap rows returned after sorting (1–1000, default 500). |
 
 **Response** `200`:
 
 ```json
 {
   "count": 2,
+  "returned": 2,
   "sort": "clean",
-  "complete": true,
-  "cursor": null,
   "sites": [
     { "domain": "example.com", "url": "https://example.com", "score": 8, "grade": "A-", "tier": "Clean", "id": "ab12cd34", "title": "Example", "listedAt": "..." }
   ]
 }
 ```
 
-`score`/`grade`/`tier` are `null` for a domain that was listed but not yet
-scored (filled in on its next scan). Public, no key, short-cached.
+`count` is the full directory size; `returned` is how many rows this response
+carries (after `limit`). `score`/`grade`/`tier` are `null` for a domain that was
+listed but not yet scored (filled in on its next scan). Public, no key,
+short-cached.
+
+> **Ownership:** once a domain is claimed (first `POST /api/watch`), only the
+> same `email` may modify it — change the alert address, list/delist, or
+> re-baseline. A different email gets `403`. (A brand-new domain can be claimed
+> by anyone with an email; verified ownership via a DNS TXT / meta tag is a
+> documented follow-up.)
 
 ---
 
