@@ -1,0 +1,143 @@
+{
+  "generatedAt": "2026-06-05T09:54:20.907Z",
+  "definitionsVersion": "2026.08",
+  "count": 8,
+  "scored": 7,
+  "stats": {
+    "avgScore": 23.6,
+    "slopShare": 86,
+    "cleanCount": 1,
+    "mildCount": 3,
+    "heavyCount": 3
+  },
+  "byBuilder": {
+    "v0": {
+      "count": 1,
+      "avgScore": 17
+    },
+    "lovable": {
+      "count": 1,
+      "avgScore": 9
+    },
+    "bolt": {
+      "count": 1,
+      "avgScore": 33
+    },
+    "framer": {
+      "count": 1,
+      "avgScore": 17
+    },
+    "aura": {
+      "count": 1,
+      "avgScore": 30
+    },
+    "custom": {
+      "count": 2,
+      "avgScore": 29.5
+    }
+  },
+  "byCategory": {
+    "ai-builder": {
+      "count": 5,
+      "avgScore": 21.2
+    },
+    "saas": {
+      "count": 2,
+      "avgScore": 29.5
+    }
+  },
+  "sites": [
+    {
+      "domain": "lovable.dev",
+      "url": "https://lovable.dev",
+      "builtWith": "lovable",
+      "category": "ai-builder",
+      "scored": true,
+      "score": 9,
+      "grade": "A-",
+      "tier": "Clean",
+      "patternsFlagged": 2,
+      "resultUrl": "https://slop-detect.com/r/9my5og99"
+    },
+    {
+      "domain": "v0.dev",
+      "url": "https://v0.dev",
+      "builtWith": "v0",
+      "category": "ai-builder",
+      "scored": true,
+      "score": 17,
+      "grade": "B",
+      "tier": "Mild",
+      "patternsFlagged": 3,
+      "resultUrl": "https://slop-detect.com/r/jztu2d6f"
+    },
+    {
+      "domain": "framer.com",
+      "url": "https://www.framer.com",
+      "builtWith": "framer",
+      "category": "ai-builder",
+      "scored": true,
+      "score": 17,
+      "grade": "B",
+      "tier": "Mild",
+      "patternsFlagged": 4,
+      "resultUrl": "https://slop-detect.com/r/oxf10gpn"
+    },
+    {
+      "domain": "stripe.com",
+      "url": "https://stripe.com",
+      "builtWith": "custom",
+      "category": "saas",
+      "scored": true,
+      "score": 23,
+      "grade": "B-",
+      "tier": "Mild",
+      "patternsFlagged": 5,
+      "resultUrl": "https://slop-detect.com/r/9ncyz6eo"
+    },
+    {
+      "domain": "aura.build",
+      "url": "https://www.aura.build",
+      "builtWith": "aura",
+      "category": "ai-builder",
+      "scored": true,
+      "score": 30,
+      "grade": "D+",
+      "tier": "Heavy",
+      "patternsFlagged": 6,
+      "resultUrl": "https://slop-detect.com/r/itfd288e"
+    },
+    {
+      "domain": "bolt.new",
+      "url": "https://bolt.new",
+      "builtWith": "bolt",
+      "category": "ai-builder",
+      "scored": true,
+      "score": 33,
+      "grade": "D+",
+      "tier": "Heavy",
+      "patternsFlagged": 7,
+      "resultUrl": "https://slop-detect.com/r/nhjy688d"
+    },
+    {
+      "domain": "linear.app",
+      "url": "https://linear.app",
+      "builtWith": "custom",
+      "category": "saas",
+      "scored": true,
+      "score": 36,
+      "grade": "D",
+      "tier": "Heavy",
+      "patternsFlagged": 8,
+      "resultUrl": "https://slop-detect.com/r/3xcdrukv"
+    },
+    {
+      "domain": "replit.com",
+      "url": "https://replit.com",
+      "builtWith": "replit",
+      "category": "ai-builder",
+      "scored": false,
+      "reason": "cloudflare_challenge"
+    }
+  ]
+}

@@ -136,7 +136,10 @@ curl -s -X POST -H 'Content-Type: application/json' \
 
 `list: true` also opts the domain into the public, crawlable
 [**directory**](https://slop-detect.com/directory) of scored sites — an
-owner-gated catalogue with a real backlink to each listed site. We only store
+owner-gated catalogue with a real backlink to each listed site. See also
+[**The State of AI Design Slop**](https://slop-detect.com/leaderboard) — a
+reproducible scan of well-known landing pages (how much of the web now reads as
+AI-generated, and who's still clean). We only store
 your email to send the alerts you asked for, only after you confirm, and never
 sell it — see the [privacy policy](https://slop-detect.com/privacy.md). Engine
 stays MIT and free forever; only continuity (history + alerts) is the paid layer.
