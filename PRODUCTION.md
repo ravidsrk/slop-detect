@@ -41,11 +41,13 @@ Legend: ✅ done in-repo · 🔧 needs you (secret/decision/data) · ⏳ follow-
 - ✅ Version drift fixed (all 0.6.0, lockfile synced).
 - ✅ Security headers + CSP (scoped to Google Fonts + Turnstile). ⏳ Graduate CSP
   from `'unsafe-inline'` to nonces once index.html inline scripts are audited.
-- ⏳ **Calibrate detection.** No labeled corpus exists; thresholds are hand-tuned
-  and several fire on a single occurrence (glassmorphism/glows/gradient-text →
-  false-positive risk). Build a 50–100 page labeled set, add Playwright golden
-  tests scanning `file://` fixtures, then tune. This is what lets you state an
-  accuracy number you can defend.
+- 🟡 **Calibrate detection — harness shipped, data pending.** Added deterministic
+  golden fixtures (`packages/cli/test/golden.test.js`, run in CI with Chromium), a
+  seed labeled corpus (`packages/cli/calibration/corpus.json`), and a runner
+  (`npm run calibrate`) that reports accuracy + a confusion matrix. 🔧 Grow the
+  corpus to 50–100 human-labeled URLs and tune the single-occurrence thresholds
+  (glassmorphism/glows/gradient-text) before quoting an accuracy number. See
+  `CALIBRATION.md`.
 - ⏳ Dev-dep advisory: `ws`←`miniflare`←`wrangler` (build-time only). `npm audit
   fix` when convenient.
 - ⏳ Directory `listAllSites` is unbounded — cap/paginate before the catalogue
