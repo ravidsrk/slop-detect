@@ -61,9 +61,11 @@ export async function onRequestGet({ request, env }) {
     sites = await listAllSites(env.RESULTS).catch(() => []);
   }
   sites.sort((a, b) => {
-    const sa = a.score == null ? Infinity : a.score;
-    const sb = b.score == null ? Infinity : b.score;
-    return sort === 'slop' ? sb - sa : sa - sb;
+    // Pending (unscored) entries always sink to the end, in both sort modes.
+    if (a.score == null && b.score == null) return 0;
+    if (a.score == null) return 1;
+    if (b.score == null) return -1;
+    return sort === 'slop' ? b.score - a.score : a.score - b.score;
   });
 
   const other = sort === 'slop' ? 'clean' : 'slop';
