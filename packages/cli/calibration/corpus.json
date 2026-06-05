@@ -1,18 +1,22 @@
 {
-  "_about": "Seed calibration corpus. `label` is the human-confirmed expected design tier (Clean|Mild|Heavy); null means a candidate awaiting human review. The runner (run.mjs) scores accuracy only over confirmed labels and prints unlabeled predictions for a human to confirm. Grow this to 50-100 rows to state a defensible accuracy number — see CALIBRATION.md.",
+  "_about": "Calibration corpus. `label` is the human-confirmed expected design tier (Clean|Mild|Heavy); null means a candidate awaiting review. run.mjs scores accuracy over confirmed labels and prints a confusion matrix. `predicted` (when present) records what the LIVE pre-calibration detector returned on 2026-06-05, captured from /api/scan — kept so the over-flag gap is visible and trackable. Grow to 50-100 rows for a defensible accuracy number; see CALIBRATION.md.",
   "definitionsVersion": "2026.08",
+  "capturedAt": "2026-06-05",
   "entries": [
-    { "url": "https://news.ycombinator.com", "label": "Clean", "builtWith": "custom", "source": "README baseline (canonical clean)", "notes": "Plain, dense, system fonts." },
-    { "url": "https://example.com", "label": "Clean", "builtWith": "static", "source": "IANA example page", "notes": "Minimal by construction." },
+    { "url": "https://news.ycombinator.com", "label": "Clean", "builtWith": "custom", "source": "baseline", "notes": "Plain, dense, system fonts." },
+    { "url": "https://example.com", "label": "Clean", "builtWith": "static", "source": "IANA", "notes": "Minimal by construction." },
     { "url": "https://motherfuckingwebsite.com", "label": "Clean", "builtWith": "static", "source": "manual", "notes": "Deliberately unstyled." },
-    { "url": "https://berkshirehathaway.com", "label": "Clean", "builtWith": "static", "source": "manual", "notes": "Famously plain corporate site." },
-    { "url": "https://www.gnu.org", "label": "Clean", "builtWith": "static", "source": "manual", "notes": "Old-web, no slop tells." },
-    { "url": "https://bolt.new", "label": "Mild", "builtWith": "bolt", "source": "README example scan (24/100)", "notes": "AI-builder marketing site." },
-    { "url": "https://www.aura.build", "label": "Mild", "builtWith": "aura", "source": "README example scan (20/100)", "notes": "Gradient avatars, Inter." },
-    { "url": "https://lovable.dev", "label": null, "builtWith": "lovable", "source": "candidate", "notes": "Likely Mild/Heavy — confirm by eye." },
-    { "url": "https://v0.dev", "label": null, "builtWith": "v0", "source": "candidate", "notes": "Vercel/v0 surface — confirm." },
-    { "url": "https://vercel.com", "label": null, "builtWith": "next", "source": "candidate", "notes": "Premium but modern-default; confirm Clean vs Mild." },
-    { "url": "https://stripe.com", "label": null, "builtWith": "custom", "source": "candidate", "notes": "Premium custom; expected Clean — confirm." },
-    { "url": "https://linear.app", "label": null, "builtWith": "custom", "source": "candidate", "notes": "Dark, gradient-forward but bespoke; confirm." }
+    { "url": "https://berkshirehathaway.com", "label": "Clean", "builtWith": "static", "source": "manual", "notes": "Famously plain." },
+    { "url": "https://www.gnu.org", "label": "Clean", "builtWith": "static", "source": "manual", "notes": "Old-web." },
+    { "url": "https://supabase.com", "label": "Clean", "builtWith": "custom", "predicted": "Clean", "predictedScore": 8, "source": "scan 2026-06-05", "notes": "True negative — gradient_backgrounds(37!) + icon_card_grid fire but stay under threshold." },
+
+    { "url": "https://bolt.new", "label": "Mild", "builtWith": "bolt", "source": "README scan (24)", "notes": "AI-builder marketing site." },
+    { "url": "https://www.aura.build", "label": "Mild", "builtWith": "aura", "predicted": "Heavy", "predictedScore": 30, "source": "scan 2026-06-05", "notes": "Gradient avatars, Inter — genuinely slop-leaning." },
+    { "url": "https://v0.dev", "label": "Mild", "builtWith": "v0", "predicted": "Mild", "predictedScore": 17, "source": "scan 2026-06-05", "notes": "Leans into the aesthetic; Mild is fair." },
+    { "url": "https://lovable.dev", "label": "Clean", "builtWith": "lovable", "predicted": "Clean", "predictedScore": 9, "source": "scan 2026-06-05", "notes": "Scored Clean — a builder that isn't itself sloppy." },
+
+    { "url": "https://stripe.com", "label": "Clean", "builtWith": "custom", "predicted": "Mild", "predictedScore": 23, "source": "scan 2026-06-05", "notes": "FALSE POSITIVE. Iconic bespoke (pre-AI). Over-fires: purple_accent(8, the brand blurple #533afd), gradient_backgrounds(4), glassmorphism(4, single el — fixed), icon_card_grid(4), stat_banner(3)." },
+    { "url": "https://linear.app", "label": "Clean", "builtWith": "custom", "predicted": "Heavy", "predictedScore": 36, "source": "scan 2026-06-05", "notes": "FALSE POSITIVE. Canonical bespoke design. Over-fires: slop_fonts(8, Inter), eyebrow_pill(5, 'Sign up' CTA — fixed), perma_dark(4), centered_hero(4), gradient_backgrounds(4), icon_card_grid(4), numbered_steps(3), nested_cards(4)." },
+    { "url": "https://vercel.com", "label": "Clean", "builtWith": "next", "predicted": "Heavy", "predictedScore": 29, "source": "scan 2026-06-05", "notes": "FALSE POSITIVE. Premium; uses Geist (its own font). Over-fires: slop_fonts(8, Geist), eyebrow_pill(5, 'Events' nav — fixed), centered_hero(4), crushed_tracking(5), icon_card_grid(4), numbered_steps(3)." }
   ]
 }

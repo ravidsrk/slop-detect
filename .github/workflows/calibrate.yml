@@ -1,0 +1,39 @@
+name: calibrate
+
+# Measure detector accuracy against the labeled corpus (packages/cli/calibration)
+# and surface accuracy + a confusion matrix in the job summary. Report-only: it
+# does NOT gate merges yet, because the corpus currently encodes known false
+# positives (premium-custom sites the detector over-flags — see CALIBRATION.md).
+# Once those are tuned out, flip `--check` on to turn this into a regression gate.
+#
+# Scans via the public API (no browser). Set repo secret SLOP_API_KEY to lift the
+# anonymous per-IP throttle so the run finishes fast.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 7 1 * *'   # monthly, 1st at 07:00 UTC
+
+jobs:
+  calibrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run calibration
+        env:
+          SLOP_API_KEY: ${{ secrets.SLOP_API_KEY }}
+        run: |
+          node packages/cli/calibration/run.mjs --json cal-report.json | tee cal-out.txt
+          {
+            echo '## Calibration report'
+            echo '```'
+            cat cal-out.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: calibration-report
+          path: cal-report.json
