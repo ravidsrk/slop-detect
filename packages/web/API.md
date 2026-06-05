@@ -156,7 +156,10 @@ so a signup form works without a captcha.
 |---------------|---------|----------|--------------------------------------------------------------|
 | `domain`      | string  | yes      | Bare domain. A scheme/`www.`/path is stripped; must be a real hostname. |
 | `email`       | string  | yes      | Where regression alerts will go (validation phase: captured, not yet sent). |
-| `unsubscribe` | boolean | no       | If `true`, stops monitoring (requires the matching `email`). |
+| `list`        | boolean | no       | `true` lists the domain in the public [directory](#public-directory) (dofollow backlink); `false` delists it; omit to keep the current state. |
+| `unsubscribe` | boolean | no       | If `true`, stops monitoring **and** delists (requires the matching `email`). |
+
+The response echoes `listed` and, when listed, a `directoryUrl`.
 
 **Response** `201` (new) / `200` (already monitored):
 
@@ -205,6 +208,57 @@ react in-line.
 > score dropped" email. The validation build captures intent + the email and
 > proves regression detection on real scan data; automated re-checks + delivery
 > are the next step.
+
+---
+
+## Public directory
+
+An **opt-in** catalogue of scanned sites. A domain appears **only** when its
+owner lists it via `POST /api/watch { list: true }` — never from an anonymous
+scan — so we never publish a verdict on a company that didn't ask to be there.
+Listed sites get a real (dofollow) backlink from the directory page; that
+backlink is the incentive that pulls owners into the claim + monitor funnel.
+A listed domain's entry auto-refreshes whenever it's re-scanned.
+
+### `GET /directory`
+
+Server-rendered, crawlable HTML page listing every opt-in site (grade · score ·
+tier · dofollow link out · link to its scan). `?sort=slop` ranks sloppiest-first
+(default: cleanest-first). Emits `ItemList` JSON-LD and is in the sitemap. Public.
+
+### `GET /api/sites`
+
+JSON view of the same directory, **globally sorted** so it matches `/directory`
+exactly (the whole catalogue is enumerated and ordered before slicing).
+
+| Query   | Notes                                                |
+|---------|------------------------------------------------------|
+| `sort`  | `clean` (default) or `slop`.                         |
+| `limit` | Cap rows returned after sorting (1–1000, default 500). |
+
+**Response** `200`:
+
+```json
+{
+  "count": 2,
+  "returned": 2,
+  "sort": "clean",
+  "sites": [
+    { "domain": "example.com", "url": "https://example.com", "score": 8, "grade": "A-", "tier": "Clean", "id": "ab12cd34", "title": "Example", "listedAt": "..." }
+  ]
+}
+```
+
+`count` is the full directory size; `returned` is how many rows this response
+carries (after `limit`). `score`/`grade`/`tier` are `null` for a domain that was
+listed but not yet scored (filled in on its next scan). Public, no key,
+short-cached.
+
+> **Ownership:** once a domain is claimed (first `POST /api/watch`), only the
+> same `email` may modify it — change the alert address, list/delist, or
+> re-baseline. A different email gets `403`. (A brand-new domain can be claimed
+> by anyone with an email; verified ownership via a DNS TXT / meta tag is a
+> documented follow-up.)
 
 ---
 

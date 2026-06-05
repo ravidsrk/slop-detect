@@ -304,6 +304,15 @@ export async function recordScanForWatch(kv, slim) {
   if (!regressed) watch.notified = false;
   await putWatch(kv, watch);
 
+  // Reconcile the derived directory row with the watch (the source of truth):
+  // refresh it with the latest score if the domain is listed, or remove a stale
+  // row if it was delisted but a previous delete didn't land. Best-effort —
+  // never break a scan over the directory.
+  try {
+    if (watch.listed) await setListing(kv, slim);
+    else await deleteListing(kv, slim.domain);
+  } catch (_) { /* directory row is derived; reconciled on a later scan */ }
+
   return {
     watched: true,
     regressed,
@@ -318,6 +327,7 @@ export function publicWatch(watch, history) {
   return {
     domain: watch.domain,
     monitoring: true,
+    listed: !!watch.listed,
     plan: watch.plan || 'trial',
     createdAt: watch.createdAt,
     baseline: watch.baselineScore == null ? null : {
@@ -333,6 +343,100 @@ export function publicWatch(watch, history) {
       score: h.score, grade: h.grade, tier: h.tier, at: h.createdAt
     }))
   };
+}
+
+// ── Public directory of scanned sites (opt-in — see VALIDATION.md) ────────────
+// A site is listed ONLY when its owner opts in via the claim/monitor flow
+// (POST /api/watch { list: true }) — never from an anonymous scan, so we never
+// publish a verdict on a company that didn't ask to be there (a ROADMAP
+// guardrail). Listed sites get a real (dofollow) backlink from /directory: the
+// catalogue ranks in search, links out to each site, and the backlink is the
+// incentive that drives owners to claim + monitor.
+//
+// Storage (RESULTS KV): l:<domain> → full listing record, with a compact display
+// summary in the key's METADATA so the directory enumerates in one list() call
+// without a per-row read.
+const LISTING_TTL = 60 * 60 * 24 * 365;  // 1 year
+
+function listingMeta(record) {
+  return {
+    s: record.score, g: record.grade, tr: record.tier,
+    id: record.id, t: (record.title || '').slice(0, 60), at: record.listedAt
+  };
+}
+
+export async function getListing(kv, domain) {
+  if (!kv || !domain) return null;
+  const raw = await kv.get(`l:${domain}`);
+  return raw ? JSON.parse(raw) : null;
+}
+
+// Create or refresh a listing from a slim scan result. Preserves the original
+// listedAt across refreshes so the directory can show "listed since".
+export async function setListing(kv, slim) {
+  if (!kv || !slim?.domain) return null;
+  const domain = slim.domain;
+  const existing = await getListing(kv, domain);
+  const record = {
+    domain,
+    url: `https://${domain}`,
+    score: slim.score ?? null,
+    grade: slim.grade ?? null,
+    tier: slim.tier ?? null,
+    id: slim.id ?? existing?.id ?? null,
+    title: slim.title ?? existing?.title ?? null,
+    verdict: slim.verdict ?? existing?.verdict ?? null,
+    listedAt: existing?.listedAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  await kv.put(`l:${domain}`, JSON.stringify(record), {
+    expirationTtl: LISTING_TTL,
+    metadata: listingMeta(record)
+  });
+  return record;
+}
+
+export async function deleteListing(kv, domain) {
+  if (!kv || !domain) return;
+  await kv.delete(`l:${domain}`);
+}
+
+// Enumerate the directory from KV list metadata (cheap — no per-row get).
+// Returns { sites, cursor, complete }. `cursor` paginates the raw KV scan.
+export async function listSites(kv, { limit = 200, cursor = null } = {}) {
+  if (!kv) return { sites: [], cursor: null, complete: true };
+  const res = await kv.list({ prefix: 'l:', limit, cursor: cursor || undefined });
+  const sites = (res.keys || []).map(k => {
+    const m = k.metadata || {};
+    const domain = k.name.replace(/^l:/, '');
+    return {
+      domain,
+      url: `https://${domain}`,
+      score: m.s ?? null,
+      grade: m.g ?? null,
+      tier: m.tr ?? null,
+      id: m.id ?? null,
+      title: m.t || null,
+      listedAt: m.at || null
+    };
+  });
+  return {
+    sites,
+    cursor: res.list_complete ? null : (res.cursor || null),
+    complete: !!res.list_complete
+  };
+}
+
+// Walk the whole directory (paginates internally). Fine at validation scale.
+export async function listAllSites(kv) {
+  const out = [];
+  let cursor = null;
+  do {
+    const r = await listSites(kv, { limit: 1000, cursor });
+    out.push(...r.sites);
+    cursor = r.cursor;
+  } while (cursor);
+  return out;
 }
 
 // ── Tier → color ──────────────────────────────────────────────────────────────
