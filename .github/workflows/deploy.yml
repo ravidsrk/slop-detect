@@ -1,0 +1,56 @@
+name: deploy
+
+# Deploys the web app (packages/web) to Cloudflare Pages.
+#
+# Two safe triggers — NEVER auto-deploys on every push to main by default:
+#   • workflow_dispatch — deploy on demand from the Actions tab.
+#   • tags v*           — deploy when you cut a release tag (v0.6.0, …).
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN   — a scoped token with "Cloudflare Pages: Edit".
+#   CLOUDFLARE_ACCOUNT_ID  — your Cloudflare account id.
+# Without them the job fails fast with a clear message (it does not silently
+# no-op). To enable continuous deploys on green main, add `push: branches:[main]`
+# below — but only once you trust CI as the gate.
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Cloudflare Pages
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Preflight — required secrets present
+        run: |
+          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ] || [ -z "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID must be set as repo secrets."
+            exit 1
+          fi
+
+      - run: npm ci
+
+      # Gate the deploy on the test suite — never ship a red build.
+      - run: npm test
+
+      - name: Publish (wrangler pages deploy)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: packages/web
+          command: pages deploy public --project-name=slop-detector
