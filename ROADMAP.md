@@ -7,6 +7,13 @@ This roadmap is grounded in a mid-2026 landscape scan of the AI-design-slop spac
 and a study of how shareable dev-tool OSS projects grow and sustain themselves.
 It is opinionated on purpose. See [Appendix: Research basis](#appendix-research-basis).
 
+> **Now reading this differently.** The flywheel below is built and shipping —
+> but it was sequenced before we confirmed a buyer. The immediate priority is no
+> longer "build the next phase"; it's a time-boxed experiment to find who pays.
+> See **[VALIDATION.md](VALIDATION.md)** — a 30-day buyer-validation plan with a
+> pre-committed go / no-go gate (decision date 2026-07-05). This roadmap resumes
+> once the market has picked the lane.
+
 ---
 
 ## 1. The thesis
