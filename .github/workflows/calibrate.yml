@@ -22,6 +22,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - run: npm ci
       - name: Run calibration
         env:
           SLOP_API_KEY: ${{ secrets.SLOP_API_KEY }}
