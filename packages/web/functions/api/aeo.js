@@ -9,7 +9,7 @@
 // limiting (gated AS a scan), and Turnstile are enforced by api/_middleware.js.
 
 import { runAeoChecks } from 'slop-detect-core';
-import { validateScanUrl } from '../_shared.js';
+import { validateScanUrl, isAllowedUrl } from '../_shared.js';
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -29,7 +29,10 @@ export async function onRequestPost({ request }) {
     const report = await runAeoChecks(v.url, {
       fetchImpl: fetch,
       timeoutMs: 10_000,
-      userAgent: 'SlopDetector-AEO/1.0 (+https://slop-detect.com)'
+      userAgent: 'SlopDetector-AEO/1.0 (+https://slop-detect.com)',
+      // SSRF: re-validate every redirect hop so a public URL can't bounce us to
+      // an internal host (the pre-flight check only saw the first URL).
+      isUrlAllowed: isAllowedUrl
     });
     return json(report);
   } catch (e) {

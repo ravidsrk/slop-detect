@@ -20,7 +20,7 @@ import {
   scoreCopy,
   combineAxes
 } from 'slop-detect-core';
-import { newId, slimResult, saveResult, validateScanUrl, recordScanForWatch } from '../_shared.js';
+import { newId, slimResult, saveResult, validateScanUrl, isAllowedUrl, recordScanForWatch } from '../_shared.js';
 
 // Normalize requested axes. Default: design only (backward-compatible).
 const VALID_AXES = ['design', 'copy'];
@@ -75,6 +75,19 @@ export async function onRequestPost({ request, env }) {
     const navMs = Date.now() - navStart;
 
     const data = await page.evaluate(pageScript);
+
+    // SSRF: the navigation may have followed redirects to a different host. The
+    // pre-flight guard only saw the originally-requested URL — so re-validate the
+    // FINAL url before we hand back its title/h1/text/screenshot. Refuse to
+    // return content scraped from a private/internal host reached via redirect.
+    if (data.url && !isAllowedUrl(data.url)) {
+      return json({
+        error: 'Scan refused: the URL redirected to a disallowed (private/internal) host.',
+        code: 'blocked_redirect',
+        url,
+        finalUrl: data.url
+      }, 400);
+    }
 
     // Anti-bot challenge / dead-page detection — refuse to score these so we
     // don't silently return a fake "Clean 0".
