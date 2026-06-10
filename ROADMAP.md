@@ -1,203 +1,159 @@
-# slop-detect — Strategic Roadmap
+# slop-detect — Strategic Roadmap v2
 
-> Where this open-source project goes next, and why.
-> Last updated: 2026-05-28 · Current version: v0.1.2
-
-This roadmap is grounded in a mid-2026 landscape scan of the AI-design-slop space
-and a study of how shareable dev-tool OSS projects grow and sustain themselves.
-It is opinionated on purpose. See [Appendix: Research basis](#appendix-research-basis).
-
-> **Now reading this differently.** The flywheel below is built and shipping —
-> but it was sequenced before we confirmed a buyer. The immediate priority is no
-> longer "build the next phase"; it's a time-boxed experiment to find who pays.
-> See **[VALIDATION.md](VALIDATION.md)** — a 30-day buyer-validation plan with a
-> pre-committed go / no-go gate (decision date 2026-07-05). This roadmap resumes
-> once the market has picked the lane.
+> Where this project goes next, and why.
+> Last updated: 2026-06-05 · Current version: v0.6.0
+> Supersedes the v1 roadmap (preserved in git history). Grounded in the
+> June 2026 deep-research pass — see "Research basis" at the bottom — and in
+> our own calibration evidence (`CALIBRATION.md`).
 
 ---
 
-## 1. The thesis
+## 1. The thesis (revised)
 
-slop-detect today is a **detector**: it scores a landing page against a fixed
-16-rule fingerprint. That is a good wedge, but the research is unambiguous about
-two pressures:
+**Slop is the hook, not the product.**
 
-1. **A static fingerprint is a depreciating asset.** The patterns Adrian Krebs
-   catalogued are early-2026 artifacts. As guardrails spread (Google's
-   `DESIGN.md` standard, anti-slop skills like Hallmark, design-system features
-   in v0/Lovable/Bolt) and as the aesthetic mean moves (bento grids, aurora
-   gradients, generative UI), **the defaults shift every few months**. A fixed
-   16-rule list will decay.
+Three research findings force the revision:
 
-2. **Detection-only is commoditizing.** There are now ~20+ named slop tools.
-   The commercial leader (Sailop) productized *prevention + remediation +
-   templates*. Pure detectors risk becoming free utilities.
+1. **The fixed visual fingerprint decays in ~6–18 months.** Signature-style
+   detectors reliably degrade (antivirus, AI-text detectors), and the
+   generators are being actively engineered to suppress the default look:
+   Google's **DESIGN.md** standard (Apache-2.0, ~15k★, ships `lint`/`export`
+   tooling) injects per-brand constraints into AI builders and agents — the
+   design-world equivalent of malware polymorphism. The thing we detect is
+   being standardized away.
 
-So the strategy is a deliberate two-part position:
+2. **Absolute slop-grading is commoditized.** Impeccable (~34.7k★, free, OSS)
+   owns the "most patterns" game; Sailop, aiwebsitedetector et al. fill the
+   rest, all enumerating the same tells. A rule list is copyable in an
+   afternoon. Meanwhile "slop" the meme peaked (2025 Word of the Year) — the
+   attention is a **depreciating asset to harvest, not a moat to defend**.
 
-> **Be the neutral, open measurement standard for design slop — the
-> "Lighthouse for design taste" — and make the score travel.**
->
-> Win on (a) a **continuously-updated, versioned, community-sourced ruleset**
-> ("slop definitions", like virus definitions) so currency is the moat, and
-> (b) **distribution surfaces** (shareable score cards, embeddable badges, a
-> GitHub Action / PR check, an MCP server) so the score embeds itself into
-> developer workflow and social feeds.
+3. **Our own evidence shows the fatal failure mode.** The detector scores
+   Linear/Vercel as Heavy and Stripe as Mild — punishing a *style* as
+   *provenance*, the exact false-positive trap that killed OpenAI's own AI-text
+   classifier and discredited the text-detector industry (Stanford/Cell). An
+   absolute "is this AI?" verdict cannot be made reliable; a **relative**
+   question can.
 
-Everything below serves that thesis.
+So the strategy inverts:
+
+> **Free, loud slop grader = acquisition channel (now, while attention peaks).**
+> **Paid product = continuous design-system / brand-drift monitoring —
+> "your non-designers and coding agents keep shipping to your site; we keep it
+> on-brand and on-system" — sold to agencies and teams as recurring continuity.**
+> **Technical posture: ride DESIGN.md, don't fight it.** Compliance with a
+> site's *own declared system* is a relative signal that cannot decay and
+> structurally cannot false-positive on great custom design.
 
 ---
 
-## 2. North-star metrics
+## 2. The product ladder
 
-| Metric | Why it matters |
+```
+acquire (free, peak-hype)          retain (paid, durable)
+┌──────────────────────────┐       ┌──────────────────────────────────┐
+│ slop grader (web/CLI/MCP)│  ───► │ monitored domains (built, v0.6)  │
+│ leaderboard + directory  │       │ + design-system drift (NEW axis) │
+│ badges + share cards     │       │ + agency multi-site dashboards   │
+│ AEO axis (free funnel)   │       │ + white-label PDF reports        │
+└──────────────────────────┘       │ + CI gate on system compliance   │
+                                   └──────────────────────────────────┘
+```
+
+The continuity layer (watch/alerts/directory) shipped in v0.6.0. The missing
+piece — and **the first deliverable of this roadmap** — is the relative axis
+that makes monitoring worth paying for:
+
+### P1 — The `system` axis: DESIGN.md compliance (NOW)
+
+"Does this page honor its declared design system?" Parse a site's `DESIGN.md`
+(Google Labs spec: YAML front-matter tokens — colors, typography, rounded,
+spacing, components), compare against what the scanned page actually renders
+(fonts in use, CTA/surface colors, radii), and report **drift** as named,
+contestable signals. Ships in core (pure, zero-dep), CLI (`--design-md`), and
+the web API. This:
+- **fixes the Linear/Stripe false-positive class structurally** — a bespoke
+  site checked against its own tokens scores *aligned*, not "slop";
+- **cannot decay** — the reference point is per-customer, not a global fashion;
+- **aligns us with the standard that would otherwise obsolete us**.
+
+### P2 — Sell continuity to agencies (NEXT, 1–2 quarters)
+
+The research is unambiguous about the indie buyer: **digital agencies** pay
+recurring for white-label reports, scheduled multi-site audits, and drift
+alerts ($29–$149/mo band; flat-rate beats per-site at 10–20 client sites).
+Build: multi-domain dashboard, branded PDF export, drift-alert emails (the
+pipeline shipped in v0.6), CI gate on `system` compliance. Open-core stays MIT
+(Plausible/Sentry/Semgrep model); charge for continuity, collaboration, scale.
+Realistic target: **$1–10K MRR within 12–18 months**, plus $800–4K/mo
+well-structured GitHub Sponsors.
+
+### P3 — Versioned community ruleset ("slop definitions") (ONGOING)
+
+Keep the free fingerprint current on the **Semgrep registry model**:
+community-contributed, versioned, months-cadence refresh; favor structural
+tells (badge-above-H1, stripe borders) that outlast color fashion; track
+DESIGN.md/builder updates as the leading decay indicator. Calibration
+(`CALIBRATION.md`, labeled corpus, honest precision/recall) is **strategic**,
+not housekeeping: signals-not-verdicts is the credibility model.
+
+### P4 — Agent-loop depth (ONGOING)
+
+The MCP server's job shifts from "scan after the fact" to "**the design-system
+check inside the coding-agent loop** before it ships" — consuming the repo's
+DESIGN.md. Workflow lock-in is the only durable distribution.
+
+---
+
+## 3. What we will NOT do (research-backed guardrails)
+
+- **No ML/vision/LLM-judge as the core engine.** Per-call cost, OOD collapse
+  (18–30% on current generators), and the false-positive credibility crisis.
+  At most: an opt-in *pairwise* LLM critique layer; never the scoring authority.
+- **No head-on AEO/citation-tracking business.** The monetizable core is owned
+  by funded startups (Profound ~$1B) and Semrush/Ahrefs; our crawlability/
+  llms.txt axis is the commoditized free slice — keep it as funnel only.
+- **No "% AI" verdicts, ever.** Named rules, contestable signals, page-not-person.
+- **No one-time licenses.** (Tailwind UI's collapse is the cautionary tale.)
+  Recurring only.
+- **No rule-count arms race with Impeccable.** Differentiate on continuity +
+  compliance + workflow, not pattern count.
+- **Engine stays MIT, free, offline-capable. Forever.** (Unchanged from v1.)
+
+---
+
+## 4. North-star metrics (revised)
+
+| Metric | Why |
 |---|---|
-| **Scans / week** (web + API + CLI + action) | Core usage; top of every funnel |
-| **Badges embedded in the wild** | Self-replicating backlink loop |
-| **Score cards shared** (OG image views) | Viral coefficient |
-| **Community rules merged** | Ruleset currency = the moat |
-| **Repos running `slop-detect-action`** | Workflow stickiness |
-| **GitHub stars / npm weekly downloads** | Credibility + discovery |
-
-We are NOT optimizing for revenue in the near term. Revenue is a Phase 4
-question and is deliberately structured to never compromise the OSS core.
+| Monitored domains (free → paid) | The business |
+| Agencies on multi-site plans | The buyer the research says converts |
+| Pages checked against a DESIGN.md | Adoption of the durable axis |
+| Definitions version freshness / community rules merged | Anti-decay |
+| Scans/week + leaderboard/directory traffic | Top of funnel (harvest the hype) |
 
 ---
 
-## 3. Phased plan
+## 5. Sequencing
 
-### Phase 1 — Make the score travel (distribution primitives)
-
-*Theme: every scan should produce something shareable and embeddable.
-These are the highest-leverage, lowest-cost moves in the whole roadmap.*
-
-- **P1.1 — Shareable score card + OG image** (`#01`)
-  Persist each scan to a short URL (`slop-detect.com/r/<id>`) that renders an
-  auto-generated OG image: big letter grade + score + a punchy one-liner verdict.
-  This is the #1 viral primitive every grader tool relies on.
-- **P1.2 — Embeddable badge** (`#02`)
-  `slop-detect.com/badge/<domain>.svg` returning a live "slop: A · 6/100" badge,
-  plus copy-paste HTML/Markdown/React snippets. Submit as a first-party
-  shields.io service badge for discovery.
-- **P1.3 — Letter grades + tier polish** (`#03`)
-  Add an A–F letter grade layer on top of the 0–100 score (graders that spread
-  all use a memorable letter). Keep numeric score as source of truth.
-
-### Phase 2 — Embed into the workflow (CI + agents)
-
-*Theme: move from one-off scans to recurring, in-workflow checks.*
-
-- **P2.1 — `slop-detect-action` GitHub Action** (`#04`)
-  Marketplace-listed action: scan deploy-preview URLs, post a **sticky PR
-  comment** with score + diff vs. baseline, set a **status check** with a
-  configurable `fail-under` threshold. Optionally update the README badge.
-- **P2.2 — Public REST API with rate-limited tiers** (`#05`)
-  Formalize `/api/scan` + `/api/fix-prompt` as a documented public API with
-  per-key rate limits. Free tier generous; keys for bulk/embedded use.
-- **P2.3 — MCP server** (`#06`)
-  Ship `slop-detect-mcp` so Cursor / Claude Code / Windsurf agents can
-  self-audit a page before shipping. Complements the existing agent skill.
-
-### Phase 3 — Keep the ruleset current (the moat)
-
-*Theme: turn a fixed fingerprint into a living, versioned, community standard.*
-
-- **P3.1 — Versioned "slop definitions"** (`#07`)
-  Version and date the ruleset (e.g. `definitions@2026.06`). Surface which
-  definition version produced a score. Establish a changelog for pattern changes.
-- **P3.2 — Declarative rule format + contribution flow** (`#08`)
-  Define a declarative rule schema (the eslint/semgrep playbook) so contributing
-  a 17th/18th pattern is low-friction. Web + PR contribution paths, attribution,
-  named presets (`strict`, `marketing`, `minimal`).
-- **P3.3 — New-pattern tracking** (`#09`)
-  Add emerging 2026 patterns (bento-grid walls, aurora/mesh gradients,
-  generative-UI tells) and retire/down-weight decayed ones. This is recurring
-  maintenance, not a one-off.
-- **P3.4 — AI-builder provenance signal** (`#10`)
-  Optional companion signal: "likely built with v0 / Lovable / Bolt / Framer".
-  Owns an SEO-rich keyword space and pairs uniquely with the genericness score
-  ("built with Lovable AND scores 78/100").
-
-### Phase 4 — Expand the surface & sustain (franchise + funding)
-
-*Theme: grow beyond visual design and fund the OSS core — without betraying it.*
-
-- **P4.1 — Multi-axis slop score (design + copy + code)** (`#11`)
-  Add deterministic **copy-slop** (em-dash overload, "delve", "in today's
-  fast-paced world", rule-of-three, "unlock/elevate/seamless") and a **code-slop**
-  hook. One page → three sub-scores → one unified slop score. Reuses the existing
-  scoring architecture.
-- **P4.2 — Data-journalism leaderboard** (`#12`)
-  Periodically scan a famous corpus ("Top 500 YC / SaaS landing pages ranked by
-  AI slop"), publish a public leaderboard + "Hall of Clean / Hall of Slop". Pure
-  linkbait that rides the "slop is Word of the Year" zeitgeist.
-- **P4.3 — `DESIGN.md` compliance mode** (`#13`)
-  As Google's `DESIGN.md` standard spreads, audit "does this page honor its
-  declared design system, or regress to defaults?" Aligns us with the standard
-  rather than against it.
-- **P4.4 — Sustainability: Pro tier + sponsors** (`#14`)
-  Keep the engine MIT and offline-capable forever. Monetize **continuity,
-  collaboration, scale, and compliance** only: historical tracking + regression
-  alerts (Pro ~$9–19/mo), team dashboards (~$49–99/mo), white-label agency PDF
-  reports, and GitHub Sponsors / Open Collective for goodwill.
+| Move | Status |
+|---|---|
+| P1 `system` axis (core + CLI + API) | **In progress (this release)** |
+| P2a Drift alerts on `system` axis via existing sweep | After P1 |
+| P2b Agency dashboard + white-label PDF | Next quarter |
+| P2c Pricing live ($29–$149/mo) | With P2b |
+| P3 Community ruleset + calibration corpus growth | Ongoing |
+| P4 MCP design-system mode | After P1 |
 
 ---
 
-## 4. Prioritization (leverage vs. effort)
+## Research basis (June 2026)
 
-| Move | Leverage | Effort | When |
-|---|---|---|---|
-| P1.1 Score card + OG image | 🔴 High | Low | **Now** |
-| P1.2 Embeddable badge | 🔴 High | Low | **Now** |
-| P1.3 Letter grades | 🟡 Med | Low | **Now** |
-| P2.1 GitHub Action | 🔴 High | Med | Next |
-| P3.2 Declarative rules + contribution | 🔴 High | Med | Next |
-| P2.3 MCP server | 🟡 Med | Low | Next |
-| P3.1 Versioned definitions | 🟡 Med | Low | Next |
-| P2.2 Public API tiers | 🟡 Med | Med | Later |
-| P3.3 New-pattern tracking | 🟡 Med | Recurring | Ongoing |
-| P3.4 Provenance signal | 🟡 Med | Med | Later |
-| P4.1 Multi-axis slop | 🟢 Strategic | High | Later |
-| P4.2 Data-journalism leaderboard | 🔴 High | Med | Opportunistic |
-| P4.3 DESIGN.md mode | 🟢 Strategic | Med | Later |
-| P4.4 Pro tier / sponsors | 🟢 Strategic | Med | Phase 4 |
-
-**Recommended next sprint:** P1.1 + P1.2 + P1.3 (the distribution primitives) —
-they compound, they're cheap, and they make every existing scan more valuable.
-
----
-
-## 5. Guardrails (what we will NOT do)
-
-- We will **not** feature-gate the detection engine. `slop-detect-core` and the
-  CLI stay MIT, free, and offline-capable forever. Trust is the asset.
-- We will **not** position a slop score as a verdict on a person or company. It
-  is one signal among many ("everyone uses AI now" is a strong, correct
-  counter-narrative — overclaiming gets us dunked on).
-- We will **not** let the ruleset go stale. A decayed fingerprint is worse than
-  no fingerprint. Currency > cleverness.
-- We will **not** become a fixer-template store (that lane is taken). We are the
-  neutral, open *measurement* standard.
-
----
-
-## Appendix: Research basis
-
-This roadmap synthesizes two research streams (May 2026):
-
-**Landscape** — "AI slop" is mainstream (Merriam-Webster 2025 Word of the Year;
-the "Slop Rebellion"). Adrian Krebs's ~1,400-page Playwright study (67% carry AI
-fingerprints) is the defining artifact and our methodological baseline. Sailop is
-the commercial leader (298-rule engine, rule-injection CLI, paid templates, MCP).
-Provenance detectors (aiwebsitedetector.com et al.) own a separate SEO space.
-Google's `DESIGN.md` (open-sourced Apr 2026, 14K★) plus anti-slop skills will
-reduce raw slop over time — making *currency* the moat. "Slop" is generalizing
-into a 3-axis franchise: design / copy / code.
-
-**Growth** — Every viral grader (HubSpot Website Grader, securityheaders.com,
-Mozilla Observatory, Lighthouse, websitecarbon.com) wins on the same loop:
-*free instant value → a memorable grade → a shareable/embeddable artifact →
-a leaderboard/shame dynamic*. Badges (shields.io) and CI integration
-(Lighthouse CI) are the two proven distribution flywheels. Monetization that
-respects OSS (Snyk/Sentry/semgrep model): keep the engine free, charge for
-continuity, collaboration, scale, and compliance.
+Deep-research pass across market, shelf-life, AEO, monetization, and technical
+frontier. Key citations: DESIGN.md spec + adoption (github.com/google-labs-code/design.md);
+Impeccable (impeccable.style); fingerprint-decay precedents (arXiv 2603.23146,
+SentinelOne signature-vs-behavioral); false-positive precedent (Stanford/Cell
+Liang & Zou; OpenAI classifier shutdown); MLLM-as-UI-judge limits (arXiv
+2510.08783); AEO incumbency (Fortune: Profound $96M Series C; Semrush/Ahrefs AI
+visibility); indie monetization (Plausible $1M-ARR write-up; Semgrep registry;
+agency audit-tool pricing; Tailwind UI decline, devclass Jan 2026).
