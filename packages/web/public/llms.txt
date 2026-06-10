@@ -28,9 +28,11 @@ page looks machine-generated, not that it is bad.
 
 ## Tools for agents
 
-- CLI: `npx slop-detect <url>`; add `--aeo` for the AEO axis, `--fail-on heavy`
-  to gate CI.
-- MCP server `slop-detect-mcp`: tools `scan_page`, `check_aeo`, `fix_prompt`.
+- CLI: `npx slop-detect <url>`; add `--aeo` for the AEO axis, `--design-md auto`
+  for the system axis, `--fail-on heavy` to gate CI, `--remote` to scan via the
+  API with no local browser.
+- MCP server `slop-detect-mcp`: tools `scan_page`, `check_aeo`,
+  `check_design_system`, `fix_prompt`.
 
 ## Axes
 
@@ -38,6 +40,24 @@ page looks machine-generated, not that it is bad.
 - Copy slop: hedge-y, em-dash-heavy LLM phrasing (optional second axis).
 - AEO: AI-crawler access, robots.txt, indexability, markdown twin, llms.txt,
   content-negotiation. Higher is better (inverse of the slop score).
+- System: DESIGN.md compliance — does the page honor its OWN declared design
+  system? Relative, per-site; higher is better; reports named drift (undeclared
+  fonts, off-palette colors, off-scale radii). Opt in via `designMd` on
+  `POST /api/scan`.
+
+## Keep it clean (monitoring)
+
+- [Monitor a domain](https://slop-detect.com/#monitor): `POST /api/watch`
+  `{ domain, email, system?, list? }` — daily re-scans, regression + design-drift
+  email alerts (double opt-in; nothing sent until confirmed).
+- [Dashboard](https://slop-detect.com/dashboard): every monitored domain on one
+  email, magic-link sign-in (`POST /api/dashboard/link`).
+- Client report per domain: `https://slop-detect.com/report/<domain>`
+  (print-friendly).
+- [Directory](https://slop-detect.com/directory): opt-in catalogue of scored
+  sites (`GET /api/sites` for JSON).
+- [Leaderboard](https://slop-detect.com/leaderboard): "The State of AI Design
+  Slop" — a reproducible scan of well-known landing pages.
 
 ## Use cases
 

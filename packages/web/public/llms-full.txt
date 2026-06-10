@@ -137,6 +137,20 @@ Exposes `scan_page`, `check_aeo`, `fix_prompt` to any MCP client (Claude Code,
 Cursor, Windsurf). Server card:
 https://slop-detect.com/.well-known/mcp/server-card.json
 
+## Monitoring, system axis & dashboard
+
+A score is a snapshot; monitoring is the continuity layer. `POST /api/watch`
+`{ domain, email }` re-scans the domain daily and emails on slop regression
+(double opt-in — nothing is sent until the address confirms). `system: true`
+also checks each scan against the site's own DESIGN.md (Google Labs spec) and
+alerts on design drift: undeclared fonts, off-palette CTA/surface colors,
+off-scale radii. The system axis is relative and higher-is-better (Aligned >=80,
+Drifting >=50, Off-system <50) and is never folded into the slop score.
+`list: true` opts the domain into the public directory (dofollow backlink).
+Each monitored domain gets a print-friendly client report at /report/<domain>;
+the dashboard at /dashboard (magic-link sign-in via POST /api/dashboard/link)
+shows every domain on one email. Privacy: /privacy.md.
+
 ## Use cases
 
 - Pre-launch landing-page audits.

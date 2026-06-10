@@ -1,6 +1,6 @@
 {
   "name": "slop-detect",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Score any landing page against the AI-design-slop fingerprint from your terminal. Playwright-based, deterministic, zero-config.",
   "type": "module",
   "license": "MIT",
@@ -29,7 +29,7 @@
     "demo": "node bin/slop.js https://news.ycombinator.com https://www.aura.build https://lovable.dev"
   },
   "dependencies": {
-    "slop-detect-core": "0.6.0",
+    "slop-detect-core": "0.7.0",
     "playwright": "^1.49.0"
   },
   "keywords": [
