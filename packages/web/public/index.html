@@ -88,7 +88,7 @@
       "operatingSystem": "Web, Node.js (CLI), MCP",
       "url": "https://slop-detect.com",
       "downloadUrl": "https://www.npmjs.com/package/slop-detect",
-      "softwareVersion": "0.6.0",
+      "softwareVersion": "0.7.0",
       "license": "https://opensource.org/licenses/MIT",
       "isAccessibleForFree": true,
       "publisher": { "@id": "https://slop-detect.com/#org" },
@@ -151,7 +151,7 @@
           "name": "Can it monitor a domain over time?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. POST /api/watch with a domain and email to monitor it: the daily sweep re-scans the domain and emails you (double opt-in) when the slop score regresses. Add system: true and it also checks the page against the site's own DESIGN.md, alerting when the design drifts off its declared system. Every monitored domain gets a print-friendly client report at slop-detect.com/report/<domain>."
+            "text": "Yes. POST /api/watch with a domain and email to monitor it: the daily sweep re-scans the domain and emails you (double opt-in) when the slop score regresses. Add system: true and it also checks the page against the site's own DESIGN.md, alerting when the design drifts off its declared system. Every monitored domain gets a print-friendly client report at slop-detect.com/report/<domain>, and the dashboard at slop-detect.com/dashboard (magic-link sign-in) shows every domain on your email in one view."
           }
         },
         {
@@ -1081,6 +1081,7 @@
       <nav class="topbar-links">
         <a href="#fingerprint" class="hide-sm">The fingerprint</a>
         <a href="#monitor" class="hide-sm">Monitoring</a>
+        <a href="/dashboard" class="hide-sm">Dashboard</a>
         <a href="/leaderboard" class="hide-sm">Leaderboard</a>
         <a href="/directory" class="hide-sm">Directory</a>
         <a href="https://github.com/ravidsrk/slop-detect" target="_blank" rel="noopener">GitHub</a>

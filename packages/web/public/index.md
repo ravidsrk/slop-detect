@@ -44,11 +44,32 @@ score polarity is inverted relative to the slop score: higher AEO is better.
    Same page in, same score out. No model, no randomness.
 4. **Clean / Mild / Heavy.** Clean 0–9, Mild 10–27, Heavy 28+.
 
+## System axis — does the page honor its own design system?
+
+The relative axis: declare your tokens in a DESIGN.md (Google Labs' open spec —
+colors, typography, radii, components) and Slop Detector reports **drift**
+against *your own* system: fonts in use that aren't declared, CTA or surface
+colors off the palette, radii off the scale. Higher is better (Aligned ≥80 ·
+Drifting ≥50 · Off-system <50). A bespoke site checked against its own tokens
+can never false-positive as "slop."
+
+## Keep it clean — monitoring
+
+A score is a snapshot; drift is the disease. Monitor a domain
+(`POST /api/watch` with a domain and email, or the form at
+https://slop-detect.com/#monitor) and the daily sweep re-scans it, emailing you
+on slop regression — and, with `system: true`, on design-system drift. Double
+opt-in: nothing is emailed until you confirm. Every monitored domain gets a
+print-friendly client report at `https://slop-detect.com/report/<domain>`, and
+the dashboard (https://slop-detect.com/dashboard, magic-link sign-in) shows
+every domain on your email in one view.
+
 ## Use it
 
 - Web: paste a URL at https://slop-detect.com
 - CLI: `npx slop-detect <url>` — gate CI with `--fail-on heavy`, add `--aeo` for
-  the AEO axis.
+  the AEO axis, `--design-md auto` for the system axis, `--remote` to scan via
+  the API with no local browser.
 - MCP: the `slop-detect-mcp` server exposes `scan_page`, `check_aeo`,
   `check_design_system` and `fix_prompt` tools to any MCP client (Claude Code,
   Cursor, Windsurf).
@@ -58,3 +79,6 @@ score polarity is inverted relative to the slop score: higher AEO is better.
 - Web app: https://slop-detect.com
 - Source: https://github.com/ravidsrk/slop-detect
 - Pattern catalogue: https://slop-detect.com/api/patterns
+- Directory of scored sites (opt-in): https://slop-detect.com/directory
+- The State of AI Design Slop: https://slop-detect.com/leaderboard
+- Privacy: https://slop-detect.com/privacy.md

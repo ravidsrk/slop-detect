@@ -19,7 +19,7 @@ function agentView() {
     url: ORIGIN,
     license: 'MIT',
     repository: 'https://github.com/ravidsrk/slop-detect',
-    version: '0.5.1',
+    version: '0.7.0',
     catalogue: {
       definitionsVersion: DEFINITIONS_VERSION,
       patternCount: PATTERNS.length,
@@ -45,6 +45,20 @@ function agentView() {
         method: 'GET',
         endpoint: `${ORIGIN}/api/patterns`,
         description: 'Read the live pattern catalogue.'
+      },
+      {
+        name: 'check_design_system',
+        method: 'POST',
+        endpoint: `${ORIGIN}/api/scan`,
+        body: { url: 'https://example.com', designMd: true },
+        description: 'System axis: does the page honor its own DESIGN.md? 0-100 compliance (higher is better) + named drift.'
+      },
+      {
+        name: 'monitor_domain',
+        method: 'POST',
+        endpoint: `${ORIGIN}/api/watch`,
+        body: { domain: 'example.com', email: 'you@company.com', system: true },
+        description: 'Monitor a domain: daily re-scans, regression + design-drift email alerts (double opt-in).'
       },
       {
         name: 'fix_prompt',
@@ -74,6 +88,9 @@ function agentView() {
       markdownTwin: `${ORIGIN}/index.md`,
       pricing: `${ORIGIN}/pricing.md`,
       privacy: `${ORIGIN}/privacy.md`,
+      dashboard: `${ORIGIN}/dashboard`,
+      directory: `${ORIGIN}/directory`,
+      leaderboard: `${ORIGIN}/leaderboard`,
       sitemap: `${ORIGIN}/sitemap.xml`,
       schemaMap: `${ORIGIN}/schema-map.xml`
     }

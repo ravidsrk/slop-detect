@@ -17,6 +17,18 @@ test('landing page carries no stale version or definitions strings', () => {
   assert.ok(!html.includes('2026.08'), 'defs label must not lag DEFINITIONS_VERSION');
 });
 
+test('JSON-LD softwareVersion matches the released package version', () => {
+  // Kills the drift class for good: the landing page can never again claim an
+  // old version once package.json moves.
+  const pkg = JSON.parse(readFileSync(new URL('../../../package.json', import.meta.url), 'utf8'));
+  assert.match(html, new RegExp(`"softwareVersion":\\s*"${pkg.version.replace(/\./g, '\\.')}"`),
+    `landing must advertise v${pkg.version}`);
+});
+
+test('the dashboard is reachable from nav and footer', () => {
+  assert.ok((html.match(/href="\/dashboard"/g) || []).length >= 2, 'topbar + footer dashboard links');
+});
+
 test('landing page mentions the full current tool surface', () => {
   assert.ok(html.includes('check_design_system'), 'MCP tool list must include the system-axis tool');
   assert.match(html, /DESIGN\.md/, 'the system axis must be presented');
