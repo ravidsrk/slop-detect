@@ -87,6 +87,25 @@ export async function scanPage(url) {
   return res.json();
 }
 
+// POST {url, designMd} to /api/scan and return the parsed JSON — the
+// design-system compliance check ("does this page honor its own DESIGN.md?").
+// `designMdUrl` (optional) points at an explicit DESIGN.md; otherwise the API
+// auto-discovers <origin>/DESIGN.md. share:false — agent checks shouldn't mint
+// public permalinks.
+export async function checkSystem(url, designMdUrl) {
+  const res = await fetchWithTimeout(`${apiBase()}/api/scan`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      url,
+      designMd: typeof designMdUrl === 'string' && designMdUrl ? designMdUrl : true,
+      share: false
+    })
+  });
+  if (!res.ok) throw await toApiError(res);
+  return res.json();
+}
+
 // POST {url} to /api/aeo and return the AEO conformance report JSON — "can AI
 // engines (ChatGPT/Claude/Perplexity) actually read & cite this page?".
 export async function checkAeo(url) {

@@ -45,6 +45,51 @@ export function formatScan(result) {
   return lines.join('\n');
 }
 
+// Renders the `system` block of a /api/scan result (DESIGN.md compliance).
+// Score is 0-100 where HIGHER is better — it measures alignment with the
+// site's OWN declared design system, not slop.
+export function formatSystem(result) {
+  const sys = result && result.system;
+  if (!sys) {
+    return 'No system block in the scan result — the API may not have run the design-system axis.';
+  }
+  if (!sys.declared) {
+    return [
+      'Design-system check: NO SYSTEM DECLARED.',
+      sys.message || 'No parseable DESIGN.md tokens were found for this page.',
+      '',
+      'To enable this check, publish a DESIGN.md (Google Labs spec — YAML',
+      'front-matter tokens: colors, typography, rounded, components) at the',
+      "site root, or pass design_md_url pointing at one."
+    ].join('\n');
+  }
+
+  const driftLines = (sys.drift || []).length
+    ? sys.drift.map((d) => `  • ${d.message} (${d.id})`).join('\n')
+    : '  • None — the page matches its declared system.';
+
+  const lines = [
+    `Design-system compliance${sys.name ? ` — "${sys.name}"` : ''}`,
+    `Score: ${sys.score}/100 (HIGHER is better — 100 = fully on-system)`,
+    `Tier: ${sys.tier} (Aligned ≥80 · Drifting ≥50 · Off-system <50)`,
+    sys.source ? `DESIGN.md: ${sys.source}` : null,
+    `Checks: ${sys.checksEvaluated} evaluated, ${sys.checksSkipped} skipped (missing data skips — it is never drift)`,
+    '',
+    'Drift:',
+    driftLines,
+    '',
+    'These are named, contestable checks against the tokens the site itself',
+    'declares — a fingerprint of drift, not a verdict on the design.',
+    '',
+    'Raw JSON:',
+    '```json',
+    JSON.stringify(sys, null, 2),
+    '```'
+  ].filter((l) => l !== null);
+
+  return lines.join('\n');
+}
+
 // Renders a /api/aeo report. Score is 0-100 where HIGHER is better (the inverse
 // of the slop score), so we spell that out too. Tier: AI-Ready / Partial /
 // Invisible.

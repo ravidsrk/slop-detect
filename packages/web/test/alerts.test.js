@@ -131,7 +131,7 @@ test('sweep respects max and records errors without aborting', async () => {
   const store = new Map(watches.map(w => [w.domain, { ...w }]));
   const s = await monitorSweep({
     watches: [...store.values()],
-    scanDomain: async (d) => { if (d === 'a.com') throw new Error('scan failed'); },
+    scanDomain: async (w) => { if (w.domain === 'a.com') throw new Error('scan failed'); },
     getWatch: async (d) => store.get(d) || null,
     putWatch: async (w) => store.set(w.domain, w),
     sendAlert: async () => ({ sent: true }),

@@ -182,9 +182,15 @@ so a signup form works without a captcha.
 | `domain`      | string  | yes      | Bare domain. A scheme/`www.`/path is stripped; must be a real hostname. |
 | `email`       | string  | yes      | Where regression alerts will go (validation phase: captured, not yet sent). |
 | `list`        | boolean | no       | `true` lists the domain in the public [directory](#public-directory) (dofollow backlink); `false` delists it; omit to keep the current state. |
+| `system`      | boolean | no       | `true` enables **design-system monitoring**: the daily sweep also checks the domain against its `<origin>/DESIGN.md` and emails on drift (Aligned → Drifting/Off-system, or a ≥15-point compliance drop). Omit to preserve; `false` disables. |
 | `unsubscribe` | boolean | no       | If `true`, stops monitoring **and** delists (requires the matching `email`). |
 
-The response echoes `listed` and, when listed, a `directoryUrl`.
+The response echoes `listed` (+ `directoryUrl` when listed), `systemMonitoring`,
+and — once the sweep has a reading — a `system` block (`score`, `tier`,
+`baseline`, `drifted`, named `drift` items). History points gain a compact
+`system` entry alongside the slop score. Drift alerts follow the same
+once-per-event / recovery-re-arms rule as slop-regression alerts, and only ever
+go to a verified (double-opt-in) address.
 
 **Response** `201` (new) / `200` (already monitored):
 
@@ -266,6 +272,15 @@ A listed domain's entry auto-refreshes whenever it's re-scanned.
 Server-rendered, crawlable HTML page listing every opt-in site (grade · score ·
 tier · dofollow link out · link to its scan). `?sort=slop` ranks sloppiest-first
 (default: cleanest-first). Emits `ItemList` JSON-LD and is in the sitemap. Public.
+
+### `GET /report/:domain`
+
+A **print-friendly client report** for a domain (the agency deliverable): latest
+slop grade/score, design-system compliance (when monitored), named drift items,
+triggered patterns, and score history — with an `@media print` stylesheet so
+"print / save PDF" produces a clean hand-off document without server-side PDF
+infrastructure. Public data only (never the subscriber's email); `noindex`;
+honest empty state for unscanned domains.
 
 ### `GET /api/sites`
 

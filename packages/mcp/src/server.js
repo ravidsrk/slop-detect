@@ -12,8 +12,8 @@ import {
   ListToolsRequestSchema
 } from '@modelcontextprotocol/sdk/types.js';
 
-import { scanPage, checkAeo, fixPrompt, ApiError } from './api.js';
-import { formatScan, formatAeo } from './format.js';
+import { scanPage, checkAeo, checkSystem, fixPrompt, ApiError } from './api.js';
+import { formatScan, formatAeo, formatSystem } from './format.js';
 
 // Read our own version from package.json so the MCP handshake never drifts from
 // the published version. Falls back to '0.0.0' if the file can't be read (e.g.
@@ -62,6 +62,29 @@ const TOOLS = [
     }
   },
   {
+    name: 'check_design_system',
+    description:
+      'Check whether a page honors its OWN declared design system (a DESIGN.md ' +
+      'file — Google Labs spec). Returns a compliance score 0-100 (HIGHER is ' +
+      'better), a tier (Aligned / Drifting / Off-system), and named drift ' +
+      'signals: fonts in use that are not declared, CTA/surface colors off the ' +
+      'palette, radii off the scale. Use this BEFORE shipping UI changes to a ' +
+      'site that has a design system — it catches brand drift that the slop ' +
+      'score (an absolute measure) cannot. By default looks for ' +
+      '<origin>/DESIGN.md next to the page.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        url: { type: 'string', description: 'The page URL to check (e.g. https://example.com).' },
+        design_md_url: {
+          type: 'string',
+          description: 'Optional: an explicit URL to the DESIGN.md to check against. Defaults to <origin>/DESIGN.md.'
+        }
+      },
+      required: ['url']
+    }
+  },
+  {
     name: 'fix_prompt',
     description:
       'Generate a copy-paste prompt that tells a coding agent exactly how to ' +
@@ -96,6 +119,11 @@ async function handleCall(name, args) {
   if (name === 'check_aeo') {
     const report = await checkAeo(url);
     return asToolResult(formatAeo(report));
+  }
+  if (name === 'check_design_system') {
+    const designMdUrl = args && typeof args.design_md_url === 'string' ? args.design_md_url.trim() : '';
+    const result = await checkSystem(url, designMdUrl || undefined);
+    return asToolResult(formatSystem(result));
   }
   if (name === 'fix_prompt') {
     const prompt = await fixPrompt(url);

@@ -134,6 +134,12 @@ curl -s -X POST -H 'Content-Type: application/json' \
   -d '{"url":"https://your-site.com","email":"you@example.com","list":true}'
 ```
 
+Add `"system": true` and the daily sweep also checks the domain against its own
+`DESIGN.md`, emailing you when the page **drifts off its declared design
+system** — the check that catches what an agent or a non-designer quietly broke.
+Every monitored domain gets a print-friendly client report at
+`slop-detect.com/report/<domain>`.
+
 `list: true` also opts the domain into the public, crawlable
 [**directory**](https://slop-detect.com/directory) of scored sites — an
 owner-gated catalogue with a real backlink to each listed site. See also

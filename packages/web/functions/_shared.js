@@ -152,6 +152,19 @@ export function slimResult(data, id) {
       }
     };
   }
+  // System axis (Roadmap v2 P2a): persist a compact compliance summary so the
+  // watch sweep can detect drift and the report page can render it. Only when
+  // the axis actually ran against a parseable DESIGN.md.
+  if (data.system && data.system.declared) {
+    slim.system = {
+      score: data.system.score,
+      tier: data.system.tier,
+      name: data.system.name || null,
+      driftCount: (data.system.drift || []).length,
+      drift: (data.system.drift || []).slice(0, 5)
+        .map(d => ({ id: d.id, message: d.message }))
+    };
+  }
   return slim;
 }
 
@@ -303,6 +316,23 @@ export function isRegression(baseline, current) {
   return (current.score - baseline.score) >= REGRESSION_SCORE_DELTA;
 }
 
+// System-axis drift (Roadmap v2 P2a). The system score is 0–100 HIGHER-IS-BETTER
+// (alignment with the site's own DESIGN.md). A drift event is: the page is no
+// longer Aligned, AND either it fell from an Aligned baseline or its score
+// dropped meaningfully (≥15). A site that was never Aligned doesn't "drift" on
+// every sweep — only on a real worsening. 'No system'/'No data' never drift.
+const SYSTEM_DRIFT_DELTA = 15;
+const SYSTEM_OK = new Set(['Aligned']);
+const SYSTEM_BAD = new Set(['Drifting', 'Off-system']);
+
+export function isSystemDrift(baseline, current) {
+  if (!baseline || !current) return false;
+  if (!SYSTEM_BAD.has(current.tier)) return false;
+  if (SYSTEM_OK.has(baseline.tier)) return true;
+  if (typeof baseline.score !== 'number' || typeof current.score !== 'number') return false;
+  return (baseline.score - current.score) >= SYSTEM_DRIFT_DELTA;
+}
+
 // Called from the scan handler after a result is persisted. If the scanned
 // domain is being watched, append a history point, refresh last-seen, set the
 // baseline if it was never established, and recompute the regressed flag.
@@ -320,6 +350,9 @@ export async function recordScanForWatch(kv, slim) {
     tier: slim.tier,
     createdAt: slim.createdAt || new Date().toISOString()
   };
+  // History points carry a compact system reading when the axis ran, so the
+  // report page can chart compliance over time alongside the slop score.
+  if (slim.system) point.sys = { score: slim.system.score, tier: slim.system.tier };
   await appendHistory(kv, slim.domain, point);
 
   // Establish the baseline on the first observed scan if registration happened
@@ -346,6 +379,28 @@ export async function recordScanForWatch(kv, slim) {
   // `notified` tracks whether we've already alerted for THIS regression so a
   // future cron/email job fires once per transition, not on every re-scan.
   if (!regressed) watch.notified = false;
+
+  // System-axis tracking (P2a): same baseline/last/once-per-event pattern as the
+  // slop score, but on the compliance reading. Only updates when the scan
+  // actually ran the axis (slim.system present) so a designMd-less scan can't
+  // erase system state.
+  let systemDrift = false;
+  if (slim.system) {
+    if (watch.baselineSystemScore == null) {
+      watch.baselineSystemScore = slim.system.score;
+      watch.baselineSystemTier = slim.system.tier;
+    }
+    systemDrift = isSystemDrift(
+      { score: watch.baselineSystemScore, tier: watch.baselineSystemTier },
+      { score: slim.system.score, tier: slim.system.tier }
+    );
+    watch.lastSystemScore = slim.system.score;
+    watch.lastSystemTier = slim.system.tier;
+    watch.lastSystemAt = point.createdAt;
+    watch.lastSystemDrift = slim.system.drift || [];
+    watch.systemRegressed = systemDrift;
+    if (!systemDrift) watch.systemNotified = false;
+  }
   await putWatch(kv, watch);
 
   // Reconcile the derived directory row with the watch (the source of truth):
@@ -357,12 +412,20 @@ export async function recordScanForWatch(kv, slim) {
     else await deleteListing(kv, slim.domain);
   } catch (_) { /* directory row is derived; reconciled on a later scan */ }
 
-  return {
+  const summary = {
     watched: true,
     regressed,
     baseline,
     delta: point.score - baseline.score
   };
+  if (slim.system) {
+    summary.system = {
+      score: slim.system.score,
+      tier: slim.system.tier,
+      drifted: systemDrift
+    };
+  }
+  return summary;
 }
 
 // Public-facing view of a watch — never leaks the subscriber's email.
@@ -383,8 +446,21 @@ export function publicWatch(watch, history) {
       tier: watch.lastTier, id: watch.lastId, at: watch.lastCheckedAt
     },
     regressed: !!watch.regressed,
+    // System axis (P2a): compliance monitoring state. Never includes the email.
+    systemMonitoring: !!watch.system,
+    system: watch.lastSystemScore == null ? null : {
+      score: watch.lastSystemScore,
+      tier: watch.lastSystemTier,
+      at: watch.lastSystemAt,
+      baseline: watch.baselineSystemScore == null ? null : {
+        score: watch.baselineSystemScore, tier: watch.baselineSystemTier
+      },
+      drifted: !!watch.systemRegressed,
+      drift: (watch.lastSystemDrift || []).map(d => ({ id: d.id, message: d.message }))
+    },
     history: (history || []).map(h => ({
-      score: h.score, grade: h.grade, tier: h.tier, at: h.createdAt
+      score: h.score, grade: h.grade, tier: h.tier, at: h.createdAt,
+      ...(h.sys ? { system: { score: h.sys.score, tier: h.sys.tier } } : {})
     }))
   };
 }
