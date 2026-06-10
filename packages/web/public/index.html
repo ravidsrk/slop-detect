@@ -1310,6 +1310,7 @@
           <a href="#how">How it works</a>
           <a href="#fingerprint">The fingerprint</a>
           <a href="#monitor">Monitor a domain</a>
+          <a href="/dashboard">Dashboard</a>
           <a href="/leaderboard">Leaderboard</a>
           <a href="/directory">Directory</a>
         </div>
@@ -1548,6 +1549,7 @@ if (watchForm) watchForm.addEventListener('submit', async (e) => {
     if (data.note) bits.push(escapeHtml(data.note));
     if (data.verificationSent) bits.push('Check your inbox to confirm and switch alerts on.');
     bits.push(`Client report: <a href="/report/${encodeURIComponent(dom)}">/report/${escapeHtml(dom)}</a>` +
+      ` &middot; <a href="/dashboard">all your domains</a>` +
       (data.directoryUrl ? ` &middot; <a href="${escapeHtml(data.directoryUrl)}">directory</a>` : ''));
     msg.className = 'watch-msg show ok';
     msg.innerHTML = bits.join(' ');
