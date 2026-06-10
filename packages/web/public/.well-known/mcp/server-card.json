@@ -27,6 +27,10 @@
       "description": "Score whether AI engines (ChatGPT/Claude/Perplexity) can fetch, read and cite a page. Higher is better."
     },
     {
+      "name": "check_design_system",
+      "description": "Check whether a page honors its own declared design system (a DESIGN.md file). Returns a 0-100 compliance score (higher is better) plus named drift: undeclared fonts, off-palette CTA colors, off-scale radii."
+    },
+    {
       "name": "fix_prompt",
       "description": "Build a ready-to-paste prompt instructing a coding agent how to de-slop a page from a scan result or URL."
     }

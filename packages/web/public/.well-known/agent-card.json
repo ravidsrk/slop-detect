@@ -40,6 +40,15 @@
       "outputModes": ["application/json"]
     },
     {
+      "id": "check_design_system",
+      "name": "Check design-system compliance",
+      "description": "Check whether a page honors its own declared design system (a DESIGN.md file). Returns a 0-100 compliance score (higher is better) plus named drift: undeclared fonts, off-palette CTA colors, off-scale corner radii.",
+      "tags": ["design-system", "design.md", "brand", "drift", "compliance"],
+      "examples": ["Does https://example.com still match its DESIGN.md?"],
+      "inputModes": ["application/json"],
+      "outputModes": ["application/json"]
+    },
+    {
       "id": "fix_prompt",
       "name": "Build a de-slop fix prompt",
       "description": "Generate a ready-to-paste prompt that tells a coding agent how to fix the slop patterns found on a page.",

@@ -53,6 +53,21 @@ test('exactly one domainOf helper (no shadowed duplicate)', () => {
   assert.equal((html.match(/function domainOf/g) || []).length, 1);
 });
 
+// ── agent-discovery files list the full tool surface ─────────────────────────
+test('every agent-discovery surface advertises check_design_system', () => {
+  const files = [
+    '../public/.well-known/agent-card.json',
+    '../public/.well-known/agent.json',
+    '../public/.well-known/mcp/server-card.json',
+    '../public/index.md'
+  ];
+  for (const f of files) {
+    const txt = readFileSync(new URL(f, import.meta.url), 'utf8');
+    assert.ok(txt.includes('scan_page') && txt.includes('check_aeo'), `${f}: base tools present`);
+    assert.ok(txt.includes('check_design_system'), `${f}: must list the system-axis tool`);
+  }
+});
+
 // ── navigation to the product surfaces ───────────────────────────────────────
 test('nav/footer link the directory, leaderboard, monitor, and privacy', () => {
   assert.match(html, /href="\/directory"/);
