@@ -116,9 +116,18 @@ export async function onRequestPost({ request, env }) {
     : body.list === false ? false
     : (existing?.listed ?? false);
 
+  // Design-system monitoring (Roadmap v2 P2a): `system: true` makes the daily
+  // sweep also check the domain against its <origin>/DESIGN.md and alert on
+  // drift (the agency value proposition). Same explicit-set / omit-preserves
+  // semantics as `list`; covered by the same ownership guard above.
+  const systemMonitoring = body.system === true ? true
+    : body.system === false ? false
+    : (existing?.system ?? false);
+
   const watch = {
     domain,
     email,
+    system: systemMonitoring,
     plan: existing?.plan || 'trial',
     createdAt: existing?.createdAt || now,
     updatedAt: now,
@@ -135,6 +144,16 @@ export async function onRequestPost({ request, env }) {
     listed,
     regressed: existing?.regressed ?? false,
     notified:  existing?.notified  ?? false,
+    // System-axis state is owned by recordScanForWatch — preserve it across
+    // re-subscribes so toggling `list`/email can't erase the compliance baseline.
+    baselineSystemScore: existing?.baselineSystemScore ?? null,
+    baselineSystemTier:  existing?.baselineSystemTier  ?? null,
+    lastSystemScore: existing?.lastSystemScore ?? null,
+    lastSystemTier:  existing?.lastSystemTier  ?? null,
+    lastSystemAt:    existing?.lastSystemAt    ?? null,
+    lastSystemDrift: existing?.lastSystemDrift ?? [],
+    systemRegressed: existing?.systemRegressed ?? false,
+    systemNotified:  existing?.systemNotified  ?? false,
     // Privacy/consent: record WHEN the email was submitted and under which
     // policy version (lawful basis = consent). `verified` stays false until a
     // double-opt-in confirmation is added — no alert email may be sent to an

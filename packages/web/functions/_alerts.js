@@ -48,3 +48,32 @@ const RANK = { Clean: 0, Mild: 1, Heavy: 2 };
 function tierDrop(from, to) {
   return (RANK[to] ?? 0) > (RANK[from] ?? 0);
 }
+
+// Design-system drift alert (Roadmap v2 P2a): "your page no longer honors its
+// own DESIGN.md." Named, contestable drift items — signals, never verdicts.
+export function buildDriftAlert(domain, baseline, current, driftItems = [], opts = {}) {
+  const subject = `slop-detect: ${domain} drifted off its design system (${baseline.tier} → ${current.tier})`;
+  const lines = [
+    `${domain} no longer matches its declared design system (DESIGN.md).`,
+    ``,
+    `  Baseline: ${baseline.tier}${typeof baseline.score === 'number' ? `  ·  ${baseline.score}/100` : ''}`,
+    `  Now:      ${current.tier}${typeof current.score === 'number' ? `  ·  ${current.score}/100` : ''}`,
+    ``
+  ];
+  if (driftItems.length) {
+    lines.push('What drifted:');
+    for (const d of driftItems.slice(0, 5)) lines.push(`  ✗ ${d.message}`);
+    lines.push('');
+  }
+  lines.push(
+    'These are named checks against the tokens YOUR DESIGN.md declares — a',
+    'fingerprint of drift, not a verdict on the design.'
+  );
+  if (opts.resultUrl) lines.push('', `Full scan: ${opts.resultUrl}`);
+  lines.push(
+    '',
+    `Stop these alerts: reply, or POST { unsubscribe: true } with this email to`,
+    `https://slop-detect.com/api/watch`
+  );
+  return { subject, text: lines.join('\n') };
+}
