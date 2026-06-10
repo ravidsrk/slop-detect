@@ -47,4 +47,7 @@ the score is deterministic and sourced.
 
 - Source: https://github.com/ravidsrk/slop-detect
 - Pattern catalogue: https://slop-detect.com/api/patterns
+- Monitoring & system axis (DESIGN.md drift): https://slop-detect.com/#monitor
+- Dashboard (magic-link): https://slop-detect.com/dashboard
+- Directory: https://slop-detect.com/directory · Leaderboard: https://slop-detect.com/leaderboard
 - Agent skill: https://slop-detect.com/.well-known/agent-skills/index.json

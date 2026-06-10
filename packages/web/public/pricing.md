@@ -23,7 +23,11 @@ A one-off scan tells you the score today. **Monitoring remembers it.** Register 
 domain (`POST /api/watch`) and slop-detect keeps a score history and flags a
 **regression** — when the score gets meaningfully worse or the tier drops a band
 (Clean → Mild → Heavy) — so a redesign or an agent-written page can't quietly
-drag your site back into slop without anyone noticing.
+drag your site back into slop without anyone noticing. Add `system: true` and the
+daily sweep also checks the domain against its own `DESIGN.md`, alerting on design
+drift. The [dashboard](https://slop-detect.com/dashboard) (magic-link sign-in)
+shows every monitored domain on your email in one view, and each domain gets a
+print-friendly client report at `/report/<domain>`.
 
 This is **not** feature-gating detection. Detection is and stays free. Monitoring
 charges for *continuity* — the same model as Snyk / Sentry / semgrep (free engine,
@@ -36,6 +40,7 @@ for why and what we're measuring.
 - Full 27-pattern deterministic design-slop fingerprint
 - Copy-slop axis (LLM phrasing tells)
 - AEO axis — can AI engines read & cite a page
+- System axis — DESIGN.md compliance ("does the page honor its own design system?")
 - Real headless Chromium scoring
 - Shareable result permalinks + per-domain badges
 - Fix-prompt generation

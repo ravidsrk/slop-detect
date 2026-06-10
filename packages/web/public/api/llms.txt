@@ -33,6 +33,17 @@ curl -X POST https://slop-detect.com/api/scan \
   -d '{"url":"https://example.com"}'
 ```
 
+## Monitoring & directory endpoints
+
+- `POST /api/watch` — `{ domain, email, system?, list? }`: monitor a domain (daily
+  re-scans; regression + DESIGN.md-drift email alerts, double opt-in). Flags are
+  omit-preserves; `unsubscribe: true` stops + delists.
+- `GET /api/watch?domain=` — public monitoring status + history (never the email).
+- `GET /api/sites` — the opt-in public directory (JSON; `sort=clean|slop`).
+- `POST /api/dashboard/link` — magic sign-in link for /dashboard (anti-enumeration).
+- `designMd: true | "<url>"` on `POST /api/scan` — the system axis: DESIGN.md
+  compliance, higher is better, named drift items.
+
 ## Links
 
 - OpenAPI: https://slop-detect.com/openapi.json

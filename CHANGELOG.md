@@ -1,5 +1,36 @@
 # Changelog
 
+## v0.7.0 — the system axis & the continuity product
+
+Strategy v2 implemented end to end ("slop is the hook, not the product").
+
+### Added
+- **System axis** — DESIGN.md compliance: core parser/scorer (zero-dep), CLI
+  `--design-md`, API `designMd`, MCP `check_design_system`. Relative,
+  higher-is-better, named drift; structurally immune to the premium-site
+  false-positive class.
+- **Drift alerts** — `watch { system: true }`: the daily sweep checks each
+  domain against its own DESIGN.md and emails once per drift event.
+- **Agency dashboard** (`/dashboard`) — magic-link sign-in (HMAC sessions,
+  anti-enumeration link endpoint), one view across every domain on an email.
+- **Client report** (`/report/<domain>`) — print-friendly (PDF via print).
+- **Leaderboard** (`/leaderboard`) + opt-in **directory** (`/directory`,
+  dofollow backlinks) + monitor conversion section on the landing page.
+- Calibration harness: golden fixtures, labeled corpus, `npm run calibrate`.
+
+### Changed
+- Landing page: §04 monitoring conversion bridge, post-scan nudge, nav/footer
+  to all surfaces; sub-pages unified on the forensic-instrument brand.
+- All discovery surfaces (openapi.json — incl. fixing a wrong `preset` enum —
+  llms.txt family, .well-known cards, agent view) synced to the full tool
+  surface and version.
+
+### Fixed
+- Detector calibration: eyebrow-pill no longer fires on CTA/nav buttons;
+  glassmorphism requires >=2 elements (evidence: Stripe/Linear/Vercel scans).
+- Monitor form could silently delist a domain on resubmit (opt-ins now additive).
+
+
 ## definitions@2026.09 — calibration: fewer premium-site false positives
 
 Driven by real evidence from the `/leaderboard` corpus scan (linear.app scored
