@@ -40,6 +40,19 @@ test('the section is honest: double opt-in, privacy, free engine', () => {
   assert.match(html, /MIT/, 'free-engine promise stated');
 });
 
+test('monitor opt-ins are additive — an unchecked box never delists on resubmit', () => {
+  // Regression (Bugbot #12): sending list:false/system:false on every submit
+  // would delist a domain the owner had listed. Flags must only be SENT when checked.
+  assert.ok(!/list:\s*\$\('watchList'\)\.checked/.test(html), 'list must not be sent unconditionally');
+  assert.ok(!/system:\s*\$\('watchSystem'\)\.checked/.test(html), 'system must not be sent unconditionally');
+  assert.match(html, /watchList'\)\.checked \? \{ list: true \}/, 'list opt-in only when checked');
+  assert.match(html, /watchSystem'\)\.checked \? \{ system: true \}/, 'system opt-in only when checked');
+});
+
+test('exactly one domainOf helper (no shadowed duplicate)', () => {
+  assert.equal((html.match(/function domainOf/g) || []).length, 1);
+});
+
 // ── navigation to the product surfaces ───────────────────────────────────────
 test('nav/footer link the directory, leaderboard, monitor, and privacy', () => {
   assert.match(html, /href="\/directory"/);

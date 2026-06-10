@@ -1514,11 +1514,6 @@ function escapeHtml(s) {
   }[c]));
 }
 
-function domainOf(u) {
-  try { return new URL(u).hostname.replace(/^www\./, ''); }
-  catch { return String(u || '').replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0]; }
-}
-
 // ── Monitor form (§04) — POST /api/watch, render the API's honest response ───
 const watchForm = $('watchForm');
 if (watchForm) watchForm.addEventListener('submit', async (e) => {
@@ -1536,8 +1531,12 @@ if (watchForm) watchForm.addEventListener('submit', async (e) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         domain, email,
-        system: $('watchSystem').checked,
-        list: $('watchList').checked
+        // Additive opt-ins: only SEND a flag when the box is checked, so an
+        // unchecked box means "leave it as-is" (the watch API preserves omitted
+        // flags) rather than an explicit `false` that would delist / disable on
+        // a resubmit. Turning a feature off is the unsubscribe path, not this form.
+        ...($('watchSystem').checked ? { system: true } : {}),
+        ...($('watchList').checked ? { list: true } : {})
       })
     });
     const data = await r.json();
