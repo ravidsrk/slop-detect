@@ -1,7 +1,7 @@
 # slop-detect
 
-> **Score any landing page against the 27-rule AI-design-slop fingerprint.**
-> Detect Cursor / v0 / Lovable / Bolt templates in the wild — and get a copy-pasteable fix prompt to clean them up.
+> **Score any landing page against the 27-rule AI-design-slop fingerprint — then keep it clean.**
+> Detect Cursor / v0 / Lovable / Bolt templates in the wild, check a page against its own `DESIGN.md`, and get a copy-pasteable fix prompt. Monitor a domain and get emailed when it drifts.
 
 <p>
   <a href="https://github.com/ravidsrk/slop-detect/actions"><img alt="CI" src="https://github.com/ravidsrk/slop-detect/workflows/ci/badge.svg" /></a>
@@ -93,8 +93,9 @@ plus an `id` and `resultUrl` for the shareable permalink.
 
 [`slop-detect-mcp`](packages/mcp) is a Model Context Protocol server that lets
 Cursor / Claude Code / Windsurf agents scan a page **before** they ship it — and
-pull the fix prompt back into the editing loop. Two tools: `scan_page` and
-`fix_prompt`.
+pull the fix prompt back into the editing loop. Four tools: `scan_page`,
+`check_aeo` (can AI engines read & cite the page?), `check_design_system`
+(does the page honor its own `DESIGN.md`?), and `fix_prompt`.
 
 ```json
 {
