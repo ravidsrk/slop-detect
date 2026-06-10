@@ -26,6 +26,7 @@ Run the detector against a URL inside a headless Chromium and return the score
 | `url`        | string  | yes      | Target URL. `https://` is prepended if no scheme is present. |
 | `preset`     | string  | no       | `full` (default), `strict`, `marketing`, `minimal`.          |
 | `axes`       | array \| `"all"` | no | Axes to score: `["design"]` (default), `["design","copy"]`, or `"all"`. |
+| `designMd`   | boolean \| string | no | **System axis** — check the page against its declared design system ([DESIGN.md spec](https://github.com/google-labs-code/design.md)). `true` looks for `<origin>/DESIGN.md`; a URL fetches that file (SSRF-guarded). Adds a `system` block to the response. |
 | `screenshot` | boolean | no       | If `true`, includes a base64 JPEG of the above-fold render.  |
 | `share`      | boolean | no       | Default `true`. Set `false` to skip persistence/permalink.   |
 
@@ -73,6 +74,30 @@ Run the detector against a URL inside a headless Chromium and return the score
 `unifiedScore` = max axis score + 6 per additional dirty (non-Clean) axis, clamped
 to 100. The copy axis flags a `thin: true` when there's too little prose (<40 words)
 to judge, and stays Clean rather than guessing.
+
+**System axis** — when `designMd` is set, the response carries a separate
+`system` block (it measures alignment with the site's *own* declared system,
+so **higher is better** and it is *not* folded into the slop score):
+
+```json
+{
+  "system": {
+    "axis": "system", "declared": true, "name": "Heritage",
+    "score": 65, "tier": "Drifting",
+    "checksEvaluated": 5, "checksSkipped": 0,
+    "drift": [
+      { "id": "fonts.declared", "message": "font(s) in use but not in the system: inter" },
+      { "id": "colors.cta", "message": "2/6 CTA color(s) not in the palette" }
+    ],
+    "checks": [],
+    "source": "https://example.com/DESIGN.md"
+  }
+}
+```
+
+Tiers: `Aligned` (≥80) · `Drifting` (≥50) · `Off-system` (<50) · `No system`
+(no parseable DESIGN.md tokens) · `No data` (nothing observable to check).
+Missing data is always *skipped*, never reported as drift.
 
 **Error responses:**
 

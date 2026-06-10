@@ -17,6 +17,9 @@ import {
   applyPreset,
   isPreset,
   extractTextContext,
+  extractSystemContext,
+  parseDesignMd,
+  scoreSystemCompliance,
   scoreCopy,
   combineAxes
 } from 'slop-detect-core';
@@ -55,8 +58,16 @@ export async function onRequestPost({ request, env }) {
   if (checked.error) return json({ error: checked.error }, checked.status);
   const url = checked.url;
 
+  // System axis (DESIGN.md compliance) — opt in via { designMd: true } (looks
+  // for <origin>/DESIGN.md next to the scanned page) or { designMd: "<url>" }.
+  const wantsSystem = body.designMd === true || typeof body.designMd === 'string';
+  if (typeof body.designMd === 'string') {
+    const dv = validateScanUrl(body.designMd);
+    if (dv.error) return json({ error: `designMd: ${dv.error}` }, dv.status || 400);
+  }
+
   // Build the page-side IIFE that runs all detectors in one round-trip.
-  const pageScript = buildPageScript();
+  const pageScript = buildPageScript({ includeSystem: wantsSystem });
 
   let browser;
   try {
@@ -167,6 +178,34 @@ export async function onRequestPost({ request, env }) {
       Object.assign(result, combineAxes(summaries));
     }
 
+    // System axis: fetch the DESIGN.md (explicit URL or <origin>/DESIGN.md next
+    // to the final page), SSRF-guarded + size-capped, and score drift against
+    // what the page actually rendered. Reported separately from the slop score
+    // (it measures alignment with the site's OWN system; higher is better).
+    if (wantsSystem) {
+      const mdUrl = typeof body.designMd === 'string'
+        ? body.designMd
+        : new URL('/DESIGN.md', data.url || url).toString();
+      let mdText = null;
+      if (isAllowedUrl(mdUrl)) {
+        try {
+          const ctl = new AbortController();
+          const t = setTimeout(() => ctl.abort(), 8000);
+          const res = await fetch(mdUrl, {
+            signal: ctl.signal,
+            headers: { Accept: 'text/markdown,text/plain,*/*' }
+          });
+          clearTimeout(t);
+          if (res.ok) mdText = (await res.text()).slice(0, 200_000);
+        } catch (_) { /* unreachable DESIGN.md → reported as "no system" below */ }
+      }
+      result.system = scoreSystemCompliance(
+        mdText ? parseDesignMd(mdText) : null,
+        data.systemContext
+      );
+      result.system.source = mdText ? mdUrl : null;
+    }
+
     // Persist a slim snapshot so the scan gets a shareable permalink (/r/:id),
     // a cached OG card (/og/:id.png), and feeds the per-domain badge.
     // Skip persistence when the caller opts out (e.g. CI dry-runs).
@@ -255,7 +294,7 @@ function detectBlocked(data, _ctx) {
 }
 
 // ── Page-side script assembler ──────────────────────────────────────────────
-function buildPageScript() {
+function buildPageScript(opts = {}) {
   const patternCalls = PATTERNS.map(p => `
     try {
       signals[${JSON.stringify(p.id)}] = (${p.extract.toString()})(ctx);
@@ -309,6 +348,13 @@ function buildPageScript() {
     let textContext = null;
     try { textContext = extractTextContext(); } catch (e) { textContext = { error: e.message }; }
 
+    // System axis: observe fonts/colors/radii (scored Worker-side).
+    let systemContext = null;
+    ${opts.includeSystem ? `
+    const extractSystemContext = ${extractSystemContext.toString()};
+    try { systemContext = extractSystemContext(); } catch (e) { systemContext = { error: e.message }; }
+    ` : ''}
+
     return {
       title: document.title,
       url: location.href,
@@ -318,7 +364,8 @@ function buildPageScript() {
       h1Font: h1 ? getComputedStyle(h1).fontFamily : null,
       visibleCount: visible.length,
       signals,
-      textContext
+      textContext,
+      systemContext
     };
   })();`;
 }

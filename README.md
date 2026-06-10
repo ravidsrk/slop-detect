@@ -207,6 +207,29 @@ slop-detect https://example.com --preset minimal       # the 3 dead-giveaways
 The API accepts `{ "url": "...", "preset": "strict" }`. New patterns can be added
 declaratively — see [CONTRIBUTING.md](CONTRIBUTING.md#the-low-friction-path-declarative-rules).
 
+## The system axis — DESIGN.md compliance
+
+The absolute slop score asks "does this look AI-generated?" The **system axis**
+asks the durable question: **"does this page honor its own declared design
+system?"** Declare your tokens in a [DESIGN.md](https://github.com/google-labs-code/design.md)
+(Google Labs' open spec — colors, typography, radii, components), and
+slop-detect reports **drift**: fonts in use that aren't declared, CTA/surface
+colors off the palette, radii off the scale. Relative, per-site, and immune to
+the false-positive trap — a bespoke site checked against its own system scores
+*Aligned*, never "slop."
+
+```bash
+slop-detect https://your-site.com --design-md auto        # <origin>/DESIGN.md
+slop-detect https://your-site.com --design-md ./DESIGN.md  # local file
+
+curl -s -X POST -H 'Content-Type: application/json' \
+  https://slop-detect.com/api/scan \
+  -d '{"url":"https://your-site.com","designMd":true}' | jq .system
+```
+
+Higher is better: `Aligned` (≥80) · `Drifting` (≥50) · `Off-system` (<50).
+Every drift item is a named, contestable signal — never a verdict.
+
 ## Multi-axis slop — design + copy
 
 Slop isn't only visual. The same page that wears a v0 template usually has

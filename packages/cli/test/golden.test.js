@@ -55,3 +55,25 @@ test('the two fixtures are clearly separated (slop scores well above clean)', { 
   assert.ok(slop.score - clean.score >= 15,
     `expected a clear gap; clean=${clean.score} slop=${slop.score}`);
 });
+
+// ── System axis (DESIGN.md compliance) — end-to-end in a real browser ────────
+import { readFile } from 'node:fs/promises';
+const fixtureText = (name) => readFile(new URL(`./fixtures/${name}`, import.meta.url), 'utf8');
+
+test('a page that honors its DESIGN.md scores Aligned', { skip: !RUN }, async () => {
+  const md = await fixtureText('artisan-DESIGN.md');
+  const r = await scanUrl(fixture('clean-artisan.html'), { axes: ['design'], designMd: md });
+  assert.ok(r.system, 'system axis attached');
+  assert.equal(r.system.declared, true);
+  assert.equal(r.system.tier, 'Aligned',
+    `expected Aligned, got ${r.system.tier} (${r.system.score}) drift=${JSON.stringify(r.system.drift)}`);
+});
+
+test('the same page against the WRONG system reads as drift, with named signals', { skip: !RUN }, async () => {
+  const md = await fixtureText('mismatched-DESIGN.md');
+  const r = await scanUrl(fixture('clean-artisan.html'), { axes: ['design'], designMd: md });
+  assert.notEqual(r.system.tier, 'Aligned', `got ${r.system.tier} (${r.system.score})`);
+  const ids = r.system.drift.map((d) => d.id);
+  assert.ok(ids.includes('fonts.declared'), 'Georgia is not in the Inter-only system');
+  assert.ok(ids.includes('colors.cta'), 'ink CTA is not in the violet palette');
+});

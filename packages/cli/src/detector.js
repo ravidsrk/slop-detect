@@ -14,6 +14,9 @@ import {
   scorePatterns,
   applyPreset,
   extractTextContext,
+  extractSystemContext,
+  parseDesignMd,
+  scoreSystemCompliance,
   scoreCopy,
   combineAxes
 } from 'slop-detect-core';
@@ -137,7 +140,7 @@ function normalizeAxes(axes) {
   return [...new Set(out)];
 }
 
-function buildPageScript() {
+function buildPageScript(opts = {}) {
   const patternCalls = PATTERNS.map(p => `
     try {
       signals[${JSON.stringify(p.id)}] = (${p.extract.toString()})(ctx);
@@ -193,6 +196,14 @@ function buildPageScript() {
     let textContext = null;
     try { textContext = extractTextContext(); } catch (e) { textContext = { error: e.message }; }
 
+    // System axis (DESIGN.md compliance): observe fonts/colors/radii in use.
+    // Only injected when a DESIGN.md was supplied — scoring is Node-side.
+    let systemContext = null;
+    ${opts.includeSystem ? `
+    const extractSystemContext = ${extractSystemContext.toString()};
+    try { systemContext = extractSystemContext(); } catch (e) { systemContext = { error: e.message }; }
+    ` : ''}
+
     return {
       title: document.title,
       url: location.href,
@@ -202,9 +213,32 @@ function buildPageScript() {
       h1Font: h1 ? getComputedStyle(h1).fontFamily : null,
       visibleCount: visible.length,
       signals,
-      textContext
+      textContext,
+      systemContext
     };
   })();`;
+}
+
+// ── DESIGN.md loading (system axis) ──────────────────────────────────────────
+// Resolve the --design-md value to raw text. `auto` looks for <origin>/DESIGN.md
+// next to the scanned page; a 404 in auto mode returns null ("no system
+// declared") rather than an error, since absence is a normal state.
+export async function loadDesignMd(source, pageUrl) {
+  if (source === 'auto') {
+    const url = new URL('/DESIGN.md', pageUrl).toString();
+    try {
+      const res = await fetch(url, { headers: { Accept: 'text/markdown,text/plain,*/*' } });
+      if (!res.ok) return null;
+      return { text: await res.text(), from: url };
+    } catch { return null; }
+  }
+  if (/^https?:\/\//i.test(source)) {
+    const res = await fetch(source);
+    if (!res.ok) throw new Error(`Could not fetch DESIGN.md from ${source} (HTTP ${res.status})`);
+    return { text: await res.text(), from: source };
+  }
+  const { readFile } = await import('node:fs/promises');
+  return { text: await readFile(source, 'utf8'), from: source };
 }
 
 // ── Remote mode ──────────────────────────────────────────────────────────────
@@ -273,7 +307,7 @@ export async function scanUrl(url, opts = {}) {
     await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
     await page.waitForTimeout(500);
 
-    const data = await page.evaluate(buildPageScript());
+    const data = await page.evaluate(buildPageScript({ includeSystem: !!opts.designMd }));
 
     // Anti-bot / dead-page detection — don't silently return Clean 0.
     const blocked = detectBlocked(data);
@@ -353,6 +387,14 @@ export async function scanUrl(url, opts = {}) {
       const summaries = {};
       for (const a of reqAxes) if (axes[a]) summaries[a] = axes[a];
       Object.assign(result, combineAxes(summaries));
+    }
+
+    // System axis: opts.designMd carries the raw DESIGN.md text (the caller
+    // handles loading from file/URL). Scored Node-side against the observed
+    // fonts/colors/radii. Reported separately from the slop score — it measures
+    // alignment with the site's OWN system (higher is better), not slop.
+    if (opts.designMd) {
+      result.system = scoreSystemCompliance(parseDesignMd(opts.designMd), data.systemContext);
     }
 
     if (opts.screenshot) {
