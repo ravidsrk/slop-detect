@@ -22,6 +22,12 @@
       "method": "POST"
     },
     {
+      "name": "check_design_system",
+      "description": "Check whether a page honors its own declared design system (DESIGN.md). Returns a 0-100 compliance score (higher is better) plus named drift.",
+      "endpoint": "https://slop-detect.com/api/scan",
+      "method": "POST"
+    },
+    {
       "name": "list_patterns",
       "description": "Read the live pattern catalogue (id, label, category, weight).",
       "endpoint": "https://slop-detect.com/api/patterns",

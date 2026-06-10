@@ -49,8 +49,9 @@ score polarity is inverted relative to the slop score: higher AEO is better.
 - Web: paste a URL at https://slop-detect.com
 - CLI: `npx slop-detect <url>` — gate CI with `--fail-on heavy`, add `--aeo` for
   the AEO axis.
-- MCP: the `slop-detect-mcp` server exposes `scan_page`, `check_aeo` and
-  `fix_prompt` tools to any MCP client (Claude Code, Cursor, Windsurf).
+- MCP: the `slop-detect-mcp` server exposes `scan_page`, `check_aeo`,
+  `check_design_system` and `fix_prompt` tools to any MCP client (Claude Code,
+  Cursor, Windsurf).
 
 ## Links
 
