@@ -15,7 +15,7 @@
 import { listWatches, getWatch, putWatch } from '../../_shared.js';
 import { monitorSweep } from '../../_sweep.js';
 import { sendEmail } from '../../_email.js';
-import { buildRegressionAlert } from '../../_alerts.js';
+import { buildRegressionAlert, buildDriftAlert } from '../../_alerts.js';
 import { report } from '../../_report.js';
 
 function json(data, status = 200) {
@@ -45,18 +45,22 @@ export async function onRequestPost({ request, env }) {
   const origin = new URL(request.url).origin;
   const max = Math.min(200, Math.max(1, parseInt(env.SWEEP_MAX || '50', 10) || 50));
 
-  // Re-scan a domain through the public scan path (keyed unlimited → bypasses
-  // limits/cost-cap/Turnstile). The scan triggers recordScanForWatch, which
-  // updates the watch's history + regressed flag as a side effect.
-  const scanDomain = async (domain) => {
+  // Re-scan a watched domain through the public scan path (keyed unlimited →
+  // bypasses limits/cost-cap/Turnstile). Watches that opted into design-system
+  // monitoring (watch.system) also run the system axis against the domain's
+  // <origin>/DESIGN.md. The scan triggers recordScanForWatch, which updates the
+  // watch's history + regression/drift flags as a side effect.
+  const scanDomain = async (watch) => {
+    const body = { url: `https://${watch.domain}`, axes: ['design'] };
+    if (watch.system) body.designMd = true;
     const res = await fetch(`${origin}/api/scan`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-API-Key': env.INTERNAL_API_KEY },
-      body: JSON.stringify({ url: `https://${domain}`, axes: ['design'] })
+      body: JSON.stringify(body)
     });
     if (!res.ok && res.status !== 422) {
       // 422 = the page couldn't be scored (bot wall/dead) — not fatal for a sweep.
-      throw new Error(`scan ${domain} -> ${res.status}`);
+      throw new Error(`scan ${watch.domain} -> ${res.status}`);
     }
   };
 
@@ -68,6 +72,15 @@ export async function onRequestPost({ request, env }) {
     return sendEmail(env, { to: watch.email, subject: msg.subject, text: msg.text });
   };
 
+  // System-drift alert (P2a) — fires once per drift event, recovery re-arms.
+  const sendDriftAlert = async (watch) => {
+    const baseline = { score: watch.baselineSystemScore, tier: watch.baselineSystemTier };
+    const current = { score: watch.lastSystemScore, tier: watch.lastSystemTier };
+    const resultUrl = watch.lastId ? `${origin}/r/${watch.lastId}` : null;
+    const msg = buildDriftAlert(watch.domain, baseline, current, watch.lastSystemDrift || [], { resultUrl });
+    return sendEmail(env, { to: watch.email, subject: msg.subject, text: msg.text });
+  };
+
   const watches = await listWatches(env.RESULTS, { limit: 1000 });
   const summary = await monitorSweep({
     watches,
@@ -75,6 +88,7 @@ export async function onRequestPost({ request, env }) {
     getWatch: (d) => getWatch(env.RESULTS, d),
     putWatch: (w) => putWatch(env.RESULTS, w),
     sendAlert,
+    sendDriftAlert,
     max
   });
 
