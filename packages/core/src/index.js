@@ -32,6 +32,16 @@ export {
   toMarkdownUrl,
   runAeoChecks
 } from './aeo.js';
+export {
+  parseDesignMd,
+  extractFrontMatter,
+  extractSystemContext,
+  flattenDesignTokens,
+  scoreSystemCompliance,
+  primaryFamily,
+  parseCssColor,
+  SYSTEM_CHECKS
+} from './system.js';
 
 import { gradeForScore, verdictFor } from './verdict.js';
 import { COPY_PATTERNS } from './copyPatterns.js';
