@@ -139,7 +139,8 @@ Add `"system": true` and the daily sweep also checks the domain against its own
 `DESIGN.md`, emailing you when the page **drifts off its declared design
 system** — the check that catches what an agent or a non-designer quietly broke.
 Every monitored domain gets a print-friendly client report at
-`slop-detect.com/report/<domain>`.
+`slop-detect.com/report/<domain>`, and the [dashboard](https://slop-detect.com/dashboard)
+(magic-link sign-in, no password) shows every domain on your email in one view.
 
 `list: true` also opts the domain into the public, crawlable
 [**directory**](https://slop-detect.com/directory) of scored sites — an
