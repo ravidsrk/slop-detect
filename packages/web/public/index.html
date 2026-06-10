@@ -88,7 +88,7 @@
       "operatingSystem": "Web, Node.js (CLI), MCP",
       "url": "https://slop-detect.com",
       "downloadUrl": "https://www.npmjs.com/package/slop-detect",
-      "softwareVersion": "0.5.1",
+      "softwareVersion": "0.6.0",
       "license": "https://opensource.org/licenses/MIT",
       "isAccessibleForFree": true,
       "publisher": { "@id": "https://slop-detect.com/#org" },
@@ -97,9 +97,11 @@
         "27-pattern deterministic design-slop fingerprint",
         "Copy-slop axis (LLM phrasing tells)",
         "AEO axis — can AI engines read & cite a page",
+        "System axis — DESIGN.md compliance: does a page honor its own declared design system",
+        "Domain monitoring with regression and design-drift email alerts (double opt-in)",
         "Real headless Chromium (Cloudflare Browser Rendering)",
-        "CLI with --fail-on for CI gating",
-        "MCP server: scan_page, check_aeo, fix_prompt"
+        "CLI with --fail-on for CI gating and --design-md for system checks",
+        "MCP server: scan_page, check_aeo, check_design_system, fix_prompt"
       ],
       "offers": {
         "@type": "Offer",
@@ -133,7 +135,7 @@
           "name": "How do AI agents and developers use it?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Via the CLI (npx slop-detect <url>, add --aeo for the AEO axis, --fail-on heavy to gate CI), the MCP server slop-detect-mcp (tools scan_page, check_aeo, fix_prompt), or the HTTP API at https://slop-detect.com/api/scan. An OpenAPI spec is published at /openapi.json."
+            "text": "Via the CLI (npx slop-detect <url>, add --aeo for the AEO axis, --design-md auto for the system axis, --fail-on heavy to gate CI), the MCP server slop-detect-mcp (tools scan_page, check_aeo, check_design_system, fix_prompt), or the HTTP API at https://slop-detect.com/api/scan. An OpenAPI spec is published at /openapi.json."
           }
         },
         {
@@ -142,6 +144,14 @@
           "acceptedAnswer": {
             "@type": "Answer",
             "text": "A complementary axis that scores whether AI engines (ChatGPT, Claude, Perplexity, Google AI Overviews) can fetch, read and cite a page. It checks AI-crawler access, robots.txt, indexability, a markdown twin, llms.txt, and content-negotiation headers. Higher AEO is better — the inverse polarity of the slop score."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can it monitor a domain over time?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. POST /api/watch with a domain and email to monitor it: the daily sweep re-scans the domain and emails you (double opt-in) when the slop score regresses. Add system: true and it also checks the page against the site's own DESIGN.md, alerting when the design drifts off its declared system. Every monitored domain gets a print-friendly client report at slop-detect.com/report/<domain>."
           }
         },
         {
@@ -937,6 +947,79 @@
   .rules-teaser b { color: var(--text-2); font-weight: 500; }
   #rulesDetails[open] + .rules-teaser { display: none; }
   .rules-teaser:empty { display: none; }
+
+  /* §04 monitoring (the conversion bridge). Same forensic register: flat
+     panels, registration marks, no gradients, no glow. */
+  .watch-form {
+    margin-top: 20px;
+    background: var(--panel);
+    border: 1px solid var(--border-2);
+    border-radius: 12px;
+    padding: 16px;
+    max-width: 620px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .watch-form:focus-within { border-color: var(--accent); }
+  .watch-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .watch-row input {
+    flex: 1;
+    min-width: 180px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 15px;
+    padding: 10px 12px;
+    outline: none;
+    font-family: var(--mono);
+  }
+  .watch-row input:focus { border-color: var(--border-2); }
+  .watch-row input::placeholder { color: var(--dim); }
+  .watch-row button {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: 0;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .watch-row button:hover { opacity: 0.9; }
+  .watch-row button:disabled { opacity: 0.5; cursor: wait; }
+  .watch-opts { display: flex; flex-direction: column; gap: 7px; }
+  .watch-opts label {
+    display: flex; align-items: baseline; gap: 9px;
+    font-size: 14px; color: var(--text-2); cursor: pointer; line-height: 1.45;
+  }
+  .watch-opts input { accent-color: var(--accent); flex-shrink: 0; transform: translateY(1px); }
+  .watch-opts .opt-note { color: var(--dim); font-size: 12.5px; font-family: var(--mono); }
+  .watch-msg {
+    display: none;
+    margin-top: 4px;
+    padding: 11px 13px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    font-size: 13.5px;
+    color: var(--text-2);
+    line-height: 1.5;
+  }
+  .watch-msg.show { display: block; }
+  .watch-msg.ok { border-color: var(--green); }
+  .watch-msg.err { border-color: var(--red); color: var(--red); }
+  .watch-fine { margin-top: 12px; font-size: 12.5px; color: var(--dim); line-height: 1.55; max-width: 62ch; }
+  .watch-fine a { color: var(--muted); }
+  .monitor-nudge {
+    margin-top: 14px;
+    font-size: 14px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+  .monitor-nudge a { color: var(--accent); cursor: pointer; }
   /* Inline CLI commands: tinted chips that wrap as units instead of overflowing. */
   .cli-line code {
     display: inline-block;
@@ -996,8 +1079,10 @@
     <div class="topbar-inner">
       <div class="brand"><span class="glyph">&#9143;</span> Slop Detector</div>
       <nav class="topbar-links">
-        <a href="#how" class="hide-sm">How it works</a>
         <a href="#fingerprint" class="hide-sm">The fingerprint</a>
+        <a href="#monitor" class="hide-sm">Monitoring</a>
+        <a href="/leaderboard" class="hide-sm">Leaderboard</a>
+        <a href="/directory" class="hide-sm">Directory</a>
         <a href="https://github.com/ravidsrk/slop-detect" target="_blank" rel="noopener">GitHub</a>
       </nav>
     </div>
@@ -1033,7 +1118,7 @@
             <button data-url="https://www.aura.build">aura.build</button>
             <button data-url="https://lovable.dev">lovable.dev</button>
             <button data-url="https://stripe.com">stripe.com</button>
-            <button data-url="https://engagemii.com/aeo">engagemii.com/aeo</button>
+            <button data-url="https://linear.app">linear.app</button>
           </div>
         </div>
 
@@ -1076,9 +1161,9 @@
           <div class="eyebrow"><span class="reg">&sect;01</span><span class="reg-label">the fingerprint</span></div>
           <h2>Slop is a fingerprint, not a verdict</h2>
           <div class="block-note">
-            <b id="ruleCountTag2">27</b> weighted patterns<br>
-            across 4 axes<br>
-            defs <span id="rulesDefs2">2026.08</span>
+            <b id="ruleCountTag2">27</b> weighted design patterns<br>
+            + copy, AEO &amp; system axes<br>
+            defs <span id="rulesDefs2">2026.09</span>
           </div>
         </div>
         <div class="block-main">
@@ -1095,6 +1180,8 @@
             <div class="check"><h3><span class="n">color</span> Gradients &amp; glow</h3><p>Gradient hero text, gradient-heavy backgrounds, aurora blobs, colored glows, vibe-purple.</p></div>
             <div class="check"><h3><span class="n">layout</span> The convention stack</h3><p>Centered hero, eyebrow pill, glassmorphism, bento grids, nested cards, icon-card rows.</p></div>
             <div class="check"><h3><span class="n">copy</span> AI phrasing</h3><p>An optional second axis scores the words: the hedge-y, em-dash-heavy register LLMs default to.</p></div>
+            <div class="check"><h3><span class="n">aeo</span> AI readability</h3><p>Can ChatGPT, Claude and Perplexity actually fetch, read and cite the page? Crawler access, robots.txt, llms.txt. Higher is better.</p></div>
+            <div class="check"><h3><span class="n">system</span> DESIGN.md compliance</h3><p>The relative axis: does the page honor its <em>own</em> declared design system? Drift, not slop — bespoke design checked against its own tokens can never false-positive.</p></div>
           </div>
         </div>
       </div>
@@ -1155,6 +1242,62 @@
       </p>
     </section>
 
+    <hr class="divider">
+
+    <!-- Monitoring: the conversion bridge (a score is a snapshot; drift is the disease) -->
+    <section class="block" id="monitor">
+      <div class="block-grid">
+        <div class="block-head">
+          <div class="eyebrow"><span class="reg">&sect;04</span><span class="reg-label">keep it clean</span></div>
+          <h2>A score is a snapshot. Drift is the disease.</h2>
+          <div class="block-note">
+            re-scanned daily<br>
+            alert on regression<br>
+            free during the trial
+          </div>
+        </div>
+        <div class="block-main">
+          <p class="body">
+            Sites do not become slop in one commit. A teammate ships a section, an agent
+            "improves" a hero, and six weeks later the page reads like everyone else's.
+            Monitoring re-scans your domain daily and emails you when the score regresses.
+            Publish a <a href="https://github.com/google-labs-code/design.md" target="_blank" rel="noopener">DESIGN.md</a>
+            and it also checks every scan against <em>your own</em> declared tokens, then
+            names exactly what drifted: a font nobody approved, a CTA off the palette.
+          </p>
+
+          <form class="watch-form" id="watchForm">
+            <div class="watch-row">
+              <input id="watchDomain" type="text" placeholder="your-site.com" autocomplete="off" spellcheck="false" required>
+              <input id="watchEmail" type="email" placeholder="you@company.com" autocomplete="email" required>
+              <button type="submit" id="watchGo">Monitor</button>
+            </div>
+            <div class="watch-opts">
+              <label>
+                <input type="checkbox" id="watchSystem" checked>
+                <span>Check it against its <code>DESIGN.md</code> and alert on design drift
+                  <span class="opt-note">&middot; the system axis</span></span>
+              </label>
+              <label>
+                <input type="checkbox" id="watchList">
+                <span>List it in the public <a href="/directory">directory</a>
+                  <span class="opt-note">&middot; live badge + dofollow backlink</span></span>
+              </label>
+            </div>
+            <div class="watch-msg" id="watchMsg"></div>
+          </form>
+
+          <p class="watch-fine">
+            Double opt-in: nothing is emailed until you confirm. Your address is stored only
+            to send the alerts you asked for, never shared, and one request deletes it
+            (<a href="/privacy.md">privacy</a>). Every monitored domain gets a print-ready
+            client report at <code>/report/&lt;domain&gt;</code>. The engine stays MIT and
+            free forever; monitoring is the continuity layer.
+          </p>
+        </div>
+      </div>
+    </section>
+
     <!-- Footer -->
     <footer>
       <div class="footer-grid">
@@ -1166,7 +1309,9 @@
           <h5>product</h5>
           <a href="#how">How it works</a>
           <a href="#fingerprint">The fingerprint</a>
-          <a href="#rulesDetails">The patterns</a>
+          <a href="#monitor">Monitor a domain</a>
+          <a href="/leaderboard">Leaderboard</a>
+          <a href="/directory">Directory</a>
         </div>
         <div class="footer-col">
           <h5>install</h5>
@@ -1178,6 +1323,7 @@
           <h5>source</h5>
           <a href="https://github.com/ravidsrk/slop-detect" target="_blank" rel="noopener">GitHub</a>
           <a href="https://www.adriankrebs.ch/blog/design-slop/" target="_blank" rel="noopener">The study</a>
+          <a href="/privacy.md">Privacy</a>
         </div>
       </div>
       <div class="footer-fine">
@@ -1225,8 +1371,10 @@ const form = $('form'), urlInput = $('url'), goBtn = $('go'),
     const { count, version, patterns } = await res.json();
 
     const tag = $('ruleCountTag'); if (tag) tag.textContent = count;
+    const tag2 = $('ruleCountTag2'); if (tag2) tag2.textContent = count;
     const sum = $('rulesSummaryCount'); if (sum) sum.textContent = count;
     const defs = $('rulesDefs'); if (defs && version) defs.textContent = '· defs ' + version;
+    const defs2 = $('rulesDefs2'); if (defs2 && version) defs2.textContent = version;
 
     const list = $('rulesList');
     if (list && Array.isArray(patterns)) {
@@ -1366,6 +1514,52 @@ function escapeHtml(s) {
   }[c]));
 }
 
+function domainOf(u) {
+  try { return new URL(u).hostname.replace(/^www\./, ''); }
+  catch { return String(u || '').replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0]; }
+}
+
+// ── Monitor form (§04) — POST /api/watch, render the API's honest response ───
+const watchForm = $('watchForm');
+if (watchForm) watchForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = $('watchGo'), msg = $('watchMsg');
+  const domain = $('watchDomain').value.trim();
+  const email = $('watchEmail').value.trim();
+  if (!domain || !email) return;
+
+  btn.disabled = true; btn.textContent = 'Setting up…';
+  msg.className = 'watch-msg show'; msg.textContent = 'Registering monitor…';
+  try {
+    const r = await fetch('/api/watch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        domain, email,
+        system: $('watchSystem').checked,
+        list: $('watchList').checked
+      })
+    });
+    const data = await r.json();
+    if (!r.ok || data.error) throw new Error(data.message || data.error || ('HTTP ' + r.status));
+
+    const dom = data.domain || domain;
+    const bits = [];
+    bits.push(`<b>${escapeHtml(dom)}</b> is registered.`);
+    if (data.note) bits.push(escapeHtml(data.note));
+    if (data.verificationSent) bits.push('Check your inbox to confirm and switch alerts on.');
+    bits.push(`Client report: <a href="/report/${encodeURIComponent(dom)}">/report/${escapeHtml(dom)}</a>` +
+      (data.directoryUrl ? ` &middot; <a href="${escapeHtml(data.directoryUrl)}">directory</a>` : ''));
+    msg.className = 'watch-msg show ok';
+    msg.innerHTML = bits.join(' ');
+  } catch (err) {
+    msg.className = 'watch-msg show err';
+    msg.textContent = '✗ ' + err.message;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Monitor';
+  }
+});
+
 let lastResult = null;
 
 function render(d, totalMs) {
@@ -1409,6 +1603,9 @@ function render(d, totalMs) {
       ${d.verdict ? `<div class="score-verdict">${escapeHtml(d.verdict)}</div>` : ''}
       ${fixCta}
       ${sharePanel(d)}
+      <div class="monitor-nudge">keep it clean &rarr;
+        <a id="monitorNudgeLink">monitor ${escapeHtml(domainOf(d.finalUrl || d.url))}</a>
+        &middot; daily re-scan, drift alerts</div>
     </div>
     ${triggered.length ? `
       <div class="pat-section">
@@ -1429,6 +1626,16 @@ function render(d, totalMs) {
 
   const fixBtn = document.getElementById('fixPromptBtn');
   if (fixBtn) fixBtn.addEventListener('click', openFixPrompt);
+
+  // Post-scan conversion nudge: prefill the monitor form with this domain.
+  const nudge = document.getElementById('monitorNudgeLink');
+  if (nudge) nudge.addEventListener('click', () => {
+    const wd = $('watchDomain');
+    if (wd) wd.value = domainOf(d.finalUrl || d.url);
+    document.getElementById('monitor').scrollIntoView({ behavior: 'smooth' });
+    const we = $('watchEmail');
+    if (we) setTimeout(() => we.focus({ preventScroll: true }), 450);
+  });
 
   wireSharePanel(d);
 
