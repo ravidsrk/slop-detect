@@ -41,4 +41,6 @@ TURNSTILE_SITEKEY = "0x4AAAAAADWirXpm1gXBhB5E"
 #   CRON_SECRET       Bearer secret for POST /api/cron/sweep
 #   INTERNAL_API_KEY  an `unlimited`-tier API key for the sweep's internal re-scans
 #   SWEEP_MAX         domains re-scanned per sweep (default 50)
+# Dashboard (P2b; needs the email provider too):
+#   SESSION_SECRET    HMAC secret for magic-link dashboard sessions
 # See PRODUCTION.md for the full launch checklist.

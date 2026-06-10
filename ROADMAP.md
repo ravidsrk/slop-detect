@@ -141,7 +141,7 @@ DESIGN.md. Workflow lock-in is the only durable distribution.
 | P1 `system` axis (core + CLI + API) | ✅ Shipped |
 | P2a Drift alerts on `system` axis via existing sweep | ✅ Shipped (`watch { system:true }` → sweep checks DESIGN.md → drift email, once per event) |
 | P2b-lite Print-friendly client report (`/report/:domain`) | ✅ Shipped (the PDF-infra substitute) |
-| P2b Agency multi-site dashboard | Next quarter |
+| P2b Agency multi-site dashboard | ✅ Shipped (lite): magic-link sign-in → /dashboard, one view across every domain on an email. Team seats/roles later |
 | P2c Pricing live ($29–$149/mo) | With P2b (needs Stripe keys — operator task) |
 | P3 Community ruleset + calibration corpus growth | Ongoing |
 | P4 MCP design-system mode (`check_design_system` tool) | ✅ Shipped |

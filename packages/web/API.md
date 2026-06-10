@@ -273,6 +273,23 @@ Server-rendered, crawlable HTML page listing every opt-in site (grade · score �
 tier · dofollow link out · link to its scan). `?sort=slop` ranks sloppiest-first
 (default: cleanest-first). Emits `ItemList` JSON-LD and is in the sitemap. Public.
 
+### `POST /api/dashboard/link`
+
+Request a **magic sign-in link** for the agency dashboard. Body
+`{ "email": "you@company.com" }`. The response is identical whether or not the
+address monitors anything (anti-enumeration); a single-use, 15-minute link is
+only actually emailed when it does. `503 dashboard_unavailable` until the email
+provider **and** `SESSION_SECRET` are configured (safe-off, like alerts).
+
+### `GET /dashboard`
+
+One view across every domain monitored by the signed-in email: slop grade,
+design-system tier, drift/regression flags, verification state, and a link to
+each domain's client report. Auth = the magic link (`?token=` exchanges the
+single-use token for a 30-day HMAC-signed HttpOnly cookie; `?logout=1` clears
+it). Shows only the owner's own domains and email — never anyone else's.
+`noindex`.
+
 ### `GET /report/:domain`
 
 A **print-friendly client report** for a domain (the agency deliverable): latest

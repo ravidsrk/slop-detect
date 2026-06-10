@@ -77,3 +77,19 @@ export function buildDriftAlert(domain, baseline, current, driftItems = [], opts
   );
   return { subject, text: lines.join('\n') };
 }
+
+// Dashboard magic-link login email (P2b). Single-use, 15-minute link; ignoring
+// it is always safe.
+export function buildDashboardLinkEmail(loginUrl, domainCount) {
+  const subject = 'Your slop-detect dashboard link';
+  const text = [
+    `Sign in to your slop-detect dashboard (${domainCount} monitored domain${domainCount === 1 ? '' : 's'}):`,
+    '',
+    loginUrl,
+    '',
+    'The link is single-use and expires in 15 minutes. If you did not request',
+    'it, ignore this email — nothing happens without the click.',
+    'Privacy: https://slop-detect.com/privacy.md'
+  ].join('\n');
+  return { subject, text };
+}

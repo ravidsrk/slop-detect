@@ -269,6 +269,36 @@ export async function consumeWatchToken(kv, token) {
   return domain;
 }
 
+// ── Dashboard magic-link tokens (P2b) ────────────────────────────────────────
+// dt:<token> → email. Single-use and short-lived: the link only has to survive
+// the walk from inbox to browser; the durable credential is the signed session
+// cookie it mints (see _session.js).
+const DASHBOARD_TOKEN_TTL = 60 * 15; // 15 minutes
+
+export async function issueDashboardToken(kv, email) {
+  if (!kv || !email) return null;
+  const token = newId(32);
+  await kv.put(`dt:${token}`, email, { expirationTtl: DASHBOARD_TOKEN_TTL });
+  return token;
+}
+
+export async function consumeDashboardToken(kv, token) {
+  if (!kv || !token) return null;
+  const email = await kv.get(`dt:${token}`);
+  if (!email) return null;
+  await kv.delete(`dt:${token}`);
+  return email;
+}
+
+// All watches owned by one email — the agency dashboard's data. Case-normalized
+// the same way the watch API stores emails (trimmed, lowercased).
+export async function listWatchesByEmail(kv, email) {
+  if (!kv || !email) return [];
+  const want = String(email).trim().toLowerCase();
+  const all = await listWatches(kv, { limit: 1000 });
+  return all.filter((w) => w && w.email === want);
+}
+
 // Enumerate watches for the monitoring sweep. Returns parsed watch records.
 // `limit` caps work per sweep invocation (KV list is paginated; we keep it
 // simple and bounded — grow into cursor paging if the watch set gets large).

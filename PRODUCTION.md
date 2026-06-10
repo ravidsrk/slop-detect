@@ -74,6 +74,7 @@ Legend: ✅ done in-repo · 🔧 needs you (secret/decision/data) · ⏳ follow-
 | Pages env | `CRON_SECRET` | auth for `/api/cron/sweep` |
 | Pages env | `INTERNAL_API_KEY` | unlimited-tier key for sweep re-scans |
 | Pages env | `SWEEP_MAX` | domains re-scanned per sweep (default 50) |
+| Pages env | `SESSION_SECRET` | HMAC secret for dashboard magic-link sessions |
 | Repo secret | `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` | deploy |
 | Repo secret | `CRON_SECRET` | the `monitor-sweep` workflow auth (matches Pages) |
 | Repo setting | branch protection → require `test` + `lint` | merge gate |
