@@ -18,6 +18,7 @@ import {
   tierColors,
   escapeHtml
 } from '../_shared.js';
+import { BRAND_FONTS_HEAD, BRAND_CSS } from '../_brand.js';
 
 const ORIGIN = 'https://slop-detect.com';
 
@@ -118,46 +119,44 @@ export async function onRequestGet({ params, request, env }) {
 <title>Report: ${escapeHtml(domain)} · slop-detect</title>
 <meta name="robots" content="noindex">
 <link rel="canonical" href="${ORIGIN}/report/${escapeHtml(domain)}">
-<style>
-  :root{color-scheme:dark light}
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{background:#0a0a0b;color:#e7e7ea;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;line-height:1.55;padding:48px 20px 80px}
+${BRAND_FONTS_HEAD}
+<style>${BRAND_CSS}
+  body{padding:48px 20px 80px}
   .wrap{max-width:720px;margin:0 auto}
-  a{color:inherit}
-  .kick{font-family:ui-monospace,Menlo,monospace;font-size:12px;letter-spacing:.04em;color:#6b6b73;text-transform:uppercase}
-  h1{font-size:28px;font-weight:650;letter-spacing:-0.01em;margin:6px 0 2px}
-  h2{font-size:17px;margin:30px 0 8px}
-  .meta{color:#8a8a92;font-size:13px;font-family:ui-monospace,Menlo,monospace;margin-bottom:24px}
+  h1{font-size:28px;font-weight:700;letter-spacing:-0.02em;margin:2px 0 2px}
+  h2{font-size:17px;font-weight:700;margin:30px 0 8px}
+  .meta{color:var(--dim);font-size:12.5px;font-family:var(--mono);margin-bottom:24px}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-  .card{border:1px solid #232327;border-radius:10px;padding:18px}
-  .k{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#8a8a92;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px}
-  .big{font-size:44px;font-weight:750;line-height:1}
-  .big small{font-size:18px;color:#6b6b73}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px}
+  .k{font-family:var(--mono);font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px}
+  .big{font-size:44px;font-weight:800;line-height:1;font-family:var(--mono);letter-spacing:-0.03em}
+  .big small{font-size:18px;color:var(--dim)}
   .sub{font-size:16px;font-weight:600;margin-top:6px}
-  .note{color:#8a8a92;font-size:12.5px;margin-top:8px}
-  .dim{color:#6b6b73}
+  .note{color:var(--muted);font-size:12.5px;margin-top:8px}
+  .dim{color:var(--dim)}
   .drift{list-style:none}
-  .drift li{padding:7px 0;border-bottom:1px solid #18181b;font-size:14.5px}
-  .x{color:#f87171;margin-right:6px}
-  table{border-collapse:collapse;width:100%;font-size:13.5px}
-  th,td{text-align:left;padding:7px 12px 7px 0;border-bottom:1px solid #18181b}
-  th{color:#8a8a92;font-weight:500;font-family:ui-monospace,Menlo,monospace;font-size:11.5px}
-  td{font-family:ui-monospace,Menlo,monospace}
-  .empty{color:#a1a1aa;padding:24px 0}
-  footer{margin-top:36px;font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#5a5a62}
-  footer a{color:#8a8a92}
-  .printbtn{float:right;font-size:12.5px;font-family:ui-monospace,Menlo,monospace;color:#8a8a92;background:none;border:1px solid #3a3a40;border-radius:6px;padding:5px 12px;cursor:pointer}
+  .drift li{padding:7px 0;border-bottom:1px solid var(--bg-2);font-size:14.5px}
+  .x{color:var(--red);margin-right:6px}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th,td{text-align:left;padding:7px 12px 7px 0;border-bottom:1px solid var(--bg-2)}
+  th{color:var(--dim);font-weight:500;font-family:var(--mono);font-size:11px}
+  td{font-family:var(--mono)}
+  .empty{color:var(--muted);padding:24px 0}
+  footer{margin-top:36px;font-family:var(--mono);font-size:11.5px;color:var(--dim)}
+  footer a{color:var(--muted)}
+  .printbtn{float:right;font-size:12px;font-family:var(--mono);color:var(--muted);background:none;border:1px solid var(--border-2);border-radius:6px;padding:5px 12px;cursor:pointer}
+  .printbtn:hover{color:var(--text);border-color:var(--muted)}
   @media(max-width:560px){.grid{grid-template-columns:1fr}}
   @media print{
     body{background:#fff;color:#111;padding:0}
-    .card{border-color:#ccc}
+    .card{border-color:#ccc;background:#fff}
     .printbtn{display:none}
     th,td,.drift li{border-color:#ddd}
     footer,a{color:#555}
   }
 </style></head><body><div class="wrap">
   <button class="printbtn" onclick="window.print()">print / save PDF</button>
-  <div class="kick">slop-detect / client report</div>
+  <div class="eyebrow"><span class="reg">&sect;cli</span><span class="reg-label">client report</span></div>
   <h1>${escapeHtml(domain)}</h1>
   <div class="meta">prepared ${today} · slop-detect.com${pub?.monitoring ? ' · monitored' : ''}</div>
   ${body}

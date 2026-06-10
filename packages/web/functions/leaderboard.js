@@ -11,6 +11,7 @@
 // purple — this page should itself score Clean.
 
 import { tierColors, escapeHtml } from './_shared.js';
+import { BRAND_FONTS_HEAD, BRAND_CSS } from './_brand.js';
 
 const ORIGIN = 'https://slop-detect.com';
 
@@ -90,45 +91,43 @@ export async function onRequestGet({ request }) {
 <meta property="og:description" content="How much of the web now looks AI-generated — a reproducible scan of well-known landing pages.">
 <meta property="og:url" content="${ORIGIN}/leaderboard">
 <meta property="og:image" content="${ORIGIN}/og.png">
-<style>
-  :root{color-scheme:dark}
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{background:#0a0a0b;color:#e7e7ea;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;line-height:1.55;padding:48px 20px 80px}
+${BRAND_FONTS_HEAD}
+<style>${BRAND_CSS}
+  body{padding:48px 20px 80px}
   .wrap{max-width:760px;margin:0 auto}
-  a{color:inherit}
-  .kick{font-family:ui-monospace,Menlo,monospace;font-size:12px;letter-spacing:.04em;color:#6b6b73;text-transform:uppercase}
-  h1{font-size:32px;font-weight:650;letter-spacing:-0.01em;margin:6px 0 14px}
-  h2{font-size:20px;margin:36px 0 6px}
-  .lead{font-size:19px;color:#d4d4d8;max-width:62ch}
-  .lead strong{color:#fff}
-  .note{color:#8a8a92;font-size:14px;margin-bottom:12px;max-width:62ch}
+  h1{font-size:32px;font-weight:700;letter-spacing:-0.02em;margin:2px 0 14px}
+  h2{font-size:20px;font-weight:700;letter-spacing:-0.01em;margin:36px 0 6px}
+  .lead{font-size:19px;color:var(--text-2);max-width:62ch}
+  .lead strong{color:var(--text)}
+  .note{color:var(--muted);font-size:14px;margin-bottom:12px;max-width:62ch}
   .rows{list-style:none;margin-top:8px}
-  .r{display:grid;grid-template-columns:34px 78px 1fr auto;gap:12px;align-items:baseline;padding:11px 2px;border-bottom:1px solid #18181b}
-  .g{font-family:ui-monospace,Menlo,monospace;font-weight:700;font-size:14px;border:1px solid;border-radius:5px;text-align:center;padding:1px 0}
-  .sc{font-family:ui-monospace,Menlo,monospace;color:#d4d4d8;font-size:14px}
-  .sc small{color:#6b6b73;font-size:11px}
-  .dom{font-weight:550;text-decoration:none;border-bottom:1px solid #3a3a40;padding-bottom:1px}
-  .dom:hover{border-color:#e7e7ea}
-  .scan{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#8a8a92;text-decoration:none;white-space:nowrap}
+  .r{display:grid;grid-template-columns:34px 78px 1fr auto;gap:12px;align-items:baseline;padding:11px 2px;border-bottom:1px solid var(--bg-2)}
+  .g{font-family:var(--mono);font-weight:700;font-size:14px;border:1px solid;border-radius:5px;text-align:center;padding:1px 0}
+  .sc{font-family:var(--mono);color:var(--text-2);font-size:13px}
+  .sc small{color:var(--dim);font-size:11px}
+  .dom{font-weight:600;text-decoration:none;border-bottom:1px solid var(--border-2);padding-bottom:1px}
+  .dom:hover{border-color:var(--text)}
+  .scan{font-family:var(--mono);font-size:11.5px;color:var(--dim);text-decoration:none;white-space:nowrap}
   table{border-collapse:collapse;margin-top:8px;width:100%;max-width:420px}
-  th,td{text-align:left;padding:7px 14px 7px 0;font-size:14px;border-bottom:1px solid #18181b}
-  th{color:#8a8a92;font-weight:500;font-family:ui-monospace,Menlo,monospace;font-size:12px}
-  td:nth-child(3),th:nth-child(3),td:nth-child(2),th:nth-child(2){font-family:ui-monospace,Menlo,monospace}
-  .cta{margin:40px 0;padding:20px;border:1px solid #232327;border-radius:10px}
-  .cta a{color:#e7e7ea;border-bottom:1px solid #3a3a40;text-decoration:none}
-  .meth{margin-top:40px;color:#71717a;font-size:13px;max-width:64ch}
-  .meth code{font-family:ui-monospace,Menlo,monospace;color:#a1a1aa}
-  footer{margin-top:32px;font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#5a5a62}
-  footer a{color:#8a8a92}
+  th,td{text-align:left;padding:7px 14px 7px 0;font-size:14px;border-bottom:1px solid var(--bg-2)}
+  th{color:var(--dim);font-weight:500;font-family:var(--mono);font-size:11.5px}
+  td:nth-child(3),th:nth-child(3),td:nth-child(2),th:nth-child(2){font-family:var(--mono)}
+  .cta{margin:40px 0;padding:18px 20px;background:var(--accent-soft);border:1px solid var(--border-2);border-radius:10px}
+  .cta a{color:var(--text);border-bottom:1px solid var(--border-2);text-decoration:none}
+  .cta a:hover{border-color:var(--text)}
+  .meth{margin-top:40px;color:var(--dim);font-size:13px;max-width:64ch}
+  .meth code{font-family:var(--mono);color:var(--muted)}
+  footer{margin-top:32px;font-family:var(--mono);font-size:11.5px;color:var(--dim)}
+  footer a{color:var(--muted)}
   @media(max-width:560px){.r{grid-template-columns:30px 64px 1fr}.scan{display:none}}
 </style></head><body><div class="wrap">
-  <div class="kick">slop-detect / report</div>
+  <div class="eyebrow"><span class="reg">&sect;rpt</span><span class="reg-label">the report</span></div>
   <h1>The State of AI Design Slop</h1>
   ${headline}
 
   <div class="cta">
     Wondering about your own site? <a href="${origin}/">Scan it free</a> &middot;
-    keep it clean over time with <a href="${origin}/privacy.md">monitoring</a>.
+    keep it clean over time with <a href="${origin}/#monitor">monitoring</a>.
   </div>
 
   ${hall}
@@ -136,7 +135,7 @@ export async function onRequestGet({ request }) {
 
   <p class="meth">Methodology: each URL scanned once in a headless browser against the
     27-pattern, weighted, deterministic AI-design-slop fingerprint
-    (definitions ${escapeHtml(data?.definitionsVersion || '2026.08')}), ${escapeHtml(String(when))}.
+    (definitions ${escapeHtml(data?.definitionsVersion || '2026.09')}), ${escapeHtml(String(when))}.
     Reproduce any row: <code>npx slop-detect &lt;url&gt;</code>. A slop score is a
     <em>fingerprint, not a verdict</em> — everyone uses AI now; this measures how
     generic the result reads, nothing about the team behind it.</p>

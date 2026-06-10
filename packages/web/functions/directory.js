@@ -11,6 +11,7 @@
 // purple, no glows — this page should itself score Clean on slop-detect.
 
 import { listAllSites, tierColors, escapeHtml } from './_shared.js';
+import { BRAND_FONTS_HEAD, BRAND_CSS } from './_brand.js';
 
 const ORIGIN = 'https://slop-detect.com';
 
@@ -86,45 +87,38 @@ export async function onRequestGet({ request, env }) {
 <meta property="og:description" content="Opt-in catalogue of sites ranked by the AI-design-slop fingerprint.">
 <meta property="og:url" content="${ORIGIN}/directory">
 <meta property="og:image" content="${ORIGIN}/og.png">
-<script type="application/ld+json">${jsonLd(sites, origin)}</script>
-<style>
-  :root{color-scheme:dark}
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{
-    background:#0a0a0b;color:#e7e7ea;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
-    line-height:1.5;padding:48px 20px 80px;
-  }
+<script type="application/ld+json">${jsonLd(sites, origin)}</script>${BRAND_FONTS_HEAD}
+<style>${BRAND_CSS}
+  body{padding:48px 20px 80px}
   .wrap{max-width:820px;margin:0 auto}
-  a{color:inherit}
-  header{border-bottom:1px solid #232327;padding-bottom:20px;margin-bottom:8px}
-  .kick{font-family:ui-monospace,Menlo,monospace;font-size:12px;letter-spacing:.04em;color:#6b6b73;text-transform:uppercase}
-  h1{font-size:30px;font-weight:650;letter-spacing:-0.01em;margin:6px 0 8px}
-  .sub{color:#a1a1aa;font-size:15px;max-width:60ch}
-  .sub a{color:#e7e7ea;text-decoration:underline;text-underline-offset:2px}
+  header{border-bottom:1px solid var(--border);padding-bottom:20px;margin-bottom:8px}
+  h1{font-size:30px;font-weight:700;letter-spacing:-0.02em;margin:2px 0 8px}
+  .sub{color:var(--muted);font-size:15px;max-width:60ch}
+  .sub a{color:var(--text);text-decoration:underline;text-underline-offset:2px}
   .bar{display:flex;justify-content:space-between;align-items:center;
-       font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:#8a8a92;
+       font-family:var(--mono);font-size:12px;color:var(--dim);
        padding:14px 2px 8px}
-  .bar a{color:#e7e7ea;text-decoration:none;border-bottom:1px solid #3a3a40;padding-bottom:1px}
+  .bar a{color:var(--text-2);text-decoration:none;border-bottom:1px solid var(--border-2);padding-bottom:1px}
+  .bar a:hover{color:var(--text)}
   ol{list-style:none}
   .r{display:grid;grid-template-columns:34px 78px 64px 1fr auto;gap:12px;align-items:baseline;
-     padding:13px 2px;border-bottom:1px solid #18181b;font-size:15px}
-  .g{font-family:ui-monospace,Menlo,monospace;font-weight:700;font-size:14px;
+     padding:13px 2px;border-bottom:1px solid var(--bg-2);font-size:15px}
+  .g{font-family:var(--mono);font-weight:700;font-size:14px;
      border:1px solid;border-radius:5px;text-align:center;padding:1px 0}
-  .sc{font-family:ui-monospace,Menlo,monospace;color:#d4d4d8;font-size:14px}
-  .sc small{color:#6b6b73;font-size:11px}
-  .t{font-family:ui-monospace,Menlo,monospace;font-size:12.5px}
+  .sc{font-family:var(--mono);color:var(--text-2);font-size:13px}
+  .sc small{color:var(--dim);font-size:11px}
+  .t{font-family:var(--mono);font-size:12px}
   .d{min-width:0;overflow:hidden}
-  .dom{font-weight:550;text-decoration:none;border-bottom:1px solid #3a3a40;padding-bottom:1px}
-  .dom:hover{border-color:#e7e7ea}
-  .ti{display:block;color:#71717a;font-size:12.5px;margin-top:2px;
+  .dom{font-weight:600;text-decoration:none;border-bottom:1px solid var(--border-2);padding-bottom:1px}
+  .dom:hover{border-color:var(--text)}
+  .ti{display:block;color:var(--dim);font-size:12.5px;margin-top:2px;
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .scan{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#8a8a92;text-decoration:none;white-space:nowrap}
-  .scan:hover{color:#e7e7ea}
-  .empty{padding:28px 2px;color:#8a8a92}
-  .empty a{color:#e7e7ea}
-  footer{margin-top:28px;font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#5a5a62}
-  footer a{color:#8a8a92}
+  .scan{font-family:var(--mono);font-size:11.5px;color:var(--dim);text-decoration:none;white-space:nowrap}
+  .scan:hover{color:var(--text)}
+  .empty{padding:28px 2px;color:var(--muted)}
+  .empty a{color:var(--text)}
+  footer{margin-top:28px;font-family:var(--mono);font-size:11.5px;color:var(--dim)}
+  footer a{color:var(--muted)}
   @media(max-width:560px){
     .r{grid-template-columns:30px 1fr auto;gap:8px}
     .t,.scan{display:none}
@@ -132,7 +126,7 @@ export async function onRequestGet({ request, env }) {
 </style>
 </head><body><div class="wrap">
   <header>
-    <div class="kick">slop-detect / directory</div>
+    <div class="eyebrow"><span class="reg">&sect;dir</span><span class="reg-label">the directory</span></div>
     <h1>Sites scored for AI design slop</h1>
     <p class="sub">An opt-in catalogue. Owners <a href="${origin}/">claim their domain</a>
       to appear here &mdash; with a live badge and a link back to their site.
