@@ -7,12 +7,12 @@
 // Scores any URL against the AI-design-slop fingerprint and emits a
 // pretty terminal report or a machine-readable JSON blob.
 
-import { scanUrl, scanRemote, aeoRemote } from '../src/detector.js';
+import { scanUrl, scanRemote, aeoRemote, loadDesignMd } from '../src/detector.js';
 import { isPreset, PRESETS, PATTERNS, DEFINITIONS_VERSION, runAeoChecks } from 'slop-detect-core';
 
 const args = process.argv.slice(2);
 const urls = [];
-const flags = { json: false, screenshot: false, verbose: false, preset: 'full', axes: ['design'], failOn: null, aeo: false, remote: false, api: null };
+const flags = { json: false, screenshot: false, verbose: false, preset: 'full', axes: ['design'], failOn: null, aeo: false, remote: false, api: null, designMd: null };
 
 // Tier severity ordering for --fail-on. A scan exits non-zero when its tier is
 // at or above the requested threshold. 'blocked'/'error' always count as failures
@@ -43,6 +43,14 @@ for (let i = 0; i < args.length; i++) {
   else if (a === '--api' || a.startsWith('--api=')) {
     flags.api = a.startsWith('--api=') ? a.slice('--api='.length) : args[++i];
     flags.remote = true; // a custom API endpoint implies remote scanning
+  }
+  else if (a === '--design-md' || a.startsWith('--design-md=')) {
+    const val = a.startsWith('--design-md=') ? a.slice('--design-md='.length) : args[++i];
+    if (!val) {
+      console.error('--design-md needs a value: a file path, a URL, or "auto" (looks for <origin>/DESIGN.md).');
+      process.exit(2);
+    }
+    flags.designMd = val;
   }
   else if (a === '--axes' || a.startsWith('--axes=')) {
     const val = a.startsWith('--axes=') ? a.slice('--axes='.length) : args[++i];
@@ -128,6 +136,10 @@ Options:
   --remote          Scan via the slop-detect.com API instead of a local browser
                     (no Playwright/Chromium install needed). Honors SLOP_API_KEY.
   --api <url>       Use a custom API base (implies --remote). Env: SLOP_API
+  --design-md <src> System axis: check the page against its declared design
+                    system (DESIGN.md spec). <src> = file path, URL, or "auto"
+                    (looks for <origin>/DESIGN.md). Reports drift, not slop —
+                    higher is better. Local scans only for now.
   --fail-on <tier>  Exit non-zero (1) if any page scores at/above tier: mild | heavy.
                     A blocked or errored scan also exits 1. Use this to gate CI.
   --help, -h        Show this help
@@ -292,12 +304,57 @@ function renderAeo(aeo) {
   }
 }
 
+function systemTierStyle(tier) {
+  if (tier === 'Aligned') return C.green;
+  if (tier === 'Drifting') return C.yellow;
+  if (tier === 'Off-system') return C.red;
+  return C.grey;
+}
+function systemEmoji(tier) {
+  if (tier === 'Aligned') return '🟢';
+  if (tier === 'Drifting') return '🟡';
+  if (tier === 'Off-system') return '🔴';
+  return '⚪';
+}
+
+function renderSystem(sys) {
+  if (!sys.declared) {
+    console.log(`  ${C.grey}⚪ system  — ${sys.message}${C.reset}\n`);
+    return;
+  }
+  const ts = systemTierStyle(sys.tier);
+  const name = sys.name ? ` ${C.grey}(${sys.name})${C.reset}` : '';
+  console.log(`  ${systemEmoji(sys.tier)} ${C.bold}system ${C.reset} ${ts}${sys.tier.padEnd(10)}${C.reset}` +
+    `  score ${C.bold}${String(sys.score).padStart(3)}${C.reset}/100` +
+    `  ${C.grey}(${sys.checksEvaluated} checks · ${sys.checksSkipped} skipped)${C.reset}${name}`);
+  console.log(`  ${C.grey}Does this page honor its declared design system?${C.reset}`);
+  console.log();
+  if (sys.drift.length) {
+    console.log(`${C.bold}Drift:${C.reset}`);
+    for (const d of sys.drift) {
+      console.log(`  ${C.red}✗${C.reset} ${d.message}  ${C.grey}(${d.id})${C.reset}`);
+      if (flags.verbose && d.evidence) {
+        console.log(`      ${C.grey}${JSON.stringify(d.evidence).slice(0, 200)}${C.reset}`);
+      }
+    }
+    console.log();
+  }
+}
+
 // ── Main ────────────────────────────────────────────────────────────────────
 (async () => {
   const results = [];
   for (const url of urls) {
     try {
       const scanOpts = { screenshot: flags.screenshot, preset: flags.preset, axes: flags.axes, api: flags.api };
+      if (flags.designMd && !flags.remote) {
+        const loaded = await loadDesignMd(flags.designMd, url);
+        if (loaded) scanOpts.designMd = loaded.text;
+        else if (!flags.json) console.error(`${C.grey}No DESIGN.md found for ${url} (auto) — skipping the system axis.${C.reset}`);
+      } else if (flags.designMd && flags.remote) {
+        console.error('--design-md is not supported with --remote yet; drop --remote to scan locally.');
+        process.exit(2);
+      }
       const r = flags.remote ? await scanRemote(url, scanOpts) : await scanUrl(url, scanOpts);
       if (flags.aeo) {
         try {
@@ -311,6 +368,7 @@ function renderAeo(aeo) {
       results.push(r);
       if (!flags.json) {
         renderPretty(r);
+        if (r.system) renderSystem(r.system);
         if (r.aeo && !r.aeo.error) renderAeo(r.aeo);
         else if (r.aeo && r.aeo.error) console.log(`  ${C.yellow}⚠ AEO check failed: ${r.aeo.error}${C.reset}\n`);
       }
