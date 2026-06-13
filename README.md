@@ -43,7 +43,7 @@ By April 2026, AI-generated landing pages had collapsed onto a measurable visual
 `slop-detect` reproduces Krebs's methodology, adds the signals Meng To identified in his [May 2026 Aura tutorial](https://x.com/MengTo/status/2058893181740359863), and packages it three ways:
 
 - 🟢 **`slop-detect`** — Playwright-based, run from your terminal or CI
-- 🟢 **`slop-detect.com`** — drop-in web UI, scan any URL in 8 seconds
+- 🟢 **`slop-detect.com`** — drop-in web UI, scan any URL in about 5 seconds
 - 🟢 **`slop-detect-core`** — pure detection engine, embed it in your own pipeline
 
 All three share the **same 27-rule scoring engine** so a Heavy from the CLI is a Heavy from the web is a Heavy from the API.
