@@ -10,10 +10,19 @@
 // Anti-slop by construction: no Inter/Geist, no gradient text, no VibeCode
 // purple — this page should itself score Clean.
 
-import { tierColors, escapeHtml } from './_shared.js';
+import { tierColors, escapeHtml, getStats } from './_shared.js';
 import { BRAND_FONTS_HEAD, BRAND_CSS } from './_brand.js';
 
 const ORIGIN = 'https://slop-detect.com';
+
+// Display names + order for the corpus categories (see leaderboard/corpus.json).
+const CATEGORY_NAMES = {
+  'ai-builder': 'AI builders',
+  'saas': 'SaaS & dev tools',
+  'bigtech': 'Big tech',
+  'classic': 'Classic, deliberately plain'
+};
+const CATEGORY_ORDER = ['ai-builder', 'saas', 'bigtech', 'classic'];
 
 async function loadData(request) {
   try {
@@ -23,21 +32,31 @@ async function loadData(request) {
   } catch (_) { return null; }
 }
 
-function chip(tier, label) {
-  const c = tierColors(tier);
-  return `<span class="chip" style="color:${c.fg};border-color:${c.fg}">${escapeHtml(label)}</span>`;
-}
-
-function cleanRow(s, origin) {
+// One ranked row. The domain links into its score hub (history, re-scan, claim),
+// closing the loop instead of dead-ending on the external site.
+function rankRow(s, rank, origin) {
   const c = tierColors(s.tier);
-  const link = s.resultUrl ? `${origin}/r/${escapeHtml(String(s.resultUrl).split('/r/')[1] || '')}` : null;
-  const dom = `<a class="dom" href="https://${escapeHtml(s.domain)}">${escapeHtml(s.domain)}</a>`;
   return `<li class="r">
+    <span class="rank">${rank}</span>
     <span class="g" style="color:${c.fg};border-color:${c.fg}">${escapeHtml(s.grade)}</span>
     <span class="sc">${s.score}<small>/100</small></span>
-    <span class="d">${dom}</span>
-    ${link ? `<a class="scan" href="${link}">scan&nbsp;&rarr;</a>` : ''}
+    <span class="d"><a class="dom" href="${origin}/score/${escapeHtml(s.domain)}">${escapeHtml(s.domain)}</a></span>
   </li>`;
+}
+
+// Group scored sites by category and render each as a cleanest-first ranking.
+function categorySections(sites, origin) {
+  const groups = {};
+  for (const s of sites) (groups[s.category || 'other'] = groups[s.category || 'other'] || []).push(s);
+  const keys = [
+    ...CATEGORY_ORDER.filter((k) => groups[k]),
+    ...Object.keys(groups).filter((k) => !CATEGORY_ORDER.includes(k))
+  ];
+  return keys.map((k) => {
+    const rows = groups[k].slice().sort((a, b) => a.score - b.score)
+      .map((s, i) => rankRow(s, i + 1, origin)).join('');
+    return `<h2>${escapeHtml(CATEGORY_NAMES[k] || k)}</h2><ol class="rows">${rows}</ol>`;
+  }).join('');
 }
 
 function builderRows(byBuilder) {
@@ -52,14 +71,14 @@ function builderRows(byBuilder) {
   }).join('');
 }
 
-export async function onRequestGet({ request }) {
+export async function onRequestGet({ request, env }) {
   const origin = new URL(request.url).origin;
   const data = await loadData(request);
+  const live = env?.RESULTS ? await getStats(env.RESULTS).catch(() => null) : null;
 
   const generating = !data || !data.scored;
   const stats = data?.stats || {};
   const sites = (data?.sites || []).filter((s) => s.scored);
-  const hallOfClean = sites.filter((s) => s.tier === 'Clean').slice(0, 10);
   const when = data?.generatedAt ? new Date(data.generatedAt).toISOString().slice(0, 10) : '—';
 
   const headline = generating
@@ -69,10 +88,17 @@ export async function onRequestGet({ request }) {
         detectable AI-design-slop tells (score &ge; 10). Average score <strong>${stats.avgScore}</strong>/100.
         ${stats.cleanCount} Clean &middot; ${stats.mildCount} Mild &middot; ${stats.heavyCount} Heavy.</p>`;
 
-  const hall = hallOfClean.length
-    ? `<h2>Hall of Clean</h2>
-       <p class="note">The lowest scores in the set &mdash; pages that read as deliberate, not generated.</p>
-       <ol class="rows">${hallOfClean.map((s) => cleanRow(s, origin)).join('')}</ol>`
+  // Live counter across every scan slop-detect has run (not just the corpus),
+  // shown only once it reads as momentum rather than "0".
+  const liveLine = (live && live.count >= 50)
+    ? `<p class="livestat">Across every page slop-detect has scored:
+        <strong>${live.count.toLocaleString('en-US')}</strong> scans,
+        average <strong>${live.avgScore}</strong>/100, ${live.slopShare}% carry slop.</p>`
+    : '';
+
+  const ranked = (!generating && sites.length)
+    ? `<p class="note">Cleanest first within each category. Every name links to its score hub.</p>
+       ${categorySections(sites, origin)}`
     : '';
 
   const byBuilder = !generating && builderRows(data.byBuilder)
@@ -100,8 +126,11 @@ ${BRAND_FONTS_HEAD}
   .lead{font-size:19px;color:var(--text-2);max-width:62ch}
   .lead strong{color:var(--text)}
   .note{color:var(--muted);font-size:14px;margin-bottom:12px;max-width:62ch}
+  .livestat{font-family:var(--mono);font-size:13px;color:var(--muted);margin:14px 0 4px}
+  .livestat strong{color:var(--text)}
   .rows{list-style:none;margin-top:8px}
-  .r{display:grid;grid-template-columns:34px 78px 1fr auto;gap:12px;align-items:baseline;padding:11px 2px;border-bottom:1px solid var(--bg-2)}
+  .r{display:grid;grid-template-columns:24px 34px 78px 1fr;gap:12px;align-items:baseline;padding:11px 2px;border-bottom:1px solid var(--bg-2)}
+  .rank{font-family:var(--mono);font-size:12px;color:var(--dim);text-align:right}
   .g{font-family:var(--mono);font-weight:700;font-size:14px;border:1px solid;border-radius:5px;text-align:center;padding:1px 0}
   .sc{font-family:var(--mono);color:var(--text-2);font-size:13px}
   .sc small{color:var(--dim);font-size:11px}
@@ -119,18 +148,19 @@ ${BRAND_FONTS_HEAD}
   .meth code{font-family:var(--mono);color:var(--muted)}
   footer{margin-top:32px;font-family:var(--mono);font-size:11.5px;color:var(--dim)}
   footer a{color:var(--muted)}
-  @media(max-width:560px){.r{grid-template-columns:30px 64px 1fr}.scan{display:none}}
+  @media(max-width:560px){.r{grid-template-columns:34px 64px 1fr}.rank{display:none}}
 </style></head><body><div class="wrap">
   <div class="eyebrow"><span class="reg">&sect;rpt</span><span class="reg-label">the report</span></div>
   <h1>The State of AI Design Slop</h1>
   ${headline}
+  ${liveLine}
 
   <div class="cta">
     Wondering about your own site? <a href="${origin}/">Scan it free</a> &middot;
     keep it clean over time with <a href="${origin}/#monitor">monitoring</a>.
   </div>
 
-  ${hall}
+  ${ranked}
   ${byBuilder}
 
   <p class="meth">Methodology: each URL scanned once in a headless browser against the
