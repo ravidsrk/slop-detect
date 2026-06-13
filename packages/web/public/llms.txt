@@ -16,6 +16,8 @@ page looks machine-generated, not that it is bad.
   Detector measures and how the scan works.
 - [Pattern catalogue (JSON)](https://slop-detect.com/api/patterns): Every design
   and copy pattern, with weights and the current definitions version.
+- [Blog](https://slop-detect.com/blog): how the score works and why a fixed
+  detector decays. Each post has a markdown twin at `/blog/<slug>.md`.
 
 ## How it works
 
