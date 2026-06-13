@@ -17,13 +17,15 @@
   <text x="72" y="92" class="mono" font-size="26" font-weight="600" letter-spacing="-1" fill="#15171e"><tspan fill="#2848d6">&#9631;</tspan>  slop-detect</text>
   <text x="1128" y="92" text-anchor="end" class="mono" font-size="19" fill="#646a78">§ deterministic design-slop scoring</text>
 
-  <!-- headline -->
-  <text x="72" y="248" font-size="62" font-weight="800" letter-spacing="-2" fill="#15171e"><tspan>Grade any landing page on</tspan></text>
-  <text x="72" y="322" font-size="62" font-weight="800" letter-spacing="-2" fill="#15171e"><tspan>how </tspan><tspan fill="#2848d6">AI-generated</tspan><tspan> it looks.</tspan></text>
+  <!-- headline (kept left of the grade card so nothing collides) -->
+  <text x="72" y="206" font-size="60" font-weight="800" letter-spacing="-2" fill="#15171e">Grade any landing page</text>
+  <text x="72" y="276" font-size="60" font-weight="800" letter-spacing="-2" fill="#15171e">on how <tspan fill="#2848d6">AI-generated</tspan></text>
+  <text x="72" y="346" font-size="60" font-weight="800" letter-spacing="-2" fill="#15171e">it looks.</text>
 
   <!-- subline -->
-  <text x="74" y="392" font-size="29" fill="#454a57">27 deterministic checks · a 0&#8211;100 score and a letter grade ·</text>
-  <text x="74" y="432" font-size="29" fill="#454a57">the exact tells that gave it away. Free and open source.</text>
+  <text x="74" y="408" font-size="28" fill="#454a57">27 deterministic checks · a 0&#8211;100 score,</text>
+  <text x="74" y="446" font-size="28" fill="#454a57">a letter grade, and the exact tells.</text>
+  <text x="74" y="484" font-size="28" fill="#454a57">Free and open source.</text>
 
   <!-- url -->
   <text x="74" y="556" class="mono" font-size="24" font-weight="600" fill="#2848d6">slop-detect.com</text>
