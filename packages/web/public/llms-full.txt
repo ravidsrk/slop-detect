@@ -1,4 +1,4 @@
-# Slop Detector — Full Manual
+# Slop Detector: Full Manual
 
 > Score any landing page against the AI-design fingerprint. Deterministic 0–100 slop
 > scoring on real headless Chromium, plus an AEO axis (can AI engines read & cite a
@@ -9,7 +9,7 @@ This is the full single-file manual for AI agents. Lighter index: https://slop-d
 ## Overview
 
 Slop Detector inspects a page's live computed styles (and, optionally, its copy) and
-returns a weighted, reproducible score. It is not a quality verdict — a high score
+returns a weighted, reproducible score. It is not a quality verdict. A high score
 means a page looks machine-generated, not that it is bad. Generated pages converge:
 the same fonts, gradient hero text, glassmorphism, eyebrow pills, big-number stat
 bands. Slop Detector measures how far a page sits along that fingerprint.
@@ -20,21 +20,21 @@ bands. Slop Detector measures how far a page sits along that fingerprint.
 
 ## Concepts
 
-- **Score** — weighted 0–100. Each triggered pattern adds a fixed weight. Higher = more machine-made.
-- **Tiers** — Clean 0–9, Mild 10–27, Heavy 28+.
-- **Determinism** — no model, no randomness. Same page in, same score out.
-- **Axes** — `design` (default), `copy` (LLM phrasing tells), and the separate `AEO` axis.
-- **AEO polarity** — inverted vs slop: higher AEO is better, lower slop is better.
+- **Score**: weighted 0–100. Each triggered pattern adds a fixed weight. Higher = more machine-made.
+- **Tiers**: Clean 0–9, Mild 10–27, Heavy 28+.
+- **Determinism**: no model, no randomness. Same page in, same score out.
+- **Axes**: `design` (default), `copy` (LLM phrasing tells), and the separate `AEO` axis.
+- **AEO polarity**: inverted vs slop: higher AEO is better, lower slop is better.
 
-## The fingerprint — what it measures
+## The fingerprint: what it measures
 
-- **Type — fonts & tracking.** Geist / Inter defaults, crushed display tracking, wide body tracking, flat size hierarchy.
-- **Color — gradients & glow.** Gradient hero text, gradient-heavy backgrounds, aurora blobs, colored glows, vibe-purple.
-- **Layout — the convention stack.** Centered hero, eyebrow pill, glassmorphism, bento grids, nested cards, icon-card rows.
-- **Copy — AI phrasing.** Optional second axis: the hedge-y, em-dash-heavy register LLMs default to.
+- **Type: fonts & tracking.** Geist / Inter defaults, crushed display tracking, wide body tracking, flat size hierarchy.
+- **Color: gradients & glow.** Gradient hero text, gradient-heavy backgrounds, aurora blobs, colored glows, vibe-purple.
+- **Layout: the convention stack.** Centered hero, eyebrow pill, glassmorphism, bento grids, nested cards, icon-card rows.
+- **Copy: AI phrasing.** Optional second axis: the hedge-y, em-dash-heavy register LLMs default to.
 
 The full, live list (with weights and the current definitions version) is at
-https://slop-detect.com/api/patterns — never hardcode the count.
+https://slop-detect.com/api/patterns, never hardcode the count.
 
 ## How it works
 
@@ -141,7 +141,7 @@ https://slop-detect.com/.well-known/mcp/server-card.json
 
 A score is a snapshot; monitoring is the continuity layer. `POST /api/watch`
 `{ domain, email }` re-scans the domain daily and emails on slop regression
-(double opt-in — nothing is sent until the address confirms). `system: true`
+(double opt-in, nothing is sent until the address confirms). `system: true`
 also checks each scan against the site's own DESIGN.md (Google Labs spec) and
 alerts on design drift: undeclared fonts, off-palette CTA/surface colors,
 off-scale radii. The system axis is relative and higher-is-better (Aligned >=80,
@@ -172,7 +172,7 @@ Free and open source (MIT). No paid tiers. See https://slop-detect.com/pricing.m
 
 ## Instructions for AI agents
 
-- Prefer calling `POST /api/scan` over reading a page yourself — the score is deterministic.
+- Prefer calling `POST /api/scan` over reading a page yourself: the score is deterministic.
 - Use `POST /api/aeo` for "can AI read/cite this?" questions.
 - Read the pattern count from `GET /api/patterns`; never hardcode it.
 - Machine-readable summary: `GET https://slop-detect.com/?mode=agent`.
