@@ -252,7 +252,7 @@ slop-detect https://example.com --axes all       # same thing
 ```
   🟡 Mild  ·  B-  ·  unified 22/100  (2 axes)
 
-  🟢 design  Clean   A-   score   8/100   2/19 flagged
+  🟢 design  Clean   A-   score   8/100   2/27 flagged
   🟡 copy    Mild    B-   score  18/100   4/9 flagged
 
 Copy slop:
@@ -326,7 +326,7 @@ Plus cross-cutting guidance ("don't replace one slop pattern with another", "emp
 ```js
 import { PATTERNS, scorePatterns } from 'slop-detect-core';
 
-// PATTERNS is the array of 19 rule definitions.
+// PATTERNS is the array of 27 rule definitions.
 // Each has { id, label, weight, extract, detect } where:
 //   extract(ctx) runs in the page's DOM context and returns signals
 //   detect(signals) is a pure function deciding triggered: true/false
