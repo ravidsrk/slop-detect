@@ -339,6 +339,99 @@ async function appendHistory(kv, domain, point) {
   return capped;
 }
 
+// Build the compact timeline point a scan contributes. Shared by the always-on
+// recorder and the watch-specific one so the two can never diverge.
+function historyPoint(slim) {
+  const p = {
+    id: slim.id,
+    score: slim.score,
+    grade: slim.grade,
+    tier: slim.tier,
+    createdAt: slim.createdAt || new Date().toISOString()
+  };
+  if (slim.system) p.sys = { score: slim.system.score, tier: slim.system.tier };
+  return p;
+}
+
+// ── Global score distribution (peer percentile without KV enumeration) ────────
+// One 101-bucket histogram (index = slop score 0..100, value = count), bumped
+// once per persisted scan. Lets the score page answer "cleaner than X% of N
+// scanned sites" and the homepage show live aggregate stats, without ever
+// enumerating per-domain keys. Read-modify-write is not atomic in KV, so counts
+// are approximate under heavy concurrency, which is fine for a percentile.
+const STATS_DIST_KEY = 'stats:dist';
+
+export async function getScoreDistribution(kv) {
+  const empty = () => new Array(101).fill(0);
+  if (!kv) return empty();
+  const raw = await kv.get(STATS_DIST_KEY);
+  if (!raw) return empty();
+  try {
+    const a = JSON.parse(raw);
+    return Array.isArray(a) && a.length === 101 ? a.map(n => Number(n) || 0) : empty();
+  } catch { return empty(); }
+}
+
+async function bumpScoreStats(kv, score) {
+  if (!kv || typeof score !== 'number' || !Number.isFinite(score)) return;
+  const dist = await getScoreDistribution(kv);
+  const i = Math.max(0, Math.min(100, Math.round(score)));
+  dist[i] = (dist[i] || 0) + 1;
+  await kv.put(STATS_DIST_KEY, JSON.stringify(dist)); // durable: no TTL
+}
+
+// Aggregate a distribution into the headline stats the UI shows. Tier bands
+// match the engine: Clean 0..9, Mild 10..27, Heavy 28+.
+export function summarizeStats(dist) {
+  let count = 0, sum = 0, clean = 0, mild = 0, heavy = 0;
+  for (let i = 0; i <= 100; i++) {
+    const n = (dist && dist[i]) || 0;
+    count += n; sum += i * n;
+    if (i <= 9) clean += n; else if (i <= 27) mild += n; else heavy += n;
+  }
+  return {
+    count,
+    avgScore: count ? Math.round((sum / count) * 10) / 10 : 0,
+    slopShare: count ? Math.round(((mild + heavy) / count) * 100) : 0,
+    clean, mild, heavy
+  };
+}
+
+export async function getStats(kv) {
+  return summarizeStats(await getScoreDistribution(kv));
+}
+
+// "Cleaner than X% of N sites": the share of scans scoring strictly WORSE
+// (higher) than `score`. Lower slop score is cleaner, so a higher percentile is
+// better. Returns { count, cleanerThanPct } (pct is null when there's no data).
+export function percentileFromDistribution(dist, score) {
+  let count = 0, worse = 0;
+  const s = Math.max(0, Math.min(100, Math.round(Number(score) || 0)));
+  for (let i = 0; i <= 100; i++) {
+    const n = (dist && dist[i]) || 0;
+    count += n;
+    if (i > s) worse += n;
+  }
+  return { count, cleanerThanPct: count ? Math.round((worse / count) * 100) : null };
+}
+
+export async function percentileForScore(kv, score) {
+  return percentileFromDistribution(await getScoreDistribution(kv), score);
+}
+
+// Record EVERY persisted scan into the per-domain timeline + the global stats,
+// regardless of whether the domain is monitored. This is what lets a public
+// /score/<domain> page chart history and rank against peers. Watch
+// baseline/regression stays in recordScanForWatch, layered on top; its own
+// appendHistory call de-dupes against this one by scan id.
+export async function recordScan(kv, slim) {
+  if (!kv || !slim || !slim.domain) return;
+  await Promise.all([
+    appendHistory(kv, slim.domain, historyPoint(slim)),
+    bumpScoreStats(kv, slim.score)
+  ]);
+}
+
 // Decide whether `current` is a regression from `baseline`. Pure — unit-tested.
 export function isRegression(baseline, current) {
   if (!baseline || !current) return false;
@@ -373,16 +466,9 @@ export async function recordScanForWatch(kv, slim) {
   const watch = await getWatch(kv, slim.domain);
   if (!watch) return null;
 
-  const point = {
-    id: slim.id,
-    score: slim.score,
-    grade: slim.grade,
-    tier: slim.tier,
-    createdAt: slim.createdAt || new Date().toISOString()
-  };
   // History points carry a compact system reading when the axis ran, so the
   // report page can chart compliance over time alongside the slop score.
-  if (slim.system) point.sys = { score: slim.system.score, tier: slim.system.tier };
+  const point = historyPoint(slim);
   await appendHistory(kv, slim.domain, point);
 
   // Establish the baseline on the first observed scan if registration happened
