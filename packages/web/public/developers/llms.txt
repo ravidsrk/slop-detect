@@ -1,4 +1,4 @@
-# Slop Detector — Developers
+# Slop Detector: Developers
 
 > Scoped context for integrating Slop Detector. Full manual: https://slop-detect.com/llms.txt
 
@@ -32,9 +32,9 @@ https://slop-detect.com/api/llms.txt
 
 ## Packages (npm)
 
-- `slop-detect-core` — the scoring engine (27 patterns, AEO checks, copy axis).
-- `slop-detect` — the CLI.
-- `slop-detect-mcp` — the MCP server.
+- `slop-detect-core`: the scoring engine (27 patterns, AEO checks, copy axis).
+- `slop-detect`: the CLI.
+- `slop-detect-mcp`: the MCP server.
 
 ## When agents should use this
 
