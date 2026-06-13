@@ -221,7 +221,7 @@ async function fetchWithTimeout(url, init, timeoutMs, fetchImpl, isUrlAllowed) {
     let current = String(url);
     for (let hop = 0; hop < 6; hop++) {
       if (!isUrlAllowed(current)) {
-        const e = new Error('blocked: redirect to a disallowed host');
+        const e: any = new Error('blocked: redirect to a disallowed host');
         e.code = 'ssrf_blocked';
         throw e;
       }
@@ -236,7 +236,7 @@ async function fetchWithTimeout(url, init, timeoutMs, fetchImpl, isUrlAllowed) {
       }
       return res;
     }
-    const e = new Error('blocked: too many redirects');
+    const e: any = new Error('blocked: too many redirects');
     e.code = 'too_many_redirects';
     throw e;
   } finally {
@@ -343,7 +343,15 @@ function result(check, passed, message) {
 // Run the AEO axis against a live URL. Returns a report shaped like the slop
 // scan (score/maxScore/tier/passed/failed) so the CLI/web/mcp render it the same
 // way. `opts.fetchImpl` defaults to global fetch; `opts.timeoutMs` per request.
-export async function runAeoChecks(input, opts = {}) {
+export async function runAeoChecks(
+  input,
+  opts: {
+    fetchImpl?: typeof fetch;
+    userAgent?: string;
+    timeoutMs?: number;
+    isUrlAllowed?: (url: string) => boolean;
+  } = {}
+) {
   const fetchImpl = opts.fetchImpl || globalThis.fetch;
   const userAgent = opts.userAgent || DEFAULT_UA;
   const timeoutMs = opts.timeoutMs || 10_000;

@@ -48,6 +48,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # The CLI imports the compiled slop-detect-core (dist), so build it before
+      # running bin/slop.js or the golden fixtures directly.
+      - run: npm run build
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
       - name: Golden detection fixtures (clean vs slop)

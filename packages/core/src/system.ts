@@ -210,7 +210,7 @@ export function flattenDesignTokens(parsed) {
   const colors = [];
   const radii = [];
 
-  for (const t of Object.values(parsed.typography || {})) {
+  for (const t of Object.values<any>(parsed.typography || {})) {
     const fam = typeof t === 'object' ? t.fontFamily : t;
     const f = typeof fam === 'string' ? primaryFamily(fam) || normFont(fam) : null;
     if (f) fonts.add(f);
@@ -225,7 +225,7 @@ export function flattenDesignTokens(parsed) {
     }
   };
   walkColors(parsed.colors);
-  for (const comp of Object.values(parsed.components || {})) {
+  for (const comp of Object.values<any>(parsed.components || {})) {
     if (!comp || typeof comp !== 'object') continue;
     pushColor(comp.backgroundColor);
     pushColor(comp.textColor);
@@ -234,7 +234,7 @@ export function flattenDesignTokens(parsed) {
     const f = typeof fam === 'string' ? primaryFamily(fam) || normFont(fam) : null;
     if (f) fonts.add(f);
   }
-  for (const v of Object.values(parsed.rounded || {})) {
+  for (const v of Object.values<any>(parsed.rounded || {})) {
     const px = parseFloat(v);
     if (Number.isFinite(px)) radii.push(px);
   }
@@ -349,7 +349,7 @@ export function scoreSystemCompliance(parsed, observed) {
   const obs = observed || {};
   const checks = [];
   const drift = [];
-  const push = (id, status, message, evidence) => {
+  const push = (id, status, message, evidence?) => {
     const def = SYSTEM_CHECKS.find((c) => c.id === id);
     checks.push({ ...def, status, message, evidence });
     if (status === 'fail') drift.push({ id, message, evidence });
@@ -358,7 +358,7 @@ export function scoreSystemCompliance(parsed, observed) {
   // 1. Fonts: every meaningfully-used concrete family should be declared.
   {
     const tally = obs.fonts || {};
-    const total = Object.values(tally).reduce((a, b) => a + b, 0);
+    const total = Object.values<number>(tally).reduce((a, b) => a + b, 0);
     if (!tokens.fonts.length || !total) {
       push(
         'fonts.declared',
