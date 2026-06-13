@@ -16,7 +16,7 @@ export function buildVerificationEmail(domain, confirmUrl) {
     ``,
     `If you didn't request this, ignore this email — no monitoring starts and`,
     `your address is removed automatically. We never share or sell your email.`,
-    `Privacy: https://slop-detect.com/privacy.md`
+    `Privacy: https://slop-detect.com/privacy.md`,
   ].join('\n');
   return { subject, text };
 }
@@ -32,7 +32,7 @@ export function buildRegressionAlert(domain, baseline, current, opts = {}) {
     `  Now:      ${current.grade}  ·  score ${current.score}  ·  ${current.tier}`,
     ``,
     `The slop score ${dir} by ${Math.abs(current.score - baseline.score)} point(s)` +
-      `${tierDrop(baseline.tier, current.tier) ? ` and the tier dropped ${baseline.tier} → ${current.tier}` : ''}.`
+      `${tierDrop(baseline.tier, current.tier) ? ` and the tier dropped ${baseline.tier} → ${current.tier}` : ''}.`,
   ];
   if (opts.resultUrl) lines.push('', `Full scan: ${opts.resultUrl}`);
   if (opts.fixUrl) lines.push(`Fix prompt: ${opts.fixUrl}`);
@@ -58,7 +58,7 @@ export function buildDriftAlert(domain, baseline, current, driftItems = [], opts
     ``,
     `  Baseline: ${baseline.tier}${typeof baseline.score === 'number' ? `  ·  ${baseline.score}/100` : ''}`,
     `  Now:      ${current.tier}${typeof current.score === 'number' ? `  ·  ${current.score}/100` : ''}`,
-    ``
+    ``,
   ];
   if (driftItems.length) {
     lines.push('What drifted:');
@@ -89,7 +89,7 @@ export function buildDashboardLinkEmail(loginUrl, domainCount) {
     '',
     'The link is single-use and expires in 15 minutes. If you did not request',
     'it, ignore this email — nothing happens without the click.',
-    'Privacy: https://slop-detect.com/privacy.md'
+    'Privacy: https://slop-detect.com/privacy.md',
   ].join('\n');
   return { subject, text };
 }

@@ -25,7 +25,7 @@ export async function onRequestGet({ params, env }) {
       'Content-Type': 'image/svg+xml; charset=utf-8',
       // Short cache: badges should track re-scans within a few hours, and
       // GitHub/Camo will cache aggressively anyway.
-      'Cache-Control': `public, max-age=${BADGE_TTL}, s-maxage=${BADGE_TTL}`
-    }
+      'Cache-Control': `public, max-age=${BADGE_TTL}, s-maxage=${BADGE_TTL}`,
+    },
   });
 }

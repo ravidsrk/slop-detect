@@ -15,8 +15,14 @@ export function newId(len = 8) {
 }
 
 export function domainOf(url) {
-  try { return new URL(url).hostname.replace(/^www\./, ''); }
-  catch { return String(url || '').replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0]; }
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return String(url || '')
+      .replace(/^https?:\/\//, '')
+      .replace(/^www\./, '')
+      .split('/')[0];
+  }
 }
 
 // ── SSRF guard ────────────────────────────────────────────────────────────────
@@ -30,24 +36,22 @@ export function domainOf(url) {
 //
 // Returns a normalized https URL string on success, or { error, status } to
 // return verbatim to the caller.
-const PRIVATE_HOSTNAMES = new Set([
-  'localhost', 'ip6-localhost', 'ip6-loopback'
-]);
+const PRIVATE_HOSTNAMES = new Set(['localhost', 'ip6-localhost', 'ip6-loopback']);
 
 function isPrivateIPv4(host) {
   const m = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
   if (!m) return false;
   const [a, b] = [Number(m[1]), Number(m[2])];
-  if (m.slice(1).some(o => Number(o) > 255)) return false;
+  if (m.slice(1).some((o) => Number(o) > 255)) return false;
   return (
-    a === 0 ||                          // 0.0.0.0/8 "this network"
-    a === 10 ||                         // 10.0.0.0/8 private
-    a === 127 ||                        // 127.0.0.0/8 loopback
-    (a === 169 && b === 254) ||         // 169.254.0.0/16 link-local (cloud metadata)
-    (a === 172 && b >= 16 && b <= 31) ||// 172.16.0.0/12 private
-    (a === 192 && b === 168) ||         // 192.168.0.0/16 private
-    (a === 100 && b >= 64 && b <= 127) ||// 100.64.0.0/10 CGNAT
-    a >= 224                            // 224.0.0.0/4 multicast + 240/4 reserved
+    a === 0 || // 0.0.0.0/8 "this network"
+    a === 10 || // 10.0.0.0/8 private
+    a === 127 || // 127.0.0.0/8 loopback
+    (a === 169 && b === 254) || // 169.254.0.0/16 link-local (cloud metadata)
+    (a === 172 && b >= 16 && b <= 31) || // 172.16.0.0/12 private
+    (a === 192 && b === 168) || // 192.168.0.0/16 private
+    (a === 100 && b >= 64 && b <= 127) || // 100.64.0.0/10 CGNAT
+    a >= 224 // 224.0.0.0/4 multicast + 240/4 reserved
   );
 }
 
@@ -55,10 +59,10 @@ function isPrivateIPv6(host) {
   // URL hostnames keep IPv6 in brackets for the authority but `.hostname`
   // strips them; accept both. Lowercase, drop any zone id.
   let h = host.replace(/^\[/, '').replace(/\]$/, '').split('%')[0].toLowerCase();
-  if (h === '::1' || h === '::') return true;              // loopback / unspecified
+  if (h === '::1' || h === '::') return true; // loopback / unspecified
   if (h.startsWith('fc') || h.startsWith('fd')) return true; // fc00::/7 unique-local
-  if (h.startsWith('fe8') || h.startsWith('fe9') ||
-      h.startsWith('fea') || h.startsWith('feb')) return true; // fe80::/10 link-local
+  if (h.startsWith('fe8') || h.startsWith('fe9') || h.startsWith('fea') || h.startsWith('feb'))
+    return true; // fe80::/10 link-local
   // IPv4-mapped (::ffff:a.b.c.d) — re-check the embedded v4.
   const mapped = h.match(/::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
   if (mapped) return isPrivateIPv4(mapped[1]);
@@ -77,7 +81,11 @@ export function validateScanUrl(raw) {
   if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
 
   let parsed;
-  try { parsed = new URL(url); } catch { return { error: 'Invalid URL', status: 400 }; }
+  try {
+    parsed = new URL(url);
+  } catch {
+    return { error: 'Invalid URL', status: 400 };
+  }
 
   // Only http/https reach the browser. (new URL accepts file:, data:, etc.)
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
@@ -91,10 +99,13 @@ export function validateScanUrl(raw) {
     host.endsWith('.internal') ||
     host.endsWith('.local') ||
     isPrivateIPv4(host) ||
-    (host.includes(':') || /^\[.*\]$/.test(parsed.host)) && isPrivateIPv6(host);
+    ((host.includes(':') || /^\[.*\]$/.test(parsed.host)) && isPrivateIPv6(host));
 
   if (blocked) {
-    return { error: 'That host is not allowed (private, loopback, or internal address)', status: 400 };
+    return {
+      error: 'That host is not allowed (private, loopback, or internal address)',
+      status: 400,
+    };
   }
 
   return { url };
@@ -106,17 +117,17 @@ export function isAllowedUrl(raw) {
   return !validateScanUrl(raw).error;
 }
 
-const RESULT_TTL = 60 * 60 * 24 * 90;  // 90 days
+const RESULT_TTL = 60 * 60 * 24 * 90; // 90 days
 const DOMAIN_TTL = 60 * 60 * 24 * 90;
-const BADGE_TTL  = 60 * 60 * 3;         // 3 hours
+const BADGE_TTL = 60 * 60 * 3; // 3 hours
 
 // ── KV persistence ───────────────────────────────────────────────────────────
 // We store a slim snapshot — enough to render the permalink + card + badge,
 // without bloating KV with full evidence blobs for clean patterns.
 export function slimResult(data, id) {
   const triggered = (data.patterns || [])
-    .filter(p => p.triggered)
-    .map(p => ({ id: p.id, label: p.label, short: p.short, weight: p.weight }));
+    .filter((p) => p.triggered)
+    .map((p) => ({ id: p.id, label: p.label, short: p.short, weight: p.weight }));
   const slim = {
     id,
     url: data.url,
@@ -132,7 +143,7 @@ export function slimResult(data, id) {
     patternsTotal: data.patternsTotal,
     definitionsVersion: data.definitionsVersion || null,
     triggered,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
   };
   // Multi-axis (#08): persist a compact copy-axis summary + unified headline so
   // permalinks/OG cards can show it. Only when the copy axis was actually run.
@@ -144,12 +155,16 @@ export function slimResult(data, id) {
     slim.axes = {
       design: { score: data.score, tier: data.tier, grade: data.grade },
       copy: {
-        score: copy.score, tier: copy.tier, grade: copy.grade,
-        patternsFlagged: copy.patternsFlagged, patternsTotal: copy.patternsTotal,
+        score: copy.score,
+        tier: copy.tier,
+        grade: copy.grade,
+        patternsFlagged: copy.patternsFlagged,
+        patternsTotal: copy.patternsTotal,
         thin: !!copy.thin,
-        triggered: (copy.patterns || []).filter(p => p.triggered)
-          .map(p => ({ id: p.id, short: p.short, weight: p.weight }))
-      }
+        triggered: (copy.patterns || [])
+          .filter((p) => p.triggered)
+          .map((p) => ({ id: p.id, short: p.short, weight: p.weight })),
+      },
     };
   }
   // System axis (Roadmap v2 P2a): persist a compact compliance summary so the
@@ -161,8 +176,7 @@ export function slimResult(data, id) {
       tier: data.system.tier,
       name: data.system.name || null,
       driftCount: (data.system.drift || []).length,
-      drift: (data.system.drift || []).slice(0, 5)
-        .map(d => ({ id: d.id, message: d.message }))
+      drift: (data.system.drift || []).slice(0, 5).map((d) => ({ id: d.id, message: d.message })),
     };
   }
   return slim;
@@ -172,7 +186,7 @@ export async function saveResult(kv, slim) {
   if (!kv) return;
   await Promise.all([
     kv.put(`r:${slim.id}`, JSON.stringify(slim), { expirationTtl: RESULT_TTL }),
-    kv.put(`d:${slim.domain}`, slim.id, { expirationTtl: DOMAIN_TTL })
+    kv.put(`d:${slim.domain}`, slim.id, { expirationTtl: DOMAIN_TTL }),
   ]);
 }
 
@@ -200,8 +214,8 @@ export async function getLatestForDomain(kv, domain) {
 // (Cron Trigger) and the actual email send are the documented follow-ups; what
 // ships here is enough to capture intent + emails and prove regression detection
 // works on real scan data.
-const WATCH_TTL   = 60 * 60 * 24 * 365;  // 1 year — a watch should outlive a scan
-const HISTORY_CAP = 50;                   // keep the last N points per domain
+const WATCH_TTL = 60 * 60 * 24 * 365; // 1 year — a watch should outlive a scan
+const HISTORY_CAP = 50; // keep the last N points per domain
 
 // Slop score is 0–100, lower is better. A regression is the score getting
 // meaningfully WORSE, or the tier dropping a band (Clean → Mild → Heavy).
@@ -221,7 +235,10 @@ export function normalizeDomain(raw) {
     // strip a leading scheme but reject embedded paths/spaces/credentials
     d = d.replace(/^https?:\/\//, '').split('/')[0];
   }
-  d = d.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\.$/, '');
+  d = d
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .replace(/\.$/, '');
   if (d.length < 4 || d.length > 253) return null;
   // labels: 1–63 chars, alphanumeric + internal hyphens; final label (TLD) ≥2 alpha.
   if (!/^([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}$/.test(d)) return null;
@@ -310,7 +327,9 @@ export async function listWatches(kv, { limit = 200 } = {}) {
     try {
       const raw = await kv.get(k.name);
       if (raw) out.push(JSON.parse(raw));
-    } catch (_) { /* skip a corrupt record rather than abort the sweep */ }
+    } catch (_) {
+      /* skip a corrupt record rather than abort the sweep */
+    }
   }
   return out;
 }
@@ -324,8 +343,12 @@ export async function getHistory(kv, domain) {
   if (!kv || !domain) return [];
   const raw = await kv.get(`h:${domain}`);
   if (!raw) return [];
-  try { const a = JSON.parse(raw); return Array.isArray(a) ? a : []; }
-  catch { return []; }
+  try {
+    const a = JSON.parse(raw);
+    return Array.isArray(a) ? a : [];
+  } catch {
+    return [];
+  }
 }
 
 async function appendHistory(kv, domain, point) {
@@ -347,7 +370,7 @@ function historyPoint(slim) {
     score: slim.score,
     grade: slim.grade,
     tier: slim.tier,
-    createdAt: slim.createdAt || new Date().toISOString()
+    createdAt: slim.createdAt || new Date().toISOString(),
   };
   if (slim.system) p.sys = { score: slim.system.score, tier: slim.system.tier };
   return p;
@@ -368,8 +391,10 @@ export async function getScoreDistribution(kv) {
   if (!raw) return empty();
   try {
     const a = JSON.parse(raw);
-    return Array.isArray(a) && a.length === 101 ? a.map(n => Number(n) || 0) : empty();
-  } catch { return empty(); }
+    return Array.isArray(a) && a.length === 101 ? a.map((n) => Number(n) || 0) : empty();
+  } catch {
+    return empty();
+  }
 }
 
 async function bumpScoreStats(kv, score) {
@@ -383,17 +408,26 @@ async function bumpScoreStats(kv, score) {
 // Aggregate a distribution into the headline stats the UI shows. Tier bands
 // match the engine: Clean 0..9, Mild 10..27, Heavy 28+.
 export function summarizeStats(dist) {
-  let count = 0, sum = 0, clean = 0, mild = 0, heavy = 0;
+  let count = 0,
+    sum = 0,
+    clean = 0,
+    mild = 0,
+    heavy = 0;
   for (let i = 0; i <= 100; i++) {
     const n = (dist && dist[i]) || 0;
-    count += n; sum += i * n;
-    if (i <= 9) clean += n; else if (i <= 27) mild += n; else heavy += n;
+    count += n;
+    sum += i * n;
+    if (i <= 9) clean += n;
+    else if (i <= 27) mild += n;
+    else heavy += n;
   }
   return {
     count,
     avgScore: count ? Math.round((sum / count) * 10) / 10 : 0,
     slopShare: count ? Math.round(((mild + heavy) / count) * 100) : 0,
-    clean, mild, heavy
+    clean,
+    mild,
+    heavy,
   };
 }
 
@@ -405,7 +439,8 @@ export async function getStats(kv) {
 // (higher) than `score`. Lower slop score is cleaner, so a higher percentile is
 // better. Returns { count, cleanerThanPct } (pct is null when there's no data).
 export function percentileFromDistribution(dist, score) {
-  let count = 0, worse = 0;
+  let count = 0,
+    worse = 0;
   const s = Math.max(0, Math.min(100, Math.round(Number(score) || 0)));
   for (let i = 0; i <= 100; i++) {
     const n = (dist && dist[i]) || 0;
@@ -428,7 +463,7 @@ export async function recordScan(kv, slim) {
   if (!kv || !slim || !slim.domain) return;
   await Promise.all([
     appendHistory(kv, slim.domain, historyPoint(slim)),
-    bumpScoreStats(kv, slim.score)
+    bumpScoreStats(kv, slim.score),
   ]);
 }
 
@@ -436,7 +471,7 @@ export async function recordScan(kv, slim) {
 export function isRegression(baseline, current) {
   if (!baseline || !current) return false;
   if (tierRank(current.tier) > tierRank(baseline.tier)) return true;
-  return (current.score - baseline.score) >= REGRESSION_SCORE_DELTA;
+  return current.score - baseline.score >= REGRESSION_SCORE_DELTA;
 }
 
 // System-axis drift (Roadmap v2 P2a). The system score is 0–100 HIGHER-IS-BETTER
@@ -453,7 +488,7 @@ export function isSystemDrift(baseline, current) {
   if (!SYSTEM_BAD.has(current.tier)) return false;
   if (SYSTEM_OK.has(baseline.tier)) return true;
   if (typeof baseline.score !== 'number' || typeof current.score !== 'number') return false;
-  return (baseline.score - current.score) >= SYSTEM_DRIFT_DELTA;
+  return baseline.score - current.score >= SYSTEM_DRIFT_DELTA;
 }
 
 // Called from the scan handler after a result is persisted. If the scanned
@@ -476,20 +511,22 @@ export async function recordScanForWatch(kv, slim) {
   if (watch.baselineScore == null) {
     watch.baselineScore = point.score;
     watch.baselineGrade = point.grade;
-    watch.baselineTier  = point.tier;
-    watch.baselineId    = point.id;
-    watch.baselineAt    = point.createdAt;
+    watch.baselineTier = point.tier;
+    watch.baselineId = point.id;
+    watch.baselineAt = point.createdAt;
   }
 
   const baseline = {
-    score: watch.baselineScore, grade: watch.baselineGrade, tier: watch.baselineTier
+    score: watch.baselineScore,
+    grade: watch.baselineGrade,
+    tier: watch.baselineTier,
   };
   const regressed = isRegression(baseline, point);
 
   watch.lastScore = point.score;
   watch.lastGrade = point.grade;
-  watch.lastTier  = point.tier;
-  watch.lastId    = point.id;
+  watch.lastTier = point.tier;
+  watch.lastId = point.id;
   watch.lastCheckedAt = point.createdAt;
   watch.regressed = regressed;
   // `notified` tracks whether we've already alerted for THIS regression so a
@@ -526,19 +563,21 @@ export async function recordScanForWatch(kv, slim) {
   try {
     if (watch.listed) await setListing(kv, slim);
     else await deleteListing(kv, slim.domain);
-  } catch (_) { /* directory row is derived; reconciled on a later scan */ }
+  } catch (_) {
+    /* directory row is derived; reconciled on a later scan */
+  }
 
   const summary = {
     watched: true,
     regressed,
     baseline,
-    delta: point.score - baseline.score
+    delta: point.score - baseline.score,
   };
   if (slim.system) {
     summary.system = {
       score: slim.system.score,
       tier: slim.system.tier,
-      drifted: systemDrift
+      drifted: systemDrift,
     };
   }
   return summary;
@@ -553,31 +592,53 @@ export function publicWatch(watch, history) {
     listed: !!watch.listed,
     plan: watch.plan || 'trial',
     createdAt: watch.createdAt,
-    baseline: watch.baselineScore == null ? null : {
-      score: watch.baselineScore, grade: watch.baselineGrade,
-      tier: watch.baselineTier, id: watch.baselineId, at: watch.baselineAt
-    },
-    last: watch.lastScore == null ? null : {
-      score: watch.lastScore, grade: watch.lastGrade,
-      tier: watch.lastTier, id: watch.lastId, at: watch.lastCheckedAt
-    },
+    baseline:
+      watch.baselineScore == null
+        ? null
+        : {
+            score: watch.baselineScore,
+            grade: watch.baselineGrade,
+            tier: watch.baselineTier,
+            id: watch.baselineId,
+            at: watch.baselineAt,
+          },
+    last:
+      watch.lastScore == null
+        ? null
+        : {
+            score: watch.lastScore,
+            grade: watch.lastGrade,
+            tier: watch.lastTier,
+            id: watch.lastId,
+            at: watch.lastCheckedAt,
+          },
     regressed: !!watch.regressed,
     // System axis (P2a): compliance monitoring state. Never includes the email.
     systemMonitoring: !!watch.system,
-    system: watch.lastSystemScore == null ? null : {
-      score: watch.lastSystemScore,
-      tier: watch.lastSystemTier,
-      at: watch.lastSystemAt,
-      baseline: watch.baselineSystemScore == null ? null : {
-        score: watch.baselineSystemScore, tier: watch.baselineSystemTier
-      },
-      drifted: !!watch.systemRegressed,
-      drift: (watch.lastSystemDrift || []).map(d => ({ id: d.id, message: d.message }))
-    },
-    history: (history || []).map(h => ({
-      score: h.score, grade: h.grade, tier: h.tier, at: h.createdAt,
-      ...(h.sys ? { system: { score: h.sys.score, tier: h.sys.tier } } : {})
-    }))
+    system:
+      watch.lastSystemScore == null
+        ? null
+        : {
+            score: watch.lastSystemScore,
+            tier: watch.lastSystemTier,
+            at: watch.lastSystemAt,
+            baseline:
+              watch.baselineSystemScore == null
+                ? null
+                : {
+                    score: watch.baselineSystemScore,
+                    tier: watch.baselineSystemTier,
+                  },
+            drifted: !!watch.systemRegressed,
+            drift: (watch.lastSystemDrift || []).map((d) => ({ id: d.id, message: d.message })),
+          },
+    history: (history || []).map((h) => ({
+      score: h.score,
+      grade: h.grade,
+      tier: h.tier,
+      at: h.createdAt,
+      ...(h.sys ? { system: { score: h.sys.score, tier: h.sys.tier } } : {}),
+    })),
   };
 }
 
@@ -592,12 +653,16 @@ export function publicWatch(watch, history) {
 // Storage (RESULTS KV): l:<domain> → full listing record, with a compact display
 // summary in the key's METADATA so the directory enumerates in one list() call
 // without a per-row read.
-const LISTING_TTL = 60 * 60 * 24 * 365;  // 1 year
+const LISTING_TTL = 60 * 60 * 24 * 365; // 1 year
 
 function listingMeta(record) {
   return {
-    s: record.score, g: record.grade, tr: record.tier,
-    id: record.id, t: (record.title || '').slice(0, 60), at: record.listedAt
+    s: record.score,
+    g: record.grade,
+    tr: record.tier,
+    id: record.id,
+    t: (record.title || '').slice(0, 60),
+    at: record.listedAt,
   };
 }
 
@@ -623,11 +688,11 @@ export async function setListing(kv, slim) {
     title: slim.title ?? existing?.title ?? null,
     verdict: slim.verdict ?? existing?.verdict ?? null,
     listedAt: existing?.listedAt || new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   };
   await kv.put(`l:${domain}`, JSON.stringify(record), {
     expirationTtl: LISTING_TTL,
-    metadata: listingMeta(record)
+    metadata: listingMeta(record),
   });
   return record;
 }
@@ -642,7 +707,7 @@ export async function deleteListing(kv, domain) {
 export async function listSites(kv, { limit = 200, cursor = null } = {}) {
   if (!kv) return { sites: [], cursor: null, complete: true };
   const res = await kv.list({ prefix: 'l:', limit, cursor: cursor || undefined });
-  const sites = (res.keys || []).map(k => {
+  const sites = (res.keys || []).map((k) => {
     const m = k.metadata || {};
     const domain = k.name.replace(/^l:/, '');
     return {
@@ -653,13 +718,13 @@ export async function listSites(kv, { limit = 200, cursor = null } = {}) {
       tier: m.tr ?? null,
       id: m.id ?? null,
       title: m.t || null,
-      listedAt: m.at || null
+      listedAt: m.at || null,
     };
   });
   return {
     sites,
-    cursor: res.list_complete ? null : (res.cursor || null),
-    complete: !!res.list_complete
+    cursor: res.list_complete ? null : res.cursor || null,
+    complete: !!res.list_complete,
   };
 }
 
@@ -681,10 +746,14 @@ export async function listAllSites(kv, { max = 5000 } = {}) {
 // ── Tier → color ──────────────────────────────────────────────────────────────
 export function tierColors(tier) {
   switch (tier) {
-    case 'Clean': return { fg: '#4ade80', bg: '#0b2014', label: '#bbf7d0' };
-    case 'Mild':  return { fg: '#fbbf24', bg: '#241a06', label: '#fde68a' };
-    case 'Heavy': return { fg: '#f87171', bg: '#240c0c', label: '#fecaca' };
-    default:      return { fg: '#8a8a92', bg: '#161618', label: '#d4d4d8' };
+    case 'Clean':
+      return { fg: '#4ade80', bg: '#0b2014', label: '#bbf7d0' };
+    case 'Mild':
+      return { fg: '#fbbf24', bg: '#241a06', label: '#fde68a' };
+    case 'Heavy':
+      return { fg: '#f87171', bg: '#240c0c', label: '#fecaca' };
+    default:
+      return { fg: '#8a8a92', bg: '#161618', label: '#d4d4d8' };
   }
 }
 
@@ -693,7 +762,7 @@ export function badgeSvg(domain, slim) {
   const label = 'slop';
   const score = slim ? slim.score : '?';
   const grade = slim ? slim.grade : '—';
-  const tier  = slim ? slim.tier  : 'Unknown';
+  const tier = slim ? slim.tier : 'Unknown';
   const c = tierColors(tier);
 
   const value = slim ? `${grade} · ${score}` : 'no scan';
@@ -726,7 +795,10 @@ export function cardHtml(slim) {
   const c = tierColors(slim.tier);
   const domain = escapeHtml(slim.domain);
   const verdict = escapeHtml(slim.verdict || '');
-  const tells = (slim.triggered || []).slice(0, 4).map(t => escapeHtml(t.short || t.label)).join(' · ');
+  const tells = (slim.triggered || [])
+    .slice(0, 4)
+    .map((t) => escapeHtml(t.short || t.label))
+    .join(' · ');
   return `<!doctype html><html><head><meta charset="utf-8"><style>
   *{margin:0;padding:0;box-sizing:border-box}
   html,body{width:1200px;height:630px;overflow:hidden}
@@ -777,14 +849,30 @@ export function cardHtml(slim) {
 
 // ── escaping ──────────────────────────────────────────────────────────────────
 export function escapeHtml(s) {
-  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[c]));
+  return String(s == null ? '' : s).replace(
+    /[&<>"']/g,
+    (c) =>
+      ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      })[c]
+  );
 }
 export function escapeXml(s) {
-  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;'
-  }[c]));
+  return String(s == null ? '' : s).replace(
+    /[&<>"']/g,
+    (c) =>
+      ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&apos;',
+      })[c]
+  );
 }
 
 export { BADGE_TTL };

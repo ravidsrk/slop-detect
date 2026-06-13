@@ -12,7 +12,10 @@ function makeRedirectingFetch(spy) {
   return async (url, init) => {
     spy.push(url);
     if (url === 'https://victim.example/') {
-      return new Response(null, { status: 302, headers: { location: 'http://169.254.169.254/latest/meta-data/' } });
+      return new Response(null, {
+        status: 302,
+        headers: { location: 'http://169.254.169.254/latest/meta-data/' },
+      });
     }
     return new Response('ok', { status: 200, headers: { 'content-type': 'text/plain' } });
   };
@@ -25,20 +28,22 @@ test('runAeoChecks blocks a redirect to an internal host (no internal fetch)', a
   const report = await runAeoChecks('https://victim.example/', {
     fetchImpl: makeRedirectingFetch(seen),
     isUrlAllowed: blockInternal,
-    timeoutMs: 2000
+    timeoutMs: 2000,
   });
   // The internal metadata host must never have been fetched.
-  assert.ok(!seen.some(u => u.includes('169.254.169.254')), 'must not fetch the internal host');
+  assert.ok(!seen.some((u) => u.includes('169.254.169.254')), 'must not fetch the internal host');
   // And the reachability check should have failed (blocked), not silently passed.
-  const reachable = report.checks.find(c => c.id === 'html.reachable');
+  const reachable = report.checks.find((c) => c.id === 'html.reachable');
   assert.equal(reachable.passed, false, 'blocked redirect → not reachable');
 });
 
 test('without isUrlAllowed, behavior is unchanged (auto-follow)', async () => {
   // A simple 200 with no redirect — sanity that the default path still works.
-  const fetchImpl = async () => new Response('<html><title>x</title></html>', {
-    status: 200, headers: { 'content-type': 'text/html' }
-  });
+  const fetchImpl = async () =>
+    new Response('<html><title>x</title></html>', {
+      status: 200,
+      headers: { 'content-type': 'text/html' },
+    });
   const report = await runAeoChecks('https://ok.example/', { fetchImpl, timeoutMs: 2000 });
-  assert.equal(report.checks.find(c => c.id === 'html.reachable').passed, true);
+  assert.equal(report.checks.find((c) => c.id === 'html.reachable').passed, true);
 });

@@ -18,9 +18,9 @@ const ORIGIN = 'https://slop-detect.com';
 // Display names + order for the corpus categories (see leaderboard/corpus.json).
 const CATEGORY_NAMES = {
   'ai-builder': 'AI builders',
-  'saas': 'SaaS & dev tools',
-  'bigtech': 'Big tech',
-  'classic': 'Classic, deliberately plain'
+  saas: 'SaaS & dev tools',
+  bigtech: 'Big tech',
+  classic: 'Classic, deliberately plain',
 };
 const CATEGORY_ORDER = ['ai-builder', 'saas', 'bigtech', 'classic'];
 
@@ -29,7 +29,9 @@ async function loadData(request) {
     const res = await fetch(new URL('/leaderboard.json', request.url), { cf: { cacheTtl: 300 } });
     if (!res.ok) return null;
     return await res.json();
-  } catch (_) { return null; }
+  } catch (_) {
+    return null;
+  }
 }
 
 // One ranked row. The domain links into its score hub (history, re-scan, claim),
@@ -47,16 +49,22 @@ function rankRow(s, rank, origin) {
 // Group scored sites by category and render each as a cleanest-first ranking.
 function categorySections(sites, origin) {
   const groups = {};
-  for (const s of sites) (groups[s.category || 'other'] = groups[s.category || 'other'] || []).push(s);
+  for (const s of sites)
+    (groups[s.category || 'other'] = groups[s.category || 'other'] || []).push(s);
   const keys = [
     ...CATEGORY_ORDER.filter((k) => groups[k]),
-    ...Object.keys(groups).filter((k) => !CATEGORY_ORDER.includes(k))
+    ...Object.keys(groups).filter((k) => !CATEGORY_ORDER.includes(k)),
   ];
-  return keys.map((k) => {
-    const rows = groups[k].slice().sort((a, b) => a.score - b.score)
-      .map((s, i) => rankRow(s, i + 1, origin)).join('');
-    return `<h2>${escapeHtml(CATEGORY_NAMES[k] || k)}</h2><ol class="rows">${rows}</ol>`;
-  }).join('');
+  return keys
+    .map((k) => {
+      const rows = groups[k]
+        .slice()
+        .sort((a, b) => a.score - b.score)
+        .map((s, i) => rankRow(s, i + 1, origin))
+        .join('');
+      return `<h2>${escapeHtml(CATEGORY_NAMES[k] || k)}</h2><ol class="rows">${rows}</ol>`;
+    })
+    .join('');
 }
 
 function builderRows(byBuilder) {
@@ -64,11 +72,13 @@ function builderRows(byBuilder) {
     .filter(([, v]) => v && v.avgScore != null)
     .sort((a, b) => b[1].avgScore - a[1].avgScore);
   if (!rows.length) return '';
-  return rows.map(([name, v]) => {
-    const tier = v.avgScore >= 28 ? 'Heavy' : v.avgScore >= 10 ? 'Mild' : 'Clean';
-    const c = tierColors(tier);
-    return `<tr><td>${escapeHtml(name)}</td><td>${v.count}</td><td style="color:${c.fg}">${v.avgScore}</td></tr>`;
-  }).join('');
+  return rows
+    .map(([name, v]) => {
+      const tier = v.avgScore >= 28 ? 'Heavy' : v.avgScore >= 10 ? 'Mild' : 'Clean';
+      const c = tierColors(tier);
+      return `<tr><td>${escapeHtml(name)}</td><td>${v.count}</td><td style="color:${c.fg}">${v.avgScore}</td></tr>`;
+    })
+    .join('');
 }
 
 export async function onRequestGet({ request, env }) {
@@ -90,23 +100,26 @@ export async function onRequestGet({ request, env }) {
 
   // Live counter across every scan slop-detect has run (not just the corpus),
   // shown only once it reads as momentum rather than "0".
-  const liveLine = (live && live.count >= 50)
-    ? `<p class="livestat">Across every page slop-detect has scored:
+  const liveLine =
+    live && live.count >= 50
+      ? `<p class="livestat">Across every page slop-detect has scored:
         <strong>${live.count.toLocaleString('en-US')}</strong> scans,
         average <strong>${live.avgScore}</strong>/100, ${live.slopShare}% carry slop.</p>`
-    : '';
+      : '';
 
-  const ranked = (!generating && sites.length)
-    ? `<p class="note">Cleanest first within each category. Every name links to its score hub.</p>
+  const ranked =
+    !generating && sites.length
+      ? `<p class="note">Cleanest first within each category. Every name links to its score hub.</p>
        ${categorySections(sites, origin)}`
-    : '';
+      : '';
 
-  const byBuilder = !generating && builderRows(data.byBuilder)
-    ? `<h2>By builder</h2>
+  const byBuilder =
+    !generating && builderRows(data.byBuilder)
+      ? `<h2>By builder</h2>
        <p class="note">Average slop score grouped by how the site was built. Tools, not teams.</p>
        <table><thead><tr><th>Built with</th><th>n</th><th>avg score</th></tr></thead>
        <tbody>${builderRows(data.byBuilder)}</tbody></table>`
-    : '';
+      : '';
 
   const html = `<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -176,6 +189,9 @@ ${BRAND_FONTS_HEAD}
 </div></body></html>`;
 
   return new Response(html, {
-    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=300, s-maxage=600' }
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'public, max-age=300, s-maxage=600',
+    },
   });
 }

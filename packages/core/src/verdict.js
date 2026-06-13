@@ -12,16 +12,16 @@
 // Aligned to tiers: Clean (0–9) spans A+→A-, Mild (10–27) spans B→C-,
 // Heavy (≥28) spans D→F.
 export const GRADE_BANDS = [
-  { max: 2,   grade: 'A+' },
-  { max: 5,   grade: 'A'  },
-  { max: 9,   grade: 'A-' },
-  { max: 14,  grade: 'B+' },
-  { max: 19,  grade: 'B'  },
-  { max: 23,  grade: 'B-' },
-  { max: 27,  grade: 'C'  },
-  { max: 33,  grade: 'D+' },
-  { max: 39,  grade: 'D'  },
-  { max: 100, grade: 'F'  }
+  { max: 2, grade: 'A+' },
+  { max: 5, grade: 'A' },
+  { max: 9, grade: 'A-' },
+  { max: 14, grade: 'B+' },
+  { max: 19, grade: 'B' },
+  { max: 23, grade: 'B-' },
+  { max: 27, grade: 'C' },
+  { max: 33, grade: 'D+' },
+  { max: 39, grade: 'D' },
+  { max: 100, grade: 'F' },
 ];
 
 export function gradeForScore(score) {
@@ -40,20 +40,20 @@ const VERDICTS = {
     'Crafted, not generated. This page has a point of view.',
     'Clean. Reads like a human made deliberate choices.',
     'No template tells here — this one earned its look.',
-    'Premium-feeling. The AI-slop fingerprint is absent.'
+    'Premium-feeling. The AI-slop fingerprint is absent.',
   ],
   Mild: [
     'Mostly clean, with a few template tells creeping in.',
     'Decent bones, but the slop is starting to show.',
     'A handful of AI-default choices away from genuinely sharp.',
-    'Good page wearing a couple of borrowed clichés.'
+    'Good page wearing a couple of borrowed clichés.',
   ],
   Heavy: [
     'Heavy slop. This wears the Cursor/v0/Bolt starter kit head to toe.',
     'Straight off the AI assembly line — gradients, Inter, the works.',
     'You can smell the default template from here.',
-    'Maximum genericness. Every tell is firing at once.'
-  ]
+    'Maximum genericness. Every tell is firing at once.',
+  ],
 };
 
 // Tiny stable string hash (FNV-1a-ish) → index into the verdict pool.
@@ -70,7 +70,7 @@ function pick(arr, seed) {
 export function verdictFor(score, tier, triggered = []) {
   const pool = VERDICTS[tier] || VERDICTS.Mild;
   const sig = (triggered || [])
-    .map(p => (typeof p === 'string' ? p : p.id))
+    .map((p) => (typeof p === 'string' ? p : p.id))
     .sort()
     .join(',');
   return pick(pool, `${tier}:${sig}`);

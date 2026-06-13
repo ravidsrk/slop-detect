@@ -19,7 +19,10 @@ import { buildRegressionAlert, buildDriftAlert } from '../../_alerts.js';
 import { report } from '../../_report.js';
 
 function json(data, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+  });
 }
 
 // Constant-time-ish compare to avoid leaking the secret via timing.
@@ -31,7 +34,8 @@ function safeEqual(a, b) {
 }
 
 export async function onRequestPost({ request, env }) {
-  if (!env.CRON_SECRET) return json({ error: 'sweep_disabled', message: 'CRON_SECRET is not configured.' }, 503);
+  if (!env.CRON_SECRET)
+    return json({ error: 'sweep_disabled', message: 'CRON_SECRET is not configured.' }, 503);
   if (!env.RESULTS) return json({ error: 'storage_unavailable' }, 503);
 
   const auth = request.headers.get('Authorization') || '';
@@ -39,7 +43,13 @@ export async function onRequestPost({ request, env }) {
   if (!safeEqual(presented, env.CRON_SECRET)) return json({ error: 'unauthorized' }, 401);
 
   if (!env.INTERNAL_API_KEY) {
-    return json({ error: 'misconfigured', message: 'INTERNAL_API_KEY (unlimited tier) is required for internal re-scans.' }, 500);
+    return json(
+      {
+        error: 'misconfigured',
+        message: 'INTERNAL_API_KEY (unlimited tier) is required for internal re-scans.',
+      },
+      500
+    );
   }
 
   const origin = new URL(request.url).origin;
@@ -56,7 +66,7 @@ export async function onRequestPost({ request, env }) {
     const res = await fetch(`${origin}/api/scan`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-API-Key': env.INTERNAL_API_KEY },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
     });
     if (!res.ok && res.status !== 422) {
       // 422 = the page couldn't be scored (bot wall/dead) — not fatal for a sweep.
@@ -65,7 +75,11 @@ export async function onRequestPost({ request, env }) {
   };
 
   const sendAlert = async (watch) => {
-    const baseline = { score: watch.baselineScore, grade: watch.baselineGrade, tier: watch.baselineTier };
+    const baseline = {
+      score: watch.baselineScore,
+      grade: watch.baselineGrade,
+      tier: watch.baselineTier,
+    };
     const current = { score: watch.lastScore, grade: watch.lastGrade, tier: watch.lastTier };
     const resultUrl = watch.lastId ? `${origin}/r/${watch.lastId}` : null;
     const msg = buildRegressionAlert(watch.domain, baseline, current, { resultUrl });
@@ -77,7 +91,9 @@ export async function onRequestPost({ request, env }) {
     const baseline = { score: watch.baselineSystemScore, tier: watch.baselineSystemTier };
     const current = { score: watch.lastSystemScore, tier: watch.lastSystemTier };
     const resultUrl = watch.lastId ? `${origin}/r/${watch.lastId}` : null;
-    const msg = buildDriftAlert(watch.domain, baseline, current, watch.lastSystemDrift || [], { resultUrl });
+    const msg = buildDriftAlert(watch.domain, baseline, current, watch.lastSystemDrift || [], {
+      resultUrl,
+    });
     return sendEmail(env, { to: watch.email, subject: msg.subject, text: msg.text });
   };
 
@@ -89,7 +105,7 @@ export async function onRequestPost({ request, env }) {
     putWatch: (w) => putWatch(env.RESULTS, w),
     sendAlert,
     sendDriftAlert,
-    max
+    max,
   });
 
   report(env, 'info', 'monitor_sweep', summary);

@@ -11,12 +11,16 @@ export async function onRequestGet({ request }) {
   const origin = new URL(request.url).origin;
   const posts = POSTS.slice().sort((a, b) => (a.date < b.date ? 1 : -1));
 
-  const items = posts.map((p) => `
+  const items = posts
+    .map(
+      (p) => `
     <li class="post">
       <a class="post-title" href="${origin}/blog/${escapeHtml(p.slug)}">${escapeHtml(p.title)}</a>
       <div class="post-meta">${escapeHtml(p.date)}</div>
       <p class="post-sum">${escapeHtml(p.summary)}</p>
-    </li>`).join('');
+    </li>`
+    )
+    .join('');
 
   const jsonLd = JSON.stringify({
     '@context': 'https://schema.org',
@@ -28,8 +32,8 @@ export async function onRequestGet({ request }) {
       '@type': 'BlogPosting',
       headline: p.title,
       datePublished: p.date,
-      url: `${ORIGIN}/blog/${p.slug}`
-    }))
+      url: `${ORIGIN}/blog/${p.slug}`,
+    })),
   });
 
   const html = `<!doctype html><html lang="en"><head>
@@ -72,6 +76,6 @@ ${BRAND_FONTS_HEAD}
 </div></body></html>`;
 
   return new Response(html, {
-    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=600' }
+    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=600' },
   });
 }

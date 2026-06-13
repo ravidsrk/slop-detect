@@ -40,7 +40,6 @@
 // weights for the final 0-100 score.
 
 export const PATTERNS = [
-
   // ── 1. SLOP FONTS ─────────────────────────────────────────────────────────
   {
     id: 'slop_fonts',
@@ -50,7 +49,9 @@ export const PATTERNS = [
     weight: 8,
     extract: (ctx) => {
       const { visible, isSlopFont, isAccentSerif, h1 } = ctx;
-      let slopCount = 0, total = 0, accentSerifWords = 0;
+      let slopCount = 0,
+        total = 0,
+        accentSerifWords = 0;
       const seen = new Set();
       for (const el of visible) {
         if (!el.textContent || !el.textContent.trim()) continue;
@@ -67,12 +68,15 @@ export const PATTERNS = [
       const heroIsSlop = isSlopFont(heroFam);
       const ratio = total ? slopCount / total : 0;
       return {
-        slopCount, total, ratio: +ratio.toFixed(3),
-        heroIsSlop, heroFam,
+        slopCount,
+        total,
+        ratio: +ratio.toFixed(3),
+        heroIsSlop,
+        heroFam,
         accentSerifItalicCount: accentSerifWords,
-        triggered: heroIsSlop || ratio >= 0.6 || accentSerifWords > 0
+        triggered: heroIsSlop || ratio >= 0.6 || accentSerifWords > 0,
       };
-    }
+    },
   },
 
   // ── 2. VIBECODE PURPLE ────────────────────────────────────────────────────
@@ -84,19 +88,26 @@ export const PATTERNS = [
     weight: 8,
     extract: (ctx) => {
       const { visible, parseColor, isPurple } = ctx;
-      let purpleEls = 0, filledCtas = 0;
+      let purpleEls = 0,
+        filledCtas = 0;
       const samples = [];
       for (const el of visible) {
         const cs = getComputedStyle(el);
         const bg = parseColor(cs.backgroundColor);
         const bgImg = cs.backgroundImage || '';
         const border = parseColor(cs.borderColor);
-        let purp = false, gradPurp = false;
+        let purp = false,
+          gradPurp = false;
         if (isPurple(bg)) purp = true;
         if (isPurple(border) && parseFloat(cs.borderWidth) > 0) purp = true;
         if (bgImg.includes('gradient')) {
           const m = bgImg.match(/rgba?\([^)]+\)|#[0-9a-f]{3,8}/gi) || [];
-          for (const c of m) { if (isPurple(parseColor(c))) { gradPurp = true; break; } }
+          for (const c of m) {
+            if (isPurple(parseColor(c))) {
+              gradPurp = true;
+              break;
+            }
+          }
           if (gradPurp) purp = true;
         }
         if (!purp) continue;
@@ -112,7 +123,7 @@ export const PATTERNS = [
         }
       }
       return { purpleEls, filledCtas, samples, triggered: filledCtas >= 1 };
-    }
+    },
   },
 
   // ── 3. GRADIENT TEXT ──────────────────────────────────────────────────────
@@ -142,7 +153,7 @@ export const PATTERNS = [
         }
       }
       return { count, heroHasGradient, triggered: count > 0 || heroHasGradient };
-    }
+    },
   },
 
   // ── 4. GRADIENT-HEAVY BACKGROUNDS ─────────────────────────────────────────
@@ -154,7 +165,8 @@ export const PATTERNS = [
     weight: 4,
     extract: (ctx) => {
       const { visible } = ctx;
-      let n = 0, conic = 0;
+      let n = 0,
+        conic = 0;
       for (const el of visible) {
         const cs = getComputedStyle(el);
         const bgImg = cs.backgroundImage || '';
@@ -165,7 +177,10 @@ export const PATTERNS = [
           if (rgba) {
             for (const r of rgba) {
               const a = r.match(/,\s*([\d.]+)\s*\)/);
-              if (!a || parseFloat(a[1]) > 0.05) { hasOpaqueStop = true; break; }
+              if (!a || parseFloat(a[1]) > 0.05) {
+                hasOpaqueStop = true;
+                break;
+              }
             }
           }
           if (hasOpaqueStop) {
@@ -175,7 +190,7 @@ export const PATTERNS = [
         }
       }
       return { bgElements: n, conic, triggered: n >= 5 };
-    }
+    },
   },
 
   // ── 5. ACCENT STRIPE ──────────────────────────────────────────────────────
@@ -196,22 +211,25 @@ export const PATTERNS = [
           top: parseFloat(cs.borderTopWidth),
           left: parseFloat(cs.borderLeftWidth),
           right: parseFloat(cs.borderRightWidth),
-          bottom: parseFloat(cs.borderBottomWidth)
+          bottom: parseFloat(cs.borderBottomWidth),
         };
         const colors = {
           top: parseColor(cs.borderTopColor),
-          left: parseColor(cs.borderLeftColor)
+          left: parseColor(cs.borderLeftColor),
         };
         // Top stripe: top border ≥3px AND distinct color AND other borders thin
         const otherMax = Math.max(widths.left, widths.right, widths.bottom);
-        const topStripe = widths.top >= 3 && otherMax < widths.top - 1 && colors.top && colors.top.a > 0.3;
-        const leftStripe = widths.left >= 3
-          && Math.max(widths.top, widths.right, widths.bottom) < widths.left - 1
-          && colors.left && colors.left.a > 0.3;
+        const topStripe =
+          widths.top >= 3 && otherMax < widths.top - 1 && colors.top && colors.top.a > 0.3;
+        const leftStripe =
+          widths.left >= 3 &&
+          Math.max(widths.top, widths.right, widths.bottom) < widths.left - 1 &&
+          colors.left &&
+          colors.left.a > 0.3;
         if (topStripe || leftStripe) stripeCards++;
       }
       return { stripeCards, triggered: stripeCards >= 2 };
-    }
+    },
   },
 
   // ── 6. GLASSMORPHISM ──────────────────────────────────────────────────────
@@ -237,7 +255,7 @@ export const PATTERNS = [
       // design (e.g. one sticky nav). The slop tell is glass *everywhere*. This
       // single-occurrence threshold was a documented false-positive source.
       return { glassCount, triggered: glassCount >= 2 };
-    }
+    },
   },
 
   // ── 7. COLORED GLOWS ──────────────────────────────────────────────────────
@@ -256,20 +274,27 @@ export const PATTERNS = [
         if (shadow === 'none' || !shadow.includes('rgb')) continue;
         // Glow heuristic: large blur radius, colored (non-grey) shadow color.
         const blurMatch = shadow.match(/\s(\d+(?:\.\d+)?)px\s/g) || [];
-        const maxBlur = Math.max(0, ...blurMatch.map(b => parseFloat(b)));
+        const maxBlur = Math.max(0, ...blurMatch.map((b) => parseFloat(b)));
         if (maxBlur < 24) continue;
         const colors = shadow.match(/rgba?\([^)]+\)|#[0-9a-f]{3,8}/gi) || [];
         for (const c of colors) {
           const col = parseColor(c);
           if (!col || col.a < 0.1) continue;
           // Colored: clearly non-grey hue
-          if (isPurple(col)) { glowCount++; break; }
-          const max = Math.max(col.r, col.g, col.b), min = Math.min(col.r, col.g, col.b);
-          if ((max - min) > 60 && col.a > 0.2) { glowCount++; break; }
+          if (isPurple(col)) {
+            glowCount++;
+            break;
+          }
+          const max = Math.max(col.r, col.g, col.b),
+            min = Math.min(col.r, col.g, col.b);
+          if (max - min > 60 && col.a > 0.2) {
+            glowCount++;
+            break;
+          }
         }
       }
       return { glowCount, triggered: glowCount >= 1 };
-    }
+    },
   },
 
   // ── 8. CENTERED HERO ──────────────────────────────────────────────────────
@@ -306,7 +331,7 @@ export const PATTERNS = [
       const slopFont = isSlopFont(cs.fontFamily);
       const triggered = centered && big && slopFont;
       return { triggered, fontSize, centered, slopFont, family: cs.fontFamily };
-    }
+    },
   },
 
   // ── 9. HERO EYEBROW PILL ──────────────────────────────────────────────────
@@ -322,7 +347,8 @@ export const PATTERNS = [
       const h1Rect = h1.getBoundingClientRect();
       // Look for small rounded pill elements within ~200px above the H1.
       const candidates = Array.from(document.querySelectorAll('a, div, span, button'));
-      const pillKeywords = /\b(new|beta|now in|introducing|announcing|just shipped|v\d+|launching|coming soon|early access|whats new|just landed|just dropped)\b/i;
+      const pillKeywords =
+        /\b(new|beta|now in|introducing|announcing|just shipped|v\d+|launching|coming soon|early access|whats new|just landed|just dropped)\b/i;
       for (const el of candidates) {
         const r = el.getBoundingClientRect();
         // Must be above H1, within 250px
@@ -349,7 +375,7 @@ export const PATTERNS = [
         // we now require the keyword/emoji match above and drop the catch-all.
       }
       return { triggered: false };
-    }
+    },
   },
 
   // ── 10. ALL-CAPS LABELS ───────────────────────────────────────────────────
@@ -375,7 +401,7 @@ export const PATTERNS = [
         if (samples.length < 3) samples.push(txt.slice(0, 30));
       }
       return { count, samples, triggered: count >= 2 };
-    }
+    },
   },
 
   // ── 11. PERMA DARK MODE ───────────────────────────────────────────────────
@@ -413,12 +439,16 @@ export const PATTERNS = [
       // Find the first non-transparent dark colour.
       let bodyBg = null;
       for (const c of cand) {
-        if (c && c.a >= 0.5) { bodyBg = c; break; }
+        if (c && c.a >= 0.5) {
+          bodyBg = c;
+          break;
+        }
       }
       const dark = isDark(bodyBg);
       if (!dark) return { triggered: false, bodyDark: false };
       const ps = document.querySelectorAll('p, li, span');
-      let greys = 0, total = 0;
+      let greys = 0,
+        total = 0;
       for (const p of ps) {
         const cs = getComputedStyle(p);
         if (cs.display === 'none' || cs.visibility === 'hidden') continue;
@@ -433,10 +463,13 @@ export const PATTERNS = [
       // dark site is itself a strong slop signal even if text is white).
       const triggered = dark && (ratio >= 0.3 || total >= 5);
       return {
-        bodyDark: true, greyParas: greys, totalParas: total, ratio: +ratio.toFixed(2),
-        triggered
+        bodyDark: true,
+        greyParas: greys,
+        totalParas: total,
+        ratio: +ratio.toFixed(2),
+        triggered,
       };
-    }
+    },
   },
 
   // ── 12. ICON-CARD GRID ────────────────────────────────────────────────────
@@ -458,7 +491,9 @@ export const PATTERNS = [
         const r = el.getBoundingClientRect();
         if (r.width < 150 || r.width > 600 || r.height < 100 || r.height > 600) continue;
         // First descendant svg or img positioned at top
-        const icon = el.querySelector(':scope > svg, :scope > img, :scope > div > svg, :scope > div > img');
+        const icon = el.querySelector(
+          ':scope > svg, :scope > img, :scope > div > svg, :scope > div > img'
+        );
         if (!icon) continue;
         const ir = icon.getBoundingClientRect();
         if (ir.width > 80 || ir.height > 80) continue;
@@ -471,7 +506,7 @@ export const PATTERNS = [
       let maxGroup = 0;
       for (const arr of groups.values()) if (arr.length > maxGroup) maxGroup = arr.length;
       return { maxGroupSize: maxGroup, triggered: maxGroup >= 3 };
-    }
+    },
   },
 
   // ── 13. NUMBERED STEPS ────────────────────────────────────────────────────
@@ -507,7 +542,7 @@ export const PATTERNS = [
         }
       }
       return { bestRun, triggered: bestRun >= 3 };
-    }
+    },
   },
 
   // ── 14. STAT BANNER ───────────────────────────────────────────────────────
@@ -541,7 +576,7 @@ export const PATTERNS = [
         if (n > bestCluster) bestCluster = n;
       }
       return { clusterSize: bestCluster, triggered: bestCluster >= 3 };
-    }
+    },
   },
 
   // ── 15. FAQ ACCORDION ─────────────────────────────────────────────────────
@@ -567,11 +602,16 @@ export const PATTERNS = [
       for (const el of h) {
         const t = (el.textContent || '').trim().toLowerCase();
         if (t === 'faq' || t === 'frequently asked questions' || t.startsWith('faq')) {
-          textFaq = true; break;
+          textFaq = true;
+          break;
         }
       }
-      return { detailsCount: count, hasFaqHeading: textFaq, triggered: count >= 3 || (textFaq && count >= 1) };
-    }
+      return {
+        detailsCount: count,
+        hasFaqHeading: textFaq,
+        triggered: count >= 3 || (textFaq && count >= 1),
+      };
+    },
   },
 
   // ── 16. GRADIENT-LETTER AVATARS (Meng's contribution) ─────────────────────
@@ -598,7 +638,8 @@ export const PATTERNS = [
         const bg = cs.backgroundImage || '';
         const bgColor = cs.backgroundColor;
         const hasGradient = /gradient\(/.test(bg);
-        const hasSolidColor = bgColor && bgColor !== 'rgba(0, 0, 0, 0)' && bgColor !== 'transparent';
+        const hasSolidColor =
+          bgColor && bgColor !== 'rgba(0, 0, 0, 0)' && bgColor !== 'transparent';
         if (!hasGradient && !hasSolidColor) continue;
         // Contains exactly 1-2 letters (initials)
         const txt = (el.textContent || '').trim();
@@ -610,7 +651,7 @@ export const PATTERNS = [
         if (samples.length < 3) samples.push({ initials: txt, size: Math.round(r.width) });
       }
       return { count, samples, triggered: count >= 2 };
-    }
+    },
   },
 
   // ── 17. BENTO-GRID WALL (2026.07) ─────────────────────────────────────────
@@ -637,7 +678,8 @@ export const PATTERNS = [
         const kids = Array.from(el.children);
         if (kids.length < 4) continue;
         const spans = new Set();
-        let rounded = 0, sized = 0;
+        let rounded = 0,
+          sized = 0;
         for (const k of kids) {
           const kr = k.getBoundingClientRect();
           if (kr.width < 80 || kr.height < 60) continue;
@@ -658,9 +700,9 @@ export const PATTERNS = [
       }
       return {
         ...best,
-        triggered: best.rounded >= 4 && best.spanVariety >= 2 && best.children >= 5
+        triggered: best.rounded >= 4 && best.spanVariety >= 2 && best.children >= 5,
       };
-    }
+    },
   },
 
   // ── 18. AURORA / MESH GRADIENT BLOBS (2026.07) ────────────────────────────
@@ -680,12 +722,15 @@ export const PATTERNS = [
       const { visible } = ctx;
       let blobs = 0;
       const samples = [];
-      const vw = window.innerWidth, vh = window.innerHeight;
+      const vw = window.innerWidth,
+        vh = window.innerHeight;
       for (const el of visible) {
         const cs = getComputedStyle(el);
         const bgImg = cs.backgroundImage || '';
-        const isGrad = /(radial|conic)-gradient\(/.test(bgImg) ||
-          (/linear-gradient\(/.test(bgImg) && parseFloat(cs.filter && cs.filter.match(/blur\(([\d.]+)px\)/)?.[1] || 0) > 0);
+        const isGrad =
+          /(radial|conic)-gradient\(/.test(bgImg) ||
+          (/linear-gradient\(/.test(bgImg) &&
+            parseFloat((cs.filter && cs.filter.match(/blur\(([\d.]+)px\)/)?.[1]) || 0) > 0);
         if (!isGrad) continue;
         // Big blur is the signature — either a CSS filter:blur or a heavy radius
         // making a soft orb.
@@ -694,15 +739,20 @@ export const PATTERNS = [
         const radius = parseFloat(cs.borderRadius) || 0;
         const r = el.getBoundingClientRect();
         const big = r.width >= vw * 0.25 && r.height >= vh * 0.2;
-        const orby = radius >= Math.min(r.width, r.height) * 0.4 || cs.borderRadius === '50%' || /9999px/.test(cs.borderRadius);
+        const orby =
+          radius >= Math.min(r.width, r.height) * 0.4 ||
+          cs.borderRadius === '50%' ||
+          /9999px/.test(cs.borderRadius);
         const positioned = cs.position === 'absolute' || cs.position === 'fixed';
-        if (blur >= 24 && big) { blobs++; }
-        else if (positioned && orby && big && /(radial|conic)-gradient/.test(bgImg)) { blobs++; }
-        else continue;
+        if (blur >= 24 && big) {
+          blobs++;
+        } else if (positioned && orby && big && /(radial|conic)-gradient/.test(bgImg)) {
+          blobs++;
+        } else continue;
         if (samples.length < 3) samples.push({ blur: Math.round(blur), radius: cs.borderRadius });
       }
       return { blobs, samples, triggered: blobs >= 2 };
-    }
+    },
   },
 
   // ── 19. AI-SPARKLE BADGES (2026.07) ───────────────────────────────────────
@@ -723,7 +773,8 @@ export const PATTERNS = [
       const sparkleEmoji = /[\u2728\u2729\u2734\u2735]|\uD83C\uDF1F|\uD83E\uDE84/;
       // "AI magic" copy that co-occurs with the glyph.
       const magicWord = /\b(ai|magic|generate|powered by ai|with ai|smart)\b/i;
-      let emojiHits = 0, svgHits = 0;
+      let emojiHits = 0,
+        svgHits = 0;
       const samples = [];
       for (const el of visible) {
         // Only leaf-ish small elements to avoid double-counting wrappers.
@@ -734,9 +785,15 @@ export const PATTERNS = [
           continue;
         }
         // lucide/heroicons "sparkles" — class or data attr or aria-label.
-        const attrs = ((el.getAttribute && (el.getAttribute('class') || '') + ' ' +
-          (el.getAttribute('aria-label') || '') + ' ' +
-          (el.getAttribute('data-icon') || '')) || '').toLowerCase();
+        const attrs = (
+          (el.getAttribute &&
+            (el.getAttribute('class') || '') +
+              ' ' +
+              (el.getAttribute('aria-label') || '') +
+              ' ' +
+              (el.getAttribute('data-icon') || '')) ||
+          ''
+        ).toLowerCase();
         if (/sparkle|sparkles|magic-wand|wand-sparkles/.test(attrs)) {
           // Bonus confidence if it sits near AI copy.
           const near = (el.closest('button, a, label, [role="button"]') || el).textContent || '';
@@ -744,8 +801,13 @@ export const PATTERNS = [
         }
       }
       const total = emojiHits + svgHits;
-      return { emojiHits, svgHits, samples, triggered: total >= 1 && (emojiHits >= 1 || svgHits >= 1) };
-    }
+      return {
+        emojiHits,
+        svgHits,
+        samples,
+        triggered: total >= 1 && (emojiHits >= 1 || svgHits >= 1),
+      };
+    },
   },
 
   // ── 20. CREAM DEFAULT BACKGROUND (2026.08) ────────────────────────────────
@@ -767,34 +829,44 @@ export const PATTERNS = [
       // Verbatim thresholds from Impeccable's isCreamColor.
       function isCream(c) {
         if (!c || c.a < 0.5) return false;
-        if (Math.min(c.r, c.g, c.b) < 209) return false;   // must be light
-        if (!(c.r >= c.g && c.g >= c.b)) return false;       // warm ordering
+        if (Math.min(c.r, c.g, c.b) < 209) return false; // must be light
+        if (!(c.r >= c.g && c.g >= c.b)) return false; // warm ordering
         const warmth = c.r - c.b;
-        return warmth >= 6 && warmth <= 48;                  // tinted, not white/strong
+        return warmth >= 6 && warmth <= 48; // tinted, not white/strong
       }
       // Read the page surface: body bg, else html bg.
       const bodyBg = parseColor(getComputedStyle(document.body).backgroundColor);
       const htmlBg = parseColor(getComputedStyle(document.documentElement).backgroundColor);
-      let surface = (bodyBg && bodyBg.a >= 0.5) ? bodyBg : htmlBg;
+      let surface = bodyBg && bodyBg.a >= 0.5 ? bodyBg : htmlBg;
       // Many AI pages paint the surface on a full-bleed wrapper div, not body.
-      if (!surface || surface.a < 0.5 || (!isCream(surface) && Math.min(surface.r, surface.g, surface.b) >= 250)) {
+      if (
+        !surface ||
+        surface.a < 0.5 ||
+        (!isCream(surface) && Math.min(surface.r, surface.g, surface.b) >= 250)
+      ) {
         const wrappers = Array.from(document.body.children).slice(0, 8);
         for (const w of wrappers) {
           try {
             const r = w.getBoundingClientRect();
             if (r.width >= window.innerWidth * 0.8 && r.height >= window.innerHeight * 0.5) {
               const wc = parseColor(getComputedStyle(w).backgroundColor);
-              if (wc && wc.a >= 0.5 && isCream(wc)) { surface = wc; break; }
+              if (wc && wc.a >= 0.5 && isCream(wc)) {
+                surface = wc;
+                break;
+              }
             }
           } catch {}
         }
       }
       const cream = isCream(surface);
       const hex = surface
-        ? '#' + [surface.r, surface.g, surface.b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('')
+        ? '#' +
+          [surface.r, surface.g, surface.b]
+            .map((v) => Math.round(v).toString(16).padStart(2, '0'))
+            .join('')
         : null;
       return { surface: hex, triggered: cream };
-    }
+    },
   },
 
   // ── 21. WASHED-OUT GREY BODY TEXT (2026.08) ───────────────────────────────
@@ -816,9 +888,17 @@ export const PATTERNS = [
     author: 'impeccable',
     since: '2026.08',
     extract: (ctx) => {
-      const { visible, parseColor, contrastRatio, relativeLuminance, channelSpread, effectiveBackground } = ctx;
+      const {
+        visible,
+        parseColor,
+        contrastRatio,
+        relativeLuminance,
+        channelSpread,
+        effectiveBackground,
+      } = ctx;
       const BODY = /^(p|li|span|dd|blockquote|figcaption|small)$/i;
-      let fails = 0, checked = 0;
+      let fails = 0,
+        checked = 0;
       const samples = [];
       const seen = new Set();
       for (const el of visible) {
@@ -828,24 +908,25 @@ export const PATTERNS = [
         if (el.closest('a, button, [role="button"], nav, header')) continue;
         // Only elements that directly own real reading text.
         const direct = Array.from(el.childNodes)
-          .filter(n => n.nodeType === 3)
-          .map(n => n.textContent.trim())
-          .join(' ').trim();
+          .filter((n) => n.nodeType === 3)
+          .map((n) => n.textContent.trim())
+          .join(' ')
+          .trim();
         if (direct.length < 20) continue;
         seen.add(el);
         const cs = getComputedStyle(el);
         const fontSize = parseFloat(cs.fontSize) || 16;
-        if (fontSize >= 24) continue;             // body text only (kills overlay artifacts)
+        if (fontSize >= 24) continue; // body text only (kills overlay artifacts)
         const fg = parseColor(cs.color);
         if (!fg || fg.a < 0.5) continue;
         const bg = effectiveBackground(el);
-        if (!bg || bg._approx) continue;          // skip gradient/image bg (needs pixel diff)
+        if (!bg || bg._approx) continue; // skip gradient/image bg (needs pixel diff)
         // The signature is grey-on-LIGHT. Require a light background and a
         // neutral-ish foreground so we don't flag white-on-dark (good) or
         // deliberate colored text.
         const bgLum = relativeLuminance(bg);
-        if (bgLum < 0.6) continue;                // light backgrounds only
-        if (channelSpread(fg) >= 40) continue;    // skip strongly colored text
+        if (bgLum < 0.6) continue; // light backgrounds only
+        if (channelSpread(fg) >= 40) continue; // skip strongly colored text
         checked++;
         const ratio = contrastRatio(fg, bg);
         if (ratio < 4.5) {
@@ -862,7 +943,7 @@ export const PATTERNS = [
       const ratioFail = checked ? fails / checked : 0;
       const triggered = checked >= 4 && fails >= 4 && ratioFail >= 0.25;
       return { fails, checked, ratioFail: +ratioFail.toFixed(3), samples, triggered };
-    }
+    },
   },
 
   // ── 22. CRUSHED LETTER-SPACING (2026.08) ──────────────────────────────────
@@ -887,7 +968,7 @@ export const PATTERNS = [
         if (txt.length < 3 || txt.length > 80) continue;
         const cs = getComputedStyle(el);
         const fontSize = parseFloat(cs.fontSize) || 16;
-        if (fontSize < 28) continue;                 // display-size only
+        if (fontSize < 28) continue; // display-size only
         const ls = parseFloat(cs.letterSpacing);
         if (isNaN(ls)) continue;
         const em = ls / fontSize;
@@ -901,7 +982,7 @@ export const PATTERNS = [
         }
       }
       return { count, samples, triggered: count >= 1 };
-    }
+    },
   },
 
   // ── 23. GRAY TEXT ON COLORED BACKGROUND (2026.08) ─────────────────────────
@@ -922,10 +1003,10 @@ export const PATTERNS = [
       // white/near-white text, which is the recommended fix for colored panels.
       function isMidGreyText(c) {
         if (!c || c.a < 0.5) return false;
-        if (channelSpread(c) >= 20) return false;     // must be near-neutral
+        if (channelSpread(c) >= 20) return false; // must be near-neutral
         const hsl = rgbToHsl(c);
         if (!hsl) return false;
-        return hsl.l > 0.30 && hsl.l < 0.75;          // not white, not near-black
+        return hsl.l > 0.3 && hsl.l < 0.75; // not white, not near-black
       }
       let count = 0;
       const samples = [];
@@ -935,13 +1016,15 @@ export const PATTERNS = [
         // Brand CTAs are intentional — skip interactive context.
         if (el.closest('a, button, [role="button"]')) continue;
         const direct = Array.from(el.childNodes)
-          .filter(n => n.nodeType === 3)
-          .map(n => n.textContent.trim()).join(' ').trim();
+          .filter((n) => n.nodeType === 3)
+          .map((n) => n.textContent.trim())
+          .join(' ')
+          .trim();
         if (direct.length < 12) continue;
         seen.add(el);
         const cs = getComputedStyle(el);
         const fg = parseColor(cs.color);
-        if (!isMidGreyText(fg)) continue;             // mid-grey text only
+        if (!isMidGreyText(fg)) continue; // mid-grey text only
         const bg = effectiveBackground(el);
         if (!bg || bg._approx) continue;
         // Background must be meaningfully chromatic (Impeccable uses spread ≥ 40).
@@ -951,7 +1034,7 @@ export const PATTERNS = [
         if (count >= 50) break;
       }
       return { count, samples, triggered: count >= 3 };
-    }
+    },
   },
 
   // ── 24. OVERSIZED HERO H1 (2026.08) ───────────────────────────────────────
@@ -975,8 +1058,13 @@ export const PATTERNS = [
       const text = (h1.textContent || '').trim();
       // Verbatim thresholds: ≥72px AND ≥40 chars.
       const triggered = fontSize >= 72 && text.length >= 40;
-      return { fontSize: Math.round(fontSize), chars: text.length, text: text.slice(0, 60), triggered };
-    }
+      return {
+        fontSize: Math.round(fontSize),
+        chars: text.length,
+        text: text.slice(0, 60),
+        triggered,
+      };
+    },
   },
 
   // ── 25. NESTED CARDS (2026.08) ────────────────────────────────────────────
@@ -993,7 +1081,8 @@ export const PATTERNS = [
     since: '2026.08',
     extract: (ctx) => {
       const { visible } = ctx;
-      const SKIP = /^(input|select|textarea|img|video|canvas|picture|pre|code|svg|button|a|nav|li)$/i;
+      const SKIP =
+        /^(input|select|textarea|img|video|canvas|picture|pre|code|svg|button|a|nav|li)$/i;
       function isCardLike(el) {
         const tag = el.tagName.toLowerCase();
         if (SKIP.test(tag)) return false;
@@ -1005,7 +1094,9 @@ export const PATTERNS = [
         const r = el.getBoundingClientRect();
         if (r.width < 50 || r.height < 30) return false;
         const hasShadow = cs.boxShadow && cs.boxShadow !== 'none';
-        const hasBorder = parseFloat(cs.borderTopWidth) > 0 || parseFloat(cs.borderLeftWidth) > 0 ||
+        const hasBorder =
+          parseFloat(cs.borderTopWidth) > 0 ||
+          parseFloat(cs.borderLeftWidth) > 0 ||
           /\bborder\b/.test(cls);
         const radius = parseFloat(cs.borderRadius) || 0;
         const hasRadius = radius > 0;
@@ -1017,7 +1108,8 @@ export const PATTERNS = [
       // SCREENSHOT mockup (Linear/Stripe hero), whose inner UI naturally has
       // cards-in-cards. That's product imagery, not landing-page slop — skip it.
       function inTransformedFrame(el) {
-        let a = el.parentElement, g = 0;
+        let a = el.parentElement,
+          g = 0;
         while (a && g++ < 20) {
           const cs = getComputedStyle(a);
           if (cs.transform !== 'none' || cs.perspective !== 'none') return true;
@@ -1029,27 +1121,36 @@ export const PATTERNS = [
       // AND no card-like descendant (innermost).
       const cards = [];
       for (const el of visible) {
-        try { if (isCardLike(el)) cards.push(el); } catch {}
+        try {
+          if (isCardLike(el)) cards.push(el);
+        } catch {}
       }
       const cardSet = new Set(cards);
       let nested = 0;
       const samples = [];
       for (const el of cards) {
         // ancestor card?
-        let anc = el.parentElement, hasCardAncestor = false;
+        let anc = el.parentElement,
+          hasCardAncestor = false;
         let guard = 0;
         while (anc && guard++ < 30) {
-          if (cardSet.has(anc)) { hasCardAncestor = true; break; }
+          if (cardSet.has(anc)) {
+            hasCardAncestor = true;
+            break;
+          }
           anc = anc.parentElement;
         }
         if (!hasCardAncestor) continue;
         // innermost only — skip if it contains another flagged card
         let containsCard = false;
         for (const other of cards) {
-          if (other !== el && el.contains(other)) { containsCard = true; break; }
+          if (other !== el && el.contains(other)) {
+            containsCard = true;
+            break;
+          }
         }
         if (containsCard) continue;
-        if (inTransformedFrame(el)) continue;   // product mockup, not slop
+        if (inTransformedFrame(el)) continue; // product mockup, not slop
         nested++;
         if (samples.length < 3) {
           samples.push((el.getAttribute('class') || el.tagName.toLowerCase()).slice(0, 40));
@@ -1057,7 +1158,7 @@ export const PATTERNS = [
       }
       // Require a real cluster (≥3) — one nested card is often legitimate.
       return { nested, samples, triggered: nested >= 3 };
-    }
+    },
   },
 
   // ── 26. WIDE BODY TRACKING (2026.08) ──────────────────────────────────────
@@ -1080,7 +1181,7 @@ export const PATTERNS = [
       for (const el of visible) {
         if (!BODY.test(el.tagName)) continue;
         const txt = (el.textContent || '').trim();
-        if (txt.length < 40) continue;               // real body copy only
+        if (txt.length < 40) continue; // real body copy only
         const cs = getComputedStyle(el);
         if (cs.textTransform === 'uppercase') continue; // labels exempt
         const fontSize = parseFloat(cs.fontSize) || 16;
@@ -1093,7 +1194,7 @@ export const PATTERNS = [
         }
       }
       return { count, samples, triggered: count >= 1 };
-    }
+    },
   },
 
   // ── 27. FLAT TYPE HIERARCHY (2026.08) ─────────────────────────────────────
@@ -1127,8 +1228,8 @@ export const PATTERNS = [
         ratio: +ratio.toFixed(2),
         min: Math.min(...arr),
         max: Math.max(...arr),
-        triggered: ratio < 2.0
+        triggered: ratio < 2.0,
       };
-    }
-  }
+    },
+  },
 ];

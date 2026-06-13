@@ -8,13 +8,16 @@ import { fileURLToPath } from 'node:url';
 import { scanPage, fixPrompt, ApiError } from '../src/api.js';
 
 const realFetch = global.fetch;
-afterEach(() => { global.fetch = realFetch; });
+afterEach(() => {
+  global.fetch = realFetch;
+});
 
 function jsonRes(body, { ok = true, status = 200 } = {}) {
   return {
-    ok, status,
+    ok,
+    status,
     json: async () => body,
-    text: async () => JSON.stringify(body)
+    text: async () => JSON.stringify(body),
   };
 }
 
@@ -58,7 +61,9 @@ test('a fetch timeout (TimeoutError) becomes a clean ApiError, not a raw abort',
 });
 
 test('MCP server version matches package.json (no hardcoded drift)', () => {
-  const pkg = JSON.parse(readFileSync(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf8'));
+  const pkg = JSON.parse(
+    readFileSync(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf8')
+  );
   // Mirror the readVersion() logic to assert it resolves to the package version.
   assert.match(pkg.version, /^\d+\.\d+\.\d+/);
 });

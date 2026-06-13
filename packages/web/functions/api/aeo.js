@@ -14,13 +14,17 @@ import { validateScanUrl, isAllowedUrl } from '../_shared.js';
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
   });
 }
 
 export async function onRequestPost({ request }) {
   let body;
-  try { body = await request.json(); } catch { return json({ error: 'Invalid JSON body' }, 400); }
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'Invalid JSON body' }, 400);
+  }
 
   const v = validateScanUrl(body && body.url);
   if (v.error) return json({ error: v.error }, v.status || 400);
@@ -32,7 +36,7 @@ export async function onRequestPost({ request }) {
       userAgent: 'SlopDetector-AEO/1.0 (+https://slop-detect.com)',
       // SSRF: re-validate every redirect hop so a public URL can't bounce us to
       // an internal host (the pre-flight check only saw the first URL).
-      isUrlAllowed: isAllowedUrl
+      isUrlAllowed: isAllowedUrl,
     });
     return json(report);
   } catch (e) {

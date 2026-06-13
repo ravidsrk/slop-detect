@@ -74,7 +74,11 @@ function page(origin, title, inner, extraHeaders = {}) {
     <a href="${origin}/directory">directory</a> &middot; <a href="${origin}/privacy.md">privacy</a></footer>
 </div></body></html>`;
   return new Response(html, {
-    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', ...extraHeaders }
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-store',
+      ...extraHeaders,
+    },
   });
 }
 
@@ -112,9 +116,10 @@ function loginView(origin, note) {
 function row(w, origin) {
   const c = tierColors(w.lastTier);
   const sc = sysColors(w.lastSystemTier);
-  const slop = w.lastScore == null
-    ? '<span class="flag">no scan yet</span>'
-    : `<span class="g" style="color:${c.fg};border-color:${c.fg}">${escapeHtml(w.lastGrade || '—')}</span>
+  const slop =
+    w.lastScore == null
+      ? '<span class="flag">no scan yet</span>'
+      : `<span class="g" style="color:${c.fg};border-color:${c.fg}">${escapeHtml(w.lastGrade || '—')}</span>
        <span class="mono" style="color:${c.fg}"> ${w.lastScore}/100</span>`;
   const sys = w.lastSystemTier
     ? `<span class="pill" style="color:${sc};border-color:${sc}">${escapeHtml(w.lastSystemTier)}</span>`
@@ -123,8 +128,10 @@ function row(w, origin) {
     w.regressed ? '<span class="flag bad">regressed</span>' : '',
     w.systemRegressed ? '<span class="flag bad">drifted</span>' : '',
     !w.verified ? '<span class="flag">unconfirmed</span>' : '',
-    w.listed ? '<span class="flag">listed</span>' : ''
-  ].filter(Boolean).join(' ');
+    w.listed ? '<span class="flag">listed</span>' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
   const checked = w.lastCheckedAt ? String(w.lastCheckedAt).slice(0, 10) : '—';
   return `<tr>
     <td><a class="dom" href="https://${escapeHtml(w.domain)}">${escapeHtml(w.domain)}</a></td>
@@ -161,15 +168,21 @@ export async function onRequestGet({ request, env }) {
   const origin = url.origin;
 
   if (!env.SESSION_SECRET) {
-    return page(origin, 'Dashboard', `
+    return page(
+      origin,
+      'Dashboard',
+      `
       <h1>Dashboard not configured</h1>
       <p class="sub">Sign-in requires SESSION_SECRET (and the email provider) to be set —
-        see PRODUCTION.md. Monitoring itself works without it.</p>`);
+        see PRODUCTION.md. Monitoring itself works without it.</p>`
+    );
   }
 
   // Sign out.
   if (url.searchParams.get('logout') === '1') {
-    return page(origin, 'Signed out', loginView(origin, ''), { 'Set-Cookie': clearSessionCookie() });
+    return page(origin, 'Signed out', loginView(origin, ''), {
+      'Set-Cookie': clearSessionCookie(),
+    });
   }
 
   // Magic-link exchange: burn the token, mint the session, land clean (the
@@ -178,13 +191,16 @@ export async function onRequestGet({ request, env }) {
   if (token) {
     const email = env.RESULTS ? await consumeDashboardToken(env.RESULTS, token) : null;
     if (!email) {
-      return page(origin, 'Link expired', loginView(origin,
-        'That sign-in link has expired or was already used. Request a fresh one.'));
+      return page(
+        origin,
+        'Link expired',
+        loginView(origin, 'That sign-in link has expired or was already used. Request a fresh one.')
+      );
     }
     const session = await signSession(email, env.SESSION_SECRET);
     return new Response(null, {
       status: 302,
-      headers: { Location: `${origin}/dashboard`, 'Set-Cookie': sessionCookie(session) }
+      headers: { Location: `${origin}/dashboard`, 'Set-Cookie': sessionCookie(session) },
     });
   }
 

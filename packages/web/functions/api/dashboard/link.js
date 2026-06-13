@@ -13,21 +13,30 @@ import { buildDashboardLinkEmail } from '../../_alerts.js';
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
   });
 }
 
 export async function onRequestPost({ request, env }) {
-  if (!env.RESULTS) return json({ error: 'dashboard_unavailable', message: 'Storage is offline.' }, 503);
+  if (!env.RESULTS)
+    return json({ error: 'dashboard_unavailable', message: 'Storage is offline.' }, 503);
   if (!emailConfigured(env) || !env.SESSION_SECRET) {
-    return json({
-      error: 'dashboard_unavailable',
-      message: 'Dashboard sign-in requires the email provider and SESSION_SECRET to be configured.'
-    }, 503);
+    return json(
+      {
+        error: 'dashboard_unavailable',
+        message:
+          'Dashboard sign-in requires the email provider and SESSION_SECRET to be configured.',
+      },
+      503
+    );
   }
 
   let body;
-  try { body = await request.json(); } catch { return json({ error: 'Invalid JSON body' }, 400); }
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'Invalid JSON body' }, 400);
+  }
   if (!isValidEmail(body?.email)) return json({ error: 'a valid `email` is required' }, 400);
   const email = String(body.email).trim().toLowerCase();
 
@@ -35,7 +44,8 @@ export async function onRequestPost({ request, env }) {
   // non-error path, so timing/shape can't reveal whether an account exists.
   const genericOk = {
     ok: true,
-    message: 'If that address monitors any domains, a sign-in link is on its way. It expires in 15 minutes.'
+    message:
+      'If that address monitors any domains, a sign-in link is on its way. It expires in 15 minutes.',
   };
 
   try {
@@ -46,7 +56,9 @@ export async function onRequestPost({ request, env }) {
       const msg = buildDashboardLinkEmail(loginUrl, watches.length);
       await sendEmail(env, { to: email, subject: msg.subject, text: msg.text });
     }
-  } catch (_) { /* best-effort: still return the generic response */ }
+  } catch (_) {
+    /* best-effort: still return the generic response */
+  }
 
   return json(genericOk);
 }

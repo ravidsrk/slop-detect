@@ -2,7 +2,7 @@
   "name": "slop-detect-web",
   "version": "0.7.0",
   "private": true,
-  "description": "Cloudflare Pages app for slop-detect.com \u2014 web UI + /api/scan + /api/fix-prompt.",
+  "description": "Cloudflare Pages app for slop-detect.com — web UI + /api/scan + /api/fix-prompt.",
   "type": "module",
   "license": "MIT",
   "scripts": {

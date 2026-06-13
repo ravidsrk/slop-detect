@@ -28,11 +28,19 @@ test('/blog/<slug> renders the post HTML with structured data + a twin link', as
   assert.match(html, /<h2>Deterministic by design<\/h2>/);
   assert.match(html, /BlogPosting/);
   assert.match(html, new RegExp(`rel="canonical" href="https://slop-detect.com/blog/${slug}"`));
-  assert.match(html, new RegExp(`rel="alternate" type="text/markdown" href="https://slop-detect.com/blog/${slug}.md"`));
+  assert.match(
+    html,
+    new RegExp(
+      `rel="alternate" type="text/markdown" href="https://slop-detect.com/blog/${slug}.md"`
+    )
+  );
 });
 
 test('/blog/<slug>.md serves the raw markdown twin', async () => {
-  const res = await postGet({ params: { slug: 'how-the-slop-score-works.md' }, request: req('/blog/how-the-slop-score-works.md') });
+  const res = await postGet({
+    params: { slug: 'how-the-slop-score-works.md' },
+    request: req('/blog/how-the-slop-score-works.md'),
+  });
   assert.equal(res.status, 200);
   assert.match(res.headers.get('Content-Type'), /text\/markdown/);
   const md = await res.text();
@@ -45,7 +53,9 @@ test('unknown slug returns 404', async () => {
 });
 
 test('mdToHtml renders blocks and escapes HTML in inline code', () => {
-  const html = mdToHtml('## Head\n\n- one\n- two\n\nUse `npx slop-detect <url>` and **bold** text and a [link](https://x.com).');
+  const html = mdToHtml(
+    '## Head\n\n- one\n- two\n\nUse `npx slop-detect <url>` and **bold** text and a [link](https://x.com).'
+  );
   assert.match(html, /<h2>Head<\/h2>/);
   assert.match(html, /<ul><li>one<\/li><li>two<\/li><\/ul>/);
   assert.match(html, /<code>npx slop-detect &lt;url&gt;<\/code>/); // angle brackets escaped

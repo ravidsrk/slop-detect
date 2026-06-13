@@ -21,7 +21,9 @@ export function extractTextContext() {
 
   // Clone so we can strip chrome without touching the live page.
   var clone = main.cloneNode(true);
-  var strip = clone.querySelectorAll('nav, footer, header, script, style, noscript, svg, code, pre, [aria-hidden="true"]');
+  var strip = clone.querySelectorAll(
+    'nav, footer, header, script, style, noscript, svg, code, pre, [aria-hidden="true"]'
+  );
   for (var i = 0; i < strip.length; i++) {
     if (strip[i].parentNode) strip[i].parentNode.removeChild(strip[i]);
   }
@@ -45,9 +47,9 @@ export function extractTextContext() {
   var words = text ? text.split(/\s+/).filter(Boolean) : [];
 
   return {
-    text: text.slice(0, 200000),  // cap to keep payloads sane
+    text: text.slice(0, 200000), // cap to keep payloads sane
     headings: headings,
     paragraphs: paragraphs,
-    wordCount: words.length
+    wordCount: words.length,
   };
 }

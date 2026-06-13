@@ -14,12 +14,7 @@ export { COPY_PATTERNS } from './copyPatterns.js';
 export { extractTextContext } from './text.js';
 export { createColorHelpers } from './color.js';
 export { createVisibilityHelpers } from './visibility.js';
-export {
-  isSlopFont,
-  isAccentSerif,
-  SLOP_FONT_PREFIXES,
-  ACCENT_SERIF_PREFIXES
-} from './fonts.js';
+export { isSlopFont, isAccentSerif, SLOP_FONT_PREFIXES, ACCENT_SERIF_PREFIXES } from './fonts.js';
 export { FIXES, buildFixPrompt } from './fixes.js';
 export { gradeForScore, verdictFor, GRADE_BANDS } from './verdict.js';
 export { compileRule, compileRules, validateRule } from './rules.js';
@@ -30,7 +25,7 @@ export {
   detectAIBot,
   aiBotsBlockedByRobots,
   toMarkdownUrl,
-  runAeoChecks
+  runAeoChecks,
 } from './aeo.js';
 export {
   parseDesignMd,
@@ -40,7 +35,7 @@ export {
   scoreSystemCompliance,
   primaryFamily,
   parseCssColor,
-  SYSTEM_CHECKS
+  SYSTEM_CHECKS,
 } from './system.js';
 
 import { gradeForScore, verdictFor } from './verdict.js';
@@ -54,7 +49,7 @@ export const AXES = ['design', 'copy'];
 // its own 0-100 scale (sum of triggered copy-pattern weights, clamped).
 const AXIS_TIERS = {
   design: { mild: 10, heavy: 28 },
-  copy:   { mild: 8,  heavy: 20 }
+  copy: { mild: 8, heavy: 20 },
 };
 
 function tierFor(axis, score) {
@@ -70,16 +65,14 @@ export const DEFINITIONS_VERSION = '2026.09';
 // Convenience: turn a triggered-pattern array into a scoring summary.
 // Pure function so it's safe to call from any runtime.
 export function scorePatterns(patternResults) {
-  const score = patternResults
-    .filter(p => p.triggered)
-    .reduce((sum, p) => sum + p.weight, 0);
+  const score = patternResults.filter((p) => p.triggered).reduce((sum, p) => sum + p.weight, 0);
 
   const clamped = Math.min(100, score);
   // Single source of truth for the design bands (AXIS_TIERS.design):
   //   Heavy ≥ 28 · Mild ≥ 10 · Clean < 10. Computed on the clamped score so it
   //   can never diverge from the number we report.
   const tier = tierFor('design', clamped);
-  const triggered = patternResults.filter(p => p.triggered);
+  const triggered = patternResults.filter((p) => p.triggered);
 
   return {
     score: clamped,
@@ -87,8 +80,8 @@ export function scorePatterns(patternResults) {
     grade: gradeForScore(clamped),
     verdict: verdictFor(clamped, tier, triggered),
     patternsFlagged: triggered.length,
-    patternsTotal:   patternResults.length,
-    definitionsVersion: DEFINITIONS_VERSION
+    patternsTotal: patternResults.length,
+    definitionsVersion: DEFINITIONS_VERSION,
   };
 }
 
@@ -100,10 +93,13 @@ export function scoreCopy(textCtx) {
   // Too little prose to judge — return Clean with a flag rather than a false 0.
   const thin = (ctx.wordCount || 0) < 40;
 
-  const patterns = COPY_PATTERNS.map(p => {
+  const patterns = COPY_PATTERNS.map((p) => {
     let evidence;
-    try { evidence = p.match(ctx); }
-    catch (e) { evidence = { triggered: false, error: e.message }; }
+    try {
+      evidence = p.match(ctx);
+    } catch (e) {
+      evidence = { triggered: false, error: e.message };
+    }
     return {
       id: p.id,
       label: p.label,
@@ -112,14 +108,14 @@ export function scoreCopy(textCtx) {
       category: p.category,
       weight: p.weight,
       triggered: !thin && !!evidence.triggered,
-      evidence
+      evidence,
     };
   });
 
-  const raw = patterns.filter(p => p.triggered).reduce((s, p) => s + p.weight, 0);
+  const raw = patterns.filter((p) => p.triggered).reduce((s, p) => s + p.weight, 0);
   const score = Math.min(100, raw);
   const tier = tierFor('copy', score);
-  const triggered = patterns.filter(p => p.triggered);
+  const triggered = patterns.filter((p) => p.triggered);
 
   return {
     axis: 'copy',
@@ -130,7 +126,7 @@ export function scoreCopy(textCtx) {
     patternsTotal: patterns.length,
     wordCount: ctx.wordCount || 0,
     thin,
-    patterns
+    patterns,
   };
 }
 
@@ -140,13 +136,18 @@ export function scoreCopy(textCtx) {
 // still slop) plus a small penalty when MULTIPLE axes are dirty — being sloppy
 // on every axis is worse than on one. Kept monotonic and clamped to 0-100.
 export function combineAxes(axisSummaries) {
-  const present = Object.keys(axisSummaries).filter(k => axisSummaries[k]);
-  const scores = present.map(k => axisSummaries[k].score || 0);
+  const present = Object.keys(axisSummaries).filter((k) => axisSummaries[k]);
+  const scores = present.map((k) => axisSummaries[k].score || 0);
   if (scores.length === 0) {
-    return { unifiedScore: 0, unifiedTier: 'Clean', unifiedGrade: gradeForScore(0), axesScored: [] };
+    return {
+      unifiedScore: 0,
+      unifiedTier: 'Clean',
+      unifiedGrade: gradeForScore(0),
+      axesScored: [],
+    };
   }
   const max = Math.max(...scores);
-  const dirtyAxes = present.filter(k => (axisSummaries[k].tier || 'Clean') !== 'Clean').length;
+  const dirtyAxes = present.filter((k) => (axisSummaries[k].tier || 'Clean') !== 'Clean').length;
   // +6 per additional dirty axis beyond the first.
   const penalty = Math.max(0, dirtyAxes - 1) * 6;
   const unified = Math.min(100, max + penalty);
@@ -159,6 +160,6 @@ export function combineAxes(axisSummaries) {
     unifiedTier,
     unifiedGrade: gradeForScore(unified),
     axesScored: present,
-    dirtyAxes
+    dirtyAxes,
   };
 }

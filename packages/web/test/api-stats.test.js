@@ -9,9 +9,15 @@ import { recordScan } from '../functions/_shared.js';
 function makeKv() {
   const s = new Map();
   return {
-    async get(k) { return s.has(k) ? s.get(k) : null; },
-    async put(k, v) { s.set(k, v); },
-    async delete(k) { s.delete(k); }
+    async get(k) {
+      return s.has(k) ? s.get(k) : null;
+    },
+    async put(k, v) {
+      s.set(k, v);
+    },
+    async delete(k) {
+      s.delete(k);
+    },
   };
 }
 

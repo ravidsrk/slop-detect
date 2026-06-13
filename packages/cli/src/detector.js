@@ -18,7 +18,7 @@ import {
   parseDesignMd,
   scoreSystemCompliance,
   scoreCopy,
-  combineAxes
+  combineAxes,
 } from 'slop-detect-core';
 
 // Playwright is heavy (pulls in a ~150 MB browser) and is ONLY needed for an
@@ -33,8 +33,8 @@ async function loadChromium() {
   } catch (_) {
     throw new Error(
       "Playwright isn't installed, so local scanning is unavailable. " +
-      'Run `npm i -D playwright` (or `npm i -g playwright`), or use `--remote` ' +
-      'to scan via the slop-detect.com API instead.'
+        'Run `npm i -D playwright` (or `npm i -g playwright`), or use `--remote` ' +
+        'to scan via the slop-detect.com API instead.'
     );
   }
   return _chromium;
@@ -48,7 +48,10 @@ let chromiumReady = false;
 async function ensureChromium() {
   if (chromiumReady) return;
   const chromium = await loadChromium();
-  if (process.env.SKIP_PLAYWRIGHT_DOWNLOAD) { chromiumReady = true; return; }
+  if (process.env.SKIP_PLAYWRIGHT_DOWNLOAD) {
+    chromiumReady = true;
+    return;
+  }
   // Try a cheap launch first. If the browser binary is missing, Playwright
   // throws a recognisable error — only then do we spawn the installer.
   try {
@@ -72,12 +75,12 @@ async function ensureChromium() {
     process.stderr.write('slop-detect: first run — downloading Chromium (~150 MB, one-time)…\n');
     const r = spawnSync('npx', ['--yes', 'playwright', 'install', 'chromium'], {
       stdio: 'inherit',
-      shell: process.platform === 'win32'
+      shell: process.platform === 'win32',
     });
     if (r.status !== 0) {
       throw new Error(
         'Failed to install Chromium. Run `npx playwright install chromium` manually, ' +
-        'or set SKIP_PLAYWRIGHT_DOWNLOAD=1 if you have it installed elsewhere.'
+          'or set SKIP_PLAYWRIGHT_DOWNLOAD=1 if you have it installed elsewhere.'
       );
     }
     chromiumReady = true;
@@ -95,26 +98,26 @@ function detectBlocked(data) {
     'Attention Required! | Cloudflare',
     'Please Wait... | Cloudflare',
     'Access denied | Cloudflare',
-    'Sorry, you have been blocked'
+    'Sorry, you have been blocked',
   ];
-  if (cfMarkers.some(m => title.includes(m))) {
+  if (cfMarkers.some((m) => title.includes(m))) {
     return {
       code: 'cloudflare_challenge',
       reason: 'Site is behind a Cloudflare bot challenge — cannot score automatically.',
-      hint: 'Try a different URL, or run the CLI with a fresh non-headless browser session.'
+      hint: 'Try a different URL, or run the CLI with a fresh non-headless browser session.',
     };
   }
   if (/access denied|forbidden|akamai/i.test(title) && visibleCount < 20) {
     return {
       code: 'access_blocked',
       reason: `Site refused the scan (title: "${title.slice(0, 80)}")`,
-      hint: 'The target is blocking automated requests.'
+      hint: 'The target is blocking automated requests.',
     };
   }
   const signals = data?.signals || {};
-  const patternsWithEvidence = Object.values(signals).filter(s => {
+  const patternsWithEvidence = Object.values(signals).filter((s) => {
     if (!s || typeof s !== 'object') return false;
-    const keys = Object.keys(s).filter(k => k !== 'triggered' && k !== 'error');
+    const keys = Object.keys(s).filter((k) => k !== 'triggered' && k !== 'error');
     return keys.length > 0;
   }).length;
   const noContent = !title && !h1;
@@ -123,7 +126,7 @@ function detectBlocked(data) {
     return {
       code: 'empty_page',
       reason: 'Target page rendered no scannable content (no title, no H1, or empty DOM).',
-      hint: 'The site likely requires sign-in, uses heavy client-side hydration, or blocks headless browsers.'
+      hint: 'The site likely requires sign-in, uses heavy client-side hydration, or blocks headless browsers.',
     };
   }
   return null;
@@ -135,18 +138,20 @@ function normalizeAxes(axes) {
   const VALID = ['design', 'copy'];
   if (axes === 'all') return [...VALID];
   if (!Array.isArray(axes) || axes.length === 0) return ['design'];
-  const out = axes.filter(a => VALID.includes(a));
+  const out = axes.filter((a) => VALID.includes(a));
   if (!out.includes('design')) out.unshift('design'); // design always present
   return [...new Set(out)];
 }
 
 function buildPageScript(opts = {}) {
-  const patternCalls = PATTERNS.map(p => `
+  const patternCalls = PATTERNS.map(
+    (p) => `
     try {
       signals[${JSON.stringify(p.id)}] = (${p.extract.toString()})(ctx);
     } catch (e) {
       signals[${JSON.stringify(p.id)}] = { triggered: false, error: e.message };
-    }`).join('\n');
+    }`
+  ).join('\n');
 
   return `(() => {
     ${createColorHelpers.toString()}
@@ -199,10 +204,14 @@ function buildPageScript(opts = {}) {
     // System axis (DESIGN.md compliance): observe fonts/colors/radii in use.
     // Only injected when a DESIGN.md was supplied — scoring is Node-side.
     let systemContext = null;
-    ${opts.includeSystem ? `
+    ${
+      opts.includeSystem
+        ? `
     const extractSystemContext = ${extractSystemContext.toString()};
     try { systemContext = extractSystemContext(); } catch (e) { systemContext = { error: e.message }; }
-    ` : ''}
+    `
+        : ''
+    }
 
     return {
       title: document.title,
@@ -230,7 +239,9 @@ export async function loadDesignMd(source, pageUrl) {
       const res = await fetch(url, { headers: { Accept: 'text/markdown,text/plain,*/*' } });
       if (!res.ok) return null;
       return { text: await res.text(), from: url };
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   }
   if (/^https?:\/\//i.test(source)) {
     const res = await fetch(source);
@@ -261,8 +272,8 @@ export async function scanRemote(url, opts = {}) {
         url,
         preset: opts.preset || 'full',
         axes: opts.axes || ['design'],
-        screenshot: !!opts.screenshot
-      })
+        screenshot: !!opts.screenshot,
+      }),
     });
   } catch (e) {
     throw new Error(`Could not reach ${base} (${e.message}). Drop --remote to scan locally.`);
@@ -283,7 +294,9 @@ export async function aeoRemote(url, opts = {}) {
   const key = opts.apiKey || process.env.SLOP_API_KEY;
   if (key) headers['x-api-key'] = key;
   const res = await fetch(new URL('/api/aeo', base), {
-    method: 'POST', headers, body: JSON.stringify({ url })
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ url }),
   });
   const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
   if (!res.ok) throw new Error(data.error || `AEO check failed (HTTP ${res.status})`);
@@ -297,7 +310,7 @@ export async function scanUrl(url, opts = {}) {
   const context = await browser.newContext({
     viewport: { width: 1280, height: 800 },
     userAgent: 'Mozilla/5.0 SlopDetector/1.0 (+https://github.com/ravidsrk/slop-detect)',
-    deviceScaleFactor: 1
+    deviceScaleFactor: 1,
   });
   const page = await context.newPage();
   let result;
@@ -325,13 +338,13 @@ export async function scanUrl(url, opts = {}) {
         tier: null,
         patternsFlagged: 0,
         patternsTotal: PATTERNS.length,
-        patterns: []
+        patterns: [],
       };
       return result;
     }
 
     // Build the structured result on the Node side.
-    const patterns = PATTERNS.map(p => {
+    const patterns = PATTERNS.map((p) => {
       const sig = data.signals[p.id] || { triggered: false };
       return {
         id: p.id,
@@ -340,7 +353,7 @@ export async function scanUrl(url, opts = {}) {
         category: p.category,
         weight: p.weight,
         triggered: !!sig.triggered,
-        evidence: sig
+        evidence: sig,
       };
     });
 
@@ -363,8 +376,8 @@ export async function scanUrl(url, opts = {}) {
       h1: data.h1Text,
       h1Font: data.h1Font,
       preset,
-      ...scoring,        // top-level = DESIGN axis (backward-compatible)
-      patterns: scored
+      ...scoring, // top-level = DESIGN axis (backward-compatible)
+      patterns: scored,
     };
 
     // Multi-axis: attach per-axis summaries + a unified score when >1 axis asked.
@@ -377,8 +390,8 @@ export async function scanUrl(url, opts = {}) {
           grade: scoring.grade,
           patternsFlagged: scoring.patternsFlagged,
           patternsTotal: scoring.patternsTotal,
-          patterns: scored
-        }
+          patterns: scored,
+        },
       };
       if (reqAxes.includes('copy')) {
         axes.copy = scoreCopy(data.textContext || {});

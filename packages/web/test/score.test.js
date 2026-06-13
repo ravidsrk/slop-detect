@@ -10,20 +10,37 @@ function makeKv(seed = {}) {
   const store = new Map(Object.entries(seed));
   return {
     store,
-    async get(k) { return store.has(k) ? store.get(k) : null; },
-    async put(k, v) { store.set(k, v); },
-    async delete(k) { store.delete(k); }
+    async get(k) {
+      return store.has(k) ? store.get(k) : null;
+    },
+    async put(k, v) {
+      store.set(k, v);
+    },
+    async delete(k) {
+      store.delete(k);
+    },
   };
 }
 
 function slim(over = {}) {
   return {
-    id: 'sc0re001', url: 'https://ex.com', finalUrl: 'https://ex.com/',
-    domain: 'ex.com', title: 'Ex', score: 30, tier: 'Heavy', grade: 'D',
+    id: 'sc0re001',
+    url: 'https://ex.com',
+    finalUrl: 'https://ex.com/',
+    domain: 'ex.com',
+    title: 'Ex',
+    score: 30,
+    tier: 'Heavy',
+    grade: 'D',
     verdict: 'Heavy slop. Wears the starter kit head to toe.',
-    patternsFlagged: 7, patternsTotal: 27, definitionsVersion: '2026.09',
-    triggered: [{ id: 'slop_fonts', label: 'AI-default font stack', short: 'Slop fonts', weight: 8 }],
-    createdAt: '2026-06-10T12:00:00.000Z', ...over
+    patternsFlagged: 7,
+    patternsTotal: 27,
+    definitionsVersion: '2026.09',
+    triggered: [
+      { id: 'slop_fonts', label: 'AI-default font stack', short: 'Slop fonts', weight: 8 },
+    ],
+    createdAt: '2026-06-10T12:00:00.000Z',
+    ...over,
   };
 }
 
@@ -31,7 +48,7 @@ async function render(kv, domainParam) {
   const res = await onRequestGet({
     params: { domain: domainParam },
     request: { url: `https://slop-detect.com/score/${domainParam}` },
-    env: { RESULTS: kv }
+    env: { RESULTS: kv },
   });
   return { status: res.status, html: await res.text(), res };
 }
@@ -55,10 +72,10 @@ test('a scanned domain renders score, grade, verdict, JSON-LD, canonical', async
   await recordScan(kv, s);
   const { status, html } = await render(kv, 'ex.com');
   assert.equal(status, 200);
-  assert.match(html, />D</);                                  // grade
-  assert.match(html, /30<small>\/100<\/small>/);              // score
-  assert.match(html, /Heavy slop/);                            // verdict
-  assert.match(html, /application\/ld\+json/);                 // AEO structured data
+  assert.match(html, />D</); // grade
+  assert.match(html, /30<small>\/100<\/small>/); // score
+  assert.match(html, /Heavy slop/); // verdict
+  assert.match(html, /application\/ld\+json/); // AEO structured data
   assert.match(html, /rel="canonical" href="https:\/\/slop-detect\.com\/score\/ex\.com"/);
 });
 
@@ -78,7 +95,7 @@ test('a CLAIMED (listed) domain shows a dofollow backlink, not the claim form', 
   const s = slim();
   await saveResult(kv, s);
   await recordScan(kv, s);
-  await setListing(kv, s);                                     // owner claimed + listed
+  await setListing(kv, s); // owner claimed + listed
   const { html } = await render(kv, 'ex.com');
   assert.match(html, /rel="dofollow"/);
   assert.match(html, /Listed in the/);

@@ -126,7 +126,8 @@ export function validateRule(rule) {
   if (!d || typeof d !== 'object') {
     errs.push('detect block required');
   } else {
-    if (!Array.isArray(d.when) || d.when.length === 0) errs.push('detect.when must be a non-empty array');
+    if (!Array.isArray(d.when) || d.when.length === 0)
+      errs.push('detect.when must be a non-empty array');
     if (d.trigger && d.trigger.minCount == null && d.trigger.minRatio == null) {
       errs.push('detect.trigger needs minCount or minRatio');
     }
@@ -161,7 +162,7 @@ export function compileRule(rule) {
     declarative: true,
     author: rule.author || null,
     since: rule.since || null,
-    extract
+    extract,
   };
 }
 
@@ -169,5 +170,5 @@ export function compileRule(rule) {
 // imperative pattern objects) are allowed: anything with a function `extract`
 // is passed through untouched; anything with a `detect` block is compiled.
 export function compileRules(rules) {
-  return rules.map(r => (typeof r.extract === 'function' ? r : compileRule(r)));
+  return rules.map((r) => (typeof r.extract === 'function' ? r : compileRule(r)));
 }

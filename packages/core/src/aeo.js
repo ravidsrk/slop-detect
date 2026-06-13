@@ -22,33 +22,120 @@
 // training crawlers from on-demand search/answer fetchers — the latter are the
 // ones that decide whether your page gets *cited* in an AI answer.
 export const AI_BOTS = [
-  { name: 'GPTBot', uaPattern: 'GPTBot', vendor: 'OpenAI', purpose: 'training', docsUrl: 'https://platform.openai.com/docs/gptbot' },
-  { name: 'ChatGPT-User', uaPattern: 'ChatGPT-User', vendor: 'OpenAI', purpose: 'user-action', docsUrl: 'https://platform.openai.com/docs/bots' },
-  { name: 'OAI-SearchBot', uaPattern: 'OAI-SearchBot', vendor: 'OpenAI', purpose: 'search', docsUrl: 'https://platform.openai.com/docs/bots' },
-  { name: 'ClaudeBot', uaPattern: 'ClaudeBot', vendor: 'Anthropic', purpose: 'training', docsUrl: 'https://support.anthropic.com/en/articles/8896518' },
+  {
+    name: 'GPTBot',
+    uaPattern: 'GPTBot',
+    vendor: 'OpenAI',
+    purpose: 'training',
+    docsUrl: 'https://platform.openai.com/docs/gptbot',
+  },
+  {
+    name: 'ChatGPT-User',
+    uaPattern: 'ChatGPT-User',
+    vendor: 'OpenAI',
+    purpose: 'user-action',
+    docsUrl: 'https://platform.openai.com/docs/bots',
+  },
+  {
+    name: 'OAI-SearchBot',
+    uaPattern: 'OAI-SearchBot',
+    vendor: 'OpenAI',
+    purpose: 'search',
+    docsUrl: 'https://platform.openai.com/docs/bots',
+  },
+  {
+    name: 'ClaudeBot',
+    uaPattern: 'ClaudeBot',
+    vendor: 'Anthropic',
+    purpose: 'training',
+    docsUrl: 'https://support.anthropic.com/en/articles/8896518',
+  },
   { name: 'anthropic-ai', uaPattern: 'anthropic-ai', vendor: 'Anthropic', purpose: 'training' },
   { name: 'Claude-Web', uaPattern: 'Claude-Web', vendor: 'Anthropic', purpose: 'user-action' },
-  { name: 'Claude-SearchBot', uaPattern: 'Claude-SearchBot', vendor: 'Anthropic', purpose: 'search', docsUrl: 'https://support.anthropic.com/en/articles/8896518' },
-  { name: 'Claude-User', uaPattern: 'Claude-User', vendor: 'Anthropic', purpose: 'user-action', docsUrl: 'https://support.anthropic.com/en/articles/8896518' },
-  { name: 'PerplexityBot', uaPattern: 'PerplexityBot', vendor: 'Perplexity', purpose: 'search', docsUrl: 'https://docs.perplexity.ai/guides/bots' },
-  { name: 'Perplexity-User', uaPattern: 'Perplexity-User', vendor: 'Perplexity', purpose: 'user-action', docsUrl: 'https://docs.perplexity.ai/guides/bots' },
-  { name: 'Google-Extended', uaPattern: 'Google-Extended', vendor: 'Google', purpose: 'training', docsUrl: 'https://developers.google.com/search/docs/crawling-indexing/google-extended' },
+  {
+    name: 'Claude-SearchBot',
+    uaPattern: 'Claude-SearchBot',
+    vendor: 'Anthropic',
+    purpose: 'search',
+    docsUrl: 'https://support.anthropic.com/en/articles/8896518',
+  },
+  {
+    name: 'Claude-User',
+    uaPattern: 'Claude-User',
+    vendor: 'Anthropic',
+    purpose: 'user-action',
+    docsUrl: 'https://support.anthropic.com/en/articles/8896518',
+  },
+  {
+    name: 'PerplexityBot',
+    uaPattern: 'PerplexityBot',
+    vendor: 'Perplexity',
+    purpose: 'search',
+    docsUrl: 'https://docs.perplexity.ai/guides/bots',
+  },
+  {
+    name: 'Perplexity-User',
+    uaPattern: 'Perplexity-User',
+    vendor: 'Perplexity',
+    purpose: 'user-action',
+    docsUrl: 'https://docs.perplexity.ai/guides/bots',
+  },
+  {
+    name: 'Google-Extended',
+    uaPattern: 'Google-Extended',
+    vendor: 'Google',
+    purpose: 'training',
+    docsUrl: 'https://developers.google.com/search/docs/crawling-indexing/google-extended',
+  },
   { name: 'GoogleOther', uaPattern: 'GoogleOther', vendor: 'Google', purpose: 'training' },
-  { name: 'Applebot-Extended', uaPattern: 'Applebot-Extended', vendor: 'Apple', purpose: 'training', docsUrl: 'https://support.apple.com/en-us/119829' },
+  {
+    name: 'Applebot-Extended',
+    uaPattern: 'Applebot-Extended',
+    vendor: 'Apple',
+    purpose: 'training',
+    docsUrl: 'https://support.apple.com/en-us/119829',
+  },
   { name: 'cohere-ai', uaPattern: 'cohere-ai', vendor: 'Cohere', purpose: 'training' },
-  { name: 'CCBot', uaPattern: 'CCBot', vendor: 'Common Crawl', purpose: 'training', docsUrl: 'https://commoncrawl.org/ccbot' },
+  {
+    name: 'CCBot',
+    uaPattern: 'CCBot',
+    vendor: 'Common Crawl',
+    purpose: 'training',
+    docsUrl: 'https://commoncrawl.org/ccbot',
+  },
   { name: 'Bytespider', uaPattern: 'Bytespider', vendor: 'ByteDance', purpose: 'training' },
   { name: 'DeepSeekBot', uaPattern: 'DeepSeekBot', vendor: 'DeepSeek', purpose: 'training' },
-  { name: 'Amazonbot', uaPattern: 'Amazonbot', vendor: 'Amazon', purpose: 'training', docsUrl: 'https://developer.amazon.com/amazonbot' },
+  {
+    name: 'Amazonbot',
+    uaPattern: 'Amazonbot',
+    vendor: 'Amazon',
+    purpose: 'training',
+    docsUrl: 'https://developer.amazon.com/amazonbot',
+  },
   { name: 'YouBot', uaPattern: 'YouBot', vendor: 'You.com', purpose: 'search' },
   { name: 'Diffbot', uaPattern: 'Diffbot', vendor: 'Diffbot', purpose: 'training' },
   { name: 'ImagesiftBot', uaPattern: 'ImagesiftBot', vendor: 'ImageSift', purpose: 'training' },
   { name: 'Omgilibot', uaPattern: 'Omgilibot', vendor: 'Webz.io', purpose: 'training' },
   { name: 'DuckAssistBot', uaPattern: 'DuckAssistBot', vendor: 'DuckDuckGo', purpose: 'search' },
-  { name: 'Meta-ExternalAgent', uaPattern: 'meta-externalagent', vendor: 'Meta', purpose: 'training' },
-  { name: 'Meta-ExternalFetcher', uaPattern: 'meta-externalfetcher', vendor: 'Meta', purpose: 'user-action' },
-  { name: 'MistralAI-User', uaPattern: 'MistralAI-User', vendor: 'Mistral', purpose: 'user-action' },
-  { name: 'AI2Bot', uaPattern: 'AI2Bot', vendor: 'Allen Institute', purpose: 'training' }
+  {
+    name: 'Meta-ExternalAgent',
+    uaPattern: 'meta-externalagent',
+    vendor: 'Meta',
+    purpose: 'training',
+  },
+  {
+    name: 'Meta-ExternalFetcher',
+    uaPattern: 'meta-externalfetcher',
+    vendor: 'Meta',
+    purpose: 'user-action',
+  },
+  {
+    name: 'MistralAI-User',
+    uaPattern: 'MistralAI-User',
+    vendor: 'Mistral',
+    purpose: 'user-action',
+  },
+  { name: 'AI2Bot', uaPattern: 'AI2Bot', vendor: 'Allen Institute', purpose: 'training' },
 ];
 
 function uaMatches(ua, pattern) {
@@ -72,14 +159,44 @@ export function detectAIBot(userAgent) {
 // every site should pass; `recommended` are the markdown-twin/llms.txt bonuses
 // that push a site from "readable" to "optimised". Total weight = 100.
 export const AEO_CHECKS = [
-  { id: 'html.reachable',   weight: 10, severity: 'required',    label: 'Page is reachable (HTML 2xx)' },
-  { id: 'bot.notBlocked',   weight: 25, severity: 'required',    label: 'AI crawlers are not blocked (GPTBot gets 2xx)' },
-  { id: 'robots.aiAllowed', weight: 20, severity: 'required',    label: 'robots.txt does not Disallow AI crawlers' },
-  { id: 'html.indexable',   weight: 15, severity: 'required',    label: 'Page is indexable (no noindex)' },
-  { id: 'md.twin',          weight: 10, severity: 'recommended', label: 'Markdown twin served at <url>.md' },
-  { id: 'html.linkAlternate', weight: 8, severity: 'recommended', label: 'HTML advertises the markdown twin (Link rel=alternate)' },
-  { id: 'site.llmsTxt',     weight: 7,  severity: 'recommended', label: '/llms.txt published at the site root' },
-  { id: 'html.vary',        weight: 5,  severity: 'recommended', label: 'HTML sends Vary: Accept (content-negotiation aware)' }
+  { id: 'html.reachable', weight: 10, severity: 'required', label: 'Page is reachable (HTML 2xx)' },
+  {
+    id: 'bot.notBlocked',
+    weight: 25,
+    severity: 'required',
+    label: 'AI crawlers are not blocked (GPTBot gets 2xx)',
+  },
+  {
+    id: 'robots.aiAllowed',
+    weight: 20,
+    severity: 'required',
+    label: 'robots.txt does not Disallow AI crawlers',
+  },
+  {
+    id: 'html.indexable',
+    weight: 15,
+    severity: 'required',
+    label: 'Page is indexable (no noindex)',
+  },
+  { id: 'md.twin', weight: 10, severity: 'recommended', label: 'Markdown twin served at <url>.md' },
+  {
+    id: 'html.linkAlternate',
+    weight: 8,
+    severity: 'recommended',
+    label: 'HTML advertises the markdown twin (Link rel=alternate)',
+  },
+  {
+    id: 'site.llmsTxt',
+    weight: 7,
+    severity: 'recommended',
+    label: '/llms.txt published at the site root',
+  },
+  {
+    id: 'html.vary',
+    weight: 5,
+    severity: 'recommended',
+    label: 'HTML sends Vary: Accept (content-negotiation aware)',
+  },
 ];
 
 const DEFAULT_UA = 'SlopDetector-AEO/1.0 (+https://slop-detect.com)';
@@ -108,7 +225,11 @@ async function fetchWithTimeout(url, init, timeoutMs, fetchImpl, isUrlAllowed) {
         e.code = 'ssrf_blocked';
         throw e;
       }
-      const res = await fetchImpl(current, { ...init, signal: controller.signal, redirect: 'manual' });
+      const res = await fetchImpl(current, {
+        ...init,
+        signal: controller.signal,
+        redirect: 'manual',
+      });
       if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
         current = new URL(res.headers.get('location'), current).toString();
         continue;
@@ -150,7 +271,10 @@ export function aiBotsBlockedByRobots(robotsTxt, pathname) {
     const field = line.slice(0, idx).trim().toLowerCase();
     const value = line.slice(idx + 1).trim();
     if (field === 'user-agent') {
-      if (current && current.hasRules) { groups.push(current); current = null; }
+      if (current && current.hasRules) {
+        groups.push(current);
+        current = null;
+      }
       if (!current) current = { agents: [], disallow: [], hasRules: false };
       current.agents.push(value.toLowerCase());
     } else if (field === 'disallow' && current) {
@@ -191,7 +315,8 @@ function htmlHasNoindex(headers, body) {
 
 function htmlAdvertisesTwin(headers, body) {
   const link = headers.get('link') || '';
-  if (/rel=["']?alternate["']?/i.test(link) && /type=["']?text\/markdown["']?/i.test(link)) return true;
+  if (/rel=["']?alternate["']?/i.test(link) && /type=["']?text\/markdown["']?/i.test(link))
+    return true;
   // Also accept an in-document <link rel="alternate" type="text/markdown">.
   const head = body.slice(0, 50_000);
   const m = head.match(/<link[^>]+rel=["']alternate["'][^>]*>/gi) || [];
@@ -205,7 +330,14 @@ function tierFor(ratio) {
 }
 
 function result(check, passed, message) {
-  return { id: check.id, label: check.label, severity: check.severity, weight: check.weight, passed, message };
+  return {
+    id: check.id,
+    label: check.label,
+    severity: check.severity,
+    weight: check.weight,
+    passed,
+    message,
+  };
 }
 
 // Run the AEO axis against a live URL. Returns a report shaped like the slop
@@ -223,52 +355,104 @@ export async function runAeoChecks(input, opts = {}) {
   const checks = [];
 
   // 1. HTML reachable (as a normal browser).
-  let html = null, htmlBody = '', htmlErr = null;
+  let html = null,
+    htmlBody = '',
+    htmlErr = null;
   try {
-    html = await fetchWithTimeout(url.toString(), {
-      headers: { 'User-Agent': userAgent, Accept: 'text/html,application/xhtml+xml,*/*;q=0.8' }
-    }, timeoutMs, fetchImpl, isUrlAllowed);
+    html = await fetchWithTimeout(
+      url.toString(),
+      {
+        headers: { 'User-Agent': userAgent, Accept: 'text/html,application/xhtml+xml,*/*;q=0.8' },
+      },
+      timeoutMs,
+      fetchImpl,
+      isUrlAllowed
+    );
     htmlBody = await html.text();
   } catch (e) {
     htmlErr = e instanceof Error ? e.message : String(e);
   }
   const htmlOk = !!(html && html.ok);
-  checks.push(result(pickCheck('html.reachable'), htmlOk, htmlErr || `status ${html ? html.status : 'no response'}`));
+  checks.push(
+    result(
+      pickCheck('html.reachable'),
+      htmlOk,
+      htmlErr || `status ${html ? html.status : 'no response'}`
+    )
+  );
 
   // 2. AI crawler not blocked — fetch as GPTBot and require a 2xx (catches WAFs,
   //    Cloudflare bot-fight, and 403/429 cloaking that hides you from AI search).
-  let bot = null, botErr = null;
+  let bot = null,
+    botErr = null;
   try {
-    bot = await fetchWithTimeout(url.toString(), {
-      headers: { 'User-Agent': BOT_UA, Accept: '*/*' }
-    }, timeoutMs, fetchImpl, isUrlAllowed);
+    bot = await fetchWithTimeout(
+      url.toString(),
+      {
+        headers: { 'User-Agent': BOT_UA, Accept: '*/*' },
+      },
+      timeoutMs,
+      fetchImpl,
+      isUrlAllowed
+    );
     await bot.text();
   } catch (e) {
     botErr = e instanceof Error ? e.message : String(e);
   }
   const botOk = !!(bot && bot.ok);
-  checks.push(result(pickCheck('bot.notBlocked'), botOk,
-    botOk ? `GPTBot received ${bot.status}` : (botErr || `GPTBot received ${bot ? bot.status : 'no response'} — likely blocked`)));
+  checks.push(
+    result(
+      pickCheck('bot.notBlocked'),
+      botOk,
+      botOk
+        ? `GPTBot received ${bot.status}`
+        : botErr || `GPTBot received ${bot ? bot.status : 'no response'} — likely blocked`
+    )
+  );
 
   // 3. robots.txt allows AI bots.
-  let robotsTxt = '', robotsFetched = false;
+  let robotsTxt = '',
+    robotsFetched = false;
   try {
-    const r = await fetchWithTimeout(new URL('/robots.txt', url).toString(), {
-      headers: { 'User-Agent': userAgent }
-    }, timeoutMs, fetchImpl, isUrlAllowed);
-    if (r.ok) { robotsTxt = await r.text(); robotsFetched = true; }
-  } catch { /* no robots.txt = allow all */ }
+    const r = await fetchWithTimeout(
+      new URL('/robots.txt', url).toString(),
+      {
+        headers: { 'User-Agent': userAgent },
+      },
+      timeoutMs,
+      fetchImpl,
+      isUrlAllowed
+    );
+    if (r.ok) {
+      robotsTxt = await r.text();
+      robotsFetched = true;
+    }
+  } catch {
+    /* no robots.txt = allow all */
+  }
   const robotsVerdict = aiBotsBlockedByRobots(robotsTxt, url.pathname);
-  checks.push(result(pickCheck('robots.aiAllowed'), !robotsVerdict.blocked,
-    robotsVerdict.blocked
-      ? `robots.txt disallows: ${robotsVerdict.agents.join(', ')}`
-      : (robotsFetched ? 'robots.txt does not block AI crawlers' : 'no robots.txt (allows all)')));
+  checks.push(
+    result(
+      pickCheck('robots.aiAllowed'),
+      !robotsVerdict.blocked,
+      robotsVerdict.blocked
+        ? `robots.txt disallows: ${robotsVerdict.agents.join(', ')}`
+        : robotsFetched
+          ? 'robots.txt does not block AI crawlers'
+          : 'no robots.txt (allows all)'
+    )
+  );
 
   // 4. Indexable (no noindex via header or meta).
   if (htmlOk) {
     const noindex = htmlHasNoindex(html.headers, htmlBody);
-    checks.push(result(pickCheck('html.indexable'), !noindex,
-      noindex ? 'page sets noindex (AI engines skip noindex pages)' : 'no noindex directive'));
+    checks.push(
+      result(
+        pickCheck('html.indexable'),
+        !noindex,
+        noindex ? 'page sets noindex (AI engines skip noindex pages)' : 'no noindex directive'
+      )
+    );
   } else {
     checks.push(result(pickCheck('html.indexable'), false, 'HTML not reachable — cannot verify'));
   }
@@ -277,21 +461,43 @@ export async function runAeoChecks(input, opts = {}) {
   const mdUrl = toMarkdownUrl(url.toString());
   let md = null;
   try {
-    md = await fetchWithTimeout(mdUrl, {
-      headers: { Accept: 'text/markdown', 'User-Agent': userAgent }
-    }, timeoutMs, fetchImpl, isUrlAllowed);
+    md = await fetchWithTimeout(
+      mdUrl,
+      {
+        headers: { Accept: 'text/markdown', 'User-Agent': userAgent },
+      },
+      timeoutMs,
+      fetchImpl,
+      isUrlAllowed
+    );
     await md.text();
-  } catch { /* no twin */ }
-  const mdCt = (md && md.headers.get('content-type') || '').toLowerCase();
+  } catch {
+    /* no twin */
+  }
+  const mdCt = ((md && md.headers.get('content-type')) || '').toLowerCase();
   const mdOk = !!(md && md.ok && mdCt.startsWith('text/markdown'));
-  checks.push(result(pickCheck('md.twin'), mdOk,
-    mdOk ? `markdown twin at ${mdUrl}` : (md ? `no markdown twin (${md.status}, ${mdCt || 'no content-type'})` : 'no markdown twin')));
+  checks.push(
+    result(
+      pickCheck('md.twin'),
+      mdOk,
+      mdOk
+        ? `markdown twin at ${mdUrl}`
+        : md
+          ? `no markdown twin (${md.status}, ${mdCt || 'no content-type'})`
+          : 'no markdown twin'
+    )
+  );
 
   // 6. HTML advertises the twin via Link rel=alternate (RECOMMENDED).
   if (htmlOk) {
     const adv = htmlAdvertisesTwin(html.headers, htmlBody);
-    checks.push(result(pickCheck('html.linkAlternate'), adv,
-      adv ? 'Link rel=alternate type=text/markdown present' : 'no markdown alternate advertised'));
+    checks.push(
+      result(
+        pickCheck('html.linkAlternate'),
+        adv,
+        adv ? 'Link rel=alternate type=text/markdown present' : 'no markdown alternate advertised'
+      )
+    );
   } else {
     checks.push(result(pickCheck('html.linkAlternate'), false, 'HTML not reachable'));
   }
@@ -299,20 +505,39 @@ export async function runAeoChecks(input, opts = {}) {
   // 7. /llms.txt published (RECOMMENDED).
   let llms = null;
   try {
-    llms = await fetchWithTimeout(new URL('/llms.txt', url).toString(), {
-      headers: { 'User-Agent': userAgent }
-    }, timeoutMs, fetchImpl, isUrlAllowed);
+    llms = await fetchWithTimeout(
+      new URL('/llms.txt', url).toString(),
+      {
+        headers: { 'User-Agent': userAgent },
+      },
+      timeoutMs,
+      fetchImpl,
+      isUrlAllowed
+    );
     await llms.text();
-  } catch { /* none */ }
+  } catch {
+    /* none */
+  }
   const llmsOk = !!(llms && llms.ok);
-  checks.push(result(pickCheck('site.llmsTxt'), llmsOk,
-    llmsOk ? '/llms.txt found' : 'no /llms.txt at site root'));
+  checks.push(
+    result(
+      pickCheck('site.llmsTxt'),
+      llmsOk,
+      llmsOk ? '/llms.txt found' : 'no /llms.txt at site root'
+    )
+  );
 
   // 8. HTML Vary: Accept (RECOMMENDED — signals content-negotiation awareness).
   if (htmlOk) {
     const vary = (html.headers.get('vary') || '').split(',').map((s) => s.trim().toLowerCase());
     const ok = vary.includes('accept');
-    checks.push(result(pickCheck('html.vary'), ok, ok ? 'Vary: Accept present' : 'Vary does not include Accept'));
+    checks.push(
+      result(
+        pickCheck('html.vary'),
+        ok,
+        ok ? 'Vary: Accept present' : 'Vary does not include Accept'
+      )
+    );
   } else {
     checks.push(result(pickCheck('html.vary'), false, 'HTML not reachable'));
   }
@@ -336,6 +561,6 @@ export async function runAeoChecks(input, opts = {}) {
     passed,
     failed,
     checks,
-    durationMs: Date.now() - start
+    durationMs: Date.now() - start,
   };
 }
