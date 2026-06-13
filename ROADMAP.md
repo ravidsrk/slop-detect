@@ -25,7 +25,7 @@ Three research findings force the revision:
 2. **Absolute slop-grading is commoditized.** Impeccable (~34.7k★, free, OSS)
    owns the "most patterns" game; Sailop, aiwebsitedetector et al. fill the
    rest, all enumerating the same tells. A rule list is copyable in an
-   afternoon. Meanwhile "slop" the meme peaked (2025 Word of the Year), the
+   afternoon. Meanwhile "slop" the meme peaked (2025 Word of the Year). The
    attention is a **depreciating asset to harvest, not a moat to defend**.
 
 3. **Our own evidence shows the fatal failure mode.** The detector scores
@@ -112,7 +112,7 @@ DESIGN.md. Workflow lock-in is the only durable distribution.
   At most: an opt-in *pairwise* LLM critique layer; never the scoring authority.
 - **No head-on AEO/citation-tracking business.** The monetizable core is owned
   by funded startups (Profound ~$1B) and Semrush/Ahrefs; our crawlability/
-  llms.txt axis is the commoditized free slice, keep it as funnel only.
+  llms.txt axis is the commoditized free slice; keep it as funnel only.
 - **No "% AI" verdicts, ever.** Named rules, contestable signals, page-not-person.
 - **No one-time licenses.** (Tailwind UI's collapse is the cautionary tale.)
   Recurring only.

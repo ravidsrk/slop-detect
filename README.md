@@ -121,7 +121,7 @@ when slop creeps above your threshold.
 `fail-under` accepts a number (fail if the slop score exceeds it) or a letter
 grade (fail if the grade is worse). Leave it empty for report-only mode.
 
-The repo also ships an [Agent Skill](skills/slop-detect/SKILL.md) following the [agentskills.io](https://agentskills.io) open spec, any compatible agent (Claude Code, Cursor, GitHub Copilot, Gemini CLI, Codex, Roo Code, Junie, and 20+ others) will autonomously invoke the scanner when you ask it to audit a landing page.
+The repo also ships an [Agent Skill](skills/slop-detect/SKILL.md) following the [agentskills.io](https://agentskills.io) open spec. Any compatible agent (Claude Code, Cursor, GitHub Copilot, Gemini CLI, Codex, Roo Code, Junie, and 20+ others) will autonomously invoke the scanner when you ask it to audit a landing page.
 
 ## Monitor a domain + the directory
 
@@ -149,7 +149,7 @@ owner-gated catalogue with a real backlink to each listed site. See also
 reproducible scan of well-known landing pages (how much of the web now reads as
 AI-generated, and who's still clean). We only store
 your email to send the alerts you asked for, only after you confirm, and never
-sell it, see the [privacy policy](https://slop-detect.com/privacy.md). Engine
+sell it. See the [privacy policy](https://slop-detect.com/privacy.md). Engine
 stays MIT and free forever; only continuity (history + alerts) is the paid layer.
 
 ## The 27 patterns
@@ -213,7 +213,7 @@ slop-detect https://example.com --preset minimal       # the 3 dead-giveaways
 | `minimal` | slop fonts + VibeCode purple + gradient text |
 
 The API accepts `{ "url": "...", "preset": "strict" }`. New patterns can be added
-declaratively, see [CONTRIBUTING.md](CONTRIBUTING.md#the-low-friction-path-declarative-rules).
+declaratively; see [CONTRIBUTING.md](CONTRIBUTING.md#the-low-friction-path-declarative-rules).
 
 ## The system axis: DESIGN.md compliance
 
@@ -223,7 +223,7 @@ system?"** Declare your tokens in a [DESIGN.md](https://github.com/google-labs-c
 (Google Labs' open spec, colors, typography, radii, components), and
 slop-detect reports **drift**: fonts in use that aren't declared, CTA/surface
 colors off the palette, radii off the scale. Relative, per-site, and immune to
-the false-positive trap, a bespoke site checked against its own system scores
+the false-positive trap: a bespoke site checked against its own system scores
 *Aligned*, never "slop."
 
 ```bash
@@ -285,7 +285,7 @@ slop-detect/
 │   └── action/                     ← GitHub Action wrapper (not published to npm)
 ```
 
-A monorepo with four npm workspaces (plus the Action). The `core` package is the single source of truth for the 27 rules, `cli`, `web`, and `mcp` are thin runtime adapters around it.
+A monorepo with four npm workspaces (plus the Action). The `core` package is the single source of truth for the 27 rules; `cli`, `web`, and `mcp` are thin runtime adapters around it.
 
 ## Quickstart: contributing
 

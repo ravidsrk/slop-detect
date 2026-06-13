@@ -34,7 +34,7 @@ bands. Slop Detector measures how far a page sits along that fingerprint.
 - **Copy: AI phrasing.** Optional second axis: the hedge-y, em-dash-heavy register LLMs default to.
 
 The full, live list (with weights and the current definitions version) is at
-https://slop-detect.com/api/patterns, never hardcode the count.
+https://slop-detect.com/api/patterns; never hardcode the count.
 
 ## How it works
 
