@@ -1,4 +1,4 @@
-# Slop Detector — Developers
+# Slop Detector: Developers
 
 > Scoped context for integrating Slop Detector. Full manual: https://slop-detect.com/llms.txt
 
@@ -32,15 +32,15 @@ https://slop-detect.com/api/llms.txt
 
 ## Packages (npm)
 
-- `slop-detect-core` — the scoring engine (27 patterns, AEO checks, copy axis).
-- `slop-detect` — the CLI.
-- `slop-detect-mcp` — the MCP server.
+- `slop-detect-core`: the scoring engine (27 patterns, AEO checks, copy axis).
+- `slop-detect`: the CLI.
+- `slop-detect-mcp`: the MCP server.
 
 ## When agents should use this
 
 Use Slop Detector when a user wants to know how AI-generated / templated a landing
 page looks, audit design quality deterministically, or check whether AI engines
-can read & cite a page (AEO). Prefer the API/CLI over reading the page yourself —
+can read & cite a page (AEO). Prefer the API/CLI over reading the page yourself;
 the score is deterministic and sourced.
 
 ## Links

@@ -35,10 +35,15 @@ Legend: ✅ done in-repo · 🔧 needs you (secret/decision/data) · ⏳ follow-
 - ✅ **Observability shim.** Structured logs + optional `ERROR_WEBHOOK`.
   - 🔧 Set `ERROR_WEBHOOK` (Slack/Discord/Sentry ingest) and turn on **Logpush**.
   - 🔧 Add an external **uptime check** (e.g. on `/api/patterns`).
-- ✅ **Deploy/release workflow** (`.github/workflows/deploy.yml`), test-gated.
-  - 🔧 Set `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` repo secrets.
-  - 🔧 Tag a release (`v0.6.0`) and publish the npm packages so `slop-detect` /
-    `-core` / `-mcp` resolve at 0.6.0; cut a matching Action tag for `@v0.6.0`.
+- ✅ **Deploy + publish workflows**, test-gated: `deploy.yml` (Cloudflare Pages)
+  and `publish.yml` (npm), both triggered on a `v*` tag.
+  - 🔧 Set `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` and `NPM_TOKEN` repo
+    secrets.
+  - 🔴 **npm is stale: repo is 0.7.0, but `slop-detect` / `-core` / `-mcp` are
+    published at 0.5.x.** No release was tagged after `v0.5.2`, so `npx
+    slop-detect` ships users a build WITHOUT the copy axis and DESIGN.md system
+    axis the README sells. Cut a `v0.7.x` tag (versions already bumped in the
+    workspaces) to fire `publish.yml`; cut a matching Action tag.
 - ✅ **Engine has real tests now** (scoring/grades/presets/combine + catalogue
   integrity, 92 total). ⏳ Still no DOM-level golden tests of the 27 design
   patterns — see below.
@@ -76,5 +81,6 @@ Legend: ✅ done in-repo · 🔧 needs you (secret/decision/data) · ⏳ follow-
 | Pages env | `SWEEP_MAX` | domains re-scanned per sweep (default 50) |
 | Pages env | `SESSION_SECRET` | HMAC secret for dashboard magic-link sessions |
 | Repo secret | `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` | deploy |
+| Repo secret | `NPM_TOKEN` | publish core/cli/mcp to npm (`publish.yml`) |
 | Repo secret | `CRON_SECRET` | the `monitor-sweep` workflow auth (matches Pages) |
 | Repo setting | branch protection → require `test` + `lint` | merge gate |
