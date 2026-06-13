@@ -14,13 +14,25 @@ Thanks for considering a contribution. The whole project is ~2,000 lines of Java
 ```bash
 git clone https://github.com/<you>/slop-detect.git
 cd slop-detect
-npm install              # installs all 3 workspaces
+npm install              # installs all 4 workspaces
 npm run demo             # smoke test: scans 3 known sites
 ```
 
+If `npm install` fails building `sharp` (a transitive native dep of
+`wrangler` → `miniflare`, pulled in only by the web workspace) on a very new
+Node, install with lifecycle scripts skipped:
+
+```bash
+npm install --ignore-scripts   # links workspaces; tests, lint, CLI all work
+```
+
+That's enough for everything except `npm run web:dev` (the local Cloudflare
+Pages server), which wants the full `wrangler` install on a Node LTS where
+sharp's prebuilt binary resolves.
+
 You need:
 
-- Node 20+
+- Node 20+ (Node LTS recommended for the web workspace)
 - A Cloudflare account if you want to run the web app locally with real scans (Browser Rendering requires Workers Paid; ~$5/mo)
 
 For pure pattern development you don't need Cloudflare — the CLI runs everything locally with Playwright.
