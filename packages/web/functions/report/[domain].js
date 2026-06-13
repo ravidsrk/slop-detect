@@ -161,6 +161,7 @@ ${BRAND_FONTS_HEAD}
   <div class="meta">prepared ${today} · slop-detect.com${pub?.monitoring ? ' · monitored' : ''}</div>
   ${body}
   <footer>Scores are deterministic, named checks — a fingerprint, not a verdict.
+    Live score hub: <a href="${origin}/score/${escapeHtml(domain)}">slop-detect.com/score/${escapeHtml(domain)}</a><br>
     Reproduce: <a href="${origin}/">slop-detect.com</a> · npx slop-detect ${escapeHtml(domain)}</footer>
 </div></body></html>`;
 
