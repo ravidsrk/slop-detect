@@ -10,17 +10,45 @@
     "url": "git+https://github.com/ravidsrk/slop-detect.git",
     "directory": "packages/core"
   },
-  "main": "./src/index.js",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.js",
-    "./patterns": "./src/patterns.js",
-    "./fonts": "./src/fonts.js",
-    "./color": "./src/color.js",
-    "./visibility": "./src/visibility.js",
-    "./fixes": "./src/fixes.js",
-    "./aeo": "./src/aeo.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./patterns": {
+      "types": "./dist/patterns.d.ts",
+      "default": "./dist/patterns.js"
+    },
+    "./fonts": {
+      "types": "./dist/fonts.d.ts",
+      "default": "./dist/fonts.js"
+    },
+    "./color": {
+      "types": "./dist/color.d.ts",
+      "default": "./dist/color.js"
+    },
+    "./visibility": {
+      "types": "./dist/visibility.d.ts",
+      "default": "./dist/visibility.js"
+    },
+    "./fixes": {
+      "types": "./dist/fixes.d.ts",
+      "default": "./dist/fixes.js"
+    },
+    "./aeo": {
+      "types": "./dist/aeo.d.ts",
+      "default": "./dist/aeo.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "prepack": "tsc"
   },
   "files": [
+    "dist",
     "src",
     "README.md",
     "LICENSE",

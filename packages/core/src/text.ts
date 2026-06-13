@@ -20,7 +20,8 @@ export function extractTextContext() {
   var main = document.querySelector('main, article, [role="main"]') || document.body;
 
   // Clone so we can strip chrome without touching the live page.
-  var clone = main.cloneNode(true);
+  // (as any: this runs in-page; DOM typing adds nothing and the cast erases.)
+  var clone = main.cloneNode(true) as any;
   var strip = clone.querySelectorAll(
     'nav, footer, header, script, style, noscript, svg, code, pre, [aria-hidden="true"]'
   );

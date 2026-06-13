@@ -244,7 +244,7 @@ export const PATTERNS = [
       let glassCount = 0;
       for (const el of visible) {
         const cs = getComputedStyle(el);
-        const filter = cs.backdropFilter || cs.webkitBackdropFilter || '';
+        const filter = cs.backdropFilter || (cs as any).webkitBackdropFilter || '';
         if (!/blur\(/.test(filter)) continue;
         const bg = parseColor(cs.backgroundColor);
         if (bg && bg.a > 0 && bg.a < 0.8) {
@@ -675,7 +675,7 @@ export const PATTERNS = [
         // Needs an explicit multi-column template to be a "bento", not a 1-col stack.
         const cols = (cs.gridTemplateColumns || '').split(' ').filter(Boolean).length;
         if (cols < 2) continue;
-        const kids = Array.from(el.children);
+        const kids = Array.from(el.children) as Element[];
         if (kids.length < 4) continue;
         const spans = new Set();
         let rounded = 0,
@@ -730,7 +730,9 @@ export const PATTERNS = [
         const isGrad =
           /(radial|conic)-gradient\(/.test(bgImg) ||
           (/linear-gradient\(/.test(bgImg) &&
-            parseFloat((cs.filter && cs.filter.match(/blur\(([\d.]+)px\)/)?.[1]) || 0) > 0);
+            parseFloat(
+              ((cs.filter && cs.filter.match(/blur\(([\d.]+)px\)/)?.[1]) || 0) as unknown as string
+            ) > 0);
         if (!isGrad) continue;
         // Big blur is the signature — either a CSS filter:blur or a heavy radius
         // making a soft orb.
@@ -907,7 +909,7 @@ export const PATTERNS = [
         // Brand CTAs / nav links are intentional — skip interactive context.
         if (el.closest('a, button, [role="button"], nav, header')) continue;
         // Only elements that directly own real reading text.
-        const direct = Array.from(el.childNodes)
+        const direct = (Array.from(el.childNodes) as ChildNode[])
           .filter((n) => n.nodeType === 3)
           .map((n) => n.textContent.trim())
           .join(' ')
@@ -1015,7 +1017,7 @@ export const PATTERNS = [
         if (seen.has(el)) continue;
         // Brand CTAs are intentional — skip interactive context.
         if (el.closest('a, button, [role="button"]')) continue;
-        const direct = Array.from(el.childNodes)
+        const direct = (Array.from(el.childNodes) as ChildNode[])
           .filter((n) => n.nodeType === 3)
           .map((n) => n.textContent.trim())
           .join(' ')
@@ -1212,7 +1214,7 @@ export const PATTERNS = [
     extract: (ctx) => {
       const { visible } = ctx;
       const TEXTY = /^(h1|h2|h3|h4|h5|h6|p|span|a|li|td|th|label|button|div)$/i;
-      const sizes = new Set();
+      const sizes = new Set<number>();
       for (const el of visible) {
         if (!TEXTY.test(el.tagName)) continue;
         const txt = (el.textContent || '').trim();
