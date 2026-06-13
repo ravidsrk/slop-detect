@@ -1121,6 +1121,8 @@
             <button data-url="https://stripe.com">stripe.com</button>
             <button data-url="https://linear.app">linear.app</button>
           </div>
+
+          <div class="hubstats" id="hubStats" hidden style="margin-top:16px;font-family:var(--mono);font-size:12px;color:var(--dim);letter-spacing:-0.01em"></div>
         </div>
 
         <!-- Sample readout: shows the output shape before you scan. Static, decorative. -->
@@ -1362,6 +1364,24 @@
 const $ = (id) => document.getElementById(id);
 const form = $('form'), urlInput = $('url'), goBtn = $('go'),
       statusEl = $('status'), resultEl = $('result');
+
+// ── Live scan stats (homepage hub) ───────────────────────────────────────────
+// Show how many scans are on record, but only once there's enough data to read
+// as momentum rather than "0 scans". One cached GET, no per-domain enumeration.
+(async () => {
+  try {
+    const r = await fetch('/api/stats');
+    if (!r.ok) return;
+    const s = await r.json();
+    if (!s || (s.count || 0) < 50) return;
+    const el = $('hubStats');
+    if (!el) return;
+    const gradeFor = (n) => n<=2?'A+':n<=5?'A':n<=9?'A-':n<=14?'B+':n<=19?'B':n<=23?'B-':n<=27?'C':n<=33?'D+':n<=39?'D':'F';
+    el.textContent = s.count.toLocaleString('en-US') + ' scans scored · avg ' +
+      gradeFor(Math.round(s.avgScore)) + ' (' + s.avgScore + '/100) · ' + s.slopShare + '% carry slop';
+    el.hidden = false;
+  } catch (_) {}
+})();
 
 // ── Live rule catalogue ──────────────────────────────────────────────────────
 // Pull the pattern list + count from /api/patterns so the "N rules" labels and
@@ -1608,6 +1628,7 @@ function render(d, totalMs) {
       <div class="monitor-nudge">keep it clean &rarr;
         <a id="monitorNudgeLink">monitor ${escapeHtml(domainOf(d.finalUrl || d.url))}</a>
         &middot; daily re-scan, drift alerts</div>
+      ${d.resultUrl ? `<div class="monitor-nudge"><a href="/score/${escapeHtml(domainOf(d.finalUrl || d.url))}">${escapeHtml(domainOf(d.finalUrl || d.url))} score page</a> &middot; history, peer rank, live badge &rarr;</div>` : ''}
     </div>
     ${triggered.length ? `
       <div class="pat-section">
