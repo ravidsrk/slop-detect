@@ -17,14 +17,20 @@ export async function onRequestGet({ params, request }) {
   const post = getPost(slug);
 
   if (!post) {
-    return new Response('Post not found', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+    return new Response('Post not found', {
+      status: 404,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    });
   }
 
   // Markdown twin: the post body, with a leading H1 + summary, served raw.
   if (wantsMd) {
     const md = `# ${post.title}\n\n> ${post.summary}\n\n${post.body}\n`;
     return new Response(md, {
-      headers: { 'Content-Type': 'text/markdown; charset=utf-8', 'Cache-Control': 'public, max-age=600' }
+      headers: {
+        'Content-Type': 'text/markdown; charset=utf-8',
+        'Cache-Control': 'public, max-age=600',
+      },
     });
   }
 
@@ -39,7 +45,7 @@ export async function onRequestGet({ params, request }) {
     dateModified: post.date,
     url,
     isPartOf: { '@type': 'Blog', name: 'Slop Detector blog', url: `${ORIGIN}/blog` },
-    author: { '@type': 'Person', name: 'Ravindra Kumar' }
+    author: { '@type': 'Person', name: 'Ravindra Kumar' },
   });
 
   const html = `<!doctype html><html lang="en"><head>
@@ -89,6 +95,6 @@ ${BRAND_FONTS_HEAD}
 </div></body></html>`;
 
   return new Response(html, {
-    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=600' }
+    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=600' },
   });
 }

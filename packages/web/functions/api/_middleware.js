@@ -25,7 +25,7 @@ const ALLOWED_ORIGINS = new Set([
   'https://slop-detector.pages.dev',
   'https://slop-detector-8by.pages.dev',
   'http://localhost:8788',
-  'http://localhost:3000'
+  'http://localhost:3000',
 ]);
 
 // Per-IP rate limit: max N scans per 60-second window.
@@ -39,7 +39,7 @@ const FIXPROMPT_LIMIT_PER_MIN = 20;
 const TIERS = {
   free: { scanPerMin: 10, fixPerMin: 20, turnstile: false },
   pro: { scanPerMin: 60, fixPerMin: 120, turnstile: false },
-  unlimited: { scanPerMin: Infinity, fixPerMin: Infinity, turnstile: false }
+  unlimited: { scanPerMin: Infinity, fixPerMin: Infinity, turnstile: false },
 };
 
 function corsHeaders(origin) {
@@ -50,14 +50,14 @@ function corsHeaders(origin) {
     // Allow the two API-key header styles through CORS preflight too, so
     // browser clients with a key (e.g. a dashboard) aren't blocked.
     'Access-Control-Allow-Headers': 'Content-Type, X-Turnstile-Token, Authorization, X-API-Key',
-    'Vary': 'Origin'
+    Vary: 'Origin',
   };
 }
 
 function jsonResponse(data, status, origin) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) }
+    headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) },
   });
 }
 
@@ -106,7 +106,7 @@ function effectiveTier(record) {
     scanPerMin: Number.isFinite(record.scanPerMin) ? record.scanPerMin : base.scanPerMin,
     fixPerMin: Number.isFinite(record.fixPerMin) ? record.fixPerMin : base.fixPerMin,
     turnstile: base.turnstile,
-    label: record.label
+    label: record.label,
   };
 }
 
@@ -119,7 +119,7 @@ async function verifyTurnstile(token, secret, ip) {
   try {
     const r = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
       method: 'POST',
-      body
+      body,
     });
     const data = await r.json();
     return data.success
@@ -181,7 +181,9 @@ async function checkRateLimit(kv, bucket, route, limit) {
     const v = await kv.get(key);
     n = v ? parseInt(v, 10) : 0;
     kvReadOk = true;
-  } catch (_) { /* handled below */ }
+  } catch (_) {
+    /* handled below */
+  }
 
   if (!kvReadOk) {
     // KV read failed. For the expensive scan route, enforce a conservative
@@ -200,7 +202,9 @@ async function checkRateLimit(kv, bucket, route, limit) {
   try {
     await kv.put(key, String(n + 1), { expirationTtl: 60 });
     kvWriteOk = true;
-  } catch (_) { /* handled below */ }
+  } catch (_) {
+    /* handled below */
+  }
 
   // If the write failed on the scan route, also tick the in-memory ceiling so a
   // KV that reads-but-can't-write (e.g. quota exhausted) still can't be abused.
@@ -241,9 +245,10 @@ export async function onRequest(context) {
   const foreignOrigin = origin !== '' && !trusted;
 
   // Client IP — Cloudflare always sets this on the request object.
-  const ip = request.headers.get('CF-Connecting-IP')
-    || request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim()
-    || 'unknown';
+  const ip =
+    request.headers.get('CF-Connecting-IP') ||
+    request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ||
+    'unknown';
 
   const route = url.pathname.replace(/^\/api\//, '');
 
@@ -278,16 +283,24 @@ export async function onRequest(context) {
   if (apiKey && env.RATE_LIMIT) {
     const resolved = await resolveApiKey(env.RATE_LIMIT, apiKey, keyCache);
     if (!resolved.found) {
-      return jsonResponse({
-        error: 'invalid_api_key',
-        message: 'The API key provided was not recognised.'
-      }, 401, origin);
+      return jsonResponse(
+        {
+          error: 'invalid_api_key',
+          message: 'The API key provided was not recognised.',
+        },
+        401,
+        origin
+      );
     }
     if (resolved.record.disabled) {
-      return jsonResponse({
-        error: 'key_disabled',
-        message: 'This API key has been disabled. Contact the operator.'
-      }, 403, origin);
+      return jsonResponse(
+        {
+          error: 'key_disabled',
+          message: 'This API key has been disabled. Contact the operator.',
+        },
+        403,
+        origin
+      );
     }
     keyTier = effectiveTier(resolved.record);
   }
@@ -298,10 +311,15 @@ export async function onRequest(context) {
   // explicit authorization to call us from anywhere (e.g. a partner dashboard).
   // No-origin callers (curl/CLI, Origin absent) are NOT foreign and pass through.
   if (foreignOrigin && !keyTier) {
-    return jsonResponse({
-      error: 'origin_not_allowed',
-      message: 'This API is not callable from third-party origins. Use the CLI, the MCP server, or an API key.'
-    }, 403, origin);
+    return jsonResponse(
+      {
+        error: 'origin_not_allowed',
+        message:
+          'This API is not callable from third-party origins. Use the CLI, the MCP server, or an API key.',
+      },
+      403,
+      origin
+    );
   }
 
   // ── Limit + bucket selection ────────────────────────────────────────────────
@@ -315,9 +333,12 @@ export async function onRequest(context) {
     bucket = `key:${apiKey}`;
     tierLabel = keyTier.tier;
   } else {
-    limit = effectiveRoute === 'scan'
-      ? (trusted ? SCAN_LIMIT_PER_MIN : Math.max(2, Math.floor(SCAN_LIMIT_PER_MIN / 2)))
-      : FIXPROMPT_LIMIT_PER_MIN;
+    limit =
+      effectiveRoute === 'scan'
+        ? trusted
+          ? SCAN_LIMIT_PER_MIN
+          : Math.max(2, Math.floor(SCAN_LIMIT_PER_MIN / 2))
+        : FIXPROMPT_LIMIT_PER_MIN;
     bucket = ip;
     tierLabel = 'anonymous';
   }
@@ -338,21 +359,26 @@ export async function onRequest(context) {
     } else if (effectiveRoute === 'scan') {
       const memN = memIncrement(`rl:scan:${bucket}`);
       const ceiling = Math.min(SCAN_FALLBACK_CEILING, limit);
-      gate = memN > ceiling
-        ? { ok: false, used: memN, limit: ceiling, degraded: true }
-        : { ok: true, used: memN, limit: ceiling, degraded: true };
+      gate =
+        memN > ceiling
+          ? { ok: false, used: memN, limit: ceiling, degraded: true }
+          : { ok: true, used: memN, limit: ceiling, degraded: true };
     }
     if (!gate.ok) {
       const scope = keyTier ? 'for your API key' : 'per IP';
       const effLimit = gate.limit || limit;
-      return jsonResponse({
-        error: 'rate_limited',
-        message: `Too many requests. Limit is ${effLimit}/min ${scope} for /api/${effectiveRoute} (tier: ${tierLabel}).`,
-        tier: tierLabel,
-        limit: effLimit,
-        degraded: !!gate.degraded,
-        retryAfter: 60
-      }, 429, origin);
+      return jsonResponse(
+        {
+          error: 'rate_limited',
+          message: `Too many requests. Limit is ${effLimit}/min ${scope} for /api/${effectiveRoute} (tier: ${tierLabel}).`,
+          tier: tierLabel,
+          limit: effLimit,
+          degraded: !!gate.degraded,
+          retryAfter: 60,
+        },
+        429,
+        origin
+      );
     }
   }
 
@@ -364,25 +390,43 @@ export async function onRequest(context) {
   // approximate budget guard, not an exact counter — that's fine for cost safety.
   if (effectiveRoute === 'scan' && tierLabel !== 'unlimited') {
     if (env.SCAN_DISABLED === '1' || env.SCAN_DISABLED === 'true') {
-      return jsonResponse({
-        error: 'scanning_paused',
-        message: 'Scanning is temporarily paused for maintenance. Try again shortly or self-host.'
-      }, 503, origin);
+      return jsonResponse(
+        {
+          error: 'scanning_paused',
+          message:
+            'Scanning is temporarily paused for maintenance. Try again shortly or self-host.',
+        },
+        503,
+        origin
+      );
     }
     const cap = parseInt(env.SCAN_DAILY_CAP || '10000', 10);
     if (env.RATE_LIMIT && Number.isFinite(cap) && cap > 0) {
       const day = new Date().toISOString().slice(0, 10);
       const gkey = `rl:global:scan:${day}`;
       let used = 0;
-      try { used = parseInt(await env.RATE_LIMIT.get(gkey), 10) || 0; } catch (_) { /* fail open on read */ }
-      if (used >= cap) {
-        return jsonResponse({
-          error: 'daily_capacity_reached',
-          message: 'Free scan capacity for today is used up — this protects the project from runaway costs. Try again tomorrow, use an API key, or self-host (it is MIT).',
-          retryAfter: 3600
-        }, 503, origin);
+      try {
+        used = parseInt(await env.RATE_LIMIT.get(gkey), 10) || 0;
+      } catch (_) {
+        /* fail open on read */
       }
-      try { await env.RATE_LIMIT.put(gkey, String(used + 1), { expirationTtl: 172800 }); } catch (_) { /* best-effort */ }
+      if (used >= cap) {
+        return jsonResponse(
+          {
+            error: 'daily_capacity_reached',
+            message:
+              'Free scan capacity for today is used up — this protects the project from runaway costs. Try again tomorrow, use an API key, or self-host (it is MIT).',
+            retryAfter: 3600,
+          },
+          503,
+          origin
+        );
+      }
+      try {
+        await env.RATE_LIMIT.put(gkey, String(used + 1), { expirationTtl: 172800 });
+      } catch (_) {
+        /* best-effort */
+      }
     }
   }
 
@@ -394,11 +438,15 @@ export async function onRequest(context) {
     const token = request.headers.get('X-Turnstile-Token');
     const verdict = await verifyTurnstile(token, env.TURNSTILE_SECRET, ip);
     if (!verdict.ok) {
-      return jsonResponse({
-        error: 'turnstile_required',
-        message: 'Captcha verification failed. Reload the page and try again.',
-        reason: verdict.reason
-      }, 403, origin);
+      return jsonResponse(
+        {
+          error: 'turnstile_required',
+          message: 'Captcha verification failed. Reload the page and try again.',
+          reason: verdict.reason,
+        },
+        403,
+        origin
+      );
     }
   }
 

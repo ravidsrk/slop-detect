@@ -81,7 +81,7 @@ export async function scanPage(url) {
   const res = await fetchWithTimeout(`${apiBase()}/api/scan`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ url })
+    body: JSON.stringify({ url }),
   });
   if (!res.ok) throw await toApiError(res);
   return res.json();
@@ -99,8 +99,8 @@ export async function checkSystem(url, designMdUrl) {
     body: JSON.stringify({
       url,
       designMd: typeof designMdUrl === 'string' && designMdUrl ? designMdUrl : true,
-      share: false
-    })
+      share: false,
+    }),
   });
   if (!res.ok) throw await toApiError(res);
   return res.json();
@@ -112,7 +112,7 @@ export async function checkAeo(url) {
   const res = await fetchWithTimeout(`${apiBase()}/api/aeo`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ url })
+    body: JSON.stringify({ url }),
   });
   if (!res.ok) throw await toApiError(res);
   return res.json();
@@ -125,7 +125,7 @@ export async function fixPrompt(url) {
   const res = await fetchWithTimeout(`${apiBase()}/api/fix-prompt`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ url })
+    body: JSON.stringify({ url }),
   });
   if (!res.ok) throw await toApiError(res);
   return res.text();

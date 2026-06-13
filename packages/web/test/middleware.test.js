@@ -17,8 +17,10 @@ function makeRequest({ method = 'POST', path = '/api/scan', headers = {}, body =
     method,
     url,
     headers: { get: (k) => (h.has(k.toLowerCase()) ? h.get(k.toLowerCase()) : null) },
-    clone() { return { json }; },
-    json
+    clone() {
+      return { json };
+    },
+    json,
   };
 }
 
@@ -28,22 +30,30 @@ function makeContext(request, env = {}) {
   return {
     request,
     env,
-    next: async () => new Response(JSON.stringify({ ok: true }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    })
+    next: async () =>
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
   };
 }
 
 // A KV mock that always throws — simulates a KV outage (binding present, but
 // reads/writes fail).
 const throwingKv = {
-  get: async () => { throw new Error('KV down'); },
-  put: async () => { throw new Error('KV down'); }
+  get: async () => {
+    throw new Error('KV down');
+  },
+  put: async () => {
+    throw new Error('KV down');
+  },
 };
 
 test('#6 foreign browser origin is rejected with 403 origin_not_allowed', async () => {
-  const req = makeRequest({ headers: { Origin: 'https://evil.example.com' }, body: { url: 'https://x.com' } });
+  const req = makeRequest({
+    headers: { Origin: 'https://evil.example.com' },
+    body: { url: 'https://x.com' },
+  });
   const res = await onRequest(makeContext(req));
   assert.equal(res.status, 403);
   const j = await res.json();
@@ -71,9 +81,15 @@ test('#5 RATE_LIMIT binding MISSING still caps the scan route (fail-closed)', as
   let got429 = false;
   let allowed = 0;
   for (let i = 0; i < 8; i++) {
-    const req = makeRequest({ headers: { 'CF-Connecting-IP': ip }, body: { url: 'https://x.com' } });
+    const req = makeRequest({
+      headers: { 'CF-Connecting-IP': ip },
+      body: { url: 'https://x.com' },
+    });
     const res = await onRequest(makeContext(req, {}));
-    if (res.status === 429) { got429 = true; break; }
+    if (res.status === 429) {
+      got429 = true;
+      break;
+    }
     if (res.status === 200) allowed++;
   }
   assert.ok(got429, 'expected the scan route to start 429ing without a KV binding');
@@ -84,9 +100,15 @@ test('#5 KV outage (binding present, reads throw) fails CLOSED on scan route', a
   const ip = '203.0.113.88';
   let got429 = false;
   for (let i = 0; i < 8; i++) {
-    const req = makeRequest({ headers: { 'CF-Connecting-IP': ip }, body: { url: 'https://x.com' } });
+    const req = makeRequest({
+      headers: { 'CF-Connecting-IP': ip },
+      body: { url: 'https://x.com' },
+    });
     const res = await onRequest(makeContext(req, { RATE_LIMIT: throwingKv }));
-    if (res.status === 429) { got429 = true; break; }
+    if (res.status === 429) {
+      got429 = true;
+      break;
+    }
   }
   assert.ok(got429, 'expected scan to fail-closed under a KV outage');
 });
@@ -97,7 +119,7 @@ test('#5 KV outage on cheap fix-prompt (assemble) fails OPEN', async () => {
   const req = makeRequest({
     path: '/api/fix-prompt',
     headers: { 'CF-Connecting-IP': '203.0.113.99' },
-    body: { result: { score: 10, patterns: [] } }
+    body: { result: { score: 10, patterns: [] } },
   });
   const res = await onRequest(makeContext(req, { RATE_LIMIT: throwingKv }));
   assert.equal(res.status, 200);
@@ -107,9 +129,12 @@ test('global daily cap returns 503 daily_capacity_reached for scans', async () =
   // KV that reports the global counter already at/over the cap.
   const cappedKv = {
     get: async (k) => (k.startsWith('rl:global:scan:') ? '10000' : '0'),
-    put: async () => {}
+    put: async () => {},
   };
-  const req = makeRequest({ headers: { 'CF-Connecting-IP': '203.0.113.5' }, body: { url: 'https://x.com' } });
+  const req = makeRequest({
+    headers: { 'CF-Connecting-IP': '203.0.113.5' },
+    body: { url: 'https://x.com' },
+  });
   const res = await onRequest(makeContext(req, { RATE_LIMIT: cappedKv, SCAN_DAILY_CAP: '10000' }));
   assert.equal(res.status, 503);
   assert.equal((await res.json()).error, 'daily_capacity_reached');
@@ -117,7 +142,10 @@ test('global daily cap returns 503 daily_capacity_reached for scans', async () =
 
 test('SCAN_DISABLED kill switch returns 503 scanning_paused', async () => {
   const okKv = { get: async () => '0', put: async () => {} };
-  const req = makeRequest({ headers: { 'CF-Connecting-IP': '203.0.113.6' }, body: { url: 'https://x.com' } });
+  const req = makeRequest({
+    headers: { 'CF-Connecting-IP': '203.0.113.6' },
+    body: { url: 'https://x.com' },
+  });
   const res = await onRequest(makeContext(req, { RATE_LIMIT: okKv, SCAN_DISABLED: '1' }));
   assert.equal(res.status, 503);
   assert.equal((await res.json()).error, 'scanning_paused');

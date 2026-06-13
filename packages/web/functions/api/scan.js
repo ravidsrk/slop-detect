@@ -21,9 +21,17 @@ import {
   parseDesignMd,
   scoreSystemCompliance,
   scoreCopy,
-  combineAxes
+  combineAxes,
 } from 'slop-detect-core';
-import { newId, slimResult, saveResult, recordScan, validateScanUrl, isAllowedUrl, recordScanForWatch } from '../_shared.js';
+import {
+  newId,
+  slimResult,
+  saveResult,
+  recordScan,
+  validateScanUrl,
+  isAllowedUrl,
+  recordScanForWatch,
+} from '../_shared.js';
 import { report } from '../_report.js';
 
 // Normalize requested axes. Default: design only (backward-compatible).
@@ -31,7 +39,7 @@ const VALID_AXES = ['design', 'copy'];
 function normalizeAxes(axes) {
   if (axes === 'all') return [...VALID_AXES];
   if (!Array.isArray(axes) || axes.length === 0) return ['design'];
-  const out = axes.filter(a => VALID_AXES.includes(a));
+  const out = axes.filter((a) => VALID_AXES.includes(a));
   if (!out.includes('design')) out.unshift('design');
   return [...new Set(out)];
 }
@@ -41,7 +49,7 @@ function normalizeAxes(axes) {
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json' }
+    headers: { 'Content-Type': 'application/json' },
   });
 }
 
@@ -51,7 +59,11 @@ export async function onRequestPost({ request, env }) {
   }
 
   let body;
-  try { body = await request.json(); } catch { return json({ error: 'Invalid JSON body' }, 400); }
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'Invalid JSON body' }, 400);
+  }
 
   // Validate + SSRF-guard the target (blocks private/loopback/metadata hosts).
   const checked = validateScanUrl(body?.url);
@@ -81,9 +93,9 @@ export async function onRequestPost({ request, env }) {
     // Soft wait for fonts/CSS/above-fold images. Don't fail if it stays busy.
     await Promise.race([
       page.waitForNetworkIdle({ idleTime: 500, timeout: 6000 }).catch(() => {}),
-      new Promise(r => setTimeout(r, 7000))
+      new Promise((r) => setTimeout(r, 7000)),
     ]);
-    await new Promise(r => setTimeout(r, 400));
+    await new Promise((r) => setTimeout(r, 400));
     const navMs = Date.now() - navStart;
 
     const data = await page.evaluate(pageScript);
@@ -93,26 +105,32 @@ export async function onRequestPost({ request, env }) {
     // FINAL url before we hand back its title/h1/text/screenshot. Refuse to
     // return content scraped from a private/internal host reached via redirect.
     if (data.url && !isAllowedUrl(data.url)) {
-      return json({
-        error: 'Scan refused: the URL redirected to a disallowed (private/internal) host.',
-        code: 'blocked_redirect',
-        url,
-        finalUrl: data.url
-      }, 400);
+      return json(
+        {
+          error: 'Scan refused: the URL redirected to a disallowed (private/internal) host.',
+          code: 'blocked_redirect',
+          url,
+          finalUrl: data.url,
+        },
+        400
+      );
     }
 
     // Anti-bot challenge / dead-page detection — refuse to score these so we
     // don't silently return a fake "Clean 0".
     const blocked = detectBlocked(data, { url, finalUrl: data.url });
     if (blocked) {
-      return json({
-        error: blocked.reason,
-        code: blocked.code,
-        url,
-        finalUrl: data.url,
-        title: data.title,
-        hint: blocked.hint
-      }, 422);
+      return json(
+        {
+          error: blocked.reason,
+          code: blocked.code,
+          url,
+          finalUrl: data.url,
+          title: data.title,
+          hint: blocked.hint,
+        },
+        422
+      );
     }
 
     let screenshot = null;
@@ -124,7 +142,7 @@ export async function onRequestPost({ request, env }) {
     }
 
     // Score on the Worker side (patterns metadata lives here, not on the page).
-    const patterns = PATTERNS.map(p => {
+    const patterns = PATTERNS.map((p) => {
       const sig = data.signals[p.id] || { triggered: false };
       return {
         id: p.id,
@@ -133,7 +151,7 @@ export async function onRequestPost({ request, env }) {
         category: p.category,
         weight: p.weight,
         triggered: !!sig.triggered,
-        evidence: sig
+        evidence: sig,
       };
     });
 
@@ -151,10 +169,10 @@ export async function onRequestPost({ request, env }) {
       h1: data.h1Text,
       h1Font: data.h1Font,
       preset,
-      ...scoring,        // top-level = DESIGN axis (backward-compatible)
+      ...scoring, // top-level = DESIGN axis (backward-compatible)
       patterns: scored,
       screenshot,
-      navMs
+      navMs,
     };
 
     // Multi-axis (#08): opt into copy via { axes:['design','copy'] } or 'all'.
@@ -168,9 +186,9 @@ export async function onRequestPost({ request, env }) {
           grade: scoring.grade,
           patternsFlagged: scoring.patternsFlagged,
           patternsTotal: scoring.patternsTotal,
-          patterns: scored
+          patterns: scored,
         },
-        copy: scoreCopy(data.textContext || {})
+        copy: scoreCopy(data.textContext || {}),
       };
       result.axes = axes;
       const summaries = {};
@@ -183,9 +201,10 @@ export async function onRequestPost({ request, env }) {
     // what the page actually rendered. Reported separately from the slop score
     // (it measures alignment with the site's OWN system; higher is better).
     if (wantsSystem) {
-      const mdUrl = typeof body.designMd === 'string'
-        ? body.designMd
-        : new URL('/DESIGN.md', data.url || url).toString();
+      const mdUrl =
+        typeof body.designMd === 'string'
+          ? body.designMd
+          : new URL('/DESIGN.md', data.url || url).toString();
       let mdText = null;
       if (isAllowedUrl(mdUrl)) {
         try {
@@ -193,11 +212,13 @@ export async function onRequestPost({ request, env }) {
           const t = setTimeout(() => ctl.abort(), 8000);
           const res = await fetch(mdUrl, {
             signal: ctl.signal,
-            headers: { Accept: 'text/markdown,text/plain,*/*' }
+            headers: { Accept: 'text/markdown,text/plain,*/*' },
           });
           clearTimeout(t);
           if (res.ok) mdText = (await res.text()).slice(0, 200_000);
-        } catch (_) { /* unreachable DESIGN.md → reported as "no system" below */ }
+        } catch (_) {
+          /* unreachable DESIGN.md → reported as "no system" below */
+        }
       }
       result.system = scoreSystemCompliance(
         mdText ? parseDesignMd(mdText) : null,
@@ -233,10 +254,15 @@ export async function onRequestPost({ request, env }) {
     return json(result);
   } catch (err) {
     // Surface scan failures instead of swallowing them (no PII: url only).
-    report(env, 'error', 'scan_failed', { url, message: err && err.message ? err.message : String(err) });
+    report(env, 'error', 'scan_failed', {
+      url,
+      message: err && err.message ? err.message : String(err),
+    });
     return json({ error: err.message || String(err) }, 502);
   } finally {
-    try { await browser?.close(); } catch (_) {}
+    try {
+      await browser?.close();
+    } catch (_) {}
   }
 }
 
@@ -248,9 +274,9 @@ function detectBlocked(data, _ctx) {
   const signals = data?.signals || {};
   // Count how many patterns returned ANY non-empty evidence — proxy
   // for "did the page actually render meaningful DOM?".
-  const patternsWithEvidence = Object.values(signals).filter(s => {
+  const patternsWithEvidence = Object.values(signals).filter((s) => {
     if (!s || typeof s !== 'object') return false;
-    const keys = Object.keys(s).filter(k => k !== 'triggered' && k !== 'error');
+    const keys = Object.keys(s).filter((k) => k !== 'triggered' && k !== 'error');
     return keys.length > 0;
   }).length;
 
@@ -261,13 +287,13 @@ function detectBlocked(data, _ctx) {
     'Attention Required! | Cloudflare',
     'Please Wait... | Cloudflare',
     'Access denied | Cloudflare',
-    'Sorry, you have been blocked'
+    'Sorry, you have been blocked',
   ];
-  if (cfMarkers.some(m => title.includes(m))) {
+  if (cfMarkers.some((m) => title.includes(m))) {
     return {
       code: 'cloudflare_challenge',
       reason: 'Site is behind a Cloudflare bot challenge — cannot score automatically.',
-      hint: 'Try a different URL, or use the `slop-detect` CLI locally with a real browser session.'
+      hint: 'Try a different URL, or use the `slop-detect` CLI locally with a real browser session.',
     };
   }
 
@@ -276,7 +302,7 @@ function detectBlocked(data, _ctx) {
     return {
       code: 'access_blocked',
       reason: `Site refused the scan (title: "${title.slice(0, 80)}")`,
-      hint: 'The target is blocking automated requests. Try the CLI from your machine.'
+      hint: 'The target is blocking automated requests. Try the CLI from your machine.',
     };
   }
 
@@ -289,7 +315,7 @@ function detectBlocked(data, _ctx) {
     return {
       code: 'empty_page',
       reason: 'Target page rendered no scannable content (no title, no H1, or empty DOM).',
-      hint: 'The site likely requires sign-in, uses heavy client-side hydration, or blocks headless browsers. Try a public marketing URL instead.'
+      hint: 'The site likely requires sign-in, uses heavy client-side hydration, or blocks headless browsers. Try a public marketing URL instead.',
     };
   }
 
@@ -298,12 +324,14 @@ function detectBlocked(data, _ctx) {
 
 // ── Page-side script assembler ──────────────────────────────────────────────
 function buildPageScript(opts = {}) {
-  const patternCalls = PATTERNS.map(p => `
+  const patternCalls = PATTERNS.map(
+    (p) => `
     try {
       signals[${JSON.stringify(p.id)}] = (${p.extract.toString()})(ctx);
     } catch (e) {
       signals[${JSON.stringify(p.id)}] = { triggered: false, error: e.message };
-    }`).join('\n');
+    }`
+  ).join('\n');
 
   return `(() => {
     // Polyfill esbuild's __name helper (wrangler bundles named fns wrapped with it).
@@ -353,10 +381,14 @@ function buildPageScript(opts = {}) {
 
     // System axis: observe fonts/colors/radii (scored Worker-side).
     let systemContext = null;
-    ${opts.includeSystem ? `
+    ${
+      opts.includeSystem
+        ? `
     const extractSystemContext = ${extractSystemContext.toString()};
     try { systemContext = extractSystemContext(); } catch (e) { systemContext = { error: e.message }; }
-    ` : ''}
+    `
+        : ''
+    }
 
     return {
       title: document.title,

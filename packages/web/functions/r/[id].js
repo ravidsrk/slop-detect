@@ -8,22 +8,24 @@
 import { getResult, tierColors, escapeHtml } from '../_shared.js';
 
 export async function onRequestGet({ params, env, request }) {
-  const id = String(params.id || '').replace(/[^a-z0-9]/gi, '').slice(0, 16);
+  const id = String(params.id || '')
+    .replace(/[^a-z0-9]/gi, '')
+    .slice(0, 16);
   const slim = await getResult(env.RESULTS, id);
   const origin = new URL(request.url).origin;
 
   if (!slim) {
     return new Response(notFoundHtml(origin), {
       status: 404,
-      headers: { 'Content-Type': 'text/html; charset=utf-8' }
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
     });
   }
 
   return new Response(resultHtml(slim, origin), {
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
-      'Cache-Control': 'public, max-age=300'
-    }
+      'Cache-Control': 'public, max-age=300',
+    },
   });
 }
 
@@ -33,11 +35,17 @@ function resultHtml(s, origin) {
   const pageUrl = `${origin}/r/${s.id}`;
   const domain = escapeHtml(s.domain);
   const title = `${domain} scored ${s.grade} (${s.score}/100) on the AI-slop detector`;
-  const desc = escapeHtml(s.verdict || `${s.patternsFlagged}/${s.patternsTotal} AI-design-slop patterns triggered.`);
+  const desc = escapeHtml(
+    s.verdict || `${s.patternsFlagged}/${s.patternsTotal} AI-design-slop patterns triggered.`
+  );
   const badgeMd = `[![slop](${origin}/badge/${domain}.svg)](${pageUrl})`;
 
-  const tells = (s.triggered || []).map(t => `
-      <li><span class="x">✗</span> ${escapeHtml(t.label)} <span class="w">+${t.weight}</span></li>`).join('');
+  const tells = (s.triggered || [])
+    .map(
+      (t) => `
+      <li><span class="x">✗</span> ${escapeHtml(t.label)} <span class="w">+${t.weight}</span></li>`
+    )
+    .join('');
 
   return `<!doctype html><html lang="en"><head>
 <meta charset="utf-8">
@@ -138,7 +146,7 @@ function resultHtml(s, origin) {
   </div>
 
   <div class="meta">
-    Scanned ${escapeHtml((s.createdAt || '').replace('T',' ').slice(0,16))} UTC ·
+    Scanned ${escapeHtml((s.createdAt || '').replace('T', ' ').slice(0, 16))} UTC ·
     definitions ${escapeHtml(s.definitionsVersion || 'n/a')} ·
     <a href="/">slop-detect.com</a>
   </div>

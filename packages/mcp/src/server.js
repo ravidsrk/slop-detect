@@ -7,10 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema
-} from '@modelcontextprotocol/sdk/types.js';
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
 import { scanPage, checkAeo, checkSystem, fixPrompt, ApiError } from './api.js';
 import { formatScan, formatAeo, formatSystem } from './format.js';
@@ -39,10 +36,10 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
-        url: { type: 'string', description: 'The page URL to scan (e.g. https://example.com).' }
+        url: { type: 'string', description: 'The page URL to scan (e.g. https://example.com).' },
       },
-      required: ['url']
-    }
+      required: ['url'],
+    },
   },
   {
     name: 'check_aeo',
@@ -56,10 +53,10 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
-        url: { type: 'string', description: 'The page URL to check (e.g. https://example.com).' }
+        url: { type: 'string', description: 'The page URL to check (e.g. https://example.com).' },
       },
-      required: ['url']
-    }
+      required: ['url'],
+    },
   },
   {
     name: 'check_design_system',
@@ -78,11 +75,12 @@ const TOOLS = [
         url: { type: 'string', description: 'The page URL to check (e.g. https://example.com).' },
         design_md_url: {
           type: 'string',
-          description: 'Optional: an explicit URL to the DESIGN.md to check against. Defaults to <origin>/DESIGN.md.'
-        }
+          description:
+            'Optional: an explicit URL to the DESIGN.md to check against. Defaults to <origin>/DESIGN.md.',
+        },
       },
-      required: ['url']
-    }
+      required: ['url'],
+    },
   },
   {
     name: 'fix_prompt',
@@ -92,11 +90,11 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
-        url: { type: 'string', description: 'The page URL to generate a fix prompt for.' }
+        url: { type: 'string', description: 'The page URL to generate a fix prompt for.' },
       },
-      required: ['url']
-    }
-  }
+      required: ['url'],
+    },
+  },
 ];
 
 // Wrap a tool body so any thrown error (network, ApiError, validation) becomes
@@ -121,7 +119,8 @@ async function handleCall(name, args) {
     return asToolResult(formatAeo(report));
   }
   if (name === 'check_design_system') {
-    const designMdUrl = args && typeof args.design_md_url === 'string' ? args.design_md_url.trim() : '';
+    const designMdUrl =
+      args && typeof args.design_md_url === 'string' ? args.design_md_url.trim() : '';
     const result = await checkSystem(url, designMdUrl || undefined);
     return asToolResult(formatSystem(result));
   }

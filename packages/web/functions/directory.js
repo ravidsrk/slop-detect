@@ -48,8 +48,8 @@ function jsonLd(sites, origin) {
       '@type': 'ListItem',
       position: i + 1,
       url: `https://${s.domain}`,
-      name: s.domain
-    }))
+      name: s.domain,
+    })),
   });
 }
 
@@ -73,7 +73,7 @@ export async function onRequestGet({ request, env }) {
   const otherLabel = sort === 'slop' ? 'cleanest first' : 'sloppiest first';
 
   const rows = sites.length
-    ? sites.map(s => row(s, origin)).join('\n')
+    ? sites.map((s) => row(s, origin)).join('\n')
     : `<li class="empty">No sites listed yet. Scan your site, then
         <a href="${origin}/">claim it</a> to appear here with a backlink.</li>`;
 
@@ -146,7 +146,7 @@ export async function onRequestGet({ request, env }) {
   return new Response(html, {
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
-      'Cache-Control': 'public, max-age=120, s-maxage=300'
-    }
+      'Cache-Control': 'public, max-age=120, s-maxage=300',
+    },
   });
 }

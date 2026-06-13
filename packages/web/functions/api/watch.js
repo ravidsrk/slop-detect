@@ -26,7 +26,7 @@ import {
   publicWatch,
   setListing,
   deleteListing,
-  issueWatchToken
+  issueWatchToken,
 } from '../_shared.js';
 import { emailConfigured, sendEmail } from '../_email.js';
 import { buildVerificationEmail } from '../_alerts.js';
@@ -34,7 +34,7 @@ import { buildVerificationEmail } from '../_alerts.js';
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json' }
+    headers: { 'Content-Type': 'application/json' },
   });
 }
 
@@ -56,8 +56,11 @@ export async function onRequestPost({ request, env }) {
   if (!env.RESULTS) return json({ error: 'monitoring storage unavailable' }, 503);
 
   let body;
-  try { body = await request.json(); }
-  catch { return json({ error: 'Invalid JSON body' }, 400); }
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'Invalid JSON body' }, 400);
+  }
 
   const domain = normalizeDomain(body?.domain);
   if (!domain) return json({ error: 'a valid `domain` is required (e.g. "example.com")' }, 400);
@@ -95,9 +98,13 @@ export async function onRequestPost({ request, env }) {
   // verified ownership (DNS TXT / meta tag) is a documented follow-up; this just
   // stops hijacking of an already-claimed domain.
   if (existing && existing.email !== email) {
-    return json({
-      error: 'this domain is already claimed by a different email; contact that owner to make changes'
-    }, 403);
+    return json(
+      {
+        error:
+          'this domain is already claimed by a different email; contact that owner to make changes',
+      },
+      403
+    );
   }
 
   const now = new Date().toISOString();
@@ -112,17 +119,15 @@ export async function onRequestPost({ request, env }) {
   // backlink from /directory); `list:false` delists it; omitting it preserves
   // the current state. This is the ONLY way a domain enters the directory —
   // an email-attached, deliberate act by whoever is claiming the domain.
-  const listed = body.list === true ? true
-    : body.list === false ? false
-    : (existing?.listed ?? false);
+  const listed =
+    body.list === true ? true : body.list === false ? false : (existing?.listed ?? false);
 
   // Design-system monitoring (Roadmap v2 P2a): `system: true` makes the daily
   // sweep also check the domain against its <origin>/DESIGN.md and alert on
   // drift (the agency value proposition). Same explicit-set / omit-preserves
   // semantics as `list`; covered by the same ownership guard above.
-  const systemMonitoring = body.system === true ? true
-    : body.system === false ? false
-    : (existing?.system ?? false);
+  const systemMonitoring =
+    body.system === true ? true : body.system === false ? false : (existing?.system ?? false);
 
   const watch = {
     domain,
@@ -133,34 +138,34 @@ export async function onRequestPost({ request, env }) {
     updatedAt: now,
     baselineScore: existing?.baselineScore ?? latest?.score ?? null,
     baselineGrade: existing?.baselineGrade ?? latest?.grade ?? null,
-    baselineTier:  existing?.baselineTier  ?? latest?.tier  ?? null,
-    baselineId:    existing?.baselineId    ?? latest?.id    ?? null,
-    baselineAt:    existing?.baselineAt    ?? latest?.createdAt ?? null,
+    baselineTier: existing?.baselineTier ?? latest?.tier ?? null,
+    baselineId: existing?.baselineId ?? latest?.id ?? null,
+    baselineAt: existing?.baselineAt ?? latest?.createdAt ?? null,
     lastScore: existing?.lastScore ?? latest?.score ?? null,
     lastGrade: existing?.lastGrade ?? latest?.grade ?? null,
-    lastTier:  existing?.lastTier  ?? latest?.tier  ?? null,
-    lastId:    existing?.lastId    ?? latest?.id    ?? null,
+    lastTier: existing?.lastTier ?? latest?.tier ?? null,
+    lastId: existing?.lastId ?? latest?.id ?? null,
     lastCheckedAt: existing?.lastCheckedAt ?? latest?.createdAt ?? null,
     listed,
     regressed: existing?.regressed ?? false,
-    notified:  existing?.notified  ?? false,
+    notified: existing?.notified ?? false,
     // System-axis state is owned by recordScanForWatch — preserve it across
     // re-subscribes so toggling `list`/email can't erase the compliance baseline.
     baselineSystemScore: existing?.baselineSystemScore ?? null,
-    baselineSystemTier:  existing?.baselineSystemTier  ?? null,
+    baselineSystemTier: existing?.baselineSystemTier ?? null,
     lastSystemScore: existing?.lastSystemScore ?? null,
-    lastSystemTier:  existing?.lastSystemTier  ?? null,
-    lastSystemAt:    existing?.lastSystemAt    ?? null,
+    lastSystemTier: existing?.lastSystemTier ?? null,
+    lastSystemAt: existing?.lastSystemAt ?? null,
     lastSystemDrift: existing?.lastSystemDrift ?? [],
     systemRegressed: existing?.systemRegressed ?? false,
-    systemNotified:  existing?.systemNotified  ?? false,
+    systemNotified: existing?.systemNotified ?? false,
     // Privacy/consent: record WHEN the email was submitted and under which
     // policy version (lawful basis = consent). `verified` stays false until a
     // double-opt-in confirmation is added — no alert email may be sent to an
     // unverified address. Deletion = unsubscribe (email-matched) or /privacy.
     consentAt: existing?.consentAt || now,
     policyVersion: '2026.06',
-    verified: existing?.verified ?? false
+    verified: existing?.verified ?? false,
   };
 
   // The WATCH is the source of truth; the directory row is derived state.
@@ -175,14 +180,20 @@ export async function onRequestPost({ request, env }) {
   try {
     if (listed) {
       const seed = latest || {
-        domain, score: watch.lastScore, grade: watch.lastGrade,
-        tier: watch.lastTier, id: watch.lastId, title: null
+        domain,
+        score: watch.lastScore,
+        grade: watch.lastGrade,
+        tier: watch.lastTier,
+        id: watch.lastId,
+        title: null,
       };
       await setListing(env.RESULTS, seed);
     } else if (!listed) {
       await deleteListing(env.RESULTS, domain);
     }
-  } catch (_) { /* derived row — reconciled on the domain's next scan */ }
+  } catch (_) {
+    /* derived row — reconciled on the domain's next scan */
+  }
 
   // Double-opt-in: if an email provider is configured and this address isn't
   // verified yet, issue a single-use token and send the confirmation email. No
@@ -200,29 +211,35 @@ export async function onRequestPost({ request, env }) {
         const res = await sendEmail(env, { to: email, subject: msg.subject, text: msg.text });
         verificationSent = !!(res && res.sent);
       }
-    } catch (_) { /* best-effort */ }
+    } catch (_) {
+      /* best-effort */
+    }
   }
 
   const history = await getHistory(env.RESULTS, domain);
-  return json({
-    ...publicWatch(watch, history),
-    monitoring: true,
-    alreadyMonitored: !!existing,
-    directoryUrl: listed ? `${origin}/directory` : null,
-    // Honest state: alerts are live only when a provider is configured AND the
-    // address has confirmed (double opt-in). Always surface privacy + deletion.
-    alertsActive: alertsLive,
-    verified: !!watch.verified,
-    verificationSent,
-    privacyPolicy: `${origin}/privacy.md`,
-    note: (watch.baselineScore == null
-      ? 'Baseline will be set the next time this domain is scanned. '
-      : 'Monitoring active — we recorded the current score as your baseline. ') +
-      (alertsLive
-        ? (watch.verified
+  return json(
+    {
+      ...publicWatch(watch, history),
+      monitoring: true,
+      alreadyMonitored: !!existing,
+      directoryUrl: listed ? `${origin}/directory` : null,
+      // Honest state: alerts are live only when a provider is configured AND the
+      // address has confirmed (double opt-in). Always surface privacy + deletion.
+      alertsActive: alertsLive,
+      verified: !!watch.verified,
+      verificationSent,
+      privacyPolicy: `${origin}/privacy.md`,
+      note:
+        (watch.baselineScore == null
+          ? 'Baseline will be set the next time this domain is scanned. '
+          : 'Monitoring active — we recorded the current score as your baseline. ') +
+        (alertsLive
+          ? watch.verified
             ? 'Regression alerts are on for this confirmed address. '
-            : 'Check your email to confirm and switch on regression alerts. ')
-        : 'Regression-alert emails are not active yet. ') +
-      'Unsubscribe anytime by POSTing { unsubscribe: true } with the same email.'
-  }, existing ? 200 : 201);
+            : 'Check your email to confirm and switch on regression alerts. '
+          : 'Regression-alert emails are not active yet. ') +
+        'Unsubscribe anytime by POSTing { unsubscribe: true } with the same email.',
+    },
+    existing ? 200 : 201
+  );
 }
