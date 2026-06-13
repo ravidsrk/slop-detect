@@ -121,7 +121,7 @@ function resultHtml(s, origin) {
 
   <div class="cta">
     <a class="btn" href="/">Scan your own site →</a>
-    <a class="btn ghost" href="/?url=${encodeURIComponent(s.finalUrl || s.url)}">Re-scan this page</a>
+    <a class="btn ghost" href="/score/${encodeURIComponent(s.domain)}">${escapeHtml(s.domain)} history →</a>
     <button class="btn ghost" id="shareX">Share on X</button>
   </div>
 
