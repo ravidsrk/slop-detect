@@ -280,17 +280,19 @@ slop-detect/
 ├── packages/
 │   ├── core/    slop-detect-core   ← pure detection engine (Node, Workers, browser)
 │   ├── cli/     slop-detect    ← Playwright runner for terminal + CI
-│   └── web/     slop-detect-web    ← Cloudflare Pages app powering slop-detect.com
+│   ├── web/     slop-detect-web    ← Cloudflare Pages app powering slop-detect.com
+│   ├── mcp/     slop-detect-mcp    ← Model Context Protocol server for agents
+│   └── action/                     ← GitHub Action wrapper (not published to npm)
 ```
 
-A monorepo with npm workspaces. The `core` package is the single source of truth for the 27 rules — `cli` and `web` are thin runtime adapters around it.
+A monorepo with four npm workspaces (plus the Action). The `core` package is the single source of truth for the 27 rules — `cli`, `web`, and `mcp` are thin runtime adapters around it.
 
 ## Quickstart — contributing
 
 ```bash
 git clone https://github.com/ravidsrk/slop-detect.git
 cd slop-detect
-npm install                     # installs all 3 workspaces
+npm install                     # installs all 4 workspaces
 
 # Run the CLI locally
 npm run demo                    # scans 3 example sites
