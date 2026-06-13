@@ -1,0 +1,83 @@
+name: publish
+
+# Publishes the npm packages (slop-detect-core, slop-detect, slop-detect-mcp)
+# on a release tag. This is the funnel: `npx slop-detect` only ever resolves to
+# what is on npm, so a merged-but-unpublished version is invisible to users.
+#
+# Trigger: a version tag (v0.7.1, v0.8.0, …). Cut the tag AFTER the version bump
+# is on main and CHANGELOG is updated.
+#
+# Required repository secret:
+#   NPM_TOKEN — an npm automation token with publish rights to the three
+#               packages. Without it the job fails fast (it does not silently
+#               no-op), so a release can never appear to succeed while npm stays
+#               stale.
+#
+# Publish order matters: `slop-detect` (CLI) pins an exact `slop-detect-core`
+# version, so core must land first.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+concurrency:
+  group: publish-npm
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - name: Preflight — NPM_TOKEN present
+        run: |
+          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then
+            echo "::error::NPM_TOKEN must be set as a repo secret to publish."
+            exit 1
+          fi
+
+      # Workspace deps only; the publishable packages never need wrangler/sharp
+      # or playwright, so skip lifecycle scripts (keeps the runner fast + green).
+      - run: npm ci --ignore-scripts
+
+      # Gate the release on the unit suite — never publish a red build.
+      - run: npm test
+
+      # Guard: a tag must match the versions it claims to publish. Stops a stale
+      # `v0.8.0` tag from re-publishing 0.7.0 (or failing midway, half-released).
+      - name: Verify tag matches package versions
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          for pkg in core cli mcp; do
+            PV="$(node -p "require('./packages/$pkg/package.json').version")"
+            if [ "$PV" != "$TAG" ]; then
+              echo "::error::tag $GITHUB_REF_NAME != packages/$pkg version $PV — bump versions before tagging."
+              exit 1
+            fi
+          done
+
+      - name: Publish slop-detect-core
+        run: npm publish -w slop-detect-core --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish slop-detect (CLI)
+        run: npm publish -w slop-detect --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish slop-detect-mcp
+        run: npm publish -w slop-detect-mcp --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
