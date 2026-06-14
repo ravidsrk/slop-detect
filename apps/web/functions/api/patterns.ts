@@ -5,7 +5,7 @@
 // This is what keeps "The N rules" panel honest as patterns are added — the UI
 // reads from here instead of a stale inline <ol>.
 
-import { PATTERNS, DEFINITIONS_VERSION } from 'slop-detect-core';
+import { PATTERNS, DEFINITIONS_VERSION } from '@slop-detect/core';
 
 export async function onRequestGet() {
   const patterns = PATTERNS.map((p) => ({
