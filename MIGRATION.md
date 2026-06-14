@@ -39,10 +39,14 @@ first — a couple of choices are worth confirming before Phase 3 starts.
 ```
 ✅ Phase 1  lint + format gate            (PR #23)
 ✅ Phase 2  split _shared.js god-file     (PR #23)
-   Phase 3  core  → TypeScript            (tsc build → dist)
+✅ Phase 3  core  → TypeScript            (tsc build → dist) — this PR
    Phase 4  cli + mcp → TypeScript        (depend on core's emitted types)
    Phase 5  web   → Hono + JSX + TS       (combined, last)
 ```
+
+**Resolved decisions** (were open questions): PRs are landed **separately per
+slice**; the TS migration **starts with `core`**; the test runner is **`tsx`**
+(fast `.ts` tests against source — consumer tests still hit the built `dist`).
 
 Decision (sequencing was left to me):
 
