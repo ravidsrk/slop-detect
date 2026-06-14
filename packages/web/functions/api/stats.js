@@ -12,13 +12,14 @@ function json(data, status = 200) {
     status,
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'public, max-age=120, s-maxage=120'
-    }
+      'Cache-Control': 'public, max-age=120, s-maxage=120',
+    },
   });
 }
 
 export async function onRequestGet({ env }) {
-  if (!env.RESULTS) return json({ count: 0, avgScore: 0, slopShare: 0, clean: 0, mild: 0, heavy: 0 });
+  if (!env.RESULTS)
+    return json({ count: 0, avgScore: 0, slopShare: 0, clean: 0, mild: 0, heavy: 0 });
   const stats = await getStats(env.RESULTS).catch(() => null);
   return json(stats || { count: 0, avgScore: 0, slopShare: 0, clean: 0, mild: 0, heavy: 0 });
 }

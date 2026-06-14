@@ -23,33 +23,57 @@ function page(title, body, status = 200) {
   ${body}
   <p class="k">slop-detect.com</p>
 </div></body></html>`;
-  return new Response(html, { status, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
+  return new Response(html, {
+    status,
+    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
+  });
 }
 
 export async function onRequestGet({ request, env }) {
-  if (!env.RESULTS) return page('Unavailable', '<h1>Temporarily unavailable</h1><p>Monitoring storage is offline. Try again shortly.</p>', 503);
+  if (!env.RESULTS)
+    return page(
+      'Unavailable',
+      '<h1>Temporarily unavailable</h1><p>Monitoring storage is offline. Try again shortly.</p>',
+      503
+    );
 
   const token = new URL(request.url).searchParams.get('token');
-  if (!token) return page('Invalid link', '<h1>Invalid confirmation link</h1><p>This link is missing its token.</p>', 400);
+  if (!token)
+    return page(
+      'Invalid link',
+      '<h1>Invalid confirmation link</h1><p>This link is missing its token.</p>',
+      400
+    );
 
   const domain = await consumeWatchToken(env.RESULTS, token);
   if (!domain) {
-    return page('Link expired', '<h1>This link has expired or was already used</h1>' +
-      '<p>Confirmation links are single-use and valid for 7 days. Re-subscribe to get a fresh one.</p>', 410);
+    return page(
+      'Link expired',
+      '<h1>This link has expired or was already used</h1>' +
+        '<p>Confirmation links are single-use and valid for 7 days. Re-subscribe to get a fresh one.</p>',
+      410
+    );
   }
 
   const watch = await getWatch(env.RESULTS, domain);
   if (!watch) {
-    return page('Not monitored', `<h1>${escapeHtml(domain)} isn't being monitored</h1>` +
-      '<p>The monitor may have been removed. Re-subscribe to start again.</p>', 404);
+    return page(
+      'Not monitored',
+      `<h1>${escapeHtml(domain)} isn't being monitored</h1>` +
+        '<p>The monitor may have been removed. Re-subscribe to start again.</p>',
+      404
+    );
   }
 
   watch.verified = true;
   watch.verifiedAt = new Date().toISOString();
   await putWatch(env.RESULTS, watch);
 
-  return page('Confirmed', `<h1>You're all set ✓</h1>` +
-    `<p><strong>${escapeHtml(domain)}</strong> is now monitored. We'll email you only when its ` +
-    `AI-design-slop score regresses.</p>` +
-    `<p>Stop anytime: POST <code>{ unsubscribe: true }</code> with your email to /api/watch.</p>`);
+  return page(
+    'Confirmed',
+    `<h1>You're all set ✓</h1>` +
+      `<p><strong>${escapeHtml(domain)}</strong> is now monitored. We'll email you only when its ` +
+      `AI-design-slop score regresses.</p>` +
+      `<p>Stop anytime: POST <code>{ unsubscribe: true }</code> with your email to /api/watch.</p>`
+  );
 }

@@ -21,16 +21,25 @@ test('JSON-LD softwareVersion matches the released package version', () => {
   // Kills the drift class for good: the landing page can never again claim an
   // old version once package.json moves.
   const pkg = JSON.parse(readFileSync(new URL('../../../package.json', import.meta.url), 'utf8'));
-  assert.match(html, new RegExp(`"softwareVersion":\\s*"${pkg.version.replace(/\./g, '\\.')}"`),
-    `landing must advertise v${pkg.version}`);
+  assert.match(
+    html,
+    new RegExp(`"softwareVersion":\\s*"${pkg.version.replace(/\./g, '\\.')}"`),
+    `landing must advertise v${pkg.version}`
+  );
 });
 
 test('the dashboard is reachable from nav and footer', () => {
-  assert.ok((html.match(/href="\/dashboard"/g) || []).length >= 2, 'topbar + footer dashboard links');
+  assert.ok(
+    (html.match(/href="\/dashboard"/g) || []).length >= 2,
+    'topbar + footer dashboard links'
+  );
 });
 
 test('landing page mentions the full current tool surface', () => {
-  assert.ok(html.includes('check_design_system'), 'MCP tool list must include the system-axis tool');
+  assert.ok(
+    html.includes('check_design_system'),
+    'MCP tool list must include the system-axis tool'
+  );
   assert.match(html, /DESIGN\.md/, 'the system axis must be presented');
 });
 
@@ -55,10 +64,20 @@ test('the section is honest: double opt-in, privacy, free engine', () => {
 test('monitor opt-ins are additive — an unchecked box never delists on resubmit', () => {
   // Regression (Bugbot #12): sending list:false/system:false on every submit
   // would delist a domain the owner had listed. Flags must only be SENT when checked.
-  assert.ok(!/list:\s*\$\('watchList'\)\.checked/.test(html), 'list must not be sent unconditionally');
-  assert.ok(!/system:\s*\$\('watchSystem'\)\.checked/.test(html), 'system must not be sent unconditionally');
+  assert.ok(
+    !/list:\s*\$\('watchList'\)\.checked/.test(html),
+    'list must not be sent unconditionally'
+  );
+  assert.ok(
+    !/system:\s*\$\('watchSystem'\)\.checked/.test(html),
+    'system must not be sent unconditionally'
+  );
   assert.match(html, /watchList'\)\.checked \? \{ list: true \}/, 'list opt-in only when checked');
-  assert.match(html, /watchSystem'\)\.checked \? \{ system: true \}/, 'system opt-in only when checked');
+  assert.match(
+    html,
+    /watchSystem'\)\.checked \? \{ system: true \}/,
+    'system opt-in only when checked'
+  );
 });
 
 test('exactly one domainOf helper (no shadowed duplicate)', () => {
@@ -71,7 +90,7 @@ test('every agent-discovery surface advertises check_design_system', () => {
     '../public/.well-known/agent-card.json',
     '../public/.well-known/agent.json',
     '../public/.well-known/mcp/server-card.json',
-    '../public/index.md'
+    '../public/index.md',
   ];
   for (const f of files) {
     const txt = readFileSync(new URL(f, import.meta.url), 'utf8');
@@ -98,23 +117,36 @@ test('the Google Fonts request loads only the brand faces (no Inter/Geist)', () 
 
 // ── brand unification: sub-pages share the landing identity ─────────────────
 function makeKv(seed = {}) {
-  const store = new Map(Object.entries(seed).map(([k, v]) => [k, typeof v === 'string' ? { value: v } : v]));
+  const store = new Map(
+    Object.entries(seed).map(([k, v]) => [k, typeof v === 'string' ? { value: v } : v])
+  );
   return {
-    async get(k) { return store.has(k) ? store.get(k).value : null; },
-    async put(k, v, o = {}) { store.set(k, { value: v, metadata: o.metadata }); },
-    async delete(k) { store.delete(k); },
+    async get(k) {
+      return store.has(k) ? store.get(k).value : null;
+    },
+    async put(k, v, o = {}) {
+      store.set(k, { value: v, metadata: o.metadata });
+    },
+    async delete(k) {
+      store.delete(k);
+    },
     async list({ prefix = '', limit = 1000 } = {}) {
-      const keys = [...store.keys()].filter(n => n.startsWith(prefix)).slice(0, limit)
-        .map(n => ({ name: n, metadata: store.get(n).metadata }));
+      const keys = [...store.keys()]
+        .filter((n) => n.startsWith(prefix))
+        .slice(0, limit)
+        .map((n) => ({ name: n, metadata: store.get(n).metadata }));
       return { keys, list_complete: true };
-    }
+    },
   };
 }
 
 const BRAND_MARKS = [/Hanken\+Grotesk/, /Martian\+Mono/, /--accent:#5b9dff/, /class="eyebrow"/];
 
 test('/directory wears the landing brand (fonts, accent, registration mark)', async () => {
-  const res = await directoryGet({ request: { url: 'https://slop-detect.com/directory' }, env: { RESULTS: makeKv() } });
+  const res = await directoryGet({
+    request: { url: 'https://slop-detect.com/directory' },
+    env: { RESULTS: makeKv() },
+  });
   const out = await res.text();
   for (const re of BRAND_MARKS) assert.match(out, re);
 });
@@ -127,14 +159,16 @@ test('/leaderboard wears the landing brand', async () => {
     const out = await res.text();
     for (const re of BRAND_MARKS) assert.match(out, re);
     assert.match(out, /#monitor/, 'leaderboard CTA routes into the monitoring funnel');
-  } finally { globalThis.fetch = orig; }
+  } finally {
+    globalThis.fetch = orig;
+  }
 });
 
 test('/report wears the landing brand and keeps its print stylesheet', async () => {
   const res = await reportGet({
     params: { domain: 'example.com' },
     request: { url: 'https://slop-detect.com/report/example.com' },
-    env: { RESULTS: makeKv() }
+    env: { RESULTS: makeKv() },
   });
   const out = await res.text();
   for (const re of BRAND_MARKS) assert.match(out, re);

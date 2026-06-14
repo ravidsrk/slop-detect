@@ -24,7 +24,7 @@ import {
   publicWatch,
   percentileForScore,
   tierColors,
-  escapeHtml
+  escapeHtml,
 } from '../_shared.js';
 import { BRAND_FONTS_HEAD, BRAND_CSS } from '../_brand.js';
 
@@ -34,18 +34,27 @@ const ORIGIN = 'https://slop-detect.com';
 // score 0 at top (cleaner), 100 at bottom (sloppier). The dashed guide marks the
 // Clean/Mild boundary (10). Drawn only when there are at least two points.
 function chartSvg(history) {
-  const pts = (history || []).filter(h => typeof h.score === 'number').slice(-30);
+  const pts = (history || []).filter((h) => typeof h.score === 'number').slice(-30);
   if (pts.length < 2) return '';
-  const W = 640, H = 140, padX = 8, padTop = 10, padBot = 22;
-  const innerW = W - padX * 2, innerH = H - padTop - padBot;
+  const W = 640,
+    H = 140,
+    padX = 8,
+    padTop = 10,
+    padBot = 22;
+  const innerW = W - padX * 2,
+    innerH = H - padTop - padBot;
   const x = (i) => padX + (innerW * i) / (pts.length - 1);
   const y = (s) => padTop + (innerH * Math.max(0, Math.min(100, s))) / 100;
-  const line = pts.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.score).toFixed(1)}`).join(' ');
-  const dots = pts.map((p, i) => {
-    const c = tierColors(p.tier);
-    const last = i === pts.length - 1;
-    return `<circle cx="${x(i).toFixed(1)}" cy="${y(p.score).toFixed(1)}" r="${last ? 3.6 : 2.2}" fill="${c.fg}"></circle>`;
-  }).join('');
+  const line = pts
+    .map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.score).toFixed(1)}`)
+    .join(' ');
+  const dots = pts
+    .map((p, i) => {
+      const c = tierColors(p.tier);
+      const last = i === pts.length - 1;
+      return `<circle cx="${x(i).toFixed(1)}" cy="${y(p.score).toFixed(1)}" r="${last ? 3.6 : 2.2}" fill="${c.fg}"></circle>`;
+    })
+    .join('');
   const cleanY = y(10).toFixed(1);
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="slop score over time" preserveAspectRatio="none">
     <line x1="${padX}" y1="${cleanY}" x2="${W - padX}" y2="${cleanY}" stroke="var(--border-2)" stroke-width="1" stroke-dasharray="3 4"></line>
@@ -68,16 +77,23 @@ export async function onRequestGet({ params, request, env }) {
   const origin = new URL(request.url).origin;
   const domain = normalizeDomain(String(params.domain || ''));
   if (!domain) {
-    return new Response('Invalid domain', { status: 400, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+    return new Response('Invalid domain', {
+      status: 400,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    });
   }
 
-  let latest = null, watch = null, history = [], listing = null, pct = null;
+  let latest = null,
+    watch = null,
+    history = [],
+    listing = null,
+    pct = null;
   if (env.RESULTS) {
     [latest, watch, history, listing] = await Promise.all([
       getLatestForDomain(env.RESULTS, domain).catch(() => null),
       getWatch(env.RESULTS, domain).catch(() => null),
       getHistory(env.RESULTS, domain).catch(() => []),
-      getListing(env.RESULTS, domain).catch(() => null)
+      getListing(env.RESULTS, domain).catch(() => null),
     ]);
     if (latest) pct = await percentileForScore(env.RESULTS, latest.score).catch(() => null);
   }
@@ -103,19 +119,29 @@ ${BRAND_FONTS_HEAD}<style>${BRAND_CSS}
   <p class="empty">No scan recorded for this domain yet.</p>
   <a class="btn" href="${origin}/?url=${encodeURIComponent(domain)}">Scan ${escapeHtml(domain)} →</a>
 </div></body></html>`;
-    return new Response(empty, { status: 404, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=60' } });
+    return new Response(empty, {
+      status: 404,
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'public, max-age=60',
+      },
+    });
   }
 
   const c = tierColors(latest.tier);
   const ogImg = `${origin}/og/${latest.id}.png`;
   const pageUrl = `${ORIGIN}/score/${domain}`;
   const title = `${domain} scored ${latest.grade} (${latest.score}/100) on the AI-slop detector`;
-  const desc = escapeHtml(latest.verdict || `${latest.patternsFlagged}/${latest.patternsTotal} AI-design-slop patterns triggered.`);
+  const desc = escapeHtml(
+    latest.verdict ||
+      `${latest.patternsFlagged}/${latest.patternsTotal} AI-design-slop patterns triggered.`
+  );
 
   // peer percentile, only meaningful once a few sites exist
-  const peerLine = (pct && pct.count >= 5 && pct.cleanerThanPct != null)
-    ? `<div class="peer">Cleaner than <strong>${pct.cleanerThanPct}%</strong> of ${pct.count.toLocaleString('en-US')} scans on record</div>`
-    : '';
+  const peerLine =
+    pct && pct.count >= 5 && pct.cleanerThanPct != null
+      ? `<div class="peer">Cleaner than <strong>${pct.cleanerThanPct}%</strong> of ${pct.count.toLocaleString('en-US')} scans on record</div>`
+      : '';
 
   // axes that actually ran
   const axes = [axisChip('design', latest.score, latest.tier)];
@@ -128,8 +154,13 @@ ${BRAND_FONTS_HEAD}<style>${BRAND_CSS}
   }
 
   const chart = chartSvg(history);
-  const tells = (latest.triggered || []).slice(0, 10).map(t =>
-    `<li><span class="x">✗</span> ${escapeHtml(t.label || t.short || t.id)} <span class="w">+${t.weight}</span></li>`).join('');
+  const tells = (latest.triggered || [])
+    .slice(0, 10)
+    .map(
+      (t) =>
+        `<li><span class="x">✗</span> ${escapeHtml(t.label || t.short || t.id)} <span class="w">+${t.weight}</span></li>`
+    )
+    .join('');
 
   // claim / backlink block (the visibility model)
   const claimBlock = claimed
@@ -155,10 +186,12 @@ ${BRAND_FONTS_HEAD}<style>${BRAND_CSS}
     '@id': pageUrl,
     url: pageUrl,
     name: title,
-    description: latest.verdict || `${latest.patternsFlagged}/${latest.patternsTotal} AI-design-slop patterns triggered.`,
+    description:
+      latest.verdict ||
+      `${latest.patternsFlagged}/${latest.patternsTotal} AI-design-slop patterns triggered.`,
     isPartOf: { '@type': 'WebSite', name: 'Slop Detector', url: ORIGIN },
     about: { '@type': 'Thing', name: `${domain} AI-design-slop score` },
-    dateModified: latest.createdAt || undefined
+    dateModified: latest.createdAt || undefined,
   });
 
   const html = `<!doctype html><html lang="en"><head>
@@ -304,6 +337,6 @@ ${BRAND_FONTS_HEAD}
 </body></html>`;
 
   return new Response(html, {
-    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=120' }
+    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=120' },
   });
 }

@@ -8,7 +8,7 @@
 import puppeteer from '@cloudflare/puppeteer';
 import { getResult, cardHtml } from '../_shared.js';
 
-const OG_TTL = 60 * 60 * 24 * 30;  // 30 days
+const OG_TTL = 60 * 60 * 24 * 30; // 30 days
 
 export async function onRequestGet({ params, env, request }) {
   const id = String(params.id || '')
@@ -18,7 +18,7 @@ export async function onRequestGet({ params, env, request }) {
 
   const pngHeaders = {
     'Content-Type': 'image/png',
-    'Cache-Control': 'public, max-age=86400, s-maxage=2592000'
+    'Cache-Control': 'public, max-age=86400, s-maxage=2592000',
   };
 
   // 1. Serve cached PNG if present.
@@ -40,17 +40,24 @@ export async function onRequestGet({ params, env, request }) {
     const page = await browser.newPage();
     await page.setViewport({ width: 1200, height: 630, deviceScaleFactor: 1 });
     await page.setContent(cardHtml(slim), { waitUntil: 'networkidle0', timeout: 15000 });
-    const buf = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: 1200, height: 630 } });
+    const buf = await page.screenshot({
+      type: 'png',
+      clip: { x: 0, y: 0, width: 1200, height: 630 },
+    });
 
     // Cache for next time (best-effort).
     if (env.RESULTS) {
-      try { await env.RESULTS.put(`og:${id}`, buf, { expirationTtl: OG_TTL }); } catch (_) {}
+      try {
+        await env.RESULTS.put(`og:${id}`, buf, { expirationTtl: OG_TTL });
+      } catch (_) {}
     }
 
     return new Response(buf, { headers: pngHeaders });
   } catch (_) {
     return Response.redirect(new URL('/og.png', request.url).toString(), 302);
   } finally {
-    try { await browser?.close(); } catch (_) {}
+    try {
+      await browser?.close();
+    } catch (_) {}
   }
 }

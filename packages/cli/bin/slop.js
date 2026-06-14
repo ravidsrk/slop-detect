@@ -12,7 +12,18 @@ import { isPreset, PRESETS, PATTERNS, DEFINITIONS_VERSION, runAeoChecks } from '
 
 const args = process.argv.slice(2);
 const urls = [];
-const flags = { json: false, screenshot: false, verbose: false, preset: 'full', axes: ['design'], failOn: null, aeo: false, remote: false, api: null, designMd: null };
+const flags = {
+  json: false,
+  screenshot: false,
+  verbose: false,
+  preset: 'full',
+  axes: ['design'],
+  failOn: null,
+  aeo: false,
+  remote: false,
+  api: null,
+  designMd: null,
+};
 
 // Tier severity ordering for --fail-on. A scan exits non-zero when its tier is
 // at or above the requested threshold. 'blocked'/'error' always count as failures
@@ -24,8 +35,11 @@ const VALID_AXES = ['design', 'copy'];
 function parseAxes(val) {
   if (!val) return null;
   if (val === 'all') return [...VALID_AXES];
-  const list = val.split(',').map(s => s.trim()).filter(Boolean);
-  const bad = list.filter(a => !VALID_AXES.includes(a));
+  const list = val
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const bad = list.filter((a) => !VALID_AXES.includes(a));
   if (bad.length) return { error: bad };
   const out = [...new Set(list)];
   if (!out.includes('design')) out.unshift('design');
@@ -43,34 +57,40 @@ for (let i = 0; i < args.length; i++) {
   else if (a === '--api' || a.startsWith('--api=')) {
     flags.api = a.startsWith('--api=') ? a.slice('--api='.length) : args[++i];
     flags.remote = true; // a custom API endpoint implies remote scanning
-  }
-  else if (a === '--design-md' || a.startsWith('--design-md=')) {
+  } else if (a === '--design-md' || a.startsWith('--design-md=')) {
     const val = a.startsWith('--design-md=') ? a.slice('--design-md='.length) : args[++i];
     if (!val) {
-      console.error('--design-md needs a value: a file path, a URL, or "auto" (looks for <origin>/DESIGN.md).');
+      console.error(
+        '--design-md needs a value: a file path, a URL, or "auto" (looks for <origin>/DESIGN.md).'
+      );
       process.exit(2);
     }
     flags.designMd = val;
-  }
-  else if (a === '--axes' || a.startsWith('--axes=')) {
+  } else if (a === '--axes' || a.startsWith('--axes=')) {
     const val = a.startsWith('--axes=') ? a.slice('--axes='.length) : args[++i];
     const parsed = parseAxes(val);
     if (!parsed || parsed.error) {
-      console.error(`Invalid --axes value: ${val}. Options: ${VALID_AXES.join(', ')} (comma-separated) or "all".`);
+      console.error(
+        `Invalid --axes value: ${val}. Options: ${VALID_AXES.join(', ')} (comma-separated) or "all".`
+      );
       process.exit(1);
     }
     flags.axes = parsed;
-  }
-  else if (a === '--fail-on' || a.startsWith('--fail-on=')) {
-    const val = (a.startsWith('--fail-on=') ? a.slice('--fail-on='.length) : args[++i] || '').toLowerCase();
+  } else if (a === '--fail-on' || a.startsWith('--fail-on=')) {
+    const val = (
+      a.startsWith('--fail-on=') ? a.slice('--fail-on='.length) : args[++i] || ''
+    ).toLowerCase();
     if (!VALID_FAIL_ON.includes(val)) {
-      console.error(`Invalid --fail-on value: ${val || '(none)'}. Options: ${VALID_FAIL_ON.join(', ')}.`);
+      console.error(
+        `Invalid --fail-on value: ${val || '(none)'}. Options: ${VALID_FAIL_ON.join(', ')}.`
+      );
       process.exit(2);
     }
     flags.failOn = val === 'mild' ? 'Mild' : 'Heavy';
-  }
-  else if (a === '--help' || a === '-h') { help(); process.exit(0); }
-  else if (a === '--preset' || a === '-p') {
+  } else if (a === '--help' || a === '-h') {
+    help();
+    process.exit(0);
+  } else if (a === '--preset' || a === '-p') {
     const val = args[++i];
     if (!val || !isPreset(val)) {
       console.error(`Unknown preset: ${val}. Options: ${Object.keys(PRESETS).join(', ')}`);
@@ -84,8 +104,10 @@ for (let i = 0; i < args.length; i++) {
       process.exit(1);
     }
     flags.preset = val;
-  } else if (a.startsWith('--')) { console.error(`Unknown flag: ${a}`); process.exit(1); }
-  else urls.push(a);
+  } else if (a.startsWith('--')) {
+    console.error(`Unknown flag: ${a}`);
+    process.exit(1);
+  } else urls.push(a);
 }
 
 if (urls.length === 0) {
@@ -113,7 +135,7 @@ function help() {
     const short = p.short || p.id;
     // Use the longer label as the description, unless it just repeats the short
     // name or is too long for one line.
-    const desc = (p.label && p.label.length <= 52 && p.label !== short) ? p.label : '';
+    const desc = p.label && p.label.length <= 52 && p.label !== short ? p.label : '';
     const line = `  ${n}. ${short.padEnd(20, ' ')}` + (desc ? ` — ${desc}` : '');
     return `${line} (w${p.weight})`;
   }).join('\n');
@@ -161,9 +183,16 @@ Tier thresholds:
 
 // ── ANSI colors ──────────────────────────────────────────────────────────────
 const C = {
-  reset: '\x1b[0m', bold: '\x1b[1m', dim: '\x1b[2m',
-  red: '\x1b[31m', green: '\x1b[32m', yellow: '\x1b[33m',
-  blue: '\x1b[34m', magenta: '\x1b[35m', cyan: '\x1b[36m', grey: '\x1b[90m'
+  reset: '\x1b[0m',
+  bold: '\x1b[1m',
+  dim: '\x1b[2m',
+  red: '\x1b[31m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  magenta: '\x1b[35m',
+  cyan: '\x1b[36m',
+  grey: '\x1b[90m',
 };
 
 function tierStyle(tier) {
@@ -203,32 +232,38 @@ function renderPretty(result) {
   const multi = result.axes && result.axes.copy;
   if (multi) {
     const ut = tierStyle(result.unifiedTier);
-    console.log(`  ${emoji(result.unifiedTier)} ${ut}${C.bold}${result.unifiedTier}${C.reset}` +
-      `  ·  ${C.bold}${result.unifiedGrade}${C.reset}` +
-      `  ·  unified ${C.bold}${result.unifiedScore}${C.reset}/100` +
-      `  ${C.grey}(${result.axes ? Object.keys(result.axes).length : 1} axes)${C.reset}`);
+    console.log(
+      `  ${emoji(result.unifiedTier)} ${ut}${C.bold}${result.unifiedTier}${C.reset}` +
+        `  ·  ${C.bold}${result.unifiedGrade}${C.reset}` +
+        `  ·  unified ${C.bold}${result.unifiedScore}${C.reset}/100` +
+        `  ${C.grey}(${result.axes ? Object.keys(result.axes).length : 1} axes)${C.reset}`
+    );
     console.log();
     for (const name of Object.keys(result.axes)) {
       const ax = result.axes[name];
       const ax_ts = tierStyle(ax.tier);
       const note = ax.thin ? `${C.grey} (too little copy to judge)${C.reset}` : '';
-      console.log(`  ${emoji(ax.tier)} ${C.bold}${name.padEnd(7)}${C.reset} ${ax_ts}${ax.tier.padEnd(6)}${C.reset}` +
-        `  ${ax.grade.padEnd(3)}  score ${C.bold}${String(ax.score).padStart(3)}${C.reset}/100` +
-        `  ${String(ax.patternsFlagged).padStart(2)}/${ax.patternsTotal} flagged${note}`);
+      console.log(
+        `  ${emoji(ax.tier)} ${C.bold}${name.padEnd(7)}${C.reset} ${ax_ts}${ax.tier.padEnd(6)}${C.reset}` +
+          `  ${ax.grade.padEnd(3)}  score ${C.bold}${String(ax.score).padStart(3)}${C.reset}/100` +
+          `  ${String(ax.patternsFlagged).padStart(2)}/${ax.patternsTotal} flagged${note}`
+      );
     }
     console.log();
   } else {
-    console.log(`  ${emoji(result.tier)} ${ts}${C.bold}${result.tier}${C.reset}` +
-      `  ·  ${C.bold}${result.grade || '?'}${C.reset}` +
-      `  ·  score ${C.bold}${result.score}${C.reset}/100` +
-      `  ·  ${C.bold}${result.patternsFlagged}${C.reset}/${result.patternsTotal} patterns triggered`);
+    console.log(
+      `  ${emoji(result.tier)} ${ts}${C.bold}${result.tier}${C.reset}` +
+        `  ·  ${C.bold}${result.grade || '?'}${C.reset}` +
+        `  ·  score ${C.bold}${result.score}${C.reset}/100` +
+        `  ·  ${C.bold}${result.patternsFlagged}${C.reset}/${result.patternsTotal} patterns triggered`
+    );
     if (result.verdict) console.log(`  ${C.grey}${result.verdict}${C.reset}`);
     console.log();
   }
 
   // Design-axis pattern detail (always shown — it's the primary fingerprint).
-  const flagged = result.patterns.filter(p => p.triggered);
-  const clean = result.patterns.filter(p => !p.triggered);
+  const flagged = result.patterns.filter((p) => p.triggered);
+  const clean = result.patterns.filter((p) => !p.triggered);
 
   if (flagged.length) {
     console.log(`${C.bold}Triggered:${C.reset}`);
@@ -245,14 +280,14 @@ function renderPretty(result) {
 
   if (clean.length && !flags.json) {
     console.log(`${C.dim}Clean:${C.reset}`);
-    const names = clean.map(p => p.short).join(', ');
+    const names = clean.map((p) => p.short).join(', ');
     console.log(`  ${C.dim}${names}${C.reset}`);
     console.log();
   }
 
   // Copy axis detail.
   if (result.axes && result.axes.copy && !result.axes.copy.thin) {
-    const cflag = result.axes.copy.patterns.filter(p => p.triggered);
+    const cflag = result.axes.copy.patterns.filter((p) => p.triggered);
     if (cflag.length) {
       console.log(`${C.bold}Copy slop:${C.reset}`);
       for (const p of cflag) {
@@ -281,9 +316,11 @@ function aeoEmoji(tier) {
 
 function renderAeo(aeo) {
   const ts = aeoTierStyle(aeo.tier);
-  console.log(`  ${aeoEmoji(aeo.tier)} ${C.bold}AEO    ${C.reset} ${ts}${aeo.tier.padEnd(10)}${C.reset}` +
-    `  score ${C.bold}${String(aeo.score).padStart(3)}${C.reset}/${aeo.maxScore}` +
-    `  ${C.grey}(${aeo.passed.length}/${aeo.checks.length} checks · ${aeo.durationMs}ms)${C.reset}`);
+  console.log(
+    `  ${aeoEmoji(aeo.tier)} ${C.bold}AEO    ${C.reset} ${ts}${aeo.tier.padEnd(10)}${C.reset}` +
+      `  score ${C.bold}${String(aeo.score).padStart(3)}${C.reset}/${aeo.maxScore}` +
+      `  ${C.grey}(${aeo.passed.length}/${aeo.checks.length} checks · ${aeo.durationMs}ms)${C.reset}`
+  );
   console.log(`  ${C.grey}Can AI engines read & cite this page?${C.reset}`);
   console.log();
   const failed = aeo.failed;
@@ -291,7 +328,9 @@ function renderAeo(aeo) {
     console.log(`${C.bold}AEO issues:${C.reset}`);
     for (const c of failed) {
       const sev = c.severity === 'required' ? C.red : C.yellow;
-      console.log(`  ${sev}✗${C.reset} ${c.label}  ${C.grey}(${c.severity}, -${c.weight})${C.reset}`);
+      console.log(
+        `  ${sev}✗${C.reset} ${c.label}  ${C.grey}(${c.severity}, -${c.weight})${C.reset}`
+      );
       if (flags.verbose) console.log(`      ${C.grey}${c.message}${C.reset}`);
     }
     console.log();
@@ -299,7 +338,7 @@ function renderAeo(aeo) {
   const passed = aeo.passed;
   if (passed.length && !flags.json) {
     console.log(`${C.dim}AEO passed:${C.reset}`);
-    console.log(`  ${C.dim}${passed.map(c => c.id).join(', ')}${C.reset}`);
+    console.log(`  ${C.dim}${passed.map((c) => c.id).join(', ')}${C.reset}`);
     console.log();
   }
 }
@@ -324,9 +363,11 @@ function renderSystem(sys) {
   }
   const ts = systemTierStyle(sys.tier);
   const name = sys.name ? ` ${C.grey}(${sys.name})${C.reset}` : '';
-  console.log(`  ${systemEmoji(sys.tier)} ${C.bold}system ${C.reset} ${ts}${sys.tier.padEnd(10)}${C.reset}` +
-    `  score ${C.bold}${String(sys.score).padStart(3)}${C.reset}/100` +
-    `  ${C.grey}(${sys.checksEvaluated} checks · ${sys.checksSkipped} skipped)${C.reset}${name}`);
+  console.log(
+    `  ${systemEmoji(sys.tier)} ${C.bold}system ${C.reset} ${ts}${sys.tier.padEnd(10)}${C.reset}` +
+      `  score ${C.bold}${String(sys.score).padStart(3)}${C.reset}/100` +
+      `  ${C.grey}(${sys.checksEvaluated} checks · ${sys.checksSkipped} skipped)${C.reset}${name}`
+  );
   console.log(`  ${C.grey}Does this page honor its declared design system?${C.reset}`);
   console.log();
   if (sys.drift.length) {
@@ -346,13 +387,23 @@ function renderSystem(sys) {
   const results = [];
   for (const url of urls) {
     try {
-      const scanOpts = { screenshot: flags.screenshot, preset: flags.preset, axes: flags.axes, api: flags.api };
+      const scanOpts = {
+        screenshot: flags.screenshot,
+        preset: flags.preset,
+        axes: flags.axes,
+        api: flags.api,
+      };
       if (flags.designMd && !flags.remote) {
         const loaded = await loadDesignMd(flags.designMd, url);
         if (loaded) scanOpts.designMd = loaded.text;
-        else if (!flags.json) console.error(`${C.grey}No DESIGN.md found for ${url} (auto) — skipping the system axis.${C.reset}`);
+        else if (!flags.json)
+          console.error(
+            `${C.grey}No DESIGN.md found for ${url} (auto) — skipping the system axis.${C.reset}`
+          );
       } else if (flags.designMd && flags.remote) {
-        console.error('--design-md is not supported with --remote yet; drop --remote to scan locally.');
+        console.error(
+          '--design-md is not supported with --remote yet; drop --remote to scan locally.'
+        );
         process.exit(2);
       }
       const r = flags.remote ? await scanRemote(url, scanOpts) : await scanUrl(url, scanOpts);
@@ -370,7 +421,8 @@ function renderSystem(sys) {
         renderPretty(r);
         if (r.system) renderSystem(r.system);
         if (r.aeo && !r.aeo.error) renderAeo(r.aeo);
-        else if (r.aeo && r.aeo.error) console.log(`  ${C.yellow}⚠ AEO check failed: ${r.aeo.error}${C.reset}\n`);
+        else if (r.aeo && r.aeo.error)
+          console.log(`  ${C.yellow}⚠ AEO check failed: ${r.aeo.error}${C.reset}\n`);
       }
     } catch (err) {
       const errResult = { url, error: err.message };
@@ -392,9 +444,9 @@ function renderSystem(sys) {
   let exitCode = 0;
   if (flags.failOn) {
     const threshold = TIER_RANK[flags.failOn];
-    const failed = results.some(r => {
+    const failed = results.some((r) => {
       if (r.error || r.blocked) return true;
-      const tier = (r.axes && r.axes.copy) ? r.unifiedTier : r.tier;
+      const tier = r.axes && r.axes.copy ? r.unifiedTier : r.tier;
       return (TIER_RANK[tier] ?? 0) >= threshold;
     });
     if (failed) exitCode = 1;
@@ -405,7 +457,9 @@ function renderSystem(sys) {
     console.log(`${C.bold}━━━ Summary ━━━${C.reset}`);
     for (const r of results) {
       if (r.blocked) {
-        console.log(`  ${C.yellow}⚠ blocked${C.reset}  ${C.grey}${r.code.padEnd(20)}${C.reset}  ${r.url}`);
+        console.log(
+          `  ${C.yellow}⚠ blocked${C.reset}  ${C.grey}${r.code.padEnd(20)}${C.reset}  ${r.url}`
+        );
       } else if (r.error) {
         console.log(`  ${C.red}error${C.reset}  ${r.url}`);
       } else {
@@ -413,10 +467,12 @@ function renderSystem(sys) {
         const sumScore = r.axes && r.axes.copy ? r.unifiedScore : r.score;
         const sumTier = r.axes && r.axes.copy ? r.unifiedTier : r.tier;
         const sts = tierStyle(sumTier);
-        console.log(`  ${emoji(sumTier)} ${sts}${sumTier.padEnd(6)}${C.reset}  ` +
-          `score ${C.bold}${String(sumScore).padStart(3)}${C.reset}/100  ` +
-          `${String(r.patternsFlagged).padStart(2)}/${r.patternsTotal} patterns  ` +
-          `${C.grey}${r.url}${C.reset}`);
+        console.log(
+          `  ${emoji(sumTier)} ${sts}${sumTier.padEnd(6)}${C.reset}  ` +
+            `score ${C.bold}${String(sumScore).padStart(3)}${C.reset}/100  ` +
+            `${String(r.patternsFlagged).padStart(2)}/${r.patternsTotal} patterns  ` +
+            `${C.grey}${r.url}${C.reset}`
+        );
       }
     }
     console.log();
@@ -425,7 +481,12 @@ function renderSystem(sys) {
   // Tell the user why we're failing (only when gating + actually failing, and
   // not in JSON mode where stdout must stay a clean JSON document).
   if (flags.failOn && exitCode !== 0 && !flags.json) {
-    console.error(`${C.red}${C.bold}✗ --fail-on ${flags.failOn.toLowerCase()}: one or more pages failed the gate.${C.reset}`);
+    console.error(
+      `${C.red}${C.bold}✗ --fail-on ${flags.failOn.toLowerCase()}: one or more pages failed the gate.${C.reset}`
+    );
   }
   process.exit(exitCode);
-})().catch(e => { console.error(e); process.exit(1); });
+})().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

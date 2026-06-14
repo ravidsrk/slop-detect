@@ -8,24 +8,27 @@
 import { PATTERNS, DEFINITIONS_VERSION } from 'slop-detect-core';
 
 export async function onRequestGet() {
-  const patterns = PATTERNS.map(p => ({
+  const patterns = PATTERNS.map((p) => ({
     id: p.id,
     label: p.label,
     short: p.short,
     category: p.category || null,
     weight: p.weight,
-    since: p.since || 'baseline'
+    since: p.since || 'baseline',
   }));
 
-  return new Response(JSON.stringify({
-    version: DEFINITIONS_VERSION,
-    count: patterns.length,
-    patterns
-  }), {
-    headers: {
-      'Content-Type': 'application/json',
-      // Catalogue only changes on a deploy — let the edge cache it.
-      'Cache-Control': 'public, max-age=3600'
+  return new Response(
+    JSON.stringify({
+      version: DEFINITIONS_VERSION,
+      count: patterns.length,
+      patterns,
+    }),
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        // Catalogue only changes on a deploy — let the edge cache it.
+        'Cache-Control': 'public, max-age=3600',
+      },
     }
-  });
+  );
 }

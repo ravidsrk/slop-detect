@@ -11,7 +11,7 @@ import {
   tierRank,
   recordScanForWatch,
   getWatch,
-  getHistory
+  getHistory,
 } from '../functions/_shared.js';
 import { onRequestPost, onRequestGet } from '../functions/api/watch.js';
 
@@ -20,9 +20,15 @@ function makeKv(seed = {}) {
   const store = new Map(Object.entries(seed));
   return {
     store,
-    async get(k) { return store.has(k) ? store.get(k) : null; },
-    async put(k, v) { store.set(k, v); },
-    async delete(k) { store.delete(k); }
+    async get(k) {
+      return store.has(k) ? store.get(k) : null;
+    },
+    async put(k, v) {
+      store.set(k, v);
+    },
+    async delete(k) {
+      store.delete(k);
+    },
   };
 }
 
@@ -41,7 +47,7 @@ function slim(over = {}) {
     grade: 'A-',
     tier: 'Clean',
     createdAt: '2026-06-01T00:00:00.000Z',
-    ...over
+    ...over,
   };
 }
 
@@ -56,9 +62,9 @@ test('normalizeDomain accepts bare domains and strips scheme/www', () => {
 test('normalizeDomain rejects junk, IPs-with-paths, and empty', () => {
   assert.equal(normalizeDomain(''), null);
   assert.equal(normalizeDomain('not a domain'), null);
-  assert.equal(normalizeDomain('localhost'), null);     // no TLD
-  assert.equal(normalizeDomain('foo@bar.com'), null);   // credentials/@
-  assert.equal(normalizeDomain('x.y'), null);           // too short / 1-char TLD label
+  assert.equal(normalizeDomain('localhost'), null); // no TLD
+  assert.equal(normalizeDomain('foo@bar.com'), null); // credentials/@
+  assert.equal(normalizeDomain('x.y'), null); // too short / 1-char TLD label
 });
 
 // ── isValidEmail ─────────────────────────────────────────────────────────────
@@ -79,11 +85,11 @@ test('tierRank orders the bands', () => {
 
 test('isRegression fires on a tier drop OR a meaningful score increase', () => {
   const base = { score: 8, tier: 'Clean' };
-  assert.ok(!isRegression(base, { score: 10, tier: 'Clean' }));      // +2, same tier → no
-  assert.ok(isRegression(base, { score: 16, tier: 'Clean' }));       // +8 → yes
-  assert.ok(isRegression(base, { score: 11, tier: 'Mild' }));        // tier drop → yes
-  assert.ok(!isRegression(base, { score: 4, tier: 'Clean' }));       // improved → no
-  assert.ok(!isRegression(null, { score: 90, tier: 'Heavy' }));      // no baseline → no
+  assert.ok(!isRegression(base, { score: 10, tier: 'Clean' })); // +2, same tier → no
+  assert.ok(isRegression(base, { score: 16, tier: 'Clean' })); // +8 → yes
+  assert.ok(isRegression(base, { score: 11, tier: 'Mild' })); // tier drop → yes
+  assert.ok(!isRegression(base, { score: 4, tier: 'Clean' })); // improved → no
+  assert.ok(!isRegression(null, { score: 90, tier: 'Heavy' })); // no baseline → no
 });
 
 // ── recordScanForWatch ───────────────────────────────────────────────────────
@@ -96,11 +102,14 @@ test('recordScanForWatch is a no-op for unwatched domains', async () => {
 
 test('recordScanForWatch sets a baseline on first scan, then detects regression', async () => {
   const kv = makeKv({
-    'w:example.com': JSON.stringify({ domain: 'example.com', email: 'dev@x.io' })
+    'w:example.com': JSON.stringify({ domain: 'example.com', email: 'dev@x.io' }),
   });
 
   // First scan establishes the baseline (Clean 8) and is not a regression.
-  const first = await recordScanForWatch(kv, slim({ id: 's1', score: 8, grade: 'A-', tier: 'Clean' }));
+  const first = await recordScanForWatch(
+    kv,
+    slim({ id: 's1', score: 8, grade: 'A-', tier: 'Clean' })
+  );
   assert.equal(first.watched, true);
   assert.equal(first.regressed, false);
   assert.equal(first.baseline.score, 8);
@@ -110,7 +119,10 @@ test('recordScanForWatch sets a baseline on first scan, then detects regression'
   assert.equal(watch.lastScore, 8);
 
   // Later scan regresses to Heavy → flagged.
-  const later = await recordScanForWatch(kv, slim({ id: 's2', score: 41, grade: 'D', tier: 'Heavy' }));
+  const later = await recordScanForWatch(
+    kv,
+    slim({ id: 's2', score: 41, grade: 'D', tier: 'Heavy' })
+  );
   assert.equal(later.regressed, true);
   assert.equal(later.delta, 33);
 
@@ -120,11 +132,16 @@ test('recordScanForWatch sets a baseline on first scan, then detects regression'
 
   const hist = await getHistory(kv, 'example.com');
   assert.equal(hist.length, 2);
-  assert.deepEqual(hist.map(h => h.id), ['s1', 's2']);
+  assert.deepEqual(
+    hist.map((h) => h.id),
+    ['s1', 's2']
+  );
 });
 
 test('recordScanForWatch de-dupes the same scan id in history', async () => {
-  const kv = makeKv({ 'w:example.com': JSON.stringify({ domain: 'example.com', email: 'd@x.io' }) });
+  const kv = makeKv({
+    'w:example.com': JSON.stringify({ domain: 'example.com', email: 'd@x.io' }),
+  });
   await recordScanForWatch(kv, slim({ id: 'dup' }));
   await recordScanForWatch(kv, slim({ id: 'dup' }));
   const hist = await getHistory(kv, 'example.com');
@@ -145,11 +162,21 @@ test('POST /api/watch subscribes, seeding baseline from the latest scan', async 
   // Pre-seed a prior scan for the domain (d:<domain> → id, r:<id> → result).
   const kv = makeKv({
     'd:example.com': 'r0',
-    'r:r0': JSON.stringify({ id: 'r0', domain: 'example.com', score: 6, grade: 'A', tier: 'Clean', createdAt: '2026-05-01T00:00:00.000Z' })
+    'r:r0': JSON.stringify({
+      id: 'r0',
+      domain: 'example.com',
+      score: 6,
+      grade: 'A',
+      tier: 'Clean',
+      createdAt: '2026-05-01T00:00:00.000Z',
+    }),
   });
   const env = { RESULTS: kv };
 
-  const res = await onRequestPost({ request: makePostReq({ domain: 'https://www.example.com', email: 'Dev@Startup.IO' }), env });
+  const res = await onRequestPost({
+    request: makePostReq({ domain: 'https://www.example.com', email: 'Dev@Startup.IO' }),
+    env,
+  });
   assert.equal(res.status, 201);
   const j = await res.json();
   assert.equal(j.monitoring, true);
@@ -162,16 +189,24 @@ test('POST /api/watch subscribes, seeding baseline from the latest scan', async 
 });
 
 test('POST /api/watch unsubscribe requires a matching email', async () => {
-  const kv = makeKv({ 'w:example.com': JSON.stringify({ domain: 'example.com', email: 'owner@x.io' }) });
+  const kv = makeKv({
+    'w:example.com': JSON.stringify({ domain: 'example.com', email: 'owner@x.io' }),
+  });
   const env = { RESULTS: kv };
 
   // Wrong email → 403, watch survives.
-  let res = await onRequestPost({ request: makePostReq({ domain: 'example.com', email: 'rando@y.io', unsubscribe: true }), env });
+  let res = await onRequestPost({
+    request: makePostReq({ domain: 'example.com', email: 'rando@y.io', unsubscribe: true }),
+    env,
+  });
   assert.equal(res.status, 403);
   assert.ok(await getWatch(kv, 'example.com'));
 
   // Right email → removed.
-  res = await onRequestPost({ request: makePostReq({ domain: 'example.com', email: 'owner@x.io', unsubscribe: true }), env });
+  res = await onRequestPost({
+    request: makePostReq({ domain: 'example.com', email: 'owner@x.io', unsubscribe: true }),
+    env,
+  });
   assert.equal(res.status, 200);
   assert.equal(await getWatch(kv, 'example.com'), null);
 });
@@ -180,11 +215,19 @@ test('POST /api/watch unsubscribe requires a matching email', async () => {
 test('GET /api/watch reports status without leaking the email', async () => {
   const kv = makeKv({
     'w:example.com': JSON.stringify({
-      domain: 'example.com', email: 'secret@x.io',
-      baselineScore: 8, baselineGrade: 'A-', baselineTier: 'Clean',
-      lastScore: 30, lastGrade: 'C', lastTier: 'Heavy', regressed: true
+      domain: 'example.com',
+      email: 'secret@x.io',
+      baselineScore: 8,
+      baselineGrade: 'A-',
+      baselineTier: 'Clean',
+      lastScore: 30,
+      lastGrade: 'C',
+      lastTier: 'Heavy',
+      regressed: true,
     }),
-    'h:example.com': JSON.stringify([{ id: 'a', score: 8, grade: 'A-', tier: 'Clean', createdAt: 't1' }])
+    'h:example.com': JSON.stringify([
+      { id: 'a', score: 8, grade: 'A-', tier: 'Clean', createdAt: 't1' },
+    ]),
   });
   const env = { RESULTS: kv };
 

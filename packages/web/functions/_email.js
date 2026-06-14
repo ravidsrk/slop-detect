@@ -29,16 +29,16 @@ export async function sendEmail(env, { to, subject, text, html }, fetchImpl = fe
     const res = await fetchImpl('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json'
+        Authorization: `Bearer ${env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         from: env.ALERT_FROM,
         to: [to],
         subject,
         text,
-        ...(html ? { html } : {})
-      })
+        ...(html ? { html } : {}),
+      }),
     });
     if (!res.ok) {
       const body = await res.text().catch(() => '');

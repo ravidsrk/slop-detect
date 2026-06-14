@@ -13,7 +13,7 @@ import {
   isPreset,
   PATTERNS,
   COPY_PATTERNS,
-  DEFINITIONS_VERSION
+  DEFINITIONS_VERSION,
 } from '../src/index.js';
 
 const p = (id, weight, triggered) => ({ id, label: id, category: 'x', weight, triggered });
@@ -42,7 +42,7 @@ test('scorePatterns clamps score to 100 and tier stays Heavy', () => {
 });
 
 test('scorePatterns grade matches the score bands', () => {
-  assert.equal(scorePatterns([]).grade, 'A+');               // 0
+  assert.equal(scorePatterns([]).grade, 'A+'); // 0
   assert.equal(scorePatterns([p('a', 28, true)]).grade, 'D+'); // 28
 });
 
@@ -51,7 +51,7 @@ test('gradeForScore is monotonic and clamped', () => {
   assert.equal(gradeForScore(0), 'A+');
   assert.equal(gradeForScore(9), 'A-');
   assert.equal(gradeForScore(100), 'F');
-  assert.equal(gradeForScore(-5), 'A+');   // clamps low
+  assert.equal(gradeForScore(-5), 'A+'); // clamps low
   assert.equal(gradeForScore(99999), 'F'); // clamps high
 });
 
@@ -59,7 +59,7 @@ test('gradeForScore is monotonic and clamped', () => {
 test('combineAxes takes the max when only one axis is dirty', () => {
   const r = combineAxes({
     design: { score: 8, tier: 'Clean' },
-    copy: { score: 18, tier: 'Mild' }
+    copy: { score: 18, tier: 'Mild' },
   });
   assert.equal(r.unifiedScore, 18);
   assert.equal(r.dirtyAxes, 1);
@@ -68,7 +68,7 @@ test('combineAxes takes the max when only one axis is dirty', () => {
 test('combineAxes adds +6 per extra dirty axis', () => {
   const r = combineAxes({
     design: { score: 30, tier: 'Heavy' },
-    copy: { score: 18, tier: 'Mild' }
+    copy: { score: 18, tier: 'Mild' },
   });
   assert.equal(r.unifiedScore, 36); // max 30 + 6 (one extra dirty axis)
   assert.equal(r.dirtyAxes, 2);
@@ -89,7 +89,10 @@ test('scoreCopy returns thin=true and Clean when there is too little prose', () 
   assert.equal(r.tier, 'Clean');
   assert.equal(r.patterns.length, COPY_PATTERNS.length);
   // Thin text must never flag a pattern (avoids false positives on sparse pages).
-  assert.equal(r.patterns.every(pp => pp.triggered === false), true);
+  assert.equal(
+    r.patterns.every((pp) => pp.triggered === false),
+    true
+  );
 });
 
 test('scoreCopy never throws and clamps to 100', () => {
@@ -110,10 +113,17 @@ test('applyPreset: full keeps all; strict keeps only weight>=5; minimal keeps 3'
 
   const strict = applyPreset(PATTERNS, 'strict');
   assert.ok(strict.length < PATTERNS.length);
-  assert.equal(strict.every(pp => pp.weight >= 5), true);
+  assert.equal(
+    strict.every((pp) => pp.weight >= 5),
+    true
+  );
 
   const minimal = applyPreset(PATTERNS, 'minimal');
-  assert.deepEqual(minimal.map(pp => pp.id).sort(), ['gradient_text', 'purple_accent', 'slop_fonts']);
+  assert.deepEqual(minimal.map((pp) => pp.id).sort(), [
+    'gradient_text',
+    'purple_accent',
+    'slop_fonts',
+  ]);
 });
 
 test('applyPreset is fail-open on an unknown preset (returns full set)', () => {

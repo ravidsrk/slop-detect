@@ -6,7 +6,9 @@ import { checkSystem } from '../src/api.js';
 import { formatSystem } from '../src/format.js';
 
 const realFetch = global.fetch;
-afterEach(() => { global.fetch = realFetch; });
+afterEach(() => {
+  global.fetch = realFetch;
+});
 
 test('checkSystem posts designMd:true (auto) with share:false by default', async () => {
   let seen = null;
@@ -33,10 +35,15 @@ test('checkSystem passes an explicit DESIGN.md URL through', async () => {
 test('formatSystem renders score, tier, drift items, and the polarity reminder', () => {
   const out = formatSystem({
     system: {
-      declared: true, name: 'Heritage', score: 55, tier: 'Drifting',
-      checksEvaluated: 5, checksSkipped: 0, source: 'https://example.com/DESIGN.md',
-      drift: [{ id: 'fonts.declared', message: 'font(s) in use but not in the system: inter' }]
-    }
+      declared: true,
+      name: 'Heritage',
+      score: 55,
+      tier: 'Drifting',
+      checksEvaluated: 5,
+      checksSkipped: 0,
+      source: 'https://example.com/DESIGN.md',
+      drift: [{ id: 'fonts.declared', message: 'font(s) in use but not in the system: inter' }],
+    },
   });
   assert.match(out, /55\/100/);
   assert.match(out, /HIGHER is better/);
@@ -46,7 +53,12 @@ test('formatSystem renders score, tier, drift items, and the polarity reminder',
 });
 
 test('formatSystem explains the no-system state with how to fix it', () => {
-  const out = formatSystem({ system: { declared: false, message: 'No parseable DESIGN.md tokens — nothing to check against.' } });
+  const out = formatSystem({
+    system: {
+      declared: false,
+      message: 'No parseable DESIGN.md tokens — nothing to check against.',
+    },
+  });
   assert.match(out, /NO SYSTEM DECLARED/);
   assert.match(out, /publish a DESIGN\.md/);
 });

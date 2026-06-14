@@ -16,7 +16,7 @@ import {
   getHistory,
   publicWatch,
   tierColors,
-  escapeHtml
+  escapeHtml,
 } from '../_shared.js';
 import { BRAND_FONTS_HEAD, BRAND_CSS } from '../_brand.js';
 
@@ -30,34 +30,43 @@ function sysColors(tier) {
 }
 
 function historyRows(history) {
-  return history.slice(-20).reverse().map((h) => {
-    const c = tierColors(h.tier);
-    const sys = h.system
-      ? `<td style="color:${sysColors(h.system.tier).fg}">${h.system.score}/100 ${escapeHtml(h.system.tier)}</td>`
-      : '<td class="dim">—</td>';
-    return `<tr>
+  return history
+    .slice(-20)
+    .reverse()
+    .map((h) => {
+      const c = tierColors(h.tier);
+      const sys = h.system
+        ? `<td style="color:${sysColors(h.system.tier).fg}">${h.system.score}/100 ${escapeHtml(h.system.tier)}</td>`
+        : '<td class="dim">—</td>';
+      return `<tr>
       <td>${escapeHtml(String(h.at || '').slice(0, 10))}</td>
       <td><span style="color:${c.fg}">${escapeHtml(h.grade || '—')}</span></td>
       <td>${h.score}/100</td>
       <td style="color:${c.fg}">${escapeHtml(h.tier || '')}</td>
       ${sys}
     </tr>`;
-  }).join('');
+    })
+    .join('');
 }
 
 export async function onRequestGet({ params, request, env }) {
   const origin = new URL(request.url).origin;
   const domain = normalizeDomain(String(params.domain || ''));
   if (!domain) {
-    return new Response('Invalid domain', { status: 400, headers: { 'Content-Type': 'text/plain' } });
+    return new Response('Invalid domain', {
+      status: 400,
+      headers: { 'Content-Type': 'text/plain' },
+    });
   }
 
-  let latest = null, watch = null, history = [];
+  let latest = null,
+    watch = null,
+    history = [];
   if (env.RESULTS) {
     [latest, watch, history] = await Promise.all([
       getLatestForDomain(env.RESULTS, domain).catch(() => null),
       getWatch(env.RESULTS, domain).catch(() => null),
-      getHistory(env.RESULTS, domain).catch(() => [])
+      getHistory(env.RESULTS, domain).catch(() => []),
     ]);
   }
   const pub = watch ? publicWatch(watch, history) : null;
@@ -68,7 +77,8 @@ export async function onRequestGet({ params, request, env }) {
   const sc = sysColors(sys?.tier);
   const today = new Date().toISOString().slice(0, 10);
 
-  const scoreBlock = latest ? `
+  const scoreBlock = latest
+    ? `
     <section class="grid">
       <div class="card">
         <div class="k">design-slop fingerprint</div>
@@ -78,36 +88,54 @@ export async function onRequestGet({ params, request, env }) {
       </div>
       <div class="card">
         <div class="k">design-system compliance</div>
-        ${sys ? `
+        ${
+          sys
+            ? `
         <div class="big" style="color:${sc.fg}">${sys.score}<small>/100</small></div>
         <div class="sub" style="color:${sc.fg}">${escapeHtml(sys.tier)}</div>
         <div class="note">vs its own DESIGN.md · higher is better${sys.drifted ? ' · <strong>drifted</strong>' : ''}</div>
-        ` : `
+        `
+            : `
         <div class="big dim">—</div>
         <div class="note">Not monitored against a DESIGN.md yet. Opt in via
           <code>POST /api/watch { system: true }</code>.</div>
-        `}
+        `
+        }
       </div>
-    </section>` : '';
+    </section>`
+    : '';
 
-  const driftBlock = sys && sys.drift && sys.drift.length ? `
+  const driftBlock =
+    sys && sys.drift && sys.drift.length
+      ? `
     <h2>What drifted</h2>
     <ul class="drift">
       ${sys.drift.map((d) => `<li><span class="x">✗</span> ${escapeHtml(d.message)} <span class="dim">(${escapeHtml(d.id)})</span></li>`).join('')}
-    </ul>` : '';
+    </ul>`
+      : '';
 
-  const histBlock = history.length ? `
+  const histBlock = history.length
+    ? `
     <h2>History</h2>
     <table>
       <thead><tr><th>date</th><th>grade</th><th>slop score</th><th>tier</th><th>system</th></tr></thead>
       <tbody>${historyRows(history)}</tbody>
-    </table>` : '';
+    </table>`
+    : '';
 
-  const tellsBlock = latest?.triggered?.length ? `
+  const tellsBlock = latest?.triggered?.length
+    ? `
     <h2>Triggered patterns</h2>
     <ul class="drift">
-      ${latest.triggered.slice(0, 10).map((t) => `<li><span class="x">✗</span> ${escapeHtml(t.label || t.short || t.id)} <span class="dim">(+${t.weight})</span></li>`).join('')}
-    </ul>` : '';
+      ${latest.triggered
+        .slice(0, 10)
+        .map(
+          (t) =>
+            `<li><span class="x">✗</span> ${escapeHtml(t.label || t.short || t.id)} <span class="dim">(+${t.weight})</span></li>`
+        )
+        .join('')}
+    </ul>`
+    : '';
 
   const body = hasData
     ? scoreBlock + driftBlock + tellsBlock + histBlock
@@ -166,6 +194,6 @@ ${BRAND_FONTS_HEAD}
 </div></body></html>`;
 
   return new Response(html, {
-    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=120' }
+    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=120' },
   });
 }

@@ -6,7 +6,7 @@ Thanks for considering a contribution. The whole project is ~2,000 lines of Java
 
 1. Fork → branch → PR.
 2. New patterns and fix-recipe improvements are the most welcome contributions.
-3. CI runs `node --check` on every PR; please don't break the syntax.
+3. CI runs ESLint + Prettier on every PR; run `npm run lint` and `npm run format` before pushing.
 4. Be kind in issues and PRs. The code we're auditing was written by people too.
 
 ## Setup
@@ -162,8 +162,9 @@ Avoid:
 ## Testing your changes
 
 ```bash
-# 1) Lint (syntax check)
+# 1) Lint (ESLint) + format check (Prettier)
 npm run lint
+npm run format:check   # or `npm run format` to auto-fix
 
 # 2) Unit tests (copy axis + scoring — pure, no browser)
 npm test
@@ -179,7 +180,7 @@ npm run web:dev
 
 ## Pull request checklist
 
-- [ ] `npm run lint` passes
+- [ ] `npm run lint` and `npm run format:check` pass
 - [ ] You ran the CLI against ≥2 URLs and confirmed your change behaves as expected
 - [ ] If you added a pattern: ≥10 real-world examples in the PR description
 - [ ] If you changed a fix recipe: a before/after comparison of the generated prompt

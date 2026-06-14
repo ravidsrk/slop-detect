@@ -17,7 +17,11 @@ const enc = new TextEncoder();
 
 async function hmacHex(data, secret) {
   const key = await crypto.subtle.importKey(
-    'raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+    'raw',
+    enc.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
   );
   const sig = await crypto.subtle.sign('HMAC', key, enc.encode(data));
   return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, '0')).join('');
@@ -33,7 +37,9 @@ function safeEqual(a, b) {
 
 function b64urlEncode(s) {
   return btoa(unescape(encodeURIComponent(s)))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
 }
 function b64urlDecode(s) {
   const pad = s.length % 4 === 2 ? '==' : s.length % 4 === 3 ? '=' : '';
@@ -41,7 +47,11 @@ function b64urlDecode(s) {
 }
 
 // email → "payload.signature". Payload carries the email + absolute expiry.
-export async function signSession(email, secret, { ttlMs = DEFAULT_TTL_MS, now = Date.now() } = {}) {
+export async function signSession(
+  email,
+  secret,
+  { ttlMs = DEFAULT_TTL_MS, now = Date.now() } = {}
+) {
   if (!email || !secret) return null;
   const payload = b64urlEncode(JSON.stringify({ e: email, x: now + ttlMs }));
   const sig = await hmacHex(payload, secret);
@@ -61,7 +71,9 @@ export async function verifySession(token, secret, { now = Date.now() } = {}) {
     const { e, x } = JSON.parse(b64urlDecode(payload));
     if (typeof e !== 'string' || typeof x !== 'number' || now >= x) return null;
     return e;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 // ── Cookie plumbing ──────────────────────────────────────────────────────────
@@ -72,8 +84,10 @@ export function clearSessionCookie() {
   return `${COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
 }
 export function readSessionToken(request) {
-  const header = request.headers && typeof request.headers.get === 'function'
-    ? (request.headers.get('Cookie') || '') : '';
+  const header =
+    request.headers && typeof request.headers.get === 'function'
+      ? request.headers.get('Cookie') || ''
+      : '';
   const m = header.match(new RegExp(`(?:^|;\\s*)${COOKIE_NAME}=([^;]+)`));
   return m ? m[1] : null;
 }

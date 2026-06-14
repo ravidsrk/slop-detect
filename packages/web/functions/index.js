@@ -23,7 +23,7 @@ function agentView() {
     catalogue: {
       definitionsVersion: DEFINITIONS_VERSION,
       patternCount: PATTERNS.length,
-      tiers: { clean: '0-9', mild: '10-27', heavy: '28+' }
+      tiers: { clean: '0-9', mild: '10-27', heavy: '28+' },
     },
     capabilities: [
       {
@@ -31,48 +31,50 @@ function agentView() {
         method: 'POST',
         endpoint: `${ORIGIN}/api/scan`,
         body: { url: 'https://example.com', axes: ['design', 'copy'] },
-        description: 'Score a URL against the design-slop (and optional copy-slop) fingerprint.'
+        description: 'Score a URL against the design-slop (and optional copy-slop) fingerprint.',
       },
       {
         name: 'check_aeo',
         method: 'POST',
         endpoint: `${ORIGIN}/api/aeo`,
         body: { url: 'https://example.com' },
-        description: 'Score whether AI engines can fetch, read & cite a page. Higher is better.'
+        description: 'Score whether AI engines can fetch, read & cite a page. Higher is better.',
       },
       {
         name: 'list_patterns',
         method: 'GET',
         endpoint: `${ORIGIN}/api/patterns`,
-        description: 'Read the live pattern catalogue.'
+        description: 'Read the live pattern catalogue.',
       },
       {
         name: 'check_design_system',
         method: 'POST',
         endpoint: `${ORIGIN}/api/scan`,
         body: { url: 'https://example.com', designMd: true },
-        description: 'System axis: does the page honor its own DESIGN.md? 0-100 compliance (higher is better) + named drift.'
+        description:
+          'System axis: does the page honor its own DESIGN.md? 0-100 compliance (higher is better) + named drift.',
       },
       {
         name: 'monitor_domain',
         method: 'POST',
         endpoint: `${ORIGIN}/api/watch`,
         body: { domain: 'example.com', email: 'you@company.com', system: true },
-        description: 'Monitor a domain: daily re-scans, regression + design-drift email alerts (double opt-in).'
+        description:
+          'Monitor a domain: daily re-scans, regression + design-drift email alerts (double opt-in).',
       },
       {
         name: 'fix_prompt',
         method: 'POST',
         endpoint: `${ORIGIN}/api/fix-prompt`,
         body: { url: 'https://example.com' },
-        description: 'Build a ready-to-paste prompt to de-slop a page.'
-      }
+        description: 'Build a ready-to-paste prompt to de-slop a page.',
+      },
     ],
     auth: {
       type: 'none',
       apiKeyHeader: 'X-API-Key',
       notes: 'No API key required for normal use. Per-IP rate limited. See /auth.md',
-      doc: `${ORIGIN}/auth.md`
+      doc: `${ORIGIN}/auth.md`,
     },
     interfaces: {
       http: `${ORIGIN}/openapi.json`,
@@ -80,7 +82,7 @@ function agentView() {
       cli: 'npx slop-detect <url>',
       skills: `${ORIGIN}/.well-known/agent-skills/index.json`,
       a2a: `${ORIGIN}/.well-known/agent-card.json`,
-      agent: `${ORIGIN}/.well-known/agent.json`
+      agent: `${ORIGIN}/.well-known/agent.json`,
     },
     discovery: {
       llmsTxt: `${ORIGIN}/llms.txt`,
@@ -92,8 +94,8 @@ function agentView() {
       directory: `${ORIGIN}/directory`,
       leaderboard: `${ORIGIN}/leaderboard`,
       sitemap: `${ORIGIN}/sitemap.xml`,
-      schemaMap: `${ORIGIN}/schema-map.xml`
-    }
+      schemaMap: `${ORIGIN}/schema-map.xml`,
+    },
   };
 }
 
@@ -109,8 +111,8 @@ export async function onRequestGet(context) {
       headers: {
         'Content-Type': 'application/json; charset=utf-8',
         'Cache-Control': 'public, max-age=3600',
-        'Vary': 'Accept'
-      }
+        Vary: 'Accept',
+      },
     });
   }
   return next();

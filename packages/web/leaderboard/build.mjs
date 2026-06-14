@@ -26,7 +26,11 @@ async function scan(url, attempt = 0) {
   if (KEY) headers['X-API-Key'] = KEY;
   let res;
   try {
-    res = await fetch(`${API}/api/scan`, { method: 'POST', headers, body: JSON.stringify({ url }) });
+    res = await fetch(`${API}/api/scan`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ url }),
+    });
   } catch (e) {
     return { error: `network: ${e.message}` };
   }
@@ -41,24 +45,43 @@ async function scan(url, attempt = 0) {
   return data;
 }
 
-function tierRank(t) { return { Clean: 0, Mild: 1, Heavy: 2 }[t] ?? 1; }
+function tierRank(t) {
+  return { Clean: 0, Mild: 1, Heavy: 2 }[t] ?? 1;
+}
 
 const sites = [];
 let i = 0;
 for (const entry of corpus.sites) {
   i++;
-  const domain = entry.url.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '');
+  const domain = entry.url
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .replace(/\/$/, '');
   process.stderr.write(`[${i}/${corpus.sites.length}] ${domain} … `);
   const r = await scan(entry.url);
   if (r.error) {
     process.stderr.write(`skip (${r.code || r.error})\n`);
-    sites.push({ domain, url: entry.url, builtWith: entry.builtWith, category: entry.category, scored: false, reason: r.code || r.error });
+    sites.push({
+      domain,
+      url: entry.url,
+      builtWith: entry.builtWith,
+      category: entry.category,
+      scored: false,
+      reason: r.code || r.error,
+    });
   } else {
     process.stderr.write(`${r.grade} ${r.score} (${r.tier})\n`);
     sites.push({
-      domain, url: entry.url, builtWith: entry.builtWith, category: entry.category,
-      scored: true, score: r.score, grade: r.grade, tier: r.tier,
-      patternsFlagged: r.patternsFlagged, resultUrl: r.resultUrl || null
+      domain,
+      url: entry.url,
+      builtWith: entry.builtWith,
+      category: entry.category,
+      scored: true,
+      score: r.score,
+      grade: r.grade,
+      tier: r.tier,
+      patternsFlagged: r.patternsFlagged,
+      resultUrl: r.resultUrl || null,
     });
   }
 
@@ -71,18 +94,23 @@ process.stderr.write(`\nDone. Wrote ${OUT.pathname}\n`);
 
 function buildReport(sites, corpus) {
   const scored = sites.filter((s) => s.scored);
-  const avg = (arr) => (arr.length ? Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10 : null);
+  const avg = (arr) =>
+    arr.length ? Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10 : null;
   const slopCount = scored.filter((s) => s.tier !== 'Clean').length;
 
   const byBuilder = {};
   for (const s of scored) {
     (byBuilder[s.builtWith] ||= []).push(s.score);
   }
-  const builders = Object.fromEntries(Object.entries(byBuilder).map(([k, v]) => [k, { count: v.length, avgScore: avg(v) }]));
+  const builders = Object.fromEntries(
+    Object.entries(byBuilder).map(([k, v]) => [k, { count: v.length, avgScore: avg(v) }])
+  );
 
   const byCategory = {};
   for (const s of scored) (byCategory[s.category] ||= []).push(s.score);
-  const categories = Object.fromEntries(Object.entries(byCategory).map(([k, v]) => [k, { count: v.length, avgScore: avg(v) }]));
+  const categories = Object.fromEntries(
+    Object.entries(byCategory).map(([k, v]) => [k, { count: v.length, avgScore: avg(v) }])
+  );
 
   return {
     generatedAt: new Date().toISOString(),
@@ -94,7 +122,7 @@ function buildReport(sites, corpus) {
       slopShare: scored.length ? Math.round((slopCount / scored.length) * 100) : null,
       cleanCount: scored.filter((s) => s.tier === 'Clean').length,
       mildCount: scored.filter((s) => s.tier === 'Mild').length,
-      heavyCount: scored.filter((s) => s.tier === 'Heavy').length
+      heavyCount: scored.filter((s) => s.tier === 'Heavy').length,
     },
     byBuilder: builders,
     byCategory: categories,
@@ -104,6 +132,6 @@ function buildReport(sites, corpus) {
       if (!a.scored) return 1;
       if (!b.scored) return -1;
       return a.score - b.score || tierRank(a.tier) - tierRank(b.tier);
-    })
+    }),
   };
 }

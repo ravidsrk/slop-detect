@@ -12,7 +12,8 @@ export const POSTS = [
     slug: 'how-the-slop-score-works',
     title: 'How the slop score works',
     date: '2026-06-13',
-    summary: 'A weighted, deterministic fingerprint: same page in, same score out. No model, no randomness.',
+    summary:
+      'A weighted, deterministic fingerprint: same page in, same score out. No model, no randomness.',
     body: `Every scan runs the same set of named checks against a page's live
 computed styles, adds up the weight of the ones that fire, and returns a number
 from 0 to 100. Lower is cleaner.
@@ -39,13 +40,14 @@ maps to three tiers:
 A high score means the page reads as machine-generated, not that it is bad and
 not that an AI wrote it. Everyone uses AI now. The score measures how generic the
 result reads, nothing about the team behind it. Reproduce any score yourself with
-\`npx slop-detect <url>\`.`
+\`npx slop-detect <url>\`.`,
   },
   {
     slug: 'why-detectors-decay',
     title: 'Why slop detectors decay, and what we do about it',
     date: '2026-06-13',
-    summary: 'A fixed visual fingerprint degrades as generators suppress the default look. The durable signal is per-site, not global.',
+    summary:
+      'A fixed visual fingerprint degrades as generators suppress the default look. The durable signal is per-site, not global.',
     body: `A signature-style detector that enumerates today's visual tells
 degrades over time. The generators that produce the slop are actively engineered
 to suppress the default look, and design standards push per-brand constraints
@@ -72,8 +74,8 @@ ages.
 
 Use the free slop score to catch the obvious generated look. Use the system axis
 to keep a real design system honest as non-designers and coding agents keep
-shipping to it. One is the hook, the other is the thing worth monitoring.`
-  }
+shipping to it. One is the hook, the other is the thing worth monitoring.`,
+  },
 ];
 
 export function getPost(slug) {
@@ -85,32 +87,44 @@ export function getPost(slug) {
 // paragraphs, links, bold, inline code). Not a full CommonMark parser by design.
 export function mdToHtml(md) {
   const lines = String(md).replace(/\r\n/g, '\n').split('\n');
-  const inline = (s) => escapeHtml(s)
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2">$1</a>');
+  const inline = (s) =>
+    escapeHtml(s)
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2">$1</a>');
   const out = [];
   let i = 0;
   while (i < lines.length) {
     const line = lines[i];
     if (/^```/.test(line)) {
-      const buf = []; i++;
+      const buf = [];
+      i++;
       while (i < lines.length && !/^```/.test(lines[i])) buf.push(lines[i++]);
       i++;
       out.push(`<pre><code>${escapeHtml(buf.join('\n'))}</code></pre>`);
       continue;
     }
     const h = line.match(/^(#{2,4})\s+(.*)$/);
-    if (h) { const lvl = h[1].length; out.push(`<h${lvl}>${inline(h[2])}</h${lvl}>`); i++; continue; }
+    if (h) {
+      const lvl = h[1].length;
+      out.push(`<h${lvl}>${inline(h[2])}</h${lvl}>`);
+      i++;
+      continue;
+    }
     if (/^-\s+/.test(line)) {
       const items = [];
-      while (i < lines.length && /^-\s+/.test(lines[i])) items.push(`<li>${inline(lines[i++].replace(/^-\s+/, ''))}</li>`);
+      while (i < lines.length && /^-\s+/.test(lines[i]))
+        items.push(`<li>${inline(lines[i++].replace(/^-\s+/, ''))}</li>`);
       out.push(`<ul>${items.join('')}</ul>`);
       continue;
     }
-    if (!line.trim()) { i++; continue; }
+    if (!line.trim()) {
+      i++;
+      continue;
+    }
     const buf = [];
-    while (i < lines.length && lines[i].trim() && !/^(#{2,4}\s|-\s|```)/.test(lines[i])) buf.push(lines[i++]);
+    while (i < lines.length && lines[i].trim() && !/^(#{2,4}\s|-\s|```)/.test(lines[i]))
+      buf.push(lines[i++]);
     out.push(`<p>${inline(buf.join(' '))}</p>`);
   }
   return out.join('\n');

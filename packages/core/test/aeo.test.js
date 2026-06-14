@@ -9,7 +9,7 @@ import {
   detectAIBot,
   aiBotsBlockedByRobots,
   toMarkdownUrl,
-  runAeoChecks
+  runAeoChecks,
 } from '../src/aeo.js';
 
 // ── detectAIBot ──────────────────────────────────────────────────────────────
@@ -55,7 +55,10 @@ test('aiBotsBlockedByRobots: blanket Disallow under * blocks AI bots', () => {
 });
 
 test('aiBotsBlockedByRobots: named AI bot disallow is detected', () => {
-  const r = aiBotsBlockedByRobots('User-agent: GPTBot\nDisallow: /\n\nUser-agent: *\nDisallow:', '/');
+  const r = aiBotsBlockedByRobots(
+    'User-agent: GPTBot\nDisallow: /\n\nUser-agent: *\nDisallow:',
+    '/'
+  );
   assert.equal(r.blocked, true);
   assert.ok(r.agents.includes('gptbot'));
 });
@@ -78,13 +81,15 @@ test('aiBotsBlockedByRobots: path-scoped disallow only blocks matching paths', (
 function makeFetch(routes) {
   return async (url, init) => {
     const u = new URL(url);
-    const ua = (init && init.headers && (init.headers['User-Agent'] || init.headers['user-agent'])) || '';
+    const ua =
+      (init && init.headers && (init.headers['User-Agent'] || init.headers['user-agent'])) || '';
     const key = u.pathname;
     const entry = routes(key, ua, u);
-    if (!entry) return new Response('not found', { status: 404, headers: { 'content-type': 'text/html' } });
+    if (!entry)
+      return new Response('not found', { status: 404, headers: { 'content-type': 'text/html' } });
     return new Response(entry.body ?? 'ok', {
       status: entry.status ?? 200,
-      headers: entry.headers ?? { 'content-type': 'text/html' }
+      headers: entry.headers ?? { 'content-type': 'text/html' },
     });
   };
 }
@@ -94,29 +99,43 @@ test('runAeoChecks: fully AEO-ready site scores AI-Ready (100)', async () => {
     if (path === '/') {
       return {
         body: '<html><head><link rel="alternate" type="text/markdown" href="/index.md"></head><body>hi</body></html>',
-        headers: { 'content-type': 'text/html', 'vary': 'Accept', 'link': '</index.md>; rel="alternate"; type="text/markdown"' }
+        headers: {
+          'content-type': 'text/html',
+          vary: 'Accept',
+          link: '</index.md>; rel="alternate"; type="text/markdown"',
+        },
       };
     }
-    if (path === '/index.md') return { body: '# Hi', headers: { 'content-type': 'text/markdown; charset=utf-8' } };
-    if (path === '/robots.txt') return { body: 'User-agent: *\nAllow: /', headers: { 'content-type': 'text/plain' } };
+    if (path === '/index.md')
+      return { body: '# Hi', headers: { 'content-type': 'text/markdown; charset=utf-8' } };
+    if (path === '/robots.txt')
+      return { body: 'User-agent: *\nAllow: /', headers: { 'content-type': 'text/plain' } };
     if (path === '/llms.txt') return { body: '# Site', headers: { 'content-type': 'text/plain' } };
     return null;
   });
 
   const r = await runAeoChecks('https://ready.example', { fetchImpl, timeoutMs: 1000 });
   assert.equal(r.axis, 'aeo');
-  assert.equal(r.score, 100, `expected perfect, got ${r.score}: ${JSON.stringify(r.failed.map((c) => c.id))}`);
+  assert.equal(
+    r.score,
+    100,
+    `expected perfect, got ${r.score}: ${JSON.stringify(r.failed.map((c) => c.id))}`
+  );
   assert.equal(r.tier, 'AI-Ready');
   assert.equal(r.requiredFailed, 0);
 });
 
 test('runAeoChecks: site that blocks GPTBot + has noindex fails the required checks', async () => {
   const fetchImpl = makeFetch((path, ua) => {
-    if (path === '/robots.txt') return { body: 'User-agent: GPTBot\nDisallow: /', headers: { 'content-type': 'text/plain' } };
+    if (path === '/robots.txt')
+      return { body: 'User-agent: GPTBot\nDisallow: /', headers: { 'content-type': 'text/plain' } };
     if (path === '/') {
       // GPTBot gets a 403; humans get a noindex page.
       if (/gptbot/i.test(ua)) return { status: 403, body: 'forbidden' };
-      return { body: '<html><head><meta name="robots" content="noindex"></head><body>x</body></html>', headers: { 'content-type': 'text/html' } };
+      return {
+        body: '<html><head><meta name="robots" content="noindex"></head><body>x</body></html>',
+        headers: { 'content-type': 'text/html' },
+      };
     }
     return null; // no twin, no llms.txt
   });
