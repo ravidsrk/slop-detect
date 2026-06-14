@@ -1,0 +1,50 @@
+{
+  "$schema": "https://turborepo.org/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "src/**",
+        "test/**",
+        "tsconfig.json",
+        "package.json",
+        "tsup.config.ts",
+        "tsup.config.js"
+      ],
+      "outputs": ["dist/**"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "src/**",
+        "test/**",
+        "tsconfig.json",
+        "package.json",
+        "vitest.config.ts",
+        "vitest.config.js"
+      ]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", "test/**", "tsconfig.json", "package.json"]
+    },
+    "lint": {
+      "inputs": [
+        "src/**",
+        "test/**",
+        "tsconfig.json",
+        "package.json",
+        "eslint.config.js",
+        "eslint.config.mjs",
+        "eslint.config.ts"
+      ]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "clean": {
+      "cache": false
+    }
+  }
+}
