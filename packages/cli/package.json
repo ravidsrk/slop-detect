@@ -27,7 +27,12 @@
     "slop": "./dist/bin/slop.js",
     "slop-detect": "./dist/bin/slop.js"
   },
-  "files": ["dist", "README.md", "LICENSE", "NOTICE"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "NOTICE"
+  ],
   "sideEffects": false,
   "publishConfig": {
     "access": "public"

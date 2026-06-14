@@ -27,7 +27,11 @@
   "bin": {
     "slop-detect-mcp": "./dist/bin/server.js"
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "sideEffects": false,
   "publishConfig": {
     "access": "public"
