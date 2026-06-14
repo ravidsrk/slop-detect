@@ -8,8 +8,8 @@ Legend: ✅ done in-repo · 🔧 needs you (secret/decision/data) · ⏳ follow-
 
 ## 🔴 Blockers
 
-- ✅ **CI runs the unit tests.** Added a `test` job (`npm ci && npm test`); was
-  lint + smoke only. Make it a required check in branch protection → 🔧.
+- ✅ **CI runs the unit tests.** Added a `test` job (`bun install && bun run test`);
+  was lint + smoke only. Make it a required check in branch protection → 🔧.
 - ✅ **CLI works without a browser.** Playwright is lazy-loaded; `--help`/flags/
   errors no longer crash. Added `--remote` (scan via API, zero install).
 - ✅ **SSRF redirect bypass closed.** `scan` re-validates the final URL; `aeo`
@@ -39,11 +39,12 @@ Legend: ✅ done in-repo · 🔧 needs you (secret/decision/data) · ⏳ follow-
   and `publish.yml` (npm), both triggered on a `v*` tag.
   - 🔧 Set `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` and `NPM_TOKEN` repo
     secrets.
-  - 🔴 **npm is stale: repo is 0.7.0, but `slop-detect` / `-core` / `-mcp` are
-    published at 0.5.x.** No release was tagged after `v0.5.2`, so `npx
-    slop-detect` ships users a build WITHOUT the copy axis and DESIGN.md system
-    axis the README sells. Cut a `v0.7.x` tag (versions already bumped in the
-    workspaces) to fire `publish.yml`; cut a matching Action tag.
+  - 🔴 **npm is stale: repo is 0.8.0 and core was renamed to `@slop-detect/core`,
+    but `slop-detect-core` / `slop-detect` / `-mcp` on npm are still at older
+    versions under the old unscoped name.** Cut a `v0.8.0` tag to fire
+    `publish.yml` — it publishes the renamed core, the CLI, and the MCP server.
+    Old consumers of `slop-detect-core` should be told (in the CHANGELOG) to
+    `npm install @slop-detect/core` instead.
 - ✅ **Engine has real tests now** (scoring/grades/presets/combine + catalogue
   integrity, 92 total). ⏳ Still no DOM-level golden tests of the 27 design
   patterns — see below.
@@ -56,12 +57,12 @@ Legend: ✅ done in-repo · 🔧 needs you (secret/decision/data) · ⏳ follow-
 - 🟡 **Calibrate detection — harness shipped, data pending.** Added deterministic
   golden fixtures (`packages/cli/test/golden.test.js`, run in CI with Chromium), a
   seed labeled corpus (`packages/cli/calibration/corpus.json`), and a runner
-  (`npm run calibrate`) that reports accuracy + a confusion matrix. 🔧 Grow the
+  (`bun run calibrate`) that reports accuracy + a confusion matrix. 🔧 Grow the
   corpus to 50–100 human-labeled URLs and tune the single-occurrence thresholds
   (glassmorphism/glows/gradient-text) before quoting an accuracy number. See
   `CALIBRATION.md`.
-- ⏳ Dev-dep advisory: `ws`←`miniflare`←`wrangler` (build-time only). `npm audit
-  fix` when convenient.
+- ⏳ Dev-dep advisory: `ws`←`miniflare`←`wrangler` (build-time only). Refresh
+  `bun.lock` (`bun install`) when convenient.
 - ⏳ Directory `listAllSites` is unbounded — cap/paginate before the catalogue
   grows large.
 - ⏳ "Definitions versioning" is a constant string; add a changelog + a

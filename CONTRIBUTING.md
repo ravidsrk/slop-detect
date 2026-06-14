@@ -1,12 +1,12 @@
 # Contributing to slop-detect
 
-Thanks for considering a contribution. The whole project is ~2,000 lines of JavaScript — small enough that you can read all of it in one sitting before you start.
+Thanks for considering a contribution. The whole detection engine is small enough that you can read all of it in one sitting before you start.
 
 ## TL;DR
 
 1. Fork → branch → PR.
 2. New patterns and fix-recipe improvements are the most welcome contributions.
-3. CI runs ESLint + Prettier on every PR; run `npm run lint` and `npm run format` before pushing.
+3. Run `bun run format:check`, `bun run typecheck`, and `bun run test` before pushing — CI runs the same.
 4. Be kind in issues and PRs. The code we're auditing was written by people too.
 
 ## Setup
@@ -14,25 +14,14 @@ Thanks for considering a contribution. The whole project is ~2,000 lines of Java
 ```bash
 git clone https://github.com/<you>/slop-detect.git
 cd slop-detect
-npm install              # installs all 4 workspaces
-npm run demo             # smoke test: scans 3 known sites
+bun install              # installs all workspaces (packages/*, apps/*, examples/*)
+bun run --filter slop-detect demo   # smoke test: scans 3 known sites
 ```
-
-If `npm install` fails building `sharp` (a transitive native dep of
-`wrangler` → `miniflare`, pulled in only by the web workspace) on a very new
-Node, install with lifecycle scripts skipped:
-
-```bash
-npm install --ignore-scripts   # links workspaces; tests, lint, CLI all work
-```
-
-That's enough for everything except `npm run web:dev` (the local Cloudflare
-Pages server), which wants the full `wrangler` install on a Node LTS where
-sharp's prebuilt binary resolves.
 
 You need:
 
-- Node 20+ (Node LTS recommended for the web workspace)
+- [Bun 1.3+](https://bun.sh) — package manager + script runner
+- Node 20+ — runtime for the CLI's Playwright runner and the built bins
 - A Cloudflare account if you want to run the web app locally with real scans (Browser Rendering requires Workers Paid; ~$5/mo)
 
 For pure pattern development you don't need Cloudflare — the CLI runs everything locally with Playwright.
@@ -41,12 +30,23 @@ For pure pattern development you don't need Cloudflare — the CLI runs everythi
 
 ```
 packages/
-├── core/    slop-detect-core   ← rule definitions, scoring, fix recipes
-├── cli/     slop-detect    ← Playwright runner
-└── web/     slop-detect-web    ← Cloudflare Pages app for slop-detect.com
+├── core/    @slop-detect/core    ← rule definitions, scoring, fix recipes
+├── cli/     slop-detect          ← Playwright runner
+├── mcp/     slop-detect-mcp      ← MCP server for AI agents
+└── action/                       ← GitHub Action wrapper (not on npm)
+
+apps/
+├── web/     slop-detect-web      ← Cloudflare Pages app for slop-detect.com
+└── docs/    slop-detect-docs     ← Next.js 15 docs site
+
+examples/
+├── astro-blog/                   ← reference Astro integration
+└── nextjs-app-router/            ← reference Next 15 integration
+
+spec/                             ← versioned pattern + AEO + conformance spec
 ```
 
-When you change a rule in `packages/core/src/patterns.js`, both the CLI and the web app pick it up automatically — they're consumers of the same `slop-detect-core` package via workspace symlinks.
+When you change a rule in `packages/core/src/patterns.ts`, both the CLI and the web app pick it up automatically — they're consumers of the same `@slop-detect/core` package via `workspace:*` symlinks.
 
 ## Proposing a new pattern (#17, #18, ...)
 
@@ -71,7 +71,7 @@ playbook: lower the cost of a rule and the ruleset stays current.
 A declarative rule:
 
 ```js
-import { compileRule } from 'slop-detect-core';
+import { compileRule } from '@slop-detect/core';
 
 const pattern = compileRule({
   id: 'all_caps_labels',          // lowercase snake_case, unique
@@ -155,34 +155,41 @@ Avoid:
 
 ## Code style
 
-- ES modules (`type: "module"` everywhere)
+- TypeScript across all `packages/*` source; ES modules (`type: "module"` everywhere)
 - Two-space indentation, single quotes, no semicolons-at-ends-of-IIFEs flair
 - Keep files small. `core` is the source of truth — don't add runtime-specific logic there
+- New publishable packages bundle with tsup (dual ESM + CJS), test with vitest, and
+  follow the composite-tsconfig + per-package `vitest.config.ts` template used by
+  `packages/core`. See `packages/core/package.json` as the reference shape.
 
 ## Testing your changes
 
 ```bash
-# 1) Lint (ESLint) + format check (Prettier)
-npm run lint
-npm run format:check   # or `npm run format` to auto-fix
+# 1) Format + typecheck
+bun run format:check   # or `bun run format` to auto-fix
+bun run typecheck      # turbo across every package
 
-# 2) Unit tests (copy axis + scoring — pure, no browser)
-npm test
+# 2) Build + test (turbo handles dependency order)
+bun run build          # tsup across the publishable libs
+bun run test           # vitest, every package
 
 # 3) Run the CLI against a known-bad and known-good URL
-npm run scan -- https://www.aura.build              # should be Heavy
-npm run scan -- https://news.ycombinator.com         # should be Clean
-npm run scan -- https://example.com --copy           # design + copy axes
+bun run --filter slop-detect scan https://www.aura.build         # should be Heavy
+bun run --filter slop-detect scan https://news.ycombinator.com   # should be Clean
+bun run --filter slop-detect scan https://example.com -- --copy  # design + copy axes
 
 # 4) Run the web app locally (won't actually scan without Cloudflare):
-npm run web:dev
+bun run web:dev
+
+# 5) Run the docs site locally:
+bun run docs:dev
 ```
 
 ## Pull request checklist
 
-- [ ] `npm run lint` and `npm run format:check` pass
+- [ ] `bun run format:check`, `bun run typecheck`, `bun run test` all pass
 - [ ] You ran the CLI against ≥2 URLs and confirmed your change behaves as expected
-- [ ] If you added a pattern: ≥10 real-world examples in the PR description
+- [ ] If you added a pattern: ≥10 real-world examples in the PR description AND `spec/patterns.md` updated
 - [ ] If you changed a fix recipe: a before/after comparison of the generated prompt
 - [ ] README / pattern table updated if the public surface changed
 
