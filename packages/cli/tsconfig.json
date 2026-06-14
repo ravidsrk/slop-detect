@@ -1,12 +1,15 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": ".",
-    "outDir": "dist",
-    // detector.ts stringifies page-side helpers, so DOM globals appear in scope.
+    "composite": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "declaration": true,
+    "declarationMap": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    // Incremental migration baseline (see MIGRATION.md); ramps to strict per-module.
     "strict": false
   },
-  "include": ["bin/**/*.ts", "src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["dist", "node_modules", "test"],
+  "references": [{ "path": "../core" }]
 }
