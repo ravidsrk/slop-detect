@@ -48,17 +48,18 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      # The CLI imports the compiled slop-detect-core (dist), so build it before
-      # running bin/slop.js or the golden fixtures directly.
+      # core/cli are TypeScript; build to dist before running the CLI or the
+      # golden fixtures (the compiled binary + detector are what ship).
       - run: npm run build
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
       - name: Golden detection fixtures (clean vs slop)
-        run: RUN_GOLDEN=1 node --test packages/cli/test/golden.test.js
+        # golden.test.js imports detector from source (.ts) — run under tsx.
+        run: RUN_GOLDEN=1 node --import tsx --test packages/cli/test/golden.test.js
       - name: Scan a known-clean page (HN)
         run: |
           cd packages/cli
-          node bin/slop.js https://news.ycombinator.com --json > result.json
+          node dist/bin/slop.js https://news.ycombinator.com --json > result.json
           cat result.json
           score=$(node -e "console.log(JSON.parse(require('fs').readFileSync('result.json')).score)")
           echo "Score: $score"

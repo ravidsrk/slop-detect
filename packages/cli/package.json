@@ -14,19 +14,22 @@
     "url": "https://github.com/ravidsrk/slop-detect/issues"
   },
   "bin": {
-    "slop": "./bin/slop.js",
-    "slop-detect": "./bin/slop.js"
+    "slop": "./dist/bin/slop.js",
+    "slop-detect": "./dist/bin/slop.js"
   },
   "files": [
-    "bin",
+    "dist",
     "src",
     "README.md",
     "LICENSE",
     "NOTICE"
   ],
   "scripts": {
-    "scan": "node bin/slop.js",
-    "demo": "node bin/slop.js https://news.ycombinator.com https://www.aura.build https://lovable.dev"
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "prepack": "tsc",
+    "scan": "node dist/bin/slop.js",
+    "demo": "node dist/bin/slop.js https://news.ycombinator.com https://www.aura.build https://lovable.dev"
   },
   "dependencies": {
     "slop-detect-core": "0.7.0",

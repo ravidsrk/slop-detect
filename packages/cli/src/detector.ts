@@ -21,6 +21,20 @@ import {
   combineAxes,
 } from 'slop-detect-core';
 
+// Options accepted by the scan entry points. All optional — the CLI fills in
+// whatever flags were passed. Shared with bin/slop.ts so the flag object and the
+// scanners agree on shape.
+export interface ScanOptions {
+  preset?: string;
+  axes?: string[];
+  screenshot?: boolean;
+  timeout?: number;
+  designMd?: string;
+  api?: string;
+  apiKey?: string;
+  includeSystem?: boolean;
+}
+
 // Playwright is heavy (pulls in a ~150 MB browser) and is ONLY needed for an
 // actual scan. Import it lazily so `--help`, flag validation, error paths, and
 // the `--remote` API mode all work without it installed. A top-level import here
@@ -143,7 +157,7 @@ function normalizeAxes(axes) {
   return [...new Set(out)];
 }
 
-function buildPageScript(opts = {}) {
+function buildPageScript(opts: ScanOptions = {}) {
   const patternCalls = PATTERNS.map(
     (p) => `
     try {
@@ -258,7 +272,7 @@ export async function loadDesignMd(source, pageUrl) {
 // Chromium download. Returns the same result shape as scanUrl().
 const DEFAULT_API = 'https://slop-detect.com';
 
-export async function scanRemote(url, opts = {}) {
+export async function scanRemote(url, opts: ScanOptions = {}) {
   const base = opts.api || process.env.SLOP_API || DEFAULT_API;
   const headers = { 'content-type': 'application/json' };
   const key = opts.apiKey || process.env.SLOP_API_KEY;
@@ -281,14 +295,14 @@ export async function scanRemote(url, opts = {}) {
   const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
   if (!res.ok) {
     // Surface the API's structured errors (rate_limited, cloudflare_challenge…).
-    const err = new Error(data.error || `scan failed (HTTP ${res.status})`);
+    const err: any = new Error(data.error || `scan failed (HTTP ${res.status})`);
     if (data.code) err.code = data.code;
     throw err;
   }
   return data;
 }
 
-export async function aeoRemote(url, opts = {}) {
+export async function aeoRemote(url, opts: ScanOptions = {}) {
   const base = opts.api || process.env.SLOP_API || DEFAULT_API;
   const headers = { 'content-type': 'application/json' };
   const key = opts.apiKey || process.env.SLOP_API_KEY;
@@ -303,7 +317,7 @@ export async function aeoRemote(url, opts = {}) {
   return data;
 }
 
-export async function scanUrl(url, opts = {}) {
+export async function scanUrl(url, opts: ScanOptions = {}) {
   await ensureChromium();
   const chromium = await loadChromium();
   const browser = await chromium.launch({ headless: true });
@@ -382,7 +396,7 @@ export async function scanUrl(url, opts = {}) {
 
     // Multi-axis: attach per-axis summaries + a unified score when >1 axis asked.
     if (reqAxes.length > 1 || reqAxes.includes('copy')) {
-      const axes = {
+      const axes: Record<string, any> = {
         design: {
           axis: 'design',
           score: scoring.score,
