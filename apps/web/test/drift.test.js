@@ -2,8 +2,7 @@
 // Pure predicate, watch tracking, sweep alerting, email copy, the /api/watch
 // opt-in flag, and /report/:domain rendering — all against in-memory mocks.
 
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
+import { test, expect } from 'vitest';
 import {
   isSystemDrift,
   recordScanForWatch,
@@ -11,11 +10,11 @@ import {
   slimResult,
   publicWatch,
   getHistory,
-} from '../functions/_shared.js';
-import { monitorSweep } from '../functions/_sweep.js';
-import { buildDriftAlert } from '../functions/_alerts.js';
-import { onRequestPost as watchPost } from '../functions/api/watch.js';
-import { onRequestGet as reportGet } from '../functions/report/[domain].js';
+} from '../functions/_shared.ts';
+import { monitorSweep } from '../functions/_sweep.ts';
+import { buildDriftAlert } from '../functions/_alerts.ts';
+import { onRequestPost as watchPost } from '../functions/api/watch.ts';
+import { onRequestGet as reportGet } from '../functions/report/[domain].tsx';
 
 function makeKv(seed = {}) {
   const store = new Map(
@@ -59,40 +58,30 @@ const sysSlim = (sysOver = {}, over = {}) =>
 
 // ── isSystemDrift (pure) ─────────────────────────────────────────────────────
 test('isSystemDrift: falling from an Aligned baseline is drift', () => {
-  assert.equal(
-    isSystemDrift({ score: 90, tier: 'Aligned' }, { score: 60, tier: 'Drifting' }),
-    true
-  );
-  assert.equal(
-    isSystemDrift({ score: 90, tier: 'Aligned' }, { score: 30, tier: 'Off-system' }),
+  expect(isSystemDrift({ score: 90, tier: 'Aligned' }, { score: 60, tier: 'Drifting' })).toBe(true);
+  expect(isSystemDrift({ score: 90, tier: 'Aligned' }, { score: 30, tier: 'Off-system' })).toBe(
     true
   );
 });
 
 test('isSystemDrift: staying Aligned, or improving, is never drift', () => {
-  assert.equal(
-    isSystemDrift({ score: 85, tier: 'Aligned' }, { score: 82, tier: 'Aligned' }),
-    false
-  );
-  assert.equal(
-    isSystemDrift({ score: 40, tier: 'Off-system' }, { score: 70, tier: 'Drifting' }),
+  expect(isSystemDrift({ score: 85, tier: 'Aligned' }, { score: 82, tier: 'Aligned' })).toBe(false);
+  expect(isSystemDrift({ score: 40, tier: 'Off-system' }, { score: 70, tier: 'Drifting' })).toBe(
     false
   );
 });
 
 test('isSystemDrift: a never-Aligned site only drifts on a meaningful worsening (≥15)', () => {
   const base = { score: 60, tier: 'Drifting' };
-  assert.equal(isSystemDrift(base, { score: 55, tier: 'Drifting' }), false, '-5 is noise');
-  assert.equal(isSystemDrift(base, { score: 45, tier: 'Drifting' }), true, '-15 is drift');
+  expect(isSystemDrift(base, { score: 55, tier: 'Drifting' }), '-5 is noise').toBe(false);
+  expect(isSystemDrift(base, { score: 45, tier: 'Drifting' }), '-15 is drift').toBe(true);
 });
 
 test('isSystemDrift: No system / No data tiers never drift', () => {
-  assert.equal(
-    isSystemDrift({ score: 90, tier: 'Aligned' }, { score: null, tier: 'No system' }),
+  expect(isSystemDrift({ score: 90, tier: 'Aligned' }, { score: null, tier: 'No system' })).toBe(
     false
   );
-  assert.equal(
-    isSystemDrift({ score: 90, tier: 'Aligned' }, { score: null, tier: 'No data' }),
+  expect(isSystemDrift({ score: 90, tier: 'Aligned' }, { score: null, tier: 'No data' })).toBe(
     false
   );
 });
@@ -116,15 +105,15 @@ test('slimResult persists a compact system block only when the axis ran', () => 
     },
     'id1'
   );
-  assert.equal(withSys.system.score, 70);
-  assert.equal(withSys.system.drift[0].id, 'fonts.declared');
-  assert.equal(withSys.system.drift[0].evidence, undefined, 'evidence blobs are not persisted');
+  expect(withSys.system.score).toBe(70);
+  expect(withSys.system.drift[0].id).toBe('fonts.declared');
+  expect(withSys.system.drift[0].evidence, 'evidence blobs are not persisted').toBe(undefined);
 
   const noSys = slimResult(
     { url: 'https://x.com', score: 8, tier: 'Clean', grade: 'A-', patterns: [] },
     'id2'
   );
-  assert.equal(noSys.system, undefined);
+  expect(noSys.system).toBe(undefined);
 
   const undeclared = slimResult(
     {
@@ -137,10 +126,8 @@ test('slimResult persists a compact system block only when the axis ran', () => 
     },
     'id3'
   );
-  assert.equal(
-    undeclared.system,
-    undefined,
-    'No-system results are not persisted as compliance data'
+  expect(undeclared.system, 'No-system results are not persisted as compliance data').toBe(
+    undefined
   );
 });
 
@@ -157,10 +144,10 @@ test('recordScanForWatch sets a system baseline, then flags drift and resets on 
 
   // First system reading establishes the baseline (Aligned 95) — no drift.
   let out = await recordScanForWatch(kv, sysSlim({}, { id: 's1' }));
-  assert.equal(out.system.drifted, false);
+  expect(out.system.drifted).toBe(false);
   let w = await getWatch(kv, 'example.com');
-  assert.equal(w.baselineSystemScore, 95);
-  assert.equal(w.baselineSystemTier, 'Aligned');
+  expect(w.baselineSystemScore).toBe(95);
+  expect(w.baselineSystemTier).toBe('Aligned');
 
   // Agent pushes off-system change → drift flagged, drift items stored.
   out = await recordScanForWatch(
@@ -174,24 +161,24 @@ test('recordScanForWatch sets a system baseline, then flags drift and resets on 
       { id: 's2' }
     )
   );
-  assert.equal(out.system.drifted, true);
+  expect(out.system.drifted).toBe(true);
   w = await getWatch(kv, 'example.com');
-  assert.equal(w.systemRegressed, true);
-  assert.equal(w.lastSystemDrift[0].id, 'colors.cta');
-  assert.equal(w.baselineSystemScore, 95, 'baseline must not move');
+  expect(w.systemRegressed).toBe(true);
+  expect(w.lastSystemDrift[0].id).toBe('colors.cta');
+  expect(w.baselineSystemScore, 'baseline must not move').toBe(95);
 
   // Recovery → flag clears and systemNotified re-arms.
   w.systemNotified = true;
   await kv.put('w:example.com', JSON.stringify(w));
   out = await recordScanForWatch(kv, sysSlim({}, { id: 's3' }));
   w = await getWatch(kv, 'example.com');
-  assert.equal(w.systemRegressed, false);
-  assert.equal(w.systemNotified, false, 'recovery re-arms the alert');
+  expect(w.systemRegressed).toBe(false);
+  expect(w.systemNotified, 'recovery re-arms the alert').toBe(false);
 
   // History points carry the system reading.
   const hist = await getHistory(kv, 'example.com');
-  assert.equal(hist.length, 3);
-  assert.equal(hist[1].sys.tier, 'Drifting');
+  expect(hist.length).toBe(3);
+  expect(hist[1].sys.tier).toBe('Drifting');
 });
 
 test('a designMd-less scan does not erase system state', async () => {
@@ -208,8 +195,8 @@ test('a designMd-less scan does not erase system state', async () => {
   });
   await recordScanForWatch(kv, slim({ id: 'plain' })); // no .system
   const w = await getWatch(kv, 'example.com');
-  assert.equal(w.lastSystemScore, 55, 'system reading untouched');
-  assert.equal(w.systemRegressed, true, 'drift flag untouched');
+  expect(w.lastSystemScore, 'system reading untouched').toBe(55);
+  expect(w.systemRegressed, 'drift flag untouched').toBe(true);
 });
 
 // ── sweep: drift alert once, recovery re-arms; scanDomain gets the watch ─────
@@ -256,13 +243,13 @@ test('sweep fires the drift alert exactly once per drift event', async () => {
     },
   ]);
   const s1 = await h.run();
-  assert.equal(s1.driftAlerted, 1);
-  assert.equal(s1.alerted, 0, 'slop alert independent of drift alert');
-  assert.deepEqual(h.drifted, ['a.com']);
-  assert.equal(h.store.get('a.com').systemNotified, true);
+  expect(s1.driftAlerted).toBe(1);
+  expect(s1.alerted, 'slop alert independent of drift alert').toBe(0);
+  expect(h.drifted).toEqual(['a.com']);
+  expect(h.store.get('a.com').systemNotified).toBe(true);
 
   const s2 = await h.run();
-  assert.equal(s2.driftAlerted, 0, 'no duplicate drift alert');
+  expect(s2.driftAlerted, 'no duplicate drift alert').toBe(0);
 });
 
 test('sweep can fire BOTH alerts in one pass and passes the watch to scanDomain', async () => {
@@ -278,9 +265,9 @@ test('sweep can fire BOTH alerts in one pass and passes the watch to scanDomain'
     },
   ]);
   const s = await h.run();
-  assert.equal(s.alerted, 1);
-  assert.equal(s.driftAlerted, 1);
-  assert.deepEqual(h.scanned, [{ domain: 'b.com', system: true }], 'scanDomain sees watch.system');
+  expect(s.alerted).toBe(1);
+  expect(s.driftAlerted).toBe(1);
+  expect(h.scanned, 'scanDomain sees watch.system').toEqual([{ domain: 'b.com', system: true }]);
 });
 
 test('sweep without a sendDriftAlert callback skips drift silently (backward compatible)', async () => {
@@ -294,7 +281,7 @@ test('sweep without a sendDriftAlert callback skips drift silently (backward com
     putWatch: async (w) => store.set(w.domain, w),
     sendAlert: async () => ({ sent: true }),
   });
-  assert.equal(s.driftAlerted, 0);
+  expect(s.driftAlerted).toBe(0);
 });
 
 // ── drift email copy ─────────────────────────────────────────────────────────
@@ -306,12 +293,12 @@ test('buildDriftAlert names the drift, frames signals-not-verdicts, offers unsub
     [{ id: 'fonts.declared', message: 'font(s) in use but not in the system: inter' }],
     { resultUrl: 'https://slop-detect.com/r/abc' }
   );
-  assert.match(m.subject, /example\.com/);
-  assert.match(m.subject, /Aligned → Drifting/);
-  assert.match(m.text, /inter/);
-  assert.match(m.text, /not a verdict/i);
-  assert.match(m.text, /unsubscribe/i);
-  assert.match(m.text, /\/r\/abc/);
+  expect(m.subject).toMatch(/example\.com/);
+  expect(m.subject).toMatch(/Aligned → Drifting/);
+  expect(m.text).toMatch(/inter/);
+  expect(m.text).toMatch(/not a verdict/i);
+  expect(m.text).toMatch(/unsubscribe/i);
+  expect(m.text).toMatch(/\/r\/abc/);
 });
 
 // ── /api/watch { system: true } opt-in ──────────────────────────────────────
@@ -325,12 +312,12 @@ test('POST /api/watch { system:true } enables compliance monitoring; omit preser
     env,
   });
   let j = await res.json();
-  assert.equal(j.systemMonitoring, true);
+  expect(j.systemMonitoring).toBe(true);
 
   // Re-subscribe without the flag — preserved.
   res = await watchPost({ request: req({ domain: 'example.com', email: 'o@x.io' }), env });
   j = await res.json();
-  assert.equal(j.systemMonitoring, true);
+  expect(j.systemMonitoring).toBe(true);
 
   // Explicit off.
   res = await watchPost({
@@ -338,7 +325,7 @@ test('POST /api/watch { system:true } enables compliance monitoring; omit preser
     env,
   });
   j = await res.json();
-  assert.equal(j.systemMonitoring, false);
+  expect(j.systemMonitoring).toBe(false);
 });
 
 test('re-subscribing does not erase the system baseline; publicWatch exposes it sans email', async () => {
@@ -364,10 +351,10 @@ test('re-subscribing does not erase the system baseline; publicWatch exposes it 
     env,
   });
   const j = await res.json();
-  assert.equal(j.system.baseline.score, 95, 'baseline preserved across re-subscribe');
-  assert.equal(j.system.drifted, true);
-  assert.equal(j.system.drift[0].id, 'colors.cta');
-  assert.ok(!JSON.stringify(j).includes('o@x.io'), 'email never leaks');
+  expect(j.system.baseline.score, 'baseline preserved across re-subscribe').toBe(95);
+  expect(j.system.drifted).toBe(true);
+  expect(j.system.drift[0].id).toBe('colors.cta');
+  expect(JSON.stringify(j).includes('o@x.io'), 'email never leaks').toBeFalsy();
 });
 
 // ── /report/:domain (P2b-lite) ───────────────────────────────────────────────
@@ -421,16 +408,16 @@ test('/report renders scores, system compliance, drift, and history — without 
     request: { url: 'https://slop-detect.com/report/example.com' },
     env: { RESULTS: kv },
   });
-  assert.equal(res.status, 200);
+  expect(res.status).toBe(200);
   const html = await res.text();
-  assert.match(html, /B\+/);
-  assert.match(html, /Drifting/);
-  assert.match(html, /inter undeclared/);
-  assert.match(html, /History/);
-  assert.match(html, /@media print/, 'print stylesheet present (the PDF substitute)');
-  assert.ok(!html.includes('secret@x.io'), 'email never appears in the report');
+  expect(html).toMatch(/B\+/);
+  expect(html).toMatch(/Drifting/);
+  expect(html).toMatch(/inter undeclared/);
+  expect(html).toMatch(/History/);
+  expect(html, 'print stylesheet present (the PDF substitute)').toMatch(/@media print/);
+  expect(html.includes('secret@x.io'), 'email never appears in the report').toBeFalsy();
   // Anti-slop self-check.
-  assert.doesNotMatch(html, /Inter,|Geist|Space Grotesk/);
+  expect(html).not.toMatch(/Inter,|Geist|Space Grotesk/);
 });
 
 test('/report shows an honest empty state for an unknown domain', async () => {
@@ -440,5 +427,5 @@ test('/report shows an honest empty state for an unknown domain', async () => {
     env: { RESULTS: makeKv() },
   });
   const html = await res.text();
-  assert.match(html, /No scan data/i);
+  expect(html).toMatch(/No scan data/i);
 });

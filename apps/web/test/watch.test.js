@@ -2,8 +2,7 @@
 // recordScanForWatch hook + the /api/watch handlers, all driven against an
 // in-memory KV mock — no real Cloudflare KV, browser, or network.
 
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
+import { test, expect } from 'vitest';
 import {
   normalizeDomain,
   isValidEmail,
@@ -12,8 +11,8 @@ import {
   recordScanForWatch,
   getWatch,
   getHistory,
-} from '../functions/_shared.js';
-import { onRequestPost, onRequestGet } from '../functions/api/watch.js';
+} from '../functions/_shared.ts';
+import { onRequestPost, onRequestGet } from '../functions/api/watch.ts';
 
 // Minimal CF-KV-shaped mock: string values, TTL ignored.
 function makeKv(seed = {}) {
@@ -53,51 +52,51 @@ function slim(over = {}) {
 
 // ── normalizeDomain ──────────────────────────────────────────────────────────
 test('normalizeDomain accepts bare domains and strips scheme/www', () => {
-  assert.equal(normalizeDomain('example.com'), 'example.com');
-  assert.equal(normalizeDomain('https://www.Example.com'), 'example.com');
-  assert.equal(normalizeDomain('https://example.com/pricing'), 'example.com');
-  assert.equal(normalizeDomain('sub.example.co.uk'), 'sub.example.co.uk');
+  expect(normalizeDomain('example.com')).toBe('example.com');
+  expect(normalizeDomain('https://www.Example.com')).toBe('example.com');
+  expect(normalizeDomain('https://example.com/pricing')).toBe('example.com');
+  expect(normalizeDomain('sub.example.co.uk')).toBe('sub.example.co.uk');
 });
 
 test('normalizeDomain rejects junk, IPs-with-paths, and empty', () => {
-  assert.equal(normalizeDomain(''), null);
-  assert.equal(normalizeDomain('not a domain'), null);
-  assert.equal(normalizeDomain('localhost'), null); // no TLD
-  assert.equal(normalizeDomain('foo@bar.com'), null); // credentials/@
-  assert.equal(normalizeDomain('x.y'), null); // too short / 1-char TLD label
+  expect(normalizeDomain('')).toBe(null);
+  expect(normalizeDomain('not a domain')).toBe(null);
+  expect(normalizeDomain('localhost')).toBe(null); // no TLD
+  expect(normalizeDomain('foo@bar.com')).toBe(null); // credentials/@
+  expect(normalizeDomain('x.y')).toBe(null); // too short / 1-char TLD label
 });
 
 // ── isValidEmail ─────────────────────────────────────────────────────────────
 test('isValidEmail accepts plausible addresses, rejects garbage', () => {
-  assert.ok(isValidEmail('dev@startup.io'));
-  assert.ok(isValidEmail('a.b+tag@sub.example.co'));
-  assert.ok(!isValidEmail('nope'));
-  assert.ok(!isValidEmail('a@b'));
-  assert.ok(!isValidEmail(''));
-  assert.ok(!isValidEmail('a b@c.com'));
+  expect(isValidEmail('dev@startup.io')).toBeTruthy();
+  expect(isValidEmail('a.b+tag@sub.example.co')).toBeTruthy();
+  expect(isValidEmail('nope')).toBeFalsy();
+  expect(isValidEmail('a@b')).toBeFalsy();
+  expect(isValidEmail('')).toBeFalsy();
+  expect(isValidEmail('a b@c.com')).toBeFalsy();
 });
 
 // ── isRegression / tierRank ──────────────────────────────────────────────────
 test('tierRank orders the bands', () => {
-  assert.ok(tierRank('Clean') < tierRank('Mild'));
-  assert.ok(tierRank('Mild') < tierRank('Heavy'));
+  expect(tierRank('Clean') < tierRank('Mild')).toBeTruthy();
+  expect(tierRank('Mild') < tierRank('Heavy')).toBeTruthy();
 });
 
 test('isRegression fires on a tier drop OR a meaningful score increase', () => {
   const base = { score: 8, tier: 'Clean' };
-  assert.ok(!isRegression(base, { score: 10, tier: 'Clean' })); // +2, same tier → no
-  assert.ok(isRegression(base, { score: 16, tier: 'Clean' })); // +8 → yes
-  assert.ok(isRegression(base, { score: 11, tier: 'Mild' })); // tier drop → yes
-  assert.ok(!isRegression(base, { score: 4, tier: 'Clean' })); // improved → no
-  assert.ok(!isRegression(null, { score: 90, tier: 'Heavy' })); // no baseline → no
+  expect(isRegression(base, { score: 10, tier: 'Clean' })).toBeFalsy(); // +2, same tier → no
+  expect(isRegression(base, { score: 16, tier: 'Clean' })).toBeTruthy(); // +8 → yes
+  expect(isRegression(base, { score: 11, tier: 'Mild' })).toBeTruthy(); // tier drop → yes
+  expect(isRegression(base, { score: 4, tier: 'Clean' })).toBeFalsy(); // improved → no
+  expect(isRegression(null, { score: 90, tier: 'Heavy' })).toBeFalsy(); // no baseline → no
 });
 
 // ── recordScanForWatch ───────────────────────────────────────────────────────
 test('recordScanForWatch is a no-op for unwatched domains', async () => {
   const kv = makeKv();
   const out = await recordScanForWatch(kv, slim());
-  assert.equal(out, null);
-  assert.equal(kv.store.has('h:example.com'), false);
+  expect(out).toBe(null);
+  expect(kv.store.has('h:example.com')).toBe(false);
 });
 
 test('recordScanForWatch sets a baseline on first scan, then detects regression', async () => {
@@ -110,32 +109,29 @@ test('recordScanForWatch sets a baseline on first scan, then detects regression'
     kv,
     slim({ id: 's1', score: 8, grade: 'A-', tier: 'Clean' })
   );
-  assert.equal(first.watched, true);
-  assert.equal(first.regressed, false);
-  assert.equal(first.baseline.score, 8);
+  expect(first.watched).toBe(true);
+  expect(first.regressed).toBe(false);
+  expect(first.baseline.score).toBe(8);
 
   let watch = await getWatch(kv, 'example.com');
-  assert.equal(watch.baselineScore, 8);
-  assert.equal(watch.lastScore, 8);
+  expect(watch.baselineScore).toBe(8);
+  expect(watch.lastScore).toBe(8);
 
   // Later scan regresses to Heavy → flagged.
   const later = await recordScanForWatch(
     kv,
     slim({ id: 's2', score: 41, grade: 'D', tier: 'Heavy' })
   );
-  assert.equal(later.regressed, true);
-  assert.equal(later.delta, 33);
+  expect(later.regressed).toBe(true);
+  expect(later.delta).toBe(33);
 
   watch = await getWatch(kv, 'example.com');
-  assert.equal(watch.regressed, true);
-  assert.equal(watch.baselineScore, 8, 'baseline must not move once set');
+  expect(watch.regressed).toBe(true);
+  expect(watch.baselineScore, 'baseline must not move once set').toBe(8);
 
   const hist = await getHistory(kv, 'example.com');
-  assert.equal(hist.length, 2);
-  assert.deepEqual(
-    hist.map((h) => h.id),
-    ['s1', 's2']
-  );
+  expect(hist.length).toBe(2);
+  expect(hist.map((h) => h.id)).toEqual(['s1', 's2']);
 });
 
 test('recordScanForWatch de-dupes the same scan id in history', async () => {
@@ -145,17 +141,17 @@ test('recordScanForWatch de-dupes the same scan id in history', async () => {
   await recordScanForWatch(kv, slim({ id: 'dup' }));
   await recordScanForWatch(kv, slim({ id: 'dup' }));
   const hist = await getHistory(kv, 'example.com');
-  assert.equal(hist.length, 1);
+  expect(hist.length).toBe(1);
 });
 
 // ── POST /api/watch ──────────────────────────────────────────────────────────
 test('POST /api/watch validates domain and email', async () => {
   const env = { RESULTS: makeKv() };
   let res = await onRequestPost({ request: makePostReq({ domain: 'nope', email: 'd@x.io' }), env });
-  assert.equal(res.status, 400);
+  expect(res.status).toBe(400);
 
   res = await onRequestPost({ request: makePostReq({ domain: 'example.com', email: 'bad' }), env });
-  assert.equal(res.status, 400);
+  expect(res.status).toBe(400);
 });
 
 test('POST /api/watch subscribes, seeding baseline from the latest scan', async () => {
@@ -177,15 +173,15 @@ test('POST /api/watch subscribes, seeding baseline from the latest scan', async 
     request: makePostReq({ domain: 'https://www.example.com', email: 'Dev@Startup.IO' }),
     env,
   });
-  assert.equal(res.status, 201);
+  expect(res.status).toBe(201);
   const j = await res.json();
-  assert.equal(j.monitoring, true);
-  assert.equal(j.domain, 'example.com');
-  assert.equal(j.baseline.score, 6);
+  expect(j.monitoring).toBe(true);
+  expect(j.domain).toBe('example.com');
+  expect(j.baseline.score).toBe(6);
 
   const watch = await getWatch(kv, 'example.com');
-  assert.equal(watch.email, 'dev@startup.io', 'email is normalized lowercase');
-  assert.equal(watch.baselineScore, 6);
+  expect(watch.email, 'email is normalized lowercase').toBe('dev@startup.io');
+  expect(watch.baselineScore).toBe(6);
 });
 
 test('POST /api/watch unsubscribe requires a matching email', async () => {
@@ -199,16 +195,16 @@ test('POST /api/watch unsubscribe requires a matching email', async () => {
     request: makePostReq({ domain: 'example.com', email: 'rando@y.io', unsubscribe: true }),
     env,
   });
-  assert.equal(res.status, 403);
-  assert.ok(await getWatch(kv, 'example.com'));
+  expect(res.status).toBe(403);
+  expect(await getWatch(kv, 'example.com')).toBeTruthy();
 
   // Right email → removed.
   res = await onRequestPost({
     request: makePostReq({ domain: 'example.com', email: 'owner@x.io', unsubscribe: true }),
     env,
   });
-  assert.equal(res.status, 200);
-  assert.equal(await getWatch(kv, 'example.com'), null);
+  expect(res.status).toBe(200);
+  expect(await getWatch(kv, 'example.com')).toBe(null);
 });
 
 // ── GET /api/watch ───────────────────────────────────────────────────────────
@@ -232,17 +228,17 @@ test('GET /api/watch reports status without leaking the email', async () => {
   const env = { RESULTS: kv };
 
   const res = await onRequestGet({ request: makeGetReq('example.com'), env });
-  assert.equal(res.status, 200);
+  expect(res.status).toBe(200);
   const j = await res.json();
-  assert.equal(j.monitoring, true);
-  assert.equal(j.regressed, true);
-  assert.equal(j.history.length, 1);
-  assert.ok(!JSON.stringify(j).includes('secret@x.io'), 'email must never be returned');
+  expect(j.monitoring).toBe(true);
+  expect(j.regressed).toBe(true);
+  expect(j.history.length).toBe(1);
+  expect(JSON.stringify(j).includes('secret@x.io'), 'email must never be returned').toBeFalsy();
 });
 
 test('GET /api/watch on an unwatched domain says monitoring:false', async () => {
   const env = { RESULTS: makeKv() };
   const res = await onRequestGet({ request: makeGetReq('unseen.com'), env });
   const j = await res.json();
-  assert.equal(j.monitoring, false);
+  expect(j.monitoring).toBe(false);
 });

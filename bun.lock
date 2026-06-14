@@ -76,7 +76,7 @@
     },
     "packages/cli": {
       "name": "slop-detect",
-      "version": "0.7.0",
+      "version": "0.8.0",
       "bin": {
         "slop": "./dist/bin/slop.js",
         "slop-detect": "./dist/bin/slop.js",
@@ -92,7 +92,7 @@
     },
     "packages/mcp": {
       "name": "slop-detect-mcp",
-      "version": "0.7.0",
+      "version": "0.8.0",
       "bin": {
         "slop-detect-mcp": "./dist/bin/server.js",
       },

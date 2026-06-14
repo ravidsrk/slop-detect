@@ -3,8 +3,7 @@
 // server-rendered /directory page, and the `list` opt-in flag on /api/watch.
 // Driven against an in-memory KV mock that supports list() + metadata.
 
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
+import { test, expect } from 'vitest';
 import {
   setListing,
   getListing,
@@ -13,10 +12,10 @@ import {
   listAllSites,
   recordScanForWatch,
   getWatch,
-} from '../functions/_shared.js';
-import { onRequestGet as sitesGet } from '../functions/api/sites.js';
-import { onRequestGet as directoryGet } from '../functions/api/../directory.js';
-import { onRequestPost as watchPost } from '../functions/api/watch.js';
+} from '../functions/_shared.ts';
+import { onRequestGet as sitesGet } from '../functions/api/sites.ts';
+import { onRequestGet as directoryGet } from '../functions/directory.tsx';
+import { onRequestPost as watchPost } from '../functions/api/watch.ts';
 
 // CF-KV-shaped mock with metadata + list({ prefix }).
 function makeKv(seed = {}) {
@@ -70,13 +69,13 @@ function postReq(body) {
 test('setListing writes a record + display metadata, getListing reads it back', async () => {
   const kv = makeKv();
   const rec = await setListing(kv, slim());
-  assert.equal(rec.domain, 'example.com');
-  assert.equal(rec.url, 'https://example.com');
+  expect(rec.domain).toBe('example.com');
+  expect(rec.url).toBe('https://example.com');
 
   const got = await getListing(kv, 'example.com');
-  assert.equal(got.score, 8);
+  expect(got.score).toBe(8);
   // The compact summary must live in KV metadata so the directory enumerates cheaply.
-  assert.equal(kv.store.get('l:example.com').metadata.g, 'A-');
+  expect(kv.store.get('l:example.com').metadata.g).toBe('A-');
 });
 
 test('setListing preserves listedAt across refreshes but updates the score', async () => {
@@ -84,8 +83,8 @@ test('setListing preserves listedAt across refreshes but updates the score', asy
   const first = await setListing(kv, slim({ score: 8, tier: 'Clean' }));
   await new Promise((r) => setTimeout(r, 2));
   const second = await setListing(kv, slim({ score: 40, grade: 'D', tier: 'Heavy' }));
-  assert.equal(second.listedAt, first.listedAt, 'listedAt is sticky');
-  assert.equal(second.score, 40, 'score refreshes');
+  expect(second.listedAt, 'listedAt is sticky').toBe(first.listedAt);
+  expect(second.score, 'score refreshes').toBe(40);
 });
 
 test('listSites derives rows from metadata; deleteListing removes them', async () => {
@@ -94,15 +93,12 @@ test('listSites derives rows from metadata; deleteListing removes them', async (
   await setListing(kv, slim({ domain: 'b.com', score: 55, grade: 'F', tier: 'Heavy' }));
 
   let { sites } = await listSites(kv);
-  assert.equal(sites.length, 2);
-  assert.deepEqual(sites.map((s) => s.domain).sort(), ['a.com', 'b.com']);
+  expect(sites.length).toBe(2);
+  expect(sites.map((s) => s.domain).sort()).toEqual(['a.com', 'b.com']);
 
   await deleteListing(kv, 'b.com');
   ({ sites } = await listSites(kv));
-  assert.deepEqual(
-    sites.map((s) => s.domain),
-    ['a.com']
-  );
+  expect(sites.map((s) => s.domain)).toEqual(['a.com']);
 });
 
 // ── GET /api/sites ───────────────────────────────────────────────────────────
@@ -114,12 +110,12 @@ test('GET /api/sites sorts cleanest-first by default and sloppiest-first on dema
 
   let res = await sitesGet({ request: { url: 'https://slop-detect.com/api/sites' }, env });
   let j = await res.json();
-  assert.equal(j.sites[0].domain, 'clean.com');
+  expect(j.sites[0].domain).toBe('clean.com');
 
   res = await sitesGet({ request: { url: 'https://slop-detect.com/api/sites?sort=slop' }, env });
   j = await res.json();
-  assert.equal(j.sites[0].domain, 'dirty.com');
-  assert.equal(j.sort, 'slop');
+  expect(j.sites[0].domain).toBe('dirty.com');
+  expect(j.sort).toBe('slop');
 });
 
 test('GET /api/sites: pending (unscored) sites sink to the end in BOTH sorts', async () => {
@@ -141,17 +137,15 @@ test('GET /api/sites: pending (unscored) sites sink to the end in BOTH sorts', a
       env,
     });
     const j = await res.json();
-    assert.equal(
-      j.sites[j.sites.length - 1].domain,
-      'pending.com',
-      `pending last when sort=${sort}`
+    expect(j.sites[j.sites.length - 1].domain, `pending last when sort=${sort}`).toBe(
+      'pending.com'
     );
   }
 });
 
 test('GET /api/sites returns 503 without storage', async () => {
   const res = await sitesGet({ request: { url: 'https://slop-detect.com/api/sites' }, env: {} });
-  assert.equal(res.status, 503);
+  expect(res.status).toBe(503);
 });
 
 // ── GET /directory (server-rendered HTML) ────────────────────────────────────
@@ -162,14 +156,14 @@ test('/directory renders a DOFOLLOW backlink to each listed site', async () => {
     request: { url: 'https://slop-detect.com/directory' },
     env: { RESULTS: kv },
   });
-  assert.equal(res.status, 200);
+  expect(res.status).toBe(200);
   const html = await res.text();
-  assert.match(html, /href="https:\/\/example\.com"/, 'links out to the site');
-  assert.doesNotMatch(html, /rel=["']?nofollow/i, 'the backlink must be dofollow');
-  assert.match(html, /application\/ld\+json/, 'emits ItemList JSON-LD for SEO');
+  expect(html, 'links out to the site').toMatch(/href="https:\/\/example\.com"/);
+  expect(html, 'the backlink must be dofollow').not.toMatch(/rel=["']?nofollow/i);
+  expect(html, 'emits ItemList JSON-LD for SEO').toMatch(/application\/ld\+json/);
   // Anti-slop self-check: the directory must not wear the tells it detects.
-  assert.doesNotMatch(html, /Inter|Geist|Space Grotesk/i, 'no slop fonts');
-  assert.doesNotMatch(html, /background-clip:\s*text/i, 'no gradient text');
+  expect(html, 'no slop fonts').not.toMatch(/Inter|Geist|Space Grotesk/i);
+  expect(html, 'no gradient text').not.toMatch(/background-clip:\s*text/i);
 });
 
 test('/directory shows an empty state with a claim CTA when nothing is listed', async () => {
@@ -178,8 +172,8 @@ test('/directory shows an empty state with a claim CTA when nothing is listed', 
     env: { RESULTS: makeKv() },
   });
   const html = await res.text();
-  assert.match(html, /No sites listed yet/i);
-  assert.match(html, /claim it/i);
+  expect(html).toMatch(/No sites listed yet/i);
+  expect(html).toMatch(/claim it/i);
 });
 
 // ── /api/watch list opt-in ───────────────────────────────────────────────────
@@ -203,9 +197,9 @@ test('POST /api/watch { list:true } lists the domain; { list:false } delists it'
     env,
   });
   let j = await res.json();
-  assert.equal(j.listed, true);
-  assert.ok(j.directoryUrl.endsWith('/directory'));
-  assert.ok(await getListing(kv, 'example.com'), 'listing created');
+  expect(j.listed).toBe(true);
+  expect(j.directoryUrl.endsWith('/directory')).toBeTruthy();
+  expect(await getListing(kv, 'example.com'), 'listing created').toBeTruthy();
 
   // Re-subscribe with list:false → delisted, monitoring intact.
   res = await watchPost({
@@ -213,9 +207,9 @@ test('POST /api/watch { list:true } lists the domain; { list:false } delists it'
     env,
   });
   j = await res.json();
-  assert.equal(j.listed, false);
-  assert.equal(await getListing(kv, 'example.com'), null, 'listing removed');
-  assert.ok(await getWatch(kv, 'example.com'), 'still monitored');
+  expect(j.listed).toBe(false);
+  expect(await getListing(kv, 'example.com'), 'listing removed').toBe(null);
+  expect(await getWatch(kv, 'example.com'), 'still monitored').toBeTruthy();
 });
 
 test('omitting `list` on re-subscribe preserves the listing state', async () => {
@@ -240,8 +234,8 @@ test('omitting `list` on re-subscribe preserves the listing state', async () => 
     env,
   });
   const j = await res.json();
-  assert.equal(j.listed, true);
-  assert.ok(await getListing(kv, 'example.com'));
+  expect(j.listed).toBe(true);
+  expect(await getListing(kv, 'example.com')).toBeTruthy();
 });
 
 test('unsubscribing a listed domain also delists it', async () => {
@@ -264,7 +258,7 @@ test('unsubscribing a listed domain also delists it', async () => {
     request: postReq({ domain: 'example.com', email: 'o@x.io', unsubscribe: true }),
     env,
   });
-  assert.equal(await getListing(kv, 'example.com'), null);
+  expect(await getListing(kv, 'example.com')).toBe(null);
 });
 
 test('a claimed domain cannot be listed/hijacked by a different email', async () => {
@@ -286,12 +280,12 @@ test('a claimed domain cannot be listed/hijacked by a different email', async ()
     request: postReq({ domain: 'example.com', email: 'attacker@evil.io', list: false }),
     env,
   });
-  assert.equal(res.status, 403);
+  expect(res.status).toBe(403);
 
   // The watch + listing are untouched.
   const watch = await getWatch(kv, 'example.com');
-  assert.equal(watch.email, 'owner@x.io');
-  assert.ok(await getListing(kv, 'example.com'), 'listing survives the hijack attempt');
+  expect(watch.email).toBe('owner@x.io');
+  expect(await getListing(kv, 'example.com'), 'listing survives the hijack attempt').toBeTruthy();
 });
 
 test('/directory labels a listed-but-unscored domain "Pending", not "Unlisted"', async () => {
@@ -310,8 +304,8 @@ test('/directory labels a listed-but-unscored domain "Pending", not "Unlisted"',
     env: { RESULTS: kv },
   });
   const html = await res.text();
-  assert.match(html, /Pending/, 'pending rows are labeled Pending');
-  assert.doesNotMatch(html, /Unlisted/, 'a listed row is never labeled Unlisted');
+  expect(html, 'pending rows are labeled Pending').toMatch(/Pending/);
+  expect(html, 'a listed row is never labeled Unlisted').not.toMatch(/Unlisted/);
 });
 
 // ── re-scan refreshes a listed domain's directory entry ──────────────────────
@@ -335,8 +329,8 @@ test('recordScanForWatch refreshes the listing for a listed, watched domain', as
   // A regressing re-scan should both flag the watch and update the directory.
   await recordScanForWatch(kv, slim({ id: 'r9', score: 45, grade: 'D', tier: 'Heavy' }));
   const listing = await getListing(kv, 'example.com');
-  assert.equal(listing.score, 45, 'directory tracks the new score');
-  assert.equal(listing.listedAt, 'orig', 'listed-since is preserved');
+  expect(listing.score, 'directory tracks the new score').toBe(45);
+  expect(listing.listedAt, 'listed-since is preserved').toBe('orig');
 });
 
 test('recordScanForWatch reconciles away a stale row when the watch is not listed', async () => {
@@ -359,5 +353,5 @@ test('recordScanForWatch reconciles away a stale row when the watch is not liste
     }),
   });
   await recordScanForWatch(kv, slim({ id: 'r9', score: 7, grade: 'A-', tier: 'Clean' }));
-  assert.equal(await getListing(kv, 'example.com'), null, 'stale row reconciled away');
+  expect(await getListing(kv, 'example.com'), 'stale row reconciled away').toBe(null);
 });

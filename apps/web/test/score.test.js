@@ -1,10 +1,9 @@
 // Tests for the per-domain score hub (GET /score/:domain). Renders the handler
 // against an in-memory KV mock and asserts on the produced HTML, no browser.
 
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
-import { saveResult, recordScan, setListing } from '../functions/_shared.js';
-import { onRequestGet } from '../functions/score/[domain].js';
+import { test, expect } from 'vitest';
+import { saveResult, recordScan, setListing } from '../functions/_shared.ts';
+import { onRequestGet } from '../functions/score/[domain].tsx';
 
 function makeKv(seed = {}) {
   const store = new Map(Object.entries(seed));
@@ -55,14 +54,14 @@ async function render(kv, domainParam) {
 
 test('invalid domain returns 400', async () => {
   const { status } = await render(makeKv(), 'not a domain');
-  assert.equal(status, 400);
+  expect(status).toBe(400);
 });
 
 test('unknown domain renders the empty state with a scan CTA', async () => {
   const { status, html } = await render(makeKv(), 'never-scanned.com');
-  assert.equal(status, 404);
-  assert.match(html, /No scan recorded/);
-  assert.match(html, /\/\?url=never-scanned\.com/);
+  expect(status).toBe(404);
+  expect(html).toMatch(/No scan recorded/);
+  expect(html).toMatch(/\/\?url=never-scanned\.com/);
 });
 
 test('a scanned domain renders score, grade, verdict, JSON-LD, canonical', async () => {
@@ -71,12 +70,12 @@ test('a scanned domain renders score, grade, verdict, JSON-LD, canonical', async
   await saveResult(kv, s);
   await recordScan(kv, s);
   const { status, html } = await render(kv, 'ex.com');
-  assert.equal(status, 200);
-  assert.match(html, />D</); // grade
-  assert.match(html, /30<small>\/100<\/small>/); // score
-  assert.match(html, /Heavy slop/); // verdict
-  assert.match(html, /application\/ld\+json/); // AEO structured data
-  assert.match(html, /rel="canonical" href="https:\/\/slop-detect\.com\/score\/ex\.com"/);
+  expect(status).toBe(200);
+  expect(html).toMatch(/>D</); // grade
+  expect(html).toMatch(/30<small>\/100<\/small>/); // score
+  expect(html).toMatch(/Heavy slop/); // verdict
+  expect(html).toMatch(/application\/ld\+json/); // AEO structured data
+  expect(html).toMatch(/rel="canonical" href="https:\/\/slop-detect\.com\/score\/ex\.com"/);
 });
 
 test('an UNCLAIMED domain shows the claim form, no dofollow backlink', async () => {
@@ -85,9 +84,9 @@ test('an UNCLAIMED domain shows the claim form, no dofollow backlink', async () 
   await saveResult(kv, s);
   await recordScan(kv, s);
   const { html } = await render(kv, 'ex.com');
-  assert.match(html, /id="claimForm"/);
-  assert.match(html, /Claim this page/);
-  assert.doesNotMatch(html, /rel="dofollow"/);
+  expect(html).toMatch(/id="claimForm"/);
+  expect(html).toMatch(/Claim this page/);
+  expect(html).not.toMatch(/rel="dofollow"/);
 });
 
 test('a CLAIMED (listed) domain shows a dofollow backlink, not the claim form', async () => {
@@ -97,9 +96,9 @@ test('a CLAIMED (listed) domain shows a dofollow backlink, not the claim form', 
   await recordScan(kv, s);
   await setListing(kv, s); // owner claimed + listed
   const { html } = await render(kv, 'ex.com');
-  assert.match(html, /rel="dofollow"/);
-  assert.match(html, /Listed in the/);
-  assert.doesNotMatch(html, /id="claimForm"/);
+  expect(html).toMatch(/rel="dofollow"/);
+  expect(html).toMatch(/Listed in the/);
+  expect(html).not.toMatch(/id="claimForm"/);
 });
 
 test('peer percentile appears only once enough sites are scanned', async () => {
@@ -109,13 +108,13 @@ test('peer percentile appears only once enough sites are scanned', async () => {
   await recordScan(kv, target);
   // only 1 site so far -> no peer line
   let r = await render(kv, 'ex.com');
-  assert.doesNotMatch(r.html, /Cleaner than/);
+  expect(r.html).not.toMatch(/Cleaner than/);
   // seed four more scans so the corpus crosses the >=5 threshold
   for (let i = 0; i < 4; i++) {
     await recordScan(kv, slim({ id: 'x' + i, domain: `d${i}.com`, score: 40 + i, tier: 'Heavy' }));
   }
   r = await render(kv, 'ex.com');
-  assert.match(r.html, /Cleaner than <strong>/);
+  expect(r.html).toMatch(/Cleaner than <strong>/);
 });
 
 test('the page links to this scan, the printable report, and a re-scan', async () => {
@@ -124,7 +123,7 @@ test('the page links to this scan, the printable report, and a re-scan', async (
   await saveResult(kv, s);
   await recordScan(kv, s);
   const { html } = await render(kv, 'ex.com');
-  assert.match(html, /href="https:\/\/slop-detect\.com\/r\/sc0re001"/);
-  assert.match(html, /href="https:\/\/slop-detect\.com\/report\/ex\.com"/);
-  assert.match(html, /\/\?url=ex\.com/);
+  expect(html).toMatch(/href="https:\/\/slop-detect\.com\/r\/sc0re001"/);
+  expect(html).toMatch(/href="https:\/\/slop-detect\.com\/report\/ex\.com"/);
+  expect(html).toMatch(/\/\?url=ex\.com/);
 });

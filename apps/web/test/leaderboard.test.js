@@ -2,9 +2,8 @@
 // research-framed page: corpus headline + a live counter + category rankings +
 // by-builder, anti-slop. Each name links into its /score hub.
 
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
-import { onRequestGet } from '../functions/leaderboard.js';
+import { test, expect } from 'vitest';
+import { onRequestGet } from '../functions/leaderboard.tsx';
 
 const SAMPLE = {
   generatedAt: '2026-06-05T00:00:00.000Z',
@@ -82,20 +81,20 @@ test('/leaderboard renders the headline, category rankings, and by-builder', asy
     async () => new Response(JSON.stringify(SAMPLE), { status: 200 }),
     async () => {
       const res = await onRequestGet({ request: req, env: {} });
-      assert.equal(res.status, 200);
+      expect(res.status).toBe(200);
       const html = await res.text();
-      assert.match(html, /33%/, 'shows corpus slop share');
-      assert.match(html, /AI builders/);
-      assert.match(html, /SaaS &amp; dev tools|SaaS & dev tools/);
-      assert.match(html, /Classic/);
-      assert.match(html, /By builder/);
-      assert.match(html, /v0/, 'builder breakdown present');
+      expect(html, 'shows corpus slop share').toMatch(/33%/);
+      expect(html).toMatch(/AI builders/);
+      expect(html).toMatch(/SaaS &amp; dev tools|SaaS & dev tools/);
+      expect(html).toMatch(/Classic/);
+      expect(html).toMatch(/By builder/);
+      expect(html, 'builder breakdown present').toMatch(/v0/);
       // Names link into the score hub (closing the loop), not dead-ending elsewhere.
-      assert.match(html, /href="https:\/\/slop-detect\.com\/score\/stripe\.com"/);
+      expect(html).toMatch(/href="https:\/\/slop-detect\.com\/score\/stripe\.com"/);
       // Anti-slop self-check + framing caveat.
-      assert.doesNotMatch(html, /Inter|Geist|Space Grotesk/i);
-      assert.doesNotMatch(html, /background-clip:\s*text/i);
-      assert.match(html, /fingerprint, not a verdict/i);
+      expect(html).not.toMatch(/Inter|Geist|Space Grotesk/i);
+      expect(html).not.toMatch(/background-clip:\s*text/i);
+      expect(html).toMatch(/fingerprint, not a verdict/i);
     }
   );
 });
@@ -105,10 +104,10 @@ test('/leaderboard shows a graceful "generating" state when data is missing', as
     async () => new Response('not found', { status: 404 }),
     async () => {
       const res = await onRequestGet({ request: req, env: {} });
-      assert.equal(res.status, 200);
+      expect(res.status).toBe(200);
       const html = await res.text();
-      assert.match(html, /being generated/i);
-      assert.doesNotMatch(html, /undefined/);
+      expect(html).toMatch(/being generated/i);
+      expect(html).not.toMatch(/undefined/);
     }
   );
 });
@@ -120,11 +119,11 @@ test('/leaderboard shows the live scan counter once enough scans exist', async (
       const withData = await (
         await onRequestGet({ request: req, env: { RESULTS: kvWithScans(120) } })
       ).text();
-      assert.match(withData, /120<\/strong>\s*scans|>120<\/strong>/);
+      expect(withData).toMatch(/120<\/strong>\s*scans|>120<\/strong>/);
       const tooFew = await (
         await onRequestGet({ request: req, env: { RESULTS: kvWithScans(10) } })
       ).text();
-      assert.doesNotMatch(tooFew, /scans,\s*\n?\s*average/);
+      expect(tooFew).not.toMatch(/scans,\s*\n?\s*average/);
     }
   );
 });
