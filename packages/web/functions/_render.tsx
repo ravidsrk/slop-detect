@@ -1,9 +1,12 @@
+/** @jsxRuntime automatic @jsxImportSource hono/jsx */
 // Presentation helpers: tier→color mapping, the self-rendered badge SVG, the
 // share-card HTML (rasterized to PNG by /og/:id.png), and HTML/XML escaping.
 //
-// Output strings only — no KV, no network. (When the web app moves to JSX views
-// the card/badge builders are the natural first things to port; the escaping
-// helpers stay useful for raw SVG/XML either way.)
+// The badge + card are now hono/jsx components rendered to strings (JSX auto-
+// escapes text). The escape helpers stay exported for the remaining raw-string
+// callers (e.g. SVG/XML built outside JSX).
+
+import { raw } from 'hono/html';
 
 // ── escaping ──────────────────────────────────────────────────────────────────
 export function escapeHtml(s) {
@@ -63,34 +66,47 @@ export function badgeSvg(domain, slim) {
   const total = labelW + valueW;
   const fill = slim ? c.fg : '#8a8a92';
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${total}" height="20" role="img" aria-label="${label}: ${value}">
-  <linearGradient id="s" x2="0" y2="100%">
-    <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
-    <stop offset="1" stop-opacity=".1"/>
-  </linearGradient>
-  <clipPath id="r"><rect width="${total}" height="20" rx="3" fill="#fff"/></clipPath>
-  <g clip-path="url(#r)">
-    <rect width="${labelW}" height="20" fill="#1a1a1d"/>
-    <rect x="${labelW}" width="${valueW}" height="20" fill="${fill}"/>
-    <rect width="${total}" height="20" fill="url(#s)"/>
-  </g>
-  <g text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">
-    <text x="${labelW / 2}" y="14" fill="#fff">${label}</text>
-    <text x="${labelW + valueW / 2}" y="14" fill="#0a0a0b" font-weight="bold">${escapeXml(value)}</text>
-  </g>
-</svg>`;
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={total}
+      height="20"
+      role="img"
+      aria-label={`${label}: ${value}`}
+    >
+      <linearGradient id="s" x2="0" y2="100%">
+        <stop offset="0" stop-color="#bbb" stop-opacity=".1" />
+        <stop offset="1" stop-opacity=".1" />
+      </linearGradient>
+      <clipPath id="r">
+        <rect width={total} height="20" rx="3" fill="#fff" />
+      </clipPath>
+      <g clip-path="url(#r)">
+        <rect width={labelW} height="20" fill="#1a1a1d" />
+        <rect x={labelW} width={valueW} height="20" fill={fill} />
+        <rect width={total} height="20" fill="url(#s)" />
+      </g>
+      <g text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">
+        <text x={labelW / 2} y="14" fill="#fff">
+          {label}
+        </text>
+        <text x={labelW + valueW / 2} y="14" fill="#0a0a0b" font-weight="bold">
+          {value}
+        </text>
+      </g>
+    </svg>
+  ).toString();
 }
 
 // ── Share-card HTML (1200×630) — rendered to PNG by /og/:id.png ───────────────
 export function cardHtml(slim) {
   const c = tierColors(slim.tier);
-  const domain = escapeHtml(slim.domain);
-  const verdict = escapeHtml(slim.verdict || '');
   const tells = (slim.triggered || [])
     .slice(0, 4)
-    .map((t) => escapeHtml(t.short || t.label))
+    .map((t) => t.short || t.label)
     .join(' · ');
-  return `<!doctype html><html><head><meta charset="utf-8"><style>
+
+  const CARD_CSS = `
   *{margin:0;padding:0;box-sizing:border-box}
   html,body{width:1200px;height:630px;overflow:hidden}
   body{
@@ -116,24 +132,48 @@ export function cardHtml(slim) {
   .verdict{font-size:26px;color:#d4d4d8;max-width:1000px;line-height:1.3}
   .tells{font-size:17px;color:#6b6b73;font-family:ui-monospace,Menlo,monospace}
   .foot{font-size:18px;color:#5a5a62;margin-top:6px}
-  </style></head><body>
-    <div class="top">
-      <div class="brand">slop&#8209;detect <span class="slash">/ ${slim.patternsTotal ? escapeHtml(String(slim.patternsTotal)) + '&#8209;rule' : ''} AI&#8209;design fingerprint</span></div>
-      <div class="defs">defs ${escapeHtml(slim.definitionsVersion || '')}</div>
-    </div>
-    <div class="mid">
-      <div class="grade">${escapeHtml(slim.grade)}</div>
-      <div class="meta">
-        <div class="score">${slim.score}<small>/100</small></div>
-        <div class="tier">${escapeHtml(slim.tier)}</div>
-        <div class="flagged">${slim.patternsFlagged}/${slim.patternsTotal} patterns triggered</div>
-      </div>
-    </div>
-    <div class="bottom">
-      <div class="domain">${domain}</div>
-      <div class="verdict">${verdict}</div>
-      ${tells ? `<div class="tells">${tells}</div>` : ''}
-      <div class="foot">slop-detect.com</div>
-    </div>
-  </body></html>`;
+`;
+
+  const brandTail = slim.patternsTotal
+    ? escapeHtml(String(slim.patternsTotal)) + '&#8209;rule'
+    : '';
+
+  const doc = (
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <style>{raw(CARD_CSS)}</style>
+      </head>
+      <body>
+        <div class="top">
+          <div class="brand">
+            {raw('slop&#8209;detect')}{' '}
+            <span class="slash">{raw(`/ ${brandTail} AI&#8209;design fingerprint`)}</span>
+          </div>
+          <div class="defs">defs {slim.definitionsVersion || ''}</div>
+        </div>
+        <div class="mid">
+          <div class="grade">{slim.grade}</div>
+          <div class="meta">
+            <div class="score">
+              {slim.score}
+              <small>/100</small>
+            </div>
+            <div class="tier">{slim.tier}</div>
+            <div class="flagged">
+              {slim.patternsFlagged}/{slim.patternsTotal} patterns triggered
+            </div>
+          </div>
+        </div>
+        <div class="bottom">
+          <div class="domain">{slim.domain}</div>
+          <div class="verdict">{slim.verdict || ''}</div>
+          {tells ? <div class="tells">{tells}</div> : null}
+          <div class="foot">slop-detect.com</div>
+        </div>
+      </body>
+    </html>
+  );
+
+  return '<!doctype html>' + doc.toString();
 }
