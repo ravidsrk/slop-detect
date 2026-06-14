@@ -4,6 +4,7 @@
   "version": "0.7.0",
   "description": "Score any landing page against the multi-axis (design + copy) AI-slop fingerprint. Detect Cursor/v0/Lovable templates and GPT-default copy in the wild.",
   "type": "module",
+  "packageManager": "bun@1.3.5",
   "license": "MIT",
   "homepage": "https://slop-detect.com",
   "repository": {
@@ -15,39 +16,43 @@
   },
   "author": "Ravindra Kumar <ravidsrk@gmail.com>",
   "workspaces": [
-    "packages/core",
-    "packages/cli",
-    "packages/web",
-    "packages/mcp"
+    "packages/*",
+    "apps/*",
+    "examples/*"
   ],
   "scripts": {
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,mdx}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,mdx}\"",
+    "changeset": "changeset",
+    "version-packages": "changeset version && bun install --lockfile-only",
+    "release": "turbo run build --filter=./packages/* && changeset publish",
+    "clean": "turbo run clean && rm -rf node_modules",
     "scan": "npm run --workspace slop-detect scan --",
     "demo": "npm run --workspace slop-detect demo",
     "web:dev": "npm run --workspace slop-detect-web dev",
     "web:deploy": "npm run --workspace slop-detect-web deploy",
-    "calibrate": "node --import tsx packages/cli/calibration/run.mjs",
-    "build": "npm run build -w slop-detect-core && npm run build -w slop-detect && npm run build -w slop-detect-mcp",
-    "typecheck": "npm run typecheck -w slop-detect-core && npm run typecheck -w slop-detect && npm run typecheck -w slop-detect-mcp && npm run typecheck -w slop-detect-web",
-    "prepare": "npm run build",
-    "pretest": "npm run build",
-    "test": "node --import tsx --test packages/core/test/*.test.js packages/web/test/*.test.js packages/cli/test/*.test.js packages/mcp/test/*.test.js",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "calibrate": "node --import tsx packages/cli/calibration/run.mjs"
   },
   "engines": {
     "node": ">=20.0.0"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.27.10",
     "@eslint/js": "^9.39.4",
     "@types/node": "^22.19.21",
+    "@vitest/coverage-v8": "^2.1.8",
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^16.5.0",
     "prettier": "^3.8.4",
-    "tsx": "^4.22.4",
+    "tsup": "^8.3.5",
+    "turbo": "^2.3.3",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.61.0"
+    "typescript-eslint": "^8.61.0",
+    "vitest": "^2.1.8"
   }
 }
