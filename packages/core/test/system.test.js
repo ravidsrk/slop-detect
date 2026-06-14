@@ -10,7 +10,7 @@ import {
   flattenDesignTokens,
   scoreSystemCompliance,
   primaryFamily,
-  parseCssColor
+  parseCssColor,
 } from '../src/system.js';
 
 // A DESIGN.md in the Google Labs spec shape (front matter + prose), including a
@@ -56,12 +56,20 @@ test('parseDesignMd reads nested tokens, quoted hex, comments, and resolves {ref
   assert.equal(p.colors.primary, '#1A1C1E');
   assert.equal(p.typography.h1.fontFamily, 'Public Sans');
   assert.equal(p.spacing.md, '16px', 'trailing comment stripped');
-  assert.equal(p.components['button-primary'].backgroundColor, '#B8422E', '{colors.tertiary} resolved');
+  assert.equal(
+    p.components['button-primary'].backgroundColor,
+    '#B8422E',
+    '{colors.tertiary} resolved'
+  );
 });
 
 test('parseDesignMd returns null for prose-only or token-free files', () => {
   assert.equal(parseDesignMd('# Just a readme\nNo front matter.'), null);
-  assert.equal(parseDesignMd('---\nname: OnlyAName\n---\nprose'), null, 'a name alone is not a token set');
+  assert.equal(
+    parseDesignMd('---\nname: OnlyAName\n---\nprose'),
+    null,
+    'a name alone is not a token set'
+  );
 });
 
 // ── flattening + matching primitives ─────────────────────────────────────────
@@ -96,14 +104,14 @@ const ALIGNED = {
   ctas: [{ bg: 'rgb(184, 66, 46)', text: 'Buy' }],
   surface: 'rgb(251, 250, 247)',
   headings: [{ tag: 'H1', color: 'rgb(26, 28, 30)' }],
-  radii: [4, 8]
+  radii: [4, 8],
 };
 
 // The same page after an agent "improved" it: Inter, an off-palette violet CTA.
 const DRIFTED = {
   ...ALIGNED,
   fonts: { 'Inter, ui-sans-serif': 45, 'Georgia, serif': 5 },
-  ctas: [{ bg: 'rgb(124, 58, 237)', text: 'Get started' }]
+  ctas: [{ bg: 'rgb(124, 58, 237)', text: 'Get started' }],
 };
 
 test('an on-system page scores Aligned with no drift', () => {
@@ -127,7 +135,7 @@ test('undeclared font + off-palette CTA read as named drift, not a verdict', () 
 test('a rarely-used font (<10% of text) is not drift (icon-font tolerance)', () => {
   const r = scoreSystemCompliance(parsed, {
     ...ALIGNED,
-    fonts: { 'Georgia, serif': 95, 'FontAwesome': 3 }
+    fonts: { 'Georgia, serif': 95, FontAwesome: 3 },
   });
   assert.ok(!r.drift.some((d) => d.id === 'fonts.declared'));
 });
@@ -151,7 +159,7 @@ test('no parseable DESIGN.md → declared:false, null score', () => {
 test('color matching tolerates rendering rounding (±10/channel)', () => {
   const r = scoreSystemCompliance(parsed, {
     ...ALIGNED,
-    ctas: [{ bg: 'rgb(186, 68, 48)', text: 'Buy' }] // tertiary ±2
+    ctas: [{ bg: 'rgb(186, 68, 48)', text: 'Buy' }], // tertiary ±2
   });
   assert.ok(!r.drift.some((d) => d.id === 'colors.cta'));
 });

@@ -12,16 +12,22 @@ import {
   getScoreDistribution,
   summarizeStats,
   percentileFromDistribution,
-  percentileForScore
+  percentileForScore,
 } from '../functions/_shared.js';
 
 function makeKv(seed = {}) {
   const store = new Map(Object.entries(seed));
   return {
     store,
-    async get(k) { return store.has(k) ? store.get(k) : null; },
-    async put(k, v) { store.set(k, v); },
-    async delete(k) { store.delete(k); }
+    async get(k) {
+      return store.has(k) ? store.get(k) : null;
+    },
+    async put(k, v) {
+      store.set(k, v);
+    },
+    async delete(k) {
+      store.delete(k);
+    },
   };
 }
 
@@ -33,7 +39,7 @@ function slim(over = {}) {
     grade: 'A-',
     tier: 'Clean',
     createdAt: '2026-06-01T00:00:00.000Z',
-    ...over
+    ...over,
   };
 }
 
@@ -51,17 +57,20 @@ test('recordScan appends a history point for an UNWATCHED domain', async () => {
 test('recordScan grows the timeline across re-scans and de-dupes by id', async () => {
   const kv = makeKv();
   await recordScan(kv, slim({ id: 'p1', score: 8 }));
-  await recordScan(kv, slim({ id: 'p1', score: 8 }));   // same scan id, no-op
+  await recordScan(kv, slim({ id: 'p1', score: 8 })); // same scan id, no-op
   await recordScan(kv, slim({ id: 'p2', score: 30, tier: 'Heavy', grade: 'D' }));
   const hist = await getHistory(kv, 'example.com');
-  assert.deepEqual(hist.map(h => h.id), ['p1', 'p2']);
+  assert.deepEqual(
+    hist.map((h) => h.id),
+    ['p1', 'p2']
+  );
 });
 
 test('recordScan then recordScanForWatch does not double-append (production path)', async () => {
   // A watched domain: scan.js calls recordScan (all-domains) then
   // recordScanForWatch (watch baseline). The second append must de-dupe.
   const kv = makeKv({
-    'w:example.com': JSON.stringify({ domain: 'example.com', email: 'a@b.com' })
+    'w:example.com': JSON.stringify({ domain: 'example.com', email: 'a@b.com' }),
   });
   const s = slim({ id: 'p1', score: 8 });
   await recordScan(kv, s);
@@ -80,9 +89,9 @@ test('recordScan carries the system reading when the axis ran', async () => {
 // ── global score distribution + stats ────────────────────────────────────────
 test('recordScan bumps the score distribution; getStats aggregates it', async () => {
   const kv = makeKv();
-  await recordScan(kv, slim({ id: 'a', domain: 'a.com', score: 4, tier: 'Clean' }));   // Clean
-  await recordScan(kv, slim({ id: 'b', domain: 'b.com', score: 20, tier: 'Mild' }));   // Mild
-  await recordScan(kv, slim({ id: 'c', domain: 'c.com', score: 40, tier: 'Heavy' }));  // Heavy
+  await recordScan(kv, slim({ id: 'a', domain: 'a.com', score: 4, tier: 'Clean' })); // Clean
+  await recordScan(kv, slim({ id: 'b', domain: 'b.com', score: 20, tier: 'Mild' })); // Mild
+  await recordScan(kv, slim({ id: 'c', domain: 'c.com', score: 40, tier: 'Heavy' })); // Heavy
   const stats = await getStats(kv);
   assert.equal(stats.count, 3);
   assert.equal(stats.clean, 1);
@@ -96,7 +105,7 @@ test('getScoreDistribution returns a 101-bucket array, empty when unseeded', asy
   const kv = makeKv();
   const dist = await getScoreDistribution(kv);
   assert.equal(dist.length, 101);
-  assert.ok(dist.every(n => n === 0));
+  assert.ok(dist.every((n) => n === 0));
 });
 
 test('summarizeStats handles an empty distribution without NaN', () => {
@@ -107,7 +116,10 @@ test('summarizeStats handles an empty distribution without NaN', () => {
 // ── peer percentile ("cleaner than X% of N sites") ───────────────────────────
 test('percentileFromDistribution counts sites scoring strictly worse', () => {
   const dist = new Array(101).fill(0);
-  dist[5] = 1; dist[10] = 1; dist[20] = 1; dist[50] = 1; // 4 sites
+  dist[5] = 1;
+  dist[10] = 1;
+  dist[20] = 1;
+  dist[50] = 1; // 4 sites
   // score 10 -> sites scoring > 10 are {20,50} = 2 of 4 = 50% cleaner-than
   assert.deepEqual(percentileFromDistribution(dist, 10), { count: 4, cleanerThanPct: 50 });
   // a 5 (cleanest) is cleaner than the other 3 of 4 = 75%
@@ -117,8 +129,12 @@ test('percentileFromDistribution counts sites scoring strictly worse', () => {
 });
 
 test('percentile is null with no data, and clamps out-of-range scores', () => {
-  assert.deepEqual(percentileFromDistribution(new Array(101).fill(0), 8), { count: 0, cleanerThanPct: null });
-  const dist = new Array(101).fill(0); dist[100] = 1;
+  assert.deepEqual(percentileFromDistribution(new Array(101).fill(0), 8), {
+    count: 0,
+    cleanerThanPct: null,
+  });
+  const dist = new Array(101).fill(0);
+  dist[100] = 1;
   assert.equal(percentileFromDistribution(dist, 999).cleanerThanPct, 0); // clamps to 100
 });
 

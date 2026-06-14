@@ -8,505 +8,469 @@ export const FIXES = {
   slop_fonts: {
     problem:
       "Inter, Geist, Space Grotesk, and Instrument Serif (italic) are the four fonts LLMs default to because Stripe/Linear/Vercel standardized them and training data is saturated with them. Using any of these signals 'AI-built' to anyone who's looked at more than 10 landing pages in 2026.",
-    fix:
-      "Replace the body and heading typefaces with something that actually reflects your brand. Pick from foundry sans (Söhne, Aeonik, GT America, Untitled Sans, Suisse Int'l, Pangea, Telegraf, Object Sans) OR a system-font stack (`-apple-system, BlinkMacSystemFont, Segoe UI`) for body + a single distinctive display face for H1.",
+    fix: "Replace the body and heading typefaces with something that actually reflects your brand. Pick from foundry sans (Söhne, Aeonik, GT America, Untitled Sans, Suisse Int'l, Pangea, Telegraf, Object Sans) OR a system-font stack (`-apple-system, BlinkMacSystemFont, Segoe UI`) for body + a single distinctive display face for H1.",
     alternatives: [
-      "Editorial: Tiempos / Söhne / system serif",
-      "Modern brand: Aeonik / GT America / Pangea",
-      "System-only: -apple-system + bold weight contrast",
-      "Distinctive display H1 + neutral body (e.g. Romie + Inter Tight is fine; Migra + Untitled Sans is fine)"
+      'Editorial: Tiempos / Söhne / system serif',
+      'Modern brand: Aeonik / GT America / Pangea',
+      'System-only: -apple-system + bold weight contrast',
+      'Distinctive display H1 + neutral body (e.g. Romie + Inter Tight is fine; Migra + Untitled Sans is fine)',
     ],
-    rule: "If you can't name the foundry, don't ship the font. Inter/Geist/Space Grotesk are banned for this site."
+    rule: "If you can't name the foundry, don't ship the font. Inter/Geist/Space Grotesk are banned for this site.",
   },
 
   purple_accent: {
     problem:
       "Tailwind's `indigo-600` (#6366f1) and `violet-500` (#8b5cf6) became the de-facto primary color for v0.dev, Cursor, Bolt, and Lovable templates. Any saturated purple/indigo CTA in the HSL 240–295° range reads as 'AI-coded'.",
-    fix:
-      "Pick a primary color anchored to your actual brand, not the LLM default. Avoid HSL hue 240–295 entirely for filled CTAs. High-contrast neutrals (pure black, off-white, rich brown) are the safest reset. If you want color, pick one saturated accent that has *meaning* (Stripe purple has a 10-year story; yours probably doesn't yet).",
+    fix: "Pick a primary color anchored to your actual brand, not the LLM default. Avoid HSL hue 240–295 entirely for filled CTAs. High-contrast neutrals (pure black, off-white, rich brown) are the safest reset. If you want color, pick one saturated accent that has *meaning* (Stripe purple has a 10-year story; yours probably doesn't yet).",
     alternatives: [
-      "Pure black CTA on cream/off-white background (Linear-era 2021)",
-      "Bright orange/red (Notion early days, Cabin, Posthog)",
-      "Deep green (Manual, Vercel docs)",
-      "Off-white CTA on black background (Apple)",
-      "Your existing brand color, applied consistently"
+      'Pure black CTA on cream/off-white background (Linear-era 2021)',
+      'Bright orange/red (Notion early days, Cabin, Posthog)',
+      'Deep green (Manual, Vercel docs)',
+      'Off-white CTA on black background (Apple)',
+      'Your existing brand color, applied consistently',
     ],
-    rule: "No #6366f1, #8b5cf6, or any HSL hue in 240–295° on filled CTAs."
+    rule: 'No #6366f1, #8b5cf6, or any HSL hue in 240–295° on filled CTAs.',
   },
 
   gradient_text: {
     problem:
       "Hero H1 with `background-clip: text` + linear gradient (usually purple→pink) is the most-copied 'make the headline pop' trick in AI templates. It signals 'I asked Cursor to make my hero look cool' more than any other single decision.",
-    fix:
-      "Replace the gradient with a single solid color. If you need emphasis, use one of: (a) italicize one word in a serif accent, (b) change one word to your brand color, (c) use weight contrast (300 + 700 in the same line), (d) add a small mark/underline behind one phrase.",
+    fix: 'Replace the gradient with a single solid color. If you need emphasis, use one of: (a) italicize one word in a serif accent, (b) change one word to your brand color, (c) use weight contrast (300 + 700 in the same line), (d) add a small mark/underline behind one phrase.',
     alternatives: [
-      "Solid H1, one italicized word in a contrasting serif",
-      "Solid H1, weight contrast inside the headline",
-      "Solid H1, one word boxed/marked",
-      "Just a solid H1 — most great pages do nothing"
+      'Solid H1, one italicized word in a contrasting serif',
+      'Solid H1, weight contrast inside the headline',
+      'Solid H1, one word boxed/marked',
+      'Just a solid H1 — most great pages do nothing',
     ],
-    rule: "No `background-clip: text` on H1. The headline either earns attention through copy or it doesn't."
+    rule: "No `background-clip: text` on H1. The headline either earns attention through copy or it doesn't.",
   },
 
   gradient_backgrounds: {
     problem:
       "5+ gradient-background elements means decorative blobs, glows, conic rainbow swirls, or 'aurora' panels everywhere. This is the AI template equivalent of a 2008 MySpace page.",
-    fix:
-      "Aim for zero decorative gradients. At most ONE subtle gradient if it has structural purpose (a section background that aids hierarchy). Replace decorative gradients with: solid color blocks, a single tasteful photograph, real product UI screenshots, or negative space.",
+    fix: 'Aim for zero decorative gradients. At most ONE subtle gradient if it has structural purpose (a section background that aids hierarchy). Replace decorative gradients with: solid color blocks, a single tasteful photograph, real product UI screenshots, or negative space.',
     alternatives: [
-      "Solid section backgrounds with strong contrast between sections",
-      "One real product screenshot as the hero visual",
-      "Negative space — let copy and one image carry the page",
-      "Geometric pattern that has actual brand meaning"
+      'Solid section backgrounds with strong contrast between sections',
+      'One real product screenshot as the hero visual',
+      'Negative space — let copy and one image carry the page',
+      'Geometric pattern that has actual brand meaning',
     ],
-    rule: "≤1 gradient element total on the page."
+    rule: '≤1 gradient element total on the page.',
   },
 
   accent_stripe: {
     problem:
       "Cards with a thick colored top or left border are the most-copied Tailwind UI / shadcn pattern. Used in every 'features grid' AI generates.",
-    fix:
-      "Remove the colored stripe. Differentiate cards through type hierarchy, a small icon at top, real imagery, or background tint — not a decorative border. Better: question whether you need cards at all (most 'feature grids' work better as a comparison table or a single annotated screenshot).",
+    fix: "Remove the colored stripe. Differentiate cards through type hierarchy, a small icon at top, real imagery, or background tint — not a decorative border. Better: question whether you need cards at all (most 'feature grids' work better as a comparison table or a single annotated screenshot).",
     alternatives: [
-      "No stripe, no border — just type hierarchy and spacing",
-      "Single hairline border (1px, 8% opacity)",
-      "Subtle background tint per card",
-      "Replace the card grid entirely with a comparison table or real UI screenshot"
+      'No stripe, no border — just type hierarchy and spacing',
+      'Single hairline border (1px, 8% opacity)',
+      'Subtle background tint per card',
+      'Replace the card grid entirely with a comparison table or real UI screenshot',
     ],
-    rule: "No `border-top: 4px solid <color>` or `border-left: 4px solid <color>` on cards."
+    rule: 'No `border-top: 4px solid <color>` or `border-left: 4px solid <color>` on cards.',
   },
 
   glassmorphism: {
     problem:
       "`backdrop-filter: blur()` on translucent layers is a 2021 trend that AI templates kept reproducing. It always reads as decorative-for-the-sake-of-it and signals 'theme.css from a Bolt starter'.",
-    fix:
-      "Remove all backdrop-filter blur. Use opaque surfaces with strong contrast. If you need depth, a single subtle box-shadow (0 1px 2px rgba(0,0,0,0.05)) does more with less.",
+    fix: 'Remove all backdrop-filter blur. Use opaque surfaces with strong contrast. If you need depth, a single subtle box-shadow (0 1px 2px rgba(0,0,0,0.05)) does more with less.',
     alternatives: [
-      "Opaque cards with type hierarchy",
-      "Single subtle shadow",
-      "Hairline border at 10% opacity",
-      "Just no surface at all — flat sections separated by spacing"
+      'Opaque cards with type hierarchy',
+      'Single subtle shadow',
+      'Hairline border at 10% opacity',
+      'Just no surface at all — flat sections separated by spacing',
     ],
-    rule: "No `backdrop-filter: blur()` anywhere on the page."
+    rule: 'No `backdrop-filter: blur()` anywhere on the page.',
   },
 
   colored_glows: {
     problem:
       "Big colored `box-shadow` glows under hero buttons / behind product images / inside cards are the AI template's idea of 'futuristic'. They never have brand justification.",
-    fix:
-      "Remove colored glows entirely. If you need shadow, use neutral grey (0 4px 12px rgba(0,0,0,0.08)) at most. If you want visual interest behind your hero, use a real product screenshot or video, not a glow.",
+    fix: 'Remove colored glows entirely. If you need shadow, use neutral grey (0 4px 12px rgba(0,0,0,0.08)) at most. If you want visual interest behind your hero, use a real product screenshot or video, not a glow.',
     alternatives: [
-      "No shadow at all",
-      "Neutral grey shadow at <8% opacity",
-      "Replace glow-behind-hero with real product UI screenshot"
+      'No shadow at all',
+      'Neutral grey shadow at <8% opacity',
+      'Replace glow-behind-hero with real product UI screenshot',
     ],
-    rule: "No box-shadow with a saturated color (red/orange/yellow/green/blue/purple/pink). Greys only, ≤8% opacity."
+    rule: 'No box-shadow with a saturated color (red/orange/yellow/green/blue/purple/pink). Greys only, ≤8% opacity.',
   },
 
   centered_hero: {
     problem:
       "Centered hero text + large H1 + slop font is the combined fingerprint of 'Vercel template starter, copy-pasted, hero customized in 30s'. It's not wrong — it's just instantly recognizable as default.",
-    fix:
-      "Switch to left-aligned text in an asymmetric layout. The classic move: hero copy on the left (40-50% width), real product UI/video on the right. Or: editorial layout with a big H1, a single supporting paragraph, no CTA buttons above the fold (force the scroll).",
+    fix: 'Switch to left-aligned text in an asymmetric layout. The classic move: hero copy on the left (40-50% width), real product UI/video on the right. Or: editorial layout with a big H1, a single supporting paragraph, no CTA buttons above the fold (force the scroll).',
     alternatives: [
-      "Left-aligned text + product UI on the right",
-      "Editorial: huge H1, one paragraph, scroll for more",
-      "Off-center with a real photograph dominating the hero",
-      "Two-column with text left, real screenshot right (Linear, Stripe, Vercel before 2023)"
+      'Left-aligned text + product UI on the right',
+      'Editorial: huge H1, one paragraph, scroll for more',
+      'Off-center with a real photograph dominating the hero',
+      'Two-column with text left, real screenshot right (Linear, Stripe, Vercel before 2023)',
     ],
-    rule: "No `text-align: center` on the H1 + subhead + CTA stack."
+    rule: 'No `text-align: center` on the H1 + subhead + CTA stack.',
   },
 
   hero_eyebrow_pill: {
     problem:
       "The 'Now in beta' / 'New: AI-powered' / 'Backed by Y Combinator' rounded pill above the H1 is the most-copied AI template element after the gradient hero. Almost every AI-generated page has one, regardless of whether there's actual news.",
-    fix:
-      "Remove the pill if you don't have specific, time-bound news. If you DO have real news (launch, funding, milestone), integrate it into the H1 itself or use a single text link below the CTA — not a decorative pill.",
+    fix: "Remove the pill if you don't have specific, time-bound news. If you DO have real news (launch, funding, milestone), integrate it into the H1 itself or use a single text link below the CTA — not a decorative pill.",
     alternatives: [
-      "Just remove it",
+      'Just remove it',
       "Bake the news into the H1: 'X — now with Y'",
       "Single text link below CTA: 'Read our $5M Series A announcement →'",
-      "If you must keep it: no background, no border, just `★ New: X` in small text"
+      'If you must keep it: no background, no border, just `★ New: X` in small text',
     ],
-    rule: "No rounded pill (border-radius ≥ 999px) above the H1 unless it announces real, specific, dated news."
+    rule: 'No rounded pill (border-radius ≥ 999px) above the H1 unless it announces real, specific, dated news.',
   },
 
   all_caps_labels: {
     problem:
       "UPPERCASE section labels with positive letter-spacing ('DESIGNED FOR DEVELOPERS', 'MORE FEATURES', 'WHY US') are AI's idea of editorial chic. They appear above every section in v0/Cursor output and add zero information.",
-    fix:
-      "Use sentence-case section titles, or skip section labels entirely. The H2 should do the work. If a label is genuinely useful, write it as a normal sentence in a smaller, dimmed sans.",
+    fix: 'Use sentence-case section titles, or skip section labels entirely. The H2 should do the work. If a label is genuinely useful, write it as a normal sentence in a smaller, dimmed sans.',
     alternatives: [
-      "Just delete every all-caps label",
+      'Just delete every all-caps label',
       "Sentence-case smaller label: 'Why teams choose us'",
-      "Number the sections (01, 02, 03) with editorial restraint",
-      "Skip labels — let H2 carry"
+      'Number the sections (01, 02, 03) with editorial restraint',
+      'Skip labels — let H2 carry',
     ],
-    rule: "No `text-transform: uppercase` with `letter-spacing` > 0 on section labels."
+    rule: 'No `text-transform: uppercase` with `letter-spacing` > 0 on section labels.',
   },
 
   perma_dark_mode: {
     problem:
       "Dark background + mid-grey body text (#a0a0a0 region, HSL saturation <15%, L 0.35–0.75) is the AI default for 'premium' feel. The mid-grey body text fails WCAG AA and signals 'I let v0 pick the colors'.",
-    fix:
-      "Either: (a) go full light mode with crisp dark text on cream/white, OR (b) keep dark but increase body text contrast to at least #d4d4d8 (L 0.85+). Better: ship both themes and respect `prefers-color-scheme`.",
+    fix: 'Either: (a) go full light mode with crisp dark text on cream/white, OR (b) keep dark but increase body text contrast to at least #d4d4d8 (L 0.85+). Better: ship both themes and respect `prefers-color-scheme`.',
     alternatives: [
-      "Light mode: #fafafa background, #111 body, #555 muted",
+      'Light mode: #fafafa background, #111 body, #555 muted',
       "Dark mode done right: #0a0a0b background, #f5f5f7 body, #8a8a92 muted (this site's own scheme)",
-      "Honor `prefers-color-scheme` and ship both"
+      'Honor `prefers-color-scheme` and ship both',
     ],
-    rule: "Body text on dark backgrounds must have L ≥ 0.85. No defaulting to dark — the user's system preference is the default."
+    rule: "Body text on dark backgrounds must have L ≥ 0.85. No defaulting to dark — the user's system preference is the default.",
   },
 
   icon_card_grid: {
     problem:
-      "3+ identical feature cards, each with a small icon on top, then a 2-3 word title, then a one-sentence description. This is the single most-copied component from Tailwind UI and shadcn. Every AI-generated landing page has one.",
-    fix:
-      "Replace the grid with something that shows the actual product. Options: (a) one large annotated product screenshot with callouts, (b) a comparison table, (c) a vertical scrolling list with one row = one feature + real screenshot, (d) a single demo video. If you must keep cards, vary their sizes and use real product imagery instead of generic icons.",
+      '3+ identical feature cards, each with a small icon on top, then a 2-3 word title, then a one-sentence description. This is the single most-copied component from Tailwind UI and shadcn. Every AI-generated landing page has one.',
+    fix: 'Replace the grid with something that shows the actual product. Options: (a) one large annotated product screenshot with callouts, (b) a comparison table, (c) a vertical scrolling list with one row = one feature + real screenshot, (d) a single demo video. If you must keep cards, vary their sizes and use real product imagery instead of generic icons.',
     alternatives: [
-      "One annotated product screenshot with feature callouts",
-      "Bento grid with varied card sizes and real screenshots",
-      "Comparison table (you vs alternatives)",
-      "Vertical alternating layout: feature 1 with screenshot left, feature 2 with screenshot right, ..."
+      'One annotated product screenshot with feature callouts',
+      'Bento grid with varied card sizes and real screenshots',
+      'Comparison table (you vs alternatives)',
+      'Vertical alternating layout: feature 1 with screenshot left, feature 2 with screenshot right, ...',
     ],
-    rule: "No grid of ≥3 sibling cards each with a top-aligned icon. If you have a feature grid, ≥1 card must contain a real product screenshot, not a generic icon."
+    rule: 'No grid of ≥3 sibling cards each with a top-aligned icon. If you have a feature grid, ≥1 card must contain a real product screenshot, not a generic icon.',
   },
 
   numbered_steps: {
     problem:
       "Numbered 1·2·3 'How it works' sections are AI's go-to filler. They almost never describe an actual product flow — they describe a generic 'sign up / use it / love it' loop.",
-    fix:
-      "Replace the numbered steps with the actual product flow shown in real UI. A single annotated screenshot or 15-second video tells the user more than 1-2-3 generic verbs. If steps are essential (e.g. an actual checkout flow), make them visual — show the screen at each step.",
+    fix: 'Replace the numbered steps with the actual product flow shown in real UI. A single annotated screenshot or 15-second video tells the user more than 1-2-3 generic verbs. If steps are essential (e.g. an actual checkout flow), make them visual — show the screen at each step.',
     alternatives: [
-      "One annotated screenshot showing the full flow",
-      "A short looping demo video (no audio)",
-      "Real screen-by-screen flow with actual UI",
-      "Skip the section entirely — most pages don't need it"
+      'One annotated screenshot showing the full flow',
+      'A short looping demo video (no audio)',
+      'Real screen-by-screen flow with actual UI',
+      "Skip the section entirely — most pages don't need it",
     ],
-    rule: "No numbered steps section with generic verbs like 'Sign up / Connect / Get started'. If you keep numbered steps, each must include a real product screenshot."
+    rule: "No numbered steps section with generic verbs like 'Sign up / Connect / Get started'. If you keep numbered steps, each must include a real product screenshot.",
   },
 
   stat_banner: {
     problem:
       "'10k+ users', '99.9% uptime', '$2M+ saved' — when these aren't backed by named customers, dated sources, or third-party verification, they read as fabricated. AI templates love them because they make the page feel substantive without effort.",
-    fix:
-      "Replace vanity stats with one specific, verifiable, named claim. 'Used by Stripe, Linear, and Vercel' (with real logos and links) beats '10,000+ companies'. If you don't have named customers yet, REMOVE the stat banner entirely — empty space is more honest than fake numbers.",
+    fix: "Replace vanity stats with one specific, verifiable, named claim. 'Used by Stripe, Linear, and Vercel' (with real logos and links) beats '10,000+ companies'. If you don't have named customers yet, REMOVE the stat banner entirely — empty space is more honest than fake numbers.",
     alternatives: [
-      "Customer logo row with 5-8 real, recognized brands",
-      "One specific named case study: '\"X cut our onboarding time by 67%\" — Jane Doe, CTO at Real Company'",
-      "Remove the section entirely if you don't have proof yet"
+      'Customer logo row with 5-8 real, recognized brands',
+      'One specific named case study: \'"X cut our onboarding time by 67%" — Jane Doe, CTO at Real Company\'',
+      "Remove the section entirely if you don't have proof yet",
     ],
-    rule: "No big-number stat banner unless every stat is backed by a verifiable source on the page or one click away."
+    rule: 'No big-number stat banner unless every stat is backed by a verifiable source on the page or one click away.',
   },
 
   faq_accordion: {
     problem:
-      "A `<details>` accordion with 5-10 generic FAQs at the bottom of every page is AI filler. The questions are usually invented to look comprehensive, not because real users asked them.",
-    fix:
-      "Either remove the FAQ section entirely (link to docs or a help center instead), or rewrite it as 3-5 real questions you actually get from users. Better: weave the answers into the main page copy where the question would naturally arise.",
+      'A `<details>` accordion with 5-10 generic FAQs at the bottom of every page is AI filler. The questions are usually invented to look comprehensive, not because real users asked them.',
+    fix: 'Either remove the FAQ section entirely (link to docs or a help center instead), or rewrite it as 3-5 real questions you actually get from users. Better: weave the answers into the main page copy where the question would naturally arise.',
     alternatives: [
-      "Delete the FAQ section, link to a real /docs or /help page",
-      "Keep 3-5 real questions with full conversational answers",
+      'Delete the FAQ section, link to a real /docs or /help page',
+      'Keep 3-5 real questions with full conversational answers',
       "Replace with a 'Common objections' section written as a candid Q&A",
-      "Weave FAQ answers into the main page copy"
+      'Weave FAQ answers into the main page copy',
     ],
-    rule: "FAQ section may exist only if every question is one a real user has actually asked, and the section has ≤5 entries."
+    rule: 'FAQ section may exist only if every question is one a real user has actually asked, and the section has ≤5 entries.',
   },
 
   gradient_letter_avatars: {
     problem:
       "Small circular avatars with 1-2 initials on a solid or gradient background, used in a testimonial row, signal 'I have no real testimonials'. Meng To called this out specifically in May 2026: 'the AI often will generate these generic letters and backgrounds or gradient to express the customer.'",
-    fix:
-      "Use real photographs of real people with real names, real job titles, and real company logos. If you don't have real testimonials yet, REMOVE the testimonial section entirely. An empty section is infinitely more honest than fake initials-on-gradient avatars.",
+    fix: "Use real photographs of real people with real names, real job titles, and real company logos. If you don't have real testimonials yet, REMOVE the testimonial section entirely. An empty section is infinitely more honest than fake initials-on-gradient avatars.",
     alternatives: [
-      "Real photos + real names + real company logos (with permission)",
-      "One long-form named quote from one real customer, not a row of three short ones",
-      "Quotes from public Twitter posts (with screenshots and links)",
-      "Remove the testimonials section until you have real ones"
+      'Real photos + real names + real company logos (with permission)',
+      'One long-form named quote from one real customer, not a row of three short ones',
+      'Quotes from public Twitter posts (with screenshots and links)',
+      'Remove the testimonials section until you have real ones',
     ],
-    rule: "No avatars showing initials on a gradient or solid colored background. Either real photos or no avatars."
+    rule: 'No avatars showing initials on a gradient or solid colored background. Either real photos or no avatars.',
   },
 
   bento_grid: {
     problem:
       "A wall of heavily-rounded cards at mixed column/row spans — the Apple-keynote 'bento box'. Every AI builder ships this section now, so a varied-span rounded grid reads as a template default rather than a considered layout.",
-    fix:
-      "Decide what the section is actually for, then pick the simplest layout that serves it. If the cards are equal in importance, use a plain uniform grid or a list. If one thing matters most, make it big and the rest small — but justify the asymmetry with content hierarchy, not decoration. Drop the uniform 16px+ corner radius; tighten spacing.",
+    fix: 'Decide what the section is actually for, then pick the simplest layout that serves it. If the cards are equal in importance, use a plain uniform grid or a list. If one thing matters most, make it big and the rest small — but justify the asymmetry with content hierarchy, not decoration. Drop the uniform 16px+ corner radius; tighten spacing.',
     alternatives: [
-      "A simple uniform 2- or 3-column grid with real content in each cell",
-      "One large feature block + a short supporting list (asymmetry that means something)",
-      "A plain vertical stack of sections — bento is rarely the clearest choice",
-      "A single annotated product screenshot instead of N abstract cards"
+      'A simple uniform 2- or 3-column grid with real content in each cell',
+      'One large feature block + a short supporting list (asymmetry that means something)',
+      'A plain vertical stack of sections — bento is rarely the clearest choice',
+      'A single annotated product screenshot instead of N abstract cards',
     ],
-    rule: "No mixed-span rounded-card 'bento' wall unless each span maps to real content priority."
+    rule: "No mixed-span rounded-card 'bento' wall unless each span maps to real content priority.",
   },
 
   aurora_mesh_gradient: {
     problem:
       "Large blurred radial/conic gradient 'blobs' glowing behind the hero — the v0/Lovable default backdrop. Soft aurora orbs add zero information and instantly date the page to the 2026 AI-template era.",
-    fix:
-      "Remove the blurred gradient blobs. Let the background be a solid color or honest negative space. If the hero feels empty, fill it with something real: product UI, a photograph, or stronger copy — not ambient glow.",
+    fix: 'Remove the blurred gradient blobs. Let the background be a solid color or honest negative space. If the hero feels empty, fill it with something real: product UI, a photograph, or stronger copy — not ambient glow.',
     alternatives: [
-      "Solid background + real product screenshot",
-      "Flat brand color with strong type contrast",
+      'Solid background + real product screenshot',
+      'Flat brand color with strong type contrast',
       "Negative space — confident pages don't need a glow",
-      "A single subtle texture with actual brand meaning"
+      'A single subtle texture with actual brand meaning',
     ],
-    rule: "No blurred radial/conic gradient blobs as decorative hero backdrop."
+    rule: 'No blurred radial/conic gradient blobs as decorative hero backdrop.',
   },
 
   ai_sparkle_badges: {
     problem:
       "The ✨ sparkle emoji (or a lucide 'Sparkles' icon) used to label a feature as 'AI-powered'. It's the single most overused generative-UI tell of 2026 — it says 'AI' without saying what the AI does.",
-    fix:
-      "Delete the sparkle glyph. Describe the actual capability in plain words ('drafts replies in your voice', not '✨ AI magic'). If you need an icon, pick one that depicts the specific action, and let the verb carry the meaning.",
+    fix: "Delete the sparkle glyph. Describe the actual capability in plain words ('drafts replies in your voice', not '✨ AI magic'). If you need an icon, pick one that depicts the specific action, and let the verb carry the meaning.",
     alternatives: [
-      "A concrete verb phrase describing what happens, no icon",
-      "An action-specific icon (pencil, wand only if it truly fits) over a generic sparkle",
-      "A 5-second before/after that shows the capability instead of labeling it",
-      "Nothing — most 'AI' buttons read better as a plain primary CTA"
+      'A concrete verb phrase describing what happens, no icon',
+      'An action-specific icon (pencil, wand only if it truly fits) over a generic sparkle',
+      'A 5-second before/after that shows the capability instead of labeling it',
+      "Nothing — most 'AI' buttons read better as a plain primary CTA",
     ],
-    rule: "No ✨/Sparkles glyph as an 'AI magic' label. Name the capability instead."
+    rule: "No ✨/Sparkles glyph as an 'AI magic' label. Name the capability instead.",
   },
 
   // ── COPY AXIS (#08) ───────────────────────────────────────────────────────
   buzzword_density: {
     problem:
       "A cluster of LLM-favorite words — leverage, seamless, robust, elevate, unlock, harness, cutting-edge, transformative — is the strongest single tell that copy was generated, not written. These words are statistically over-represented in LLM output because they're high-probability filler.",
-    fix:
-      "Rewrite in concrete, specific language a human would actually say. Replace every abstract verb with what literally happens. 'Leverage our seamless platform to elevate productivity' → 'Connect your calendar and we text patients when a slot opens.' Name real nouns, real numbers, real outcomes.",
+    fix: "Rewrite in concrete, specific language a human would actually say. Replace every abstract verb with what literally happens. 'Leverage our seamless platform to elevate productivity' → 'Connect your calendar and we text patients when a slot opens.' Name real nouns, real numbers, real outcomes.",
     alternatives: [
       "State the literal action: 'imports your CSV', not 'seamlessly integrates'",
       "Use a number: '3-5 extra bookings a week', not 'unlock growth'",
-      "Cut the adjective entirely — most add zero information",
-      "Read it aloud; if you'd never say it to a customer's face, delete it"
+      'Cut the adjective entirely — most add zero information',
+      "Read it aloud; if you'd never say it to a customer's face, delete it",
     ],
-    rule: "No more than one word from the LLM-buzzword list per page. Banned: leverage, seamless, robust, elevate, unlock, harness, cutting-edge, transformative, holistic, bespoke, unparalleled."
+    rule: 'No more than one word from the LLM-buzzword list per page. Banned: leverage, seamless, robust, elevate, unlock, harness, cutting-edge, transformative, holistic, bespoke, unparalleled.',
   },
 
   em_dash_overload: {
     problem:
-      "The em-dash (—) as the default connective is a signature LLM rhythm. Humans reach for periods, commas, and parentheses; models reach for the em-dash several times per paragraph. A page averaging one em-dash per ~40 words reads as machine-written.",
-    fix:
-      "Replace most em-dashes with a period (split the sentence) or a comma. Keep at most one or two genuine em-dashes where the dramatic pause is earned. Vary sentence length — short, then long — so the rhythm sounds human.",
+      'The em-dash (—) as the default connective is a signature LLM rhythm. Humans reach for periods, commas, and parentheses; models reach for the em-dash several times per paragraph. A page averaging one em-dash per ~40 words reads as machine-written.',
+    fix: 'Replace most em-dashes with a period (split the sentence) or a comma. Keep at most one or two genuine em-dashes where the dramatic pause is earned. Vary sentence length — short, then long — so the rhythm sounds human.',
     alternatives: [
-      "Split into two sentences with a period",
-      "Use a comma for a light pause",
-      "Use parentheses for a true aside",
-      "Keep one em-dash max where the pause genuinely lands"
+      'Split into two sentences with a period',
+      'Use a comma for a light pause',
+      'Use parentheses for a true aside',
+      'Keep one em-dash max where the pause genuinely lands',
     ],
-    rule: "No more than one em-dash per ~150 words. Default to periods and commas."
+    rule: 'No more than one em-dash per ~150 words. Default to periods and commas.',
   },
 
   antithesis_construction: {
     problem:
       "'It's not just X — it's Y', 'not only … but also', 'more than just a …' is a canned rhetorical scaffold LLMs lean on to manufacture emphasis. It signals generated copy because it adds drama without adding information.",
-    fix:
-      "Delete the antithesis and state Y directly. 'It's not just a CRM — it's a growth engine' → just say what it does: 'It tells your reps who to call next.' If X genuinely needs contrasting, do it with a concrete example, not the formula.",
+    fix: "Delete the antithesis and state Y directly. 'It's not just a CRM — it's a growth engine' → just say what it does: 'It tells your reps who to call next.' If X genuinely needs contrasting, do it with a concrete example, not the formula.",
     alternatives: [
       "State the actual claim directly, drop the 'not just' setup",
-      "Show the contrast with a specific before/after",
-      "Lead with the strongest concrete benefit, no scaffolding",
-      "Cut the sentence — it's usually pure filler"
+      'Show the contrast with a specific before/after',
+      'Lead with the strongest concrete benefit, no scaffolding',
+      "Cut the sentence — it's usually pure filler",
     ],
-    rule: "No 'not just X, it's Y' / 'not only … but also' constructions."
+    rule: "No 'not just X, it's Y' / 'not only … but also' constructions.",
   },
 
   filler_openers: {
     problem:
       "'In today's fast-paced world', 'when it comes to', 'in the realm of', 'at the end of the day' are throat-clearing openers that carry zero information. They're the most parodied LLM tell because models use them to warm up before saying anything.",
-    fix:
-      "Delete the opener and start with the actual point. 'In today's fast-paced world, businesses need automation' → 'You're losing 4 hours a week to manual data entry.' Open with the reader's problem or a concrete claim, never a generic scene-set.",
+    fix: "Delete the opener and start with the actual point. 'In today's fast-paced world, businesses need automation' → 'You're losing 4 hours a week to manual data entry.' Open with the reader's problem or a concrete claim, never a generic scene-set.",
     alternatives: [
       "Open with the reader's specific pain ('Your invoices are 2 weeks late.')",
-      "Open with a number or a surprising fact",
-      "Open with a direct second-person statement",
-      "Just delete the first sentence — it's almost always filler"
+      'Open with a number or a surprising fact',
+      'Open with a direct second-person statement',
+      "Just delete the first sentence — it's almost always filler",
     ],
-    rule: "No generic scene-setting openers. First sentence must carry information."
+    rule: 'No generic scene-setting openers. First sentence must carry information.',
   },
 
   formulaic_closers: {
     problem:
       "'In conclusion', 'In summary', 'Ultimately', 'When all is said and done' are essay-exam closers. On a landing page or marketing post they read as machine-generated structure, because real marketing copy doesn't formally 'conclude'.",
-    fix:
-      "Delete the closer phrase. End on your strongest concrete point or a clear call to action. If the section needs a wrap-up, make it a specific next step ('Start your first scan — it takes 20 seconds'), not a summary.",
+    fix: "Delete the closer phrase. End on your strongest concrete point or a clear call to action. If the section needs a wrap-up, make it a specific next step ('Start your first scan — it takes 20 seconds'), not a summary.",
     alternatives: [
-      "End on a concrete CTA with a time/effort cue",
-      "End on the single most compelling benefit",
-      "End on a real customer outcome or number",
-      "Just stop — strong copy rarely needs a formal conclusion"
+      'End on a concrete CTA with a time/effort cue',
+      'End on the single most compelling benefit',
+      'End on a real customer outcome or number',
+      'Just stop — strong copy rarely needs a formal conclusion',
     ],
-    rule: "No 'In conclusion / In summary / Ultimately' closers."
+    rule: "No 'In conclusion / In summary / Ultimately' closers.",
   },
 
   rule_of_three: {
     problem:
       "Adjective tricolons — 'fast, reliable, and scalable', 'simple, powerful, and intuitive' — are an LLM rhythm crutch. Three abstract adjectives in a row sound balanced but say nothing specific, and the pattern repeats across the whole page.",
-    fix:
-      "Replace each tricolon with one concrete claim. 'Fast, reliable, and scalable' → 'Returns results in under 200ms.' If you list features, make them real nouns with specifics, not interchangeable adjectives.",
+    fix: "Replace each tricolon with one concrete claim. 'Fast, reliable, and scalable' → 'Returns results in under 200ms.' If you list features, make them real nouns with specifics, not interchangeable adjectives.",
     alternatives: [
-      "One specific, measurable claim instead of three vague ones",
-      "Real feature nouns with numbers, not adjective lists",
+      'One specific, measurable claim instead of three vague ones',
+      'Real feature nouns with numbers, not adjective lists',
       "A single verb + outcome ('Cuts onboarding from days to minutes')",
-      "Two contrasting concrete points beat three abstract ones"
+      'Two contrasting concrete points beat three abstract ones',
     ],
-    rule: "No more than one adjective-tricolon per page. Prefer concrete specifics."
+    rule: 'No more than one adjective-tricolon per page. Prefer concrete specifics.',
   },
 
   whether_youre: {
     problem:
       "'Whether you're a startup or an enterprise / a beginner or a pro' is a canned audience-spanning construction. It tries to address everyone and ends up specific to no one — a classic generated-copy move that dilutes positioning.",
-    fix:
-      "Pick your actual primary audience and speak to them directly. 'Whether you're a solo founder or a 500-person team' → 'For solo founders drowning in support tickets.' Specificity converts; universality doesn't.",
+    fix: "Pick your actual primary audience and speak to them directly. 'Whether you're a solo founder or a 500-person team' → 'For solo founders drowning in support tickets.' Specificity converts; universality doesn't.",
     alternatives: [
-      "Name one specific persona and their specific situation",
-      "Use a real customer example instead of a spectrum",
+      'Name one specific persona and their specific situation',
+      'Use a real customer example instead of a spectrum',
       "Address the reader as 'you' with a concrete scenario",
-      "Cut it — the spanning rarely helps"
+      'Cut it — the spanning rarely helps',
     ],
-    rule: "No 'whether you're X or Y' audience-spanning constructions."
+    rule: "No 'whether you're X or Y' audience-spanning constructions.",
   },
 
   unicode_artifacts: {
     problem:
       "Zero-width spaces, narrow no-break spaces, and mathematical 'fake-bold/italic' letters (𝗯𝗼𝗹𝗱, 𝘪𝘵𝘢𝘭𝘪𝘤 — the U+1D400 block abused as styling) are leaked when copy is pasted straight out of an LLM chat or a social-media formatter. They're invisible or look normal to readers but are a dead giveaway in the raw text — and they break search, screen readers, anchors, and copy-paste.",
-    fix:
-      "Run the text through a plain-text normalizer: strip zero-width characters (U+200B-200D, U+FEFF), replace narrow/no-break spaces with regular spaces, and fold mathematical-alphanumeric letters back to plain ASCII (use real bold/italic via CSS, never Unicode trickery). Most editors have a 'paste as plain text' option — use it, then re-apply formatting deliberately.",
+    fix: "Run the text through a plain-text normalizer: strip zero-width characters (U+200B-200D, U+FEFF), replace narrow/no-break spaces with regular spaces, and fold mathematical-alphanumeric letters back to plain ASCII (use real bold/italic via CSS, never Unicode trickery). Most editors have a 'paste as plain text' option — use it, then re-apply formatting deliberately.",
     alternatives: [
-      "Paste as plain text, then re-format in your editor",
-      "Run a find-and-replace for zero-width, narrow-no-break, and U+1D400-block chars",
-      "Use real <strong>/<em> or CSS font-weight instead of fake-bold Unicode letters",
-      "Type the copy fresh rather than pasting from chat or a 'fancy text' generator"
+      'Paste as plain text, then re-format in your editor',
+      'Run a find-and-replace for zero-width, narrow-no-break, and U+1D400-block chars',
+      'Use real <strong>/<em> or CSS font-weight instead of fake-bold Unicode letters',
+      "Type the copy fresh rather than pasting from chat or a 'fancy text' generator",
     ],
-    rule: "No invisible Unicode (zero-width / narrow no-break spaces) and no mathematical fake-bold letters in published copy."
+    rule: 'No invisible Unicode (zero-width / narrow no-break spaces) and no mathematical fake-bold letters in published copy.',
   },
 
   emoji_bullet_headers: {
     problem:
-      "Emoji-prefixed bullets and headers (🚀 Fast, ✅ Reliable, ✨ Scalable, 💡 Smart) are the default GPT list aesthetic. Three or more in a row reads as a chatbot answer pasted into a page, not designed marketing.",
-    fix:
-      "Remove the leading emoji. If you want visual markers, use a consistent, restrained icon set that matches your brand, applied through design — not emoji glyphs in the text. Let the words and layout carry the hierarchy.",
+      'Emoji-prefixed bullets and headers (🚀 Fast, ✅ Reliable, ✨ Scalable, 💡 Smart) are the default GPT list aesthetic. Three or more in a row reads as a chatbot answer pasted into a page, not designed marketing.',
+    fix: 'Remove the leading emoji. If you want visual markers, use a consistent, restrained icon set that matches your brand, applied through design — not emoji glyphs in the text. Let the words and layout carry the hierarchy.',
     alternatives: [
-      "Plain text headers with strong typographic hierarchy",
-      "A single, brand-consistent line-art icon set (via CSS/SVG, not emoji)",
-      "Numbered steps if the order matters",
-      "Just bold the first few words of each item"
+      'Plain text headers with strong typographic hierarchy',
+      'A single, brand-consistent line-art icon set (via CSS/SVG, not emoji)',
+      'Numbered steps if the order matters',
+      'Just bold the first few words of each item',
     ],
-    rule: "No emoji as bullet or header prefixes. Use design, not glyphs, for emphasis."
+    rule: 'No emoji as bullet or header prefixes. Use design, not glyphs, for emphasis.',
   },
 
   cream_default_bg: {
     problem:
       "A warm cream/beige page background (light, faintly warm off-white) has become the reflexive 'tasteful' AI surface — it's now the single most common tell, reached for by default when an LLM wants to look 'editorial' or 'premium'. ~74% of generated pages ship it.",
-    fix:
-      "Pick a background that comes from a deliberate palette, not the safe warm off-white. Either go to a true neutral (pure white #fff, or a cool near-white like #fafafa) OR commit to a real brand color. If you want warmth, make it intentional and pair it with a matching accent system — don't let #faf8f3 be the unexamined default.",
+    fix: "Pick a background that comes from a deliberate palette, not the safe warm off-white. Either go to a true neutral (pure white #fff, or a cool near-white like #fafafa) OR commit to a real brand color. If you want warmth, make it intentional and pair it with a matching accent system — don't let #faf8f3 be the unexamined default.",
     alternatives: [
-      "Pure white (#fff) with strong dark text — the cleanest reset",
-      "Cool near-white (#fafafa / #f7f8fa) for a crisp modern feel",
-      "A real brand-tinted surface that matches your accent color",
-      "True dark mode done well (high-contrast body text, not mid-grey)"
+      'Pure white (#fff) with strong dark text — the cleanest reset',
+      'Cool near-white (#fafafa / #f7f8fa) for a crisp modern feel',
+      'A real brand-tinted surface that matches your accent color',
+      'True dark mode done well (high-contrast body text, not mid-grey)',
     ],
-    rule: "No unexamined warm off-white. If the background is cream, it must be a deliberate palette choice with a matching system."
+    rule: 'No unexamined warm off-white. If the background is cream, it must be a deliberate palette choice with a matching system.',
   },
 
   low_contrast_text: {
     problem:
       "Body text that fails the WCAG AA contrast floor (4.5:1 for body, 3:1 for large text) is both an accessibility failure and a reliable AI-build tell — generators reach for light-grey-on-white and mid-grey-on-tinted because it 'looks soft'. 90%+ of generated pages fail it somewhere.",
-    fix:
-      "Raise text contrast to meet WCAG AA: body copy needs ≥4.5:1 against its actual background, large/bold text ≥3:1. Stop using light greys (#999, #aaa, text-gray-400/500) for real reading text — reserve those for genuinely secondary metadata only. Darken body text toward #1a1a1a on light backgrounds, or lighten to ≥#d4d4d8 on dark.",
+    fix: 'Raise text contrast to meet WCAG AA: body copy needs ≥4.5:1 against its actual background, large/bold text ≥3:1. Stop using light greys (#999, #aaa, text-gray-400/500) for real reading text — reserve those for genuinely secondary metadata only. Darken body text toward #1a1a1a on light backgrounds, or lighten to ≥#d4d4d8 on dark.',
     alternatives: [
-      "Near-black body text (#1a1a1a–#222) on light backgrounds",
-      "≥#d4d4d8 body text on dark backgrounds (not mid-grey)",
-      "Reserve text-gray-400/500 for timestamps/captions only",
-      "Run a contrast checker on every text/background pair before shipping"
+      'Near-black body text (#1a1a1a–#222) on light backgrounds',
+      '≥#d4d4d8 body text on dark backgrounds (not mid-grey)',
+      'Reserve text-gray-400/500 for timestamps/captions only',
+      'Run a contrast checker on every text/background pair before shipping',
     ],
-    rule: "Every block of reading text must clear 4.5:1 (body) or 3:1 (large) against its real background. No exceptions for 'aesthetic' grey."
+    rule: "Every block of reading text must clear 4.5:1 (body) or 3:1 (large) against its real background. No exceptions for 'aesthetic' grey.",
   },
 
   crushed_tracking: {
     problem:
       "Display headings pulled tighter than ~-0.04em (crushed negative letter-spacing) is a default 'make it look designed' move that actually costs legibility — characters start colliding and the headline reads as a logo, not a sentence. ~76% of generated pages over-tighten their display type.",
-    fix:
-      "Back off the negative tracking. Tighten display type optically, not destructively: -0.01em to -0.02em is plenty for large headings on most modern sans faces; many faces need zero. Let the typeface's own spacing do the work — if it looks loose, you probably picked the wrong weight, not the wrong tracking.",
+    fix: "Back off the negative tracking. Tighten display type optically, not destructively: -0.01em to -0.02em is plenty for large headings on most modern sans faces; many faces need zero. Let the typeface's own spacing do the work — if it looks loose, you probably picked the wrong weight, not the wrong tracking.",
     alternatives: [
-      "-0.01em to -0.02em max on large display headings",
+      '-0.01em to -0.02em max on large display headings',
       "Zero tracking — trust the face's designed spacing",
-      "Use a tighter-by-design display weight instead of crushing a text weight",
-      "Optical sizing (font-optical-sizing: auto) if the face supports it"
+      'Use a tighter-by-design display weight instead of crushing a text weight',
+      'Optical sizing (font-optical-sizing: auto) if the face supports it',
     ],
-    rule: "No letter-spacing tighter than -0.03em on display type. Characters must keep their own shapes."
+    rule: 'No letter-spacing tighter than -0.03em on display type. Characters must keep their own shapes.',
   },
 
   gray_on_color: {
     problem:
-      "Neutral grey text sitting on a saturated/colored background reads as washed-out and muddy — a recurring generated-UI mistake. Grey was chosen for white backgrounds and then dropped onto a colored panel without rethinking it.",
-    fix:
-      "On colored backgrounds, don't use neutral grey. Use either a darker or lighter shade of the background's OWN hue (so it stays in the same color family), or go to white / near-white for clean contrast. Grey only works on neutral surfaces.",
+      'Neutral grey text sitting on a saturated/colored background reads as washed-out and muddy — a recurring generated-UI mistake. Grey was chosen for white backgrounds and then dropped onto a colored panel without rethinking it.',
+    fix: "On colored backgrounds, don't use neutral grey. Use either a darker or lighter shade of the background's OWN hue (so it stays in the same color family), or go to white / near-white for clean contrast. Grey only works on neutral surfaces.",
     alternatives: [
-      "A darker shade of the same background hue for secondary text",
-      "White / near-white text for primary text on colored panels",
+      'A darker shade of the same background hue for secondary text',
+      'White / near-white text for primary text on colored panels',
       "Tinted text that shares the background's hue, not flat grey",
-      "Move the text off the colored panel entirely"
+      'Move the text off the colored panel entirely',
     ],
-    rule: "No neutral grey text on a chromatic background. Match the hue or use white."
+    rule: 'No neutral grey text on a chromatic background. Match the hue or use white.',
   },
 
   oversized_hero_h1: {
     problem:
       "A long full-sentence headline blown up to display size (≥72px, ≥40 characters) dominates the entire viewport, leaving no room for a subhead, CTA, or product above the fold. A punchy one-or-two-word headline at that size is fine — the tell is a long headline set huge because 'big = impactful'.",
-    fix:
-      "Either tighten the copy to a few punchy words that can earn the display size, OR set the long headline smaller (48–60px) so the rest of the hero has room. The headline's job is to be read, not to fill the screen.",
+    fix: "Either tighten the copy to a few punchy words that can earn the display size, OR set the long headline smaller (48–60px) so the rest of the hero has room. The headline's job is to be read, not to fill the screen.",
     alternatives: [
-      "Cut the headline to 2–5 words and keep it big",
-      "Keep the full sentence but set it at 48–60px",
-      "Two-line headline at a moderate size with a clear subhead below",
-      "Lead with the product/screenshot and let a smaller headline support it"
+      'Cut the headline to 2–5 words and keep it big',
+      'Keep the full sentence but set it at 48–60px',
+      'Two-line headline at a moderate size with a clear subhead below',
+      'Lead with the product/screenshot and let a smaller headline support it',
     ],
-    rule: "A headline at ≥72px must be short. Long sentences (≥40 chars) get set at ≤60px."
+    rule: 'A headline at ≥72px must be short. Long sentences (≥40 chars) get set at ≤60px.',
   },
 
   nested_cards: {
     problem:
-      "Cards inside cards (a bordered/shadowed/rounded container holding more bordered/shadowed/rounded containers) create visual noise and excessive depth — a reflexive AI layout move where every group gets wrapped in its own panel.",
-    fix:
-      "Flatten the hierarchy. Pick ONE level to be the card and use spacing, typography, and dividers for the inner structure instead of nesting more containers. A card holding three sub-cards should usually be a card holding three text blocks separated by space or a hairline.",
+      'Cards inside cards (a bordered/shadowed/rounded container holding more bordered/shadowed/rounded containers) create visual noise and excessive depth — a reflexive AI layout move where every group gets wrapped in its own panel.',
+    fix: 'Flatten the hierarchy. Pick ONE level to be the card and use spacing, typography, and dividers for the inner structure instead of nesting more containers. A card holding three sub-cards should usually be a card holding three text blocks separated by space or a hairline.',
     alternatives: [
-      "One outer card, inner items separated by whitespace",
-      "One outer card, inner items separated by hairline dividers",
-      "No card at all — use a section with generous spacing",
-      "Flat list with strong typographic hierarchy"
+      'One outer card, inner items separated by whitespace',
+      'One outer card, inner items separated by hairline dividers',
+      'No card at all — use a section with generous spacing',
+      'Flat list with strong typographic hierarchy',
     ],
-    rule: "No card-like container inside another card-like container. One level of elevation, max."
+    rule: 'No card-like container inside another card-like container. One level of elevation, max.',
   },
 
   wide_body_tracking: {
     problem:
       "Letter-spacing above 0.05em on body copy disrupts the natural word shapes the eye reads by, slowing reading and giving text a stiff, 'tracked-out' feel. Wide tracking belongs on short uppercase labels, never on paragraphs.",
-    fix:
-      "Set body text letter-spacing to 0 (normal). The body face was spaced correctly by its designer at text sizes — adding tracking only hurts. Reserve positive tracking for short uppercase eyebrows/labels.",
+    fix: 'Set body text letter-spacing to 0 (normal). The body face was spaced correctly by its designer at text sizes — adding tracking only hurts. Reserve positive tracking for short uppercase eyebrows/labels.',
     alternatives: [
-      "letter-spacing: normal (0) on all body copy",
-      "Positive tracking only on short uppercase labels (≤0.1em)",
-      "If text feels cramped, increase line-height instead of tracking",
-      "Pick a slightly wider body face rather than tracking a narrow one"
+      'letter-spacing: normal (0) on all body copy',
+      'Positive tracking only on short uppercase labels (≤0.1em)',
+      'If text feels cramped, increase line-height instead of tracking',
+      'Pick a slightly wider body face rather than tracking a narrow one',
     ],
-    rule: "No letter-spacing above 0.05em on body text. Tracking is for labels, not paragraphs."
+    rule: 'No letter-spacing above 0.05em on body text. Tracking is for labels, not paragraphs.',
   },
 
   flat_type_hierarchy: {
     problem:
-      "Font sizes that sit too close together (≥3 distinct sizes but less than a 2× spread between largest and smallest) produce no clear visual hierarchy — everything competes, nothing leads. The page reads as one undifferentiated wall of text.",
-    fix:
-      "Use fewer sizes with more contrast. Establish a real scale (aim for at least a 1.25 ratio between adjacent steps, and a ≥2× spread from body to display). A confident hierarchy uses big jumps: small caption, comfortable body, then a heading that's clearly 2–3× the body.",
+      'Font sizes that sit too close together (≥3 distinct sizes but less than a 2× spread between largest and smallest) produce no clear visual hierarchy — everything competes, nothing leads. The page reads as one undifferentiated wall of text.',
+    fix: "Use fewer sizes with more contrast. Establish a real scale (aim for at least a 1.25 ratio between adjacent steps, and a ≥2× spread from body to display). A confident hierarchy uses big jumps: small caption, comfortable body, then a heading that's clearly 2–3× the body.",
     alternatives: [
-      "A modular scale (1.25 or 1.333 ratio) with 3–4 clear steps",
-      "Big jump from body (16px) to H2 (32px+) to H1 (56px+)",
-      "Use weight and color for sub-hierarchy, size for the major levels",
-      "Cut redundant size steps — fewer, more distinct sizes"
+      'A modular scale (1.25 or 1.333 ratio) with 3–4 clear steps',
+      'Big jump from body (16px) to H2 (32px+) to H1 (56px+)',
+      'Use weight and color for sub-hierarchy, size for the major levels',
+      'Cut redundant size steps — fewer, more distinct sizes',
     ],
-    rule: "Display-to-body size ratio must be ≥2×. No flat ladders of near-identical sizes."
-  }
+    rule: 'Display-to-body size ratio must be ≥2×. No flat ladders of near-identical sizes.',
+  },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -518,7 +482,7 @@ export const FIXES = {
 // ─────────────────────────────────────────────────────────────────────────────
 function fmtList(arr, n = 3) {
   if (!Array.isArray(arr) || arr.length === 0) return null;
-  const slice = arr.slice(0, n).map(s => `"${String(s).slice(0, 60)}"`);
+  const slice = arr.slice(0, n).map((s) => `"${String(s).slice(0, 60)}"`);
   return slice.join(', ') + (arr.length > n ? `, … (+${arr.length - n} more)` : '');
 }
 
@@ -526,19 +490,26 @@ const EVIDENCE_FORMATTERS = {
   slop_fonts: (e) => {
     const lines = [];
     if (typeof e.ratio === 'number' && e.total) {
-      lines.push(`${e.slopCount}/${e.total} elements (${Math.round(e.ratio * 100)}%) use an AI-default font.`);
+      lines.push(
+        `${e.slopCount}/${e.total} elements (${Math.round(e.ratio * 100)}%) use an AI-default font.`
+      );
     }
     if (e.heroFam) {
-      lines.push(`Hero/H1 font is \`${e.heroFam}\` — ${e.heroIsSlop ? '⚠️ on the slop list, replace it.' : '✓ not on the slop list, **keep it**.'}`);
+      lines.push(
+        `Hero/H1 font is \`${e.heroFam}\` — ${e.heroIsSlop ? '⚠️ on the slop list, replace it.' : '✓ not on the slop list, **keep it**.'}`
+      );
     }
     if (e.accentSerifItalicCount > 0) {
-      lines.push(`${e.accentSerifItalicCount} italic-serif accents (Instrument Serif-style) detected.`);
+      lines.push(
+        `${e.accentSerifItalicCount} italic-serif accents (Instrument Serif-style) detected.`
+      );
     }
     return lines.length ? lines.join(' ') : null;
   },
   purple_accent: (e) => {
     const parts = [];
-    if (e.purpleEls != null) parts.push(`${e.purpleEls} elements painted in the HSL 240–295° purple/indigo range`);
+    if (e.purpleEls != null)
+      parts.push(`${e.purpleEls} elements painted in the HSL 240–295° purple/indigo range`);
     if (e.filledCtas != null) parts.push(`${e.filledCtas} filled CTAs use it`);
     const sam = fmtList(e.samples);
     if (sam) parts.push(`samples: ${sam}`);
@@ -557,11 +528,17 @@ const EVIDENCE_FORMATTERS = {
     return parts.length ? parts.join('; ') + '.' : null;
   },
   accent_stripe: (e) =>
-    e.stripeCards ? `${e.stripeCards} cards have a thick colored top or left border (Tailwind UI "accent stripe").` : null,
+    e.stripeCards
+      ? `${e.stripeCards} cards have a thick colored top or left border (Tailwind UI "accent stripe").`
+      : null,
   glassmorphism: (e) =>
-    e.glassCount ? `${e.glassCount} elements use \`backdrop-filter: blur()\` on translucent surfaces.` : null,
+    e.glassCount
+      ? `${e.glassCount} elements use \`backdrop-filter: blur()\` on translucent surfaces.`
+      : null,
   colored_glows: (e) =>
-    e.glowCount ? `${e.glowCount} elements have saturated colored \`box-shadow\` glows (red/orange/blue/purple/etc.).` : null,
+    e.glowCount
+      ? `${e.glowCount} elements have saturated colored \`box-shadow\` glows (red/orange/blue/purple/etc.).`
+      : null,
   centered_hero: (e) => {
     const parts = [];
     if (e.fontSize) parts.push(`hero is ${e.fontSize}px`);
@@ -582,16 +559,22 @@ const EVIDENCE_FORMATTERS = {
     const parts = [];
     if (e.bodyDark) parts.push('body background is dark');
     if (e.greyParas != null && e.totalParas) {
-      parts.push(`${e.greyParas}/${e.totalParas} paragraphs (${Math.round((e.ratio || 0) * 100)}%) use mid-grey text below the WCAG-AA contrast threshold`);
+      parts.push(
+        `${e.greyParas}/${e.totalParas} paragraphs (${Math.round((e.ratio || 0) * 100)}%) use mid-grey text below the WCAG-AA contrast threshold`
+      );
     }
     return parts.length ? parts.join('; ') + '.' : null;
   },
   icon_card_grid: (e) =>
-    e.maxGroupSize ? `Largest sibling card group: ${e.maxGroupSize} identical icon-on-top cards in a row.` : null,
+    e.maxGroupSize
+      ? `Largest sibling card group: ${e.maxGroupSize} identical icon-on-top cards in a row.`
+      : null,
   numbered_steps: (e) =>
     e.bestRun ? `Found a run of ${e.bestRun} numbered "1 · 2 · 3" steps with generic verbs.` : null,
   stat_banner: (e) =>
-    e.clusterSize ? `${e.clusterSize} oversized big-number stats clustered in one banner (likely unverified).` : null,
+    e.clusterSize
+      ? `${e.clusterSize} oversized big-number stats clustered in one banner (likely unverified).`
+      : null,
   faq_accordion: (e) => {
     if (!e.detailsCount) return null;
     return `${e.detailsCount} \`<details>\` accordion entries${e.hasFaqHeading ? ' under an explicit FAQ heading' : ''}.`;
@@ -618,12 +601,16 @@ const EVIDENCE_FORMATTERS = {
     return parts.length ? `AI-magic tells: ${parts.join(', ')}.` : null;
   },
   cream_default_bg: (e) =>
-    e.surface ? `Page surface is \`${e.surface}\` — a warm off-white / cream (the default AI 'tasteful' background).` : null,
+    e.surface
+      ? `Page surface is \`${e.surface}\` — a warm off-white / cream (the default AI 'tasteful' background).`
+      : null,
   low_contrast_text: (e) => {
     if (!e.fails) return null;
-    const parts = [`${e.fails}/${e.checked} text blocks (${Math.round((e.ratioFail || 0) * 100)}%) fall below the WCAG AA contrast floor`];
+    const parts = [
+      `${e.fails}/${e.checked} text blocks (${Math.round((e.ratioFail || 0) * 100)}%) fall below the WCAG AA contrast floor`,
+    ];
     if (Array.isArray(e.samples) && e.samples.length) {
-      const s = e.samples.map(x => `"${x.text}" (${x.ratio}:1, needs ${x.floor}:1)`).join('; ');
+      const s = e.samples.map((x) => `"${x.text}" (${x.ratio}:1, needs ${x.floor}:1)`).join('; ');
       parts.push(`e.g. ${s}`);
     }
     return parts.join(' — ') + '.';
@@ -632,17 +619,19 @@ const EVIDENCE_FORMATTERS = {
     if (!e.count) return null;
     const parts = [`${e.count} display heading(s) tracked tighter than -0.04em`];
     if (Array.isArray(e.samples) && e.samples.length) {
-      parts.push('e.g. ' + e.samples.map(x => `"${x.text}" (${x.em}em)`).join('; '));
+      parts.push('e.g. ' + e.samples.map((x) => `"${x.text}" (${x.em}em)`).join('; '));
     }
     return parts.join(' — ') + '.';
   },
   gray_on_color: (e) => {
     if (!e.count) return null;
-    const sam = fmtList((e.samples || []).map(s => s.text));
+    const sam = fmtList((e.samples || []).map((s) => s.text));
     return `${e.count} block(s) of neutral grey text sit on a chromatic background${sam ? ` — e.g. ${sam}` : ''}.`;
   },
   oversized_hero_h1: (e) =>
-    e.fontSize ? `Hero H1 is ${e.fontSize}px and ${e.chars} characters long ("${(e.text || '').slice(0, 50)}…") — a long headline blown up to display size.` : null,
+    e.fontSize
+      ? `Hero H1 is ${e.fontSize}px and ${e.chars} characters long ("${(e.text || '').slice(0, 50)}…") — a long headline blown up to display size.`
+      : null,
   nested_cards: (e) => {
     if (!e.nested) return null;
     const sam = fmtList(e.samples);
@@ -652,20 +641,27 @@ const EVIDENCE_FORMATTERS = {
     if (!e.count) return null;
     const parts = [`${e.count} body block(s) use letter-spacing above 0.05em`];
     if (Array.isArray(e.samples) && e.samples.length) {
-      parts.push('e.g. ' + e.samples.map(x => `${x.em}em on "${x.text}"`).join('; '));
+      parts.push('e.g. ' + e.samples.map((x) => `${x.em}em on "${x.text}"`).join('; '));
     }
     return parts.join(' — ') + '.';
   },
   flat_type_hierarchy: (e) =>
-    e.ratio ? `${e.distinct} distinct font sizes spanning only ${e.min}px→${e.max}px (${e.ratio}× ratio) — too flat for a clear hierarchy.` : null,
+    e.ratio
+      ? `${e.distinct} distinct font sizes spanning only ${e.min}px→${e.max}px (${e.ratio}× ratio) — too flat for a clear hierarchy.`
+      : null,
   unicode_artifacts: (e) => {
     const parts = [];
     if (e.zeroWidth) parts.push(`${e.zeroWidth} invisible zero-width character(s)`);
     if (e.narrowNbsp) parts.push(`${e.narrowNbsp} narrow no-break space(s)`);
-    if (e.mathAlnum) parts.push(`${e.mathAlnum} mathematical "fake-bold/italic" letter(s) (𝗯𝗼𝗹𝗱-style, U+1D400 block)`);
+    if (e.mathAlnum)
+      parts.push(
+        `${e.mathAlnum} mathematical "fake-bold/italic" letter(s) (𝗯𝗼𝗹𝗱-style, U+1D400 block)`
+      );
     if (e.nbsp > 6) parts.push(`${e.nbsp} non-breaking spaces`);
-    return parts.length ? `Found ${parts.join(', ')} in the page text — invisible to readers, but a dead giveaway of copy pasted straight from an LLM.` : null;
-  }
+    return parts.length
+      ? `Found ${parts.join(', ')} in the page text — invisible to readers, but a dead giveaway of copy pasted straight from an LLM.`
+      : null;
+  },
 };
 
 function formatEvidence(pattern) {
@@ -691,8 +687,8 @@ export function buildFixPrompt(result) {
   const designPatterns = result.patterns || [];
   const copyPatterns = (result.axes && result.axes.copy && result.axes.copy.patterns) || [];
   const allPatterns = [...designPatterns, ...copyPatterns];
-  const triggered = allPatterns.filter(p => p.triggered);
-  const passing = allPatterns.filter(p => !p.triggered);
+  const triggered = allPatterns.filter((p) => p.triggered);
+  const passing = allPatterns.filter((p) => !p.triggered);
   const totalCount = allPatterns.length;
 
   if (triggered.length === 0) {
@@ -700,8 +696,7 @@ export function buildFixPrompt(result) {
   }
 
   const url = result.finalUrl || result.url;
-  const h1FontIsSlop =
-    triggered.find(p => p.id === 'slop_fonts')?.evidence?.heroIsSlop === true;
+  const h1FontIsSlop = triggered.find((p) => p.id === 'slop_fonts')?.evidence?.heroIsSlop === true;
 
   const header = `# Landing page slop fix prompt
 
@@ -715,15 +710,15 @@ Your landing page scored **${result.score}/100** on the Slop Detector — tier *
 `;
 
   const sorted = triggered.slice().sort((a, b) => b.weight - a.weight);
-  const issues = sorted.map((p, i) => {
-    const fix = FIXES[p.id];
-    if (!fix) return `### ${i + 1}. ${p.label} (+${p.weight})\n_No fix recipe available for this pattern._`;
-    const alts = fix.alternatives.map(a => `   - ${a}`).join('\n');
-    const evidence = formatEvidence(p);
-    const evidenceBlock = evidence
-      ? `\n**What we found on YOUR page:**\n${evidence}\n`
-      : '';
-    return `### ${i + 1}. ${p.label}  *(weight: +${p.weight})*
+  const issues = sorted
+    .map((p, i) => {
+      const fix = FIXES[p.id];
+      if (!fix)
+        return `### ${i + 1}. ${p.label} (+${p.weight})\n_No fix recipe available for this pattern._`;
+      const alts = fix.alternatives.map((a) => `   - ${a}`).join('\n');
+      const evidence = formatEvidence(p);
+      const evidenceBlock = evidence ? `\n**What we found on YOUR page:**\n${evidence}\n` : '';
+      return `### ${i + 1}. ${p.label}  *(weight: +${p.weight})*
 ${evidenceBlock}
 **Why this reads as AI-slop:**
 ${fix.problem}
@@ -735,7 +730,8 @@ ${fix.fix}
 ${alts}
 
 **Hard rule:** ${fix.rule}`;
-  }).join('\n\n---\n\n');
+    })
+    .join('\n\n---\n\n');
 
   // Anti-regression: list patterns that currently pass so the LLM doesn't
   // "fix" the page by introducing one of them (very common: removing the
@@ -743,7 +739,7 @@ ${alts}
   const passingList = passing
     .slice()
     .sort((a, b) => b.weight - a.weight)
-    .map(p => `- **${p.label}** — currently passing. Do not introduce this pattern.`)
+    .map((p) => `- **${p.label}** — currently passing. Do not introduce this pattern.`)
     .join('\n');
 
   const footer = `

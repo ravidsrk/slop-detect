@@ -8,7 +8,7 @@ on:
 
 jobs:
   lint:
-    name: Lint (syntax check)
+    name: Lint & format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,7 +17,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
-      - run: npm run lint
+      - name: ESLint
+        run: npm run lint
+      - name: Prettier (format check)
+        run: npm run format:check
 
   test:
     name: Unit tests

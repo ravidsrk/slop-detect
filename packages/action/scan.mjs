@@ -49,13 +49,7 @@ function writeSummary(markdown) {
 // list the full conventional ladder so a future re-band (e.g. adding C-, C+)
 // still compares correctly. Lower index = better grade.
 // ---------------------------------------------------------------------------
-const GRADE_RANK = [
-  'A+', 'A', 'A-',
-  'B+', 'B', 'B-',
-  'C+', 'C', 'C-',
-  'D+', 'D', 'D-',
-  'F'
-];
+const GRADE_RANK = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F'];
 
 function gradeRank(grade) {
   const idx = GRADE_RANK.indexOf(String(grade).trim().toUpperCase());
@@ -78,7 +72,7 @@ async function scan(apiBase, url) {
     res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ url })
+      body: JSON.stringify({ url }),
     });
   } catch (err) {
     die(`Could not reach slop-detect API at ${endpoint}: ${err.message}`);
@@ -126,7 +120,7 @@ function evaluateThreshold(result, failUnder) {
       mode: 'grade',
       reason: passed
         ? `Grade ${got} is at least as good as ${wanted}.`
-        : `Grade ${got} is worse than the required ${wanted}.`
+        : `Grade ${got} is worse than the required ${wanted}.`,
     };
   }
 
@@ -136,7 +130,7 @@ function evaluateThreshold(result, failUnder) {
     return {
       passed: false,
       mode: 'invalid',
-      reason: `fail-under "${raw}" is neither a number nor a letter grade (A+ … F).`
+      reason: `fail-under "${raw}" is neither a number nor a letter grade (A+ … F).`,
     };
   }
 
@@ -147,7 +141,7 @@ function evaluateThreshold(result, failUnder) {
     mode: 'score',
     reason: passed
       ? `Score ${result.score} is within the limit of ${limit}.`
-      : `Score ${result.score} exceeds the limit of ${limit}.`
+      : `Score ${result.score} exceeds the limit of ${limit}.`,
   };
 }
 
@@ -161,9 +155,7 @@ function triggeredTable(result) {
   if (triggered.length === 0) {
     return '_No slop patterns triggered — clean._';
   }
-  const rows = triggered
-    .map((p) => `| ${p.label || p.id} | +${p.weight} |`)
-    .join('\n');
+  const rows = triggered.map((p) => `| ${p.label || p.id} | +${p.weight} |`).join('\n');
   return ['| Pattern | Weight |', '| --- | ---: |', rows].join('\n');
 }
 
@@ -200,7 +192,7 @@ function reportBody(apiBase, result, gate, { withMarker } = {}) {
     '',
     `🔗 [Full result](${resultUrl})`,
     '',
-    `<sub>Scanned by [slop-detect](https://slop-detect.com) · defs ${result.definitionsVersion}</sub>`
+    `<sub>Scanned by [slop-detect](https://slop-detect.com) · defs ${result.definitionsVersion}</sub>`,
   ];
   return lines.filter((l) => l !== null).join('\n');
 }
@@ -231,8 +223,8 @@ async function gh(apiUrl, token, pathname, init = {}) {
       Accept: 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
       'Content-Type': 'application/json',
-      ...(init.headers || {})
-    }
+      ...(init.headers || {}),
+    },
   });
   return res;
 }
@@ -262,7 +254,7 @@ async function upsertStickyComment(token, repo, prNumber, body) {
     if (existingId) {
       const res = await gh(apiUrl, token, `/repos/${owner}/${name}/issues/comments/${existingId}`, {
         method: 'PATCH',
-        body: JSON.stringify({ body })
+        body: JSON.stringify({ body }),
       });
       if (res.ok) {
         log(`Updated sticky comment #${existingId}.`);
@@ -272,7 +264,7 @@ async function upsertStickyComment(token, repo, prNumber, body) {
     }
     const res = await gh(apiUrl, token, base, {
       method: 'POST',
-      body: JSON.stringify({ body })
+      body: JSON.stringify({ body }),
     });
     if (res.ok) {
       log('Posted sticky comment.');
@@ -314,13 +306,20 @@ async function main() {
   // Job summary — same markdown as the comment but without the sticky marker.
   writeSummary(`${reportBody(apiBase, result, gate, { withMarker: false })}\n`);
 
-  log(`Result: grade ${result.grade}, score ${result.score}/100, tier ${result.tier} → ${resultUrl}`);
+  log(
+    `Result: grade ${result.grade}, score ${result.score}/100, tier ${result.tier} → ${resultUrl}`
+  );
 
   // Sticky PR comment, if applicable.
   const prNumber = readPrNumber();
   const repo = process.env.GITHUB_REPOSITORY || '';
   if (commentEnabled && prNumber && token && repo.includes('/')) {
-    await upsertStickyComment(token, repo, prNumber, reportBody(apiBase, result, gate, { withMarker: true }));
+    await upsertStickyComment(
+      token,
+      repo,
+      prNumber,
+      reportBody(apiBase, result, gate, { withMarker: true })
+    );
   } else if (commentEnabled && prNumber && !token) {
     log('Comment requested but no github-token available — skipping PR comment.');
   }

@@ -15,8 +15,11 @@ import { onRequestPost as scanHandler } from './scan.js';
 // CORS + rate-limit handled by functions/api/_middleware.js.
 export async function onRequestPost({ request, env }) {
   let body;
-  try { body = await request.json(); }
-  catch { return text('Invalid JSON body', 400); }
+  try {
+    body = await request.json();
+  } catch {
+    return text('Invalid JSON body', 400);
+  }
 
   let result = body?.result;
 
@@ -26,7 +29,7 @@ export async function onRequestPost({ request, env }) {
     const scanReq = new Request(request.url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: body.url, axes: body.axes, preset: body.preset, share: false })
+      body: JSON.stringify({ url: body.url, axes: body.axes, preset: body.preset, share: false }),
     });
     const scanRes = await scanHandler({ request: scanReq, env });
     result = await scanRes.json();
@@ -38,23 +41,30 @@ export async function onRequestPost({ request, env }) {
   }
 
   const prompt = buildFixPrompt(result);
-  const asJson = body?.format === 'json' ||
-    (request.headers.get('accept') || '').includes('application/json');
+  const asJson =
+    body?.format === 'json' || (request.headers.get('accept') || '').includes('application/json');
 
   if (asJson) {
-    return new Response(JSON.stringify({
-      url: result.url,
-      score: result.score,
-      tier: result.tier,
-      patternsFlagged: result.patternsFlagged,
-      prompt
-    }, null, 2), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return new Response(
+      JSON.stringify(
+        {
+          url: result.url,
+          score: result.score,
+          tier: result.tier,
+          patternsFlagged: result.patternsFlagged,
+          prompt,
+        },
+        null,
+        2
+      ),
+      {
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
   }
 
   return new Response(prompt, {
-    headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
   });
 }
 

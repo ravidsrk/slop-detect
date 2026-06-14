@@ -12,13 +12,18 @@ import assert from 'node:assert/strict';
 // Minimal DOM stub so createColorHelpers() can construct.
 globalThis.document = {
   createElement: () => ({
-    width: 0, height: 0,
+    width: 0,
+    height: 0,
     getContext: () => ({
-      clearRect() {}, fillRect() {},
-      set fillStyle(_v) {}, get fillStyle() { return '#000'; },
-      getImageData: () => ({ data: [0, 0, 0, 255] })
-    })
-  })
+      clearRect() {},
+      fillRect() {},
+      set fillStyle(_v) {},
+      get fillStyle() {
+        return '#000';
+      },
+      getImageData: () => ({ data: [0, 0, 0, 255] }),
+    }),
+  }),
 };
 
 const { createColorHelpers } = await import('../src/color.js');
@@ -54,14 +59,14 @@ test('channelSpread: greys are ~0, saturated colors are high', () => {
 });
 
 test('isNeutral: greys/black/white neutral, saturated not', () => {
-  assert.equal(h.isNeutral({ r: 128, g: 130, b: 132, a: 1 }), true);  // spread 4
+  assert.equal(h.isNeutral({ r: 128, g: 130, b: 132, a: 1 }), true); // spread 4
   assert.equal(h.isNeutral(WHITE), true);
-  assert.equal(h.isNeutral({ r: 0, g: 0, b: 0, a: 0 }), true);        // transparent
-  assert.equal(h.isNeutral({ r: 99, g: 102, b: 241, a: 1 }), false);  // indigo
+  assert.equal(h.isNeutral({ r: 0, g: 0, b: 0, a: 0 }), true); // transparent
+  assert.equal(h.isNeutral({ r: 99, g: 102, b: 241, a: 1 }), false); // indigo
   assert.equal(h.isNeutral({ r: 200, g: 200, b: 160, a: 1 }), false); // spread 40 — tinted
 });
 
 test('isNeutral: spread exactly at 30 boundary is NOT neutral', () => {
   assert.equal(h.isNeutral({ r: 100, g: 100, b: 130, a: 1 }), false); // spread 30
-  assert.equal(h.isNeutral({ r: 100, g: 100, b: 129, a: 1 }), true);  // spread 29
+  assert.equal(h.isNeutral({ r: 100, g: 100, b: 129, a: 1 }), true); // spread 29
 });

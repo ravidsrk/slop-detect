@@ -1,7 +1,7 @@
 {
   "name": "slop-detect-core",
   "version": "0.7.0",
-  "description": "Pure detection engine for AI-design-slop patterns. Runtime-agnostic \u2014 runs in Node, Cloudflare Workers, or the browser.",
+  "description": "Pure detection engine for AI-design-slop patterns. Runtime-agnostic — runs in Node, Cloudflare Workers, or the browser.",
   "type": "module",
   "license": "MIT",
   "homepage": "https://slop-detect.com",

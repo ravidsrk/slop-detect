@@ -17,16 +17,26 @@ export function report(env, level, event, data = {}) {
   try {
     const fn = level === 'error' ? console.error : console.log;
     fn(`[slop-detect] ${JSON.stringify(line)}`);
-  } catch (_) { /* never throw from the logger */ }
+  } catch (_) {
+    /* never throw from the logger */
+  }
 
   // Optional out-of-band alert. Fire-and-forget; never block or fail the request.
   const hook = env && env.ERROR_WEBHOOK;
   if (hook && (level === 'error' || level === 'warn')) {
     try {
-      const body = JSON.stringify({ text: `slop-detect ${level}: ${event} ${JSON.stringify(data).slice(0, 800)}` });
+      const body = JSON.stringify({
+        text: `slop-detect ${level}: ${event} ${JSON.stringify(data).slice(0, 800)}`,
+      });
       // ctx.waitUntil would be ideal, but report() is called from places without
       // ctx; a detached promise still flushes on Workers within the request budget.
-      void fetch(hook, { method: 'POST', headers: { 'content-type': 'application/json' }, body }).catch(() => {});
-    } catch (_) { /* swallow — observability must never break the request */ }
+      void fetch(hook, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body,
+      }).catch(() => {});
+    } catch (_) {
+      /* swallow — observability must never break the request */
+    }
   }
 }

@@ -23,7 +23,9 @@
 // ── Front-matter extraction ──────────────────────────────────────────────────
 export function extractFrontMatter(text) {
   if (typeof text !== 'string') return null;
-  const m = text.match(/^﻿?\s*---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/);
+  // \uFEFF = optional leading BOM, escaped rather than embedded literally so the
+  // invisible byte stays visible in source and doesn't trip irregular-whitespace.
+  const m = text.match(/^\uFEFF?\s*---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/);
   return m ? m[1] : null;
 }
 
@@ -82,9 +84,13 @@ function resolveRefs(tree) {
   const walk = (node) => {
     for (const k of Object.keys(node)) {
       const v = node[k];
-      if (v && typeof v === 'object') { walk(v); continue; }
+      if (v && typeof v === 'object') {
+        walk(v);
+        continue;
+      }
       if (typeof v !== 'string') continue;
-      let cur = v, hops = 0;
+      let cur = v,
+        hops = 0;
       while (hops++ < 4) {
         const m = cur.match(/^\{([\w.-]+)\}$/);
         if (!m) break;
@@ -105,9 +111,14 @@ export function parseDesignMd(text) {
   const fm = extractFrontMatter(text);
   if (!fm) return null;
   let tree;
-  try { tree = resolveRefs(parseYamlSubset(fm)); } catch { return null; }
-  const hasTokens = ['colors', 'typography', 'rounded', 'spacing', 'components']
-    .some((k) => tree[k] && typeof tree[k] === 'object' && Object.keys(tree[k]).length > 0);
+  try {
+    tree = resolveRefs(parseYamlSubset(fm));
+  } catch {
+    return null;
+  }
+  const hasTokens = ['colors', 'typography', 'rounded', 'spacing', 'components'].some(
+    (k) => tree[k] && typeof tree[k] === 'object' && Object.keys(tree[k]).length > 0
+  );
   if (!hasTokens) return null;
   return {
     name: typeof tree.name === 'string' ? tree.name : null,
@@ -115,20 +126,37 @@ export function parseDesignMd(text) {
     typography: tree.typography || {},
     rounded: tree.rounded || {},
     spacing: tree.spacing || {},
-    components: tree.components || {}
+    components: tree.components || {},
   };
 }
 
 // ── Token flattening ─────────────────────────────────────────────────────────
 const GENERIC_FONTS = new Set([
-  'sans-serif', 'serif', 'monospace', 'cursive', 'fantasy', 'system-ui',
-  'ui-sans-serif', 'ui-serif', 'ui-monospace', 'ui-rounded', '-apple-system',
-  'blinkmacsystemfont', 'apple color emoji', 'segoe ui emoji', 'segoe ui symbol',
-  'noto color emoji', 'emoji', 'math'
+  'sans-serif',
+  'serif',
+  'monospace',
+  'cursive',
+  'fantasy',
+  'system-ui',
+  'ui-sans-serif',
+  'ui-serif',
+  'ui-monospace',
+  'ui-rounded',
+  '-apple-system',
+  'blinkmacsystemfont',
+  'apple color emoji',
+  'segoe ui emoji',
+  'segoe ui symbol',
+  'noto color emoji',
+  'emoji',
+  'math',
 ]);
 
 function normFont(name) {
-  return String(name || '').replace(/['"]/g, '').trim().toLowerCase();
+  return String(name || '')
+    .replace(/['"]/g, '')
+    .trim()
+    .toLowerCase();
 }
 
 // First concrete (non-generic) family in a CSS font-family stack.
@@ -143,7 +171,9 @@ export function primaryFamily(stack) {
 // Parse a CSS color (hex 3/4/6/8, rgb()/rgba()) → [r,g,b] or null. oklch/named
 // colors fall back to exact-string matching in the comparator.
 export function parseCssColor(str) {
-  const s = String(str || '').trim().toLowerCase();
+  const s = String(str || '')
+    .trim()
+    .toLowerCase();
   let m = s.match(/^#([0-9a-f]{3,4})$/);
   if (m) {
     const h = m[1];
@@ -163,9 +193,11 @@ function colorsMatch(a, b, tolerance = 10) {
   const ca = parseCssColor(a);
   const cb = parseCssColor(b);
   if (ca && cb) {
-    return Math.abs(ca[0] - cb[0]) <= tolerance &&
-           Math.abs(ca[1] - cb[1]) <= tolerance &&
-           Math.abs(ca[2] - cb[2]) <= tolerance;
+    return (
+      Math.abs(ca[0] - cb[0]) <= tolerance &&
+      Math.abs(ca[1] - cb[1]) <= tolerance &&
+      Math.abs(ca[2] - cb[2]) <= tolerance
+    );
   }
   // Unparseable format (oklch, named): exact normalized string only.
   return String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
@@ -183,7 +215,9 @@ export function flattenDesignTokens(parsed) {
     const f = typeof fam === 'string' ? primaryFamily(fam) || normFont(fam) : null;
     if (f) fonts.add(f);
   }
-  const pushColor = (v) => { if (typeof v === 'string' && v.trim()) colors.push(v.trim()); };
+  const pushColor = (v) => {
+    if (typeof v === 'string' && v.trim()) colors.push(v.trim());
+  };
   const walkColors = (node) => {
     for (const v of Object.values(node || {})) {
       if (v && typeof v === 'object') walkColors(v);
@@ -195,8 +229,8 @@ export function flattenDesignTokens(parsed) {
     if (!comp || typeof comp !== 'object') continue;
     pushColor(comp.backgroundColor);
     pushColor(comp.textColor);
-    const fam = comp.typography && typeof comp.typography === 'object'
-      ? comp.typography.fontFamily : null;
+    const fam =
+      comp.typography && typeof comp.typography === 'object' ? comp.typography.fontFamily : null;
     const f = typeof fam === 'string' ? primaryFamily(fam) || normFont(fam) : null;
     if (f) fonts.add(f);
   }
@@ -223,8 +257,16 @@ export function extractSystemContext() {
   for (const el of els) {
     if (inspected >= 2500) break;
     const tag = el.tagName;
-    if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'NOSCRIPT' ||
-        tag === 'META' || tag === 'LINK' || tag === 'SVG' || tag === 'PATH') continue;
+    if (
+      tag === 'SCRIPT' ||
+      tag === 'STYLE' ||
+      tag === 'NOSCRIPT' ||
+      tag === 'META' ||
+      tag === 'LINK' ||
+      tag === 'SVG' ||
+      tag === 'PATH'
+    )
+      continue;
     if (!visible(el)) continue;
     inspected++;
     const cs = getComputedStyle(el);
@@ -232,7 +274,10 @@ export function extractSystemContext() {
     // Font tally: only elements carrying their own text.
     let hasText = false;
     for (const n of el.childNodes) {
-      if (n.nodeType === 3 && n.textContent.trim().length > 1) { hasText = true; break; }
+      if (n.nodeType === 3 && n.textContent.trim().length > 1) {
+        hasText = true;
+        break;
+      }
     }
     if (hasText) {
       const fam = cs.fontFamily || '';
@@ -254,7 +299,7 @@ export function extractSystemContext() {
       if (opaque) {
         out.ctas.push({
           bg,
-          text: (el.textContent || '').trim().slice(0, 40)
+          text: (el.textContent || '').trim().slice(0, 40),
         });
       }
     }
@@ -266,7 +311,7 @@ export function extractSystemContext() {
   }
   const bodyBg = getComputedStyle(document.body).backgroundColor;
   const htmlBg = getComputedStyle(document.documentElement).backgroundColor;
-  out.surface = (bodyBg && bodyBg !== 'rgba(0, 0, 0, 0)') ? bodyBg : htmlBg;
+  out.surface = bodyBg && bodyBg !== 'rgba(0, 0, 0, 0)' ? bodyBg : htmlBg;
   return out;
 }
 
@@ -275,11 +320,11 @@ export function extractSystemContext() {
 // evaluated (nothing declared, or nothing observed) are SKIPPED and excluded
 // from the denominator — absence of data must never read as drift.
 export const SYSTEM_CHECKS = [
-  { id: 'fonts.declared',  weight: 35, label: 'Fonts in use are declared in the system' },
-  { id: 'colors.cta',      weight: 30, label: 'CTA / button colors come from the palette' },
-  { id: 'colors.surface',  weight: 15, label: 'Page surface color comes from the palette' },
+  { id: 'fonts.declared', weight: 35, label: 'Fonts in use are declared in the system' },
+  { id: 'colors.cta', weight: 30, label: 'CTA / button colors come from the palette' },
+  { id: 'colors.surface', weight: 15, label: 'Page surface color comes from the palette' },
   { id: 'colors.headings', weight: 10, label: 'Heading colors come from the palette' },
-  { id: 'radii.scale',     weight: 10, label: 'Corner radii follow the declared scale' }
+  { id: 'radii.scale', weight: 10, label: 'Corner radii follow the declared scale' },
 ];
 
 function tierForRatio(ratio) {
@@ -290,8 +335,15 @@ function tierForRatio(ratio) {
 
 export function scoreSystemCompliance(parsed, observed) {
   if (!parsed) {
-    return { axis: 'system', declared: false, score: null, tier: 'No system',
-      message: 'No parseable DESIGN.md tokens — nothing to check against.', checks: [], drift: [] };
+    return {
+      axis: 'system',
+      declared: false,
+      score: null,
+      tier: 'No system',
+      message: 'No parseable DESIGN.md tokens — nothing to check against.',
+      checks: [],
+      drift: [],
+    };
   }
   const tokens = flattenDesignTokens(parsed);
   const obs = observed || {};
@@ -308,8 +360,11 @@ export function scoreSystemCompliance(parsed, observed) {
     const tally = obs.fonts || {};
     const total = Object.values(tally).reduce((a, b) => a + b, 0);
     if (!tokens.fonts.length || !total) {
-      push('fonts.declared', 'skip', !tokens.fonts.length
-        ? 'no typography tokens declared' : 'no text observed');
+      push(
+        'fonts.declared',
+        'skip',
+        !tokens.fonts.length ? 'no typography tokens declared' : 'no text observed'
+      );
     } else {
       const used = new Map(); // primary family -> count
       for (const [stack, n] of Object.entries(tally)) {
@@ -321,11 +376,16 @@ export function scoreSystemCompliance(parsed, observed) {
         .filter(([fam, n]) => n / total >= 0.1 && !tokens.fonts.includes(fam))
         .map(([fam]) => fam);
       if (undeclared.length) {
-        push('fonts.declared', 'fail',
+        push(
+          'fonts.declared',
+          'fail',
           `font(s) in use but not in the system: ${undeclared.join(', ')}`,
-          { undeclared, declared: tokens.fonts });
+          { undeclared, declared: tokens.fonts }
+        );
       } else {
-        push('fonts.declared', 'pass', 'all primary fonts are declared', { declared: tokens.fonts });
+        push('fonts.declared', 'pass', 'all primary fonts are declared', {
+          declared: tokens.fonts,
+        });
       }
     }
   }
@@ -334,13 +394,17 @@ export function scoreSystemCompliance(parsed, observed) {
   {
     const ctas = obs.ctas || [];
     if (!tokens.colors.length || !ctas.length) {
-      push('colors.cta', 'skip', !tokens.colors.length ? 'no color tokens declared' : 'no filled CTAs observed');
+      push(
+        'colors.cta',
+        'skip',
+        !tokens.colors.length ? 'no color tokens declared' : 'no filled CTAs observed'
+      );
     } else {
       const off = ctas.filter((c) => !tokens.colors.some((t) => colorsMatch(t, c.bg)));
       if (off.length) {
-        push('colors.cta', 'fail',
-          `${off.length}/${ctas.length} CTA color(s) not in the palette`,
-          { samples: off.slice(0, 4).map((c) => ({ bg: c.bg, text: c.text })) });
+        push('colors.cta', 'fail', `${off.length}/${ctas.length} CTA color(s) not in the palette`, {
+          samples: off.slice(0, 4).map((c) => ({ bg: c.bg, text: c.text })),
+        });
       } else {
         push('colors.cta', 'pass', `all ${ctas.length} CTA colors match the palette`);
       }
@@ -350,11 +414,17 @@ export function scoreSystemCompliance(parsed, observed) {
   // 3. Surface ∈ palette.
   {
     if (!tokens.colors.length || !obs.surface) {
-      push('colors.surface', 'skip', !tokens.colors.length ? 'no color tokens declared' : 'no surface color observed');
+      push(
+        'colors.surface',
+        'skip',
+        !tokens.colors.length ? 'no color tokens declared' : 'no surface color observed'
+      );
     } else if (tokens.colors.some((t) => colorsMatch(t, obs.surface, 14))) {
       push('colors.surface', 'pass', 'surface color matches the palette');
     } else {
-      push('colors.surface', 'fail', `surface ${obs.surface} is not in the palette`, { surface: obs.surface });
+      push('colors.surface', 'fail', `surface ${obs.surface} is not in the palette`, {
+        surface: obs.surface,
+      });
     }
   }
 
@@ -362,13 +432,20 @@ export function scoreSystemCompliance(parsed, observed) {
   {
     const hs = obs.headings || [];
     if (!tokens.colors.length || !hs.length) {
-      push('colors.headings', 'skip', !tokens.colors.length ? 'no color tokens declared' : 'no headings observed');
+      push(
+        'colors.headings',
+        'skip',
+        !tokens.colors.length ? 'no color tokens declared' : 'no headings observed'
+      );
     } else {
       const off = hs.filter((h) => !tokens.colors.some((t) => colorsMatch(t, h.color, 14)));
       if (off.length > hs.length / 2) {
-        push('colors.headings', 'fail',
+        push(
+          'colors.headings',
+          'fail',
           `${off.length}/${hs.length} heading color(s) not in the palette`,
-          { samples: off.slice(0, 3).map((h) => ({ tag: h.tag, color: h.color })) });
+          { samples: off.slice(0, 3).map((h) => ({ tag: h.tag, color: h.color })) }
+        );
       } else {
         push('colors.headings', 'pass', 'heading colors match the palette');
       }
@@ -379,13 +456,20 @@ export function scoreSystemCompliance(parsed, observed) {
   {
     const radii = obs.radii || [];
     if (!tokens.radii.length || !radii.length) {
-      push('radii.scale', 'skip', !tokens.radii.length ? 'no rounded tokens declared' : 'no rounded corners observed');
+      push(
+        'radii.scale',
+        'skip',
+        !tokens.radii.length ? 'no rounded tokens declared' : 'no rounded corners observed'
+      );
     } else {
       const off = radii.filter((r) => !tokens.radii.some((t) => Math.abs(t - r) <= 2));
       if (off.length > radii.length / 2) {
-        push('radii.scale', 'fail',
+        push(
+          'radii.scale',
+          'fail',
           `radii off the declared scale: ${off.slice(0, 5).join(', ')}px`,
-          { offScale: off.slice(0, 8), declared: tokens.radii });
+          { offScale: off.slice(0, 8), declared: tokens.radii }
+        );
       } else {
         push('radii.scale', 'pass', 'corner radii follow the declared scale');
       }
@@ -401,12 +485,12 @@ export function scoreSystemCompliance(parsed, observed) {
     axis: 'system',
     declared: true,
     name: parsed.name,
-    score: Math.round(ratio * 100),       // 0–100, higher is better
+    score: Math.round(ratio * 100), // 0–100, higher is better
     maxScore: 100,
     tier: maxScore ? tierForRatio(ratio) : 'No data',
     checksEvaluated: evaluated.length,
     checksSkipped: checks.length - evaluated.length,
     checks,
-    drift
+    drift,
   };
 }

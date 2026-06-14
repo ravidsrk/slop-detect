@@ -12,7 +12,7 @@ import {
   listSites,
   listAllSites,
   recordScanForWatch,
-  getWatch
+  getWatch,
 } from '../functions/_shared.js';
 import { onRequestGet as sitesGet } from '../functions/api/sites.js';
 import { onRequestGet as directoryGet } from '../functions/api/../directory.js';
@@ -26,29 +26,45 @@ function makeKv(seed = {}) {
   }
   return {
     store,
-    async get(k) { return store.has(k) ? store.get(k).value : null; },
+    async get(k) {
+      return store.has(k) ? store.get(k).value : null;
+    },
     async getWithMetadata(k) {
       const e = store.get(k);
       return e ? { value: e.value, metadata: e.metadata || null } : { value: null, metadata: null };
     },
-    async put(k, v, opts = {}) { store.set(k, { value: v, metadata: opts.metadata }); },
-    async delete(k) { store.delete(k); },
+    async put(k, v, opts = {}) {
+      store.set(k, { value: v, metadata: opts.metadata });
+    },
+    async delete(k) {
+      store.delete(k);
+    },
     async list({ prefix = '', limit = 1000 } = {}) {
-      const names = [...store.keys()].filter(n => n.startsWith(prefix)).sort().slice(0, limit);
+      const names = [...store.keys()]
+        .filter((n) => n.startsWith(prefix))
+        .sort()
+        .slice(0, limit);
       return {
-        keys: names.map(n => ({ name: n, metadata: store.get(n).metadata })),
-        list_complete: true
+        keys: names.map((n) => ({ name: n, metadata: store.get(n).metadata })),
+        list_complete: true,
       };
-    }
+    },
   };
 }
 
 const slim = (over = {}) => ({
-  id: 'r1', domain: 'example.com', score: 8, grade: 'A-', tier: 'Clean',
-  title: 'Example', ...over
+  id: 'r1',
+  domain: 'example.com',
+  score: 8,
+  grade: 'A-',
+  tier: 'Clean',
+  title: 'Example',
+  ...over,
 });
 
-function postReq(body) { return { json: async () => body, url: 'https://slop-detect.com/api/watch' }; }
+function postReq(body) {
+  return { json: async () => body, url: 'https://slop-detect.com/api/watch' };
+}
 
 // ── listing helpers ──────────────────────────────────────────────────────────
 test('setListing writes a record + display metadata, getListing reads it back', async () => {
@@ -66,7 +82,7 @@ test('setListing writes a record + display metadata, getListing reads it back', 
 test('setListing preserves listedAt across refreshes but updates the score', async () => {
   const kv = makeKv();
   const first = await setListing(kv, slim({ score: 8, tier: 'Clean' }));
-  await new Promise(r => setTimeout(r, 2));
+  await new Promise((r) => setTimeout(r, 2));
   const second = await setListing(kv, slim({ score: 40, grade: 'D', tier: 'Heavy' }));
   assert.equal(second.listedAt, first.listedAt, 'listedAt is sticky');
   assert.equal(second.score, 40, 'score refreshes');
@@ -79,11 +95,14 @@ test('listSites derives rows from metadata; deleteListing removes them', async (
 
   let { sites } = await listSites(kv);
   assert.equal(sites.length, 2);
-  assert.deepEqual(sites.map(s => s.domain).sort(), ['a.com', 'b.com']);
+  assert.deepEqual(sites.map((s) => s.domain).sort(), ['a.com', 'b.com']);
 
   await deleteListing(kv, 'b.com');
   ({ sites } = await listSites(kv));
-  assert.deepEqual(sites.map(s => s.domain), ['a.com']);
+  assert.deepEqual(
+    sites.map((s) => s.domain),
+    ['a.com']
+  );
 });
 
 // ── GET /api/sites ───────────────────────────────────────────────────────────
@@ -106,13 +125,27 @@ test('GET /api/sites sorts cleanest-first by default and sloppiest-first on dema
 test('GET /api/sites: pending (unscored) sites sink to the end in BOTH sorts', async () => {
   const kv = makeKv();
   await setListing(kv, slim({ domain: 'scored.com', score: 50, grade: 'F', tier: 'Heavy' }));
-  await setListing(kv, { domain: 'pending.com', score: null, grade: null, tier: null, id: null, title: null });
+  await setListing(kv, {
+    domain: 'pending.com',
+    score: null,
+    grade: null,
+    tier: null,
+    id: null,
+    title: null,
+  });
   const env = { RESULTS: kv };
 
   for (const sort of ['clean', 'slop']) {
-    const res = await sitesGet({ request: { url: `https://slop-detect.com/api/sites?sort=${sort}` }, env });
+    const res = await sitesGet({
+      request: { url: `https://slop-detect.com/api/sites?sort=${sort}` },
+      env,
+    });
     const j = await res.json();
-    assert.equal(j.sites[j.sites.length - 1].domain, 'pending.com', `pending last when sort=${sort}`);
+    assert.equal(
+      j.sites[j.sites.length - 1].domain,
+      'pending.com',
+      `pending last when sort=${sort}`
+    );
   }
 });
 
@@ -125,7 +158,10 @@ test('GET /api/sites returns 503 without storage', async () => {
 test('/directory renders a DOFOLLOW backlink to each listed site', async () => {
   const kv = makeKv();
   await setListing(kv, slim({ domain: 'example.com', score: 8, grade: 'A-', tier: 'Clean' }));
-  const res = await directoryGet({ request: { url: 'https://slop-detect.com/directory' }, env: { RESULTS: kv } });
+  const res = await directoryGet({
+    request: { url: 'https://slop-detect.com/directory' },
+    env: { RESULTS: kv },
+  });
   assert.equal(res.status, 200);
   const html = await res.text();
   assert.match(html, /href="https:\/\/example\.com"/, 'links out to the site');
@@ -137,7 +173,10 @@ test('/directory renders a DOFOLLOW backlink to each listed site', async () => {
 });
 
 test('/directory shows an empty state with a claim CTA when nothing is listed', async () => {
-  const res = await directoryGet({ request: { url: 'https://slop-detect.com/directory' }, env: { RESULTS: makeKv() } });
+  const res = await directoryGet({
+    request: { url: 'https://slop-detect.com/directory' },
+    env: { RESULTS: makeKv() },
+  });
   const html = await res.text();
   assert.match(html, /No sites listed yet/i);
   assert.match(html, /claim it/i);
@@ -148,18 +187,31 @@ test('POST /api/watch { list:true } lists the domain; { list:false } delists it'
   // Seed a prior scan so the listing has a score.
   const kv = makeKv({
     'd:example.com': 'r0',
-    'r:r0': JSON.stringify({ id: 'r0', domain: 'example.com', score: 6, grade: 'A', tier: 'Clean', title: 'Ex' })
+    'r:r0': JSON.stringify({
+      id: 'r0',
+      domain: 'example.com',
+      score: 6,
+      grade: 'A',
+      tier: 'Clean',
+      title: 'Ex',
+    }),
   });
   const env = { RESULTS: kv };
 
-  let res = await watchPost({ request: postReq({ domain: 'example.com', email: 'o@x.io', list: true }), env });
+  let res = await watchPost({
+    request: postReq({ domain: 'example.com', email: 'o@x.io', list: true }),
+    env,
+  });
   let j = await res.json();
   assert.equal(j.listed, true);
   assert.ok(j.directoryUrl.endsWith('/directory'));
   assert.ok(await getListing(kv, 'example.com'), 'listing created');
 
   // Re-subscribe with list:false → delisted, monitoring intact.
-  res = await watchPost({ request: postReq({ domain: 'example.com', email: 'o@x.io', list: false }), env });
+  res = await watchPost({
+    request: postReq({ domain: 'example.com', email: 'o@x.io', list: false }),
+    env,
+  });
   j = await res.json();
   assert.equal(j.listed, false);
   assert.equal(await getListing(kv, 'example.com'), null, 'listing removed');
@@ -169,12 +221,24 @@ test('POST /api/watch { list:true } lists the domain; { list:false } delists it'
 test('omitting `list` on re-subscribe preserves the listing state', async () => {
   const kv = makeKv({
     'd:example.com': 'r0',
-    'r:r0': JSON.stringify({ id: 'r0', domain: 'example.com', score: 6, grade: 'A', tier: 'Clean' })
+    'r:r0': JSON.stringify({
+      id: 'r0',
+      domain: 'example.com',
+      score: 6,
+      grade: 'A',
+      tier: 'Clean',
+    }),
   });
   const env = { RESULTS: kv };
-  await watchPost({ request: postReq({ domain: 'example.com', email: 'o@x.io', list: true }), env });
+  await watchPost({
+    request: postReq({ domain: 'example.com', email: 'o@x.io', list: true }),
+    env,
+  });
   // Re-subscribe without the flag — must stay listed.
-  const res = await watchPost({ request: postReq({ domain: 'example.com', email: 'o@x.io' }), env });
+  const res = await watchPost({
+    request: postReq({ domain: 'example.com', email: 'o@x.io' }),
+    env,
+  });
   const j = await res.json();
   assert.equal(j.listed, true);
   assert.ok(await getListing(kv, 'example.com'));
@@ -183,11 +247,23 @@ test('omitting `list` on re-subscribe preserves the listing state', async () => 
 test('unsubscribing a listed domain also delists it', async () => {
   const kv = makeKv({
     'd:example.com': 'r0',
-    'r:r0': JSON.stringify({ id: 'r0', domain: 'example.com', score: 6, grade: 'A', tier: 'Clean' })
+    'r:r0': JSON.stringify({
+      id: 'r0',
+      domain: 'example.com',
+      score: 6,
+      grade: 'A',
+      tier: 'Clean',
+    }),
   });
   const env = { RESULTS: kv };
-  await watchPost({ request: postReq({ domain: 'example.com', email: 'o@x.io', list: true }), env });
-  await watchPost({ request: postReq({ domain: 'example.com', email: 'o@x.io', unsubscribe: true }), env });
+  await watchPost({
+    request: postReq({ domain: 'example.com', email: 'o@x.io', list: true }),
+    env,
+  });
+  await watchPost({
+    request: postReq({ domain: 'example.com', email: 'o@x.io', unsubscribe: true }),
+    env,
+  });
   assert.equal(await getListing(kv, 'example.com'), null);
 });
 
@@ -195,12 +271,21 @@ test('a claimed domain cannot be listed/hijacked by a different email', async ()
   // owner@x.io already claims + lists example.com.
   const kv = makeKv({
     'w:example.com': JSON.stringify({ domain: 'example.com', email: 'owner@x.io', listed: true }),
-    'l:example.com': JSON.stringify({ domain: 'example.com', score: 6, grade: 'A', tier: 'Clean', listedAt: 'orig' })
+    'l:example.com': JSON.stringify({
+      domain: 'example.com',
+      score: 6,
+      grade: 'A',
+      tier: 'Clean',
+      listedAt: 'orig',
+    }),
   });
   const env = { RESULTS: kv };
 
   // attacker@evil.io tries to take over (change email) and delist.
-  const res = await watchPost({ request: postReq({ domain: 'example.com', email: 'attacker@evil.io', list: false }), env });
+  const res = await watchPost({
+    request: postReq({ domain: 'example.com', email: 'attacker@evil.io', list: false }),
+    env,
+  });
   assert.equal(res.status, 403);
 
   // The watch + listing are untouched.
@@ -212,8 +297,18 @@ test('a claimed domain cannot be listed/hijacked by a different email', async ()
 test('/directory labels a listed-but-unscored domain "Pending", not "Unlisted"', async () => {
   const kv = makeKv();
   // List a domain that has never been scored (tier/score null).
-  await setListing(kv, { domain: 'fresh.com', score: null, grade: null, tier: null, id: null, title: null });
-  const res = await directoryGet({ request: { url: 'https://slop-detect.com/directory' }, env: { RESULTS: kv } });
+  await setListing(kv, {
+    domain: 'fresh.com',
+    score: null,
+    grade: null,
+    tier: null,
+    id: null,
+    title: null,
+  });
+  const res = await directoryGet({
+    request: { url: 'https://slop-detect.com/directory' },
+    env: { RESULTS: kv },
+  });
   const html = await res.text();
   assert.match(html, /Pending/, 'pending rows are labeled Pending');
   assert.doesNotMatch(html, /Unlisted/, 'a listed row is never labeled Unlisted');
@@ -222,8 +317,20 @@ test('/directory labels a listed-but-unscored domain "Pending", not "Unlisted"',
 // ── re-scan refreshes a listed domain's directory entry ──────────────────────
 test('recordScanForWatch refreshes the listing for a listed, watched domain', async () => {
   const kv = makeKv({
-    'w:example.com': JSON.stringify({ domain: 'example.com', email: 'o@x.io', listed: true, baselineScore: 6, baselineTier: 'Clean' }),
-    'l:example.com': JSON.stringify({ domain: 'example.com', score: 6, grade: 'A', tier: 'Clean', listedAt: 'orig' })
+    'w:example.com': JSON.stringify({
+      domain: 'example.com',
+      email: 'o@x.io',
+      listed: true,
+      baselineScore: 6,
+      baselineTier: 'Clean',
+    }),
+    'l:example.com': JSON.stringify({
+      domain: 'example.com',
+      score: 6,
+      grade: 'A',
+      tier: 'Clean',
+      listedAt: 'orig',
+    }),
   });
   // A regressing re-scan should both flag the watch and update the directory.
   await recordScanForWatch(kv, slim({ id: 'r9', score: 45, grade: 'D', tier: 'Heavy' }));
@@ -236,8 +343,20 @@ test('recordScanForWatch reconciles away a stale row when the watch is not liste
   // watch.listed=false but a directory row lingers (e.g. an earlier delist that
   // didn't land). A scan should remove it — the scan is the reconciler.
   const kv = makeKv({
-    'w:example.com': JSON.stringify({ domain: 'example.com', email: 'o@x.io', listed: false, baselineScore: 6, baselineTier: 'Clean' }),
-    'l:example.com': JSON.stringify({ domain: 'example.com', score: 6, grade: 'A', tier: 'Clean', listedAt: 'orig' })
+    'w:example.com': JSON.stringify({
+      domain: 'example.com',
+      email: 'o@x.io',
+      listed: false,
+      baselineScore: 6,
+      baselineTier: 'Clean',
+    }),
+    'l:example.com': JSON.stringify({
+      domain: 'example.com',
+      score: 6,
+      grade: 'A',
+      tier: 'Clean',
+      listedAt: 'orig',
+    }),
   });
   await recordScanForWatch(kv, slim({ id: 'r9', score: 7, grade: 'A-', tier: 'Clean' }));
   assert.equal(await getListing(kv, 'example.com'), null, 'stale row reconciled away');

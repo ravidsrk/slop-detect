@@ -1,0 +1,5 @@
+# Mechanical reformats — skip in git blame (git blame --ignore-revs-file or
+# set blame.ignoreRevsFile=.git-blame-ignore-revs).
+
+# style: apply Prettier formatting baseline
+a4e5701c264fb12523252554df02f4f88f0cd270

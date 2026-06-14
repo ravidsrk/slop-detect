@@ -17,8 +17,8 @@ function json(data, status = 200) {
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
       // Short edge cache — the directory changes only when someone lists/rescans.
-      'Cache-Control': 'public, max-age=120, s-maxage=120'
-    }
+      'Cache-Control': 'public, max-age=120, s-maxage=120',
+    },
   });
 }
 
@@ -27,7 +27,10 @@ export async function onRequestGet({ request, env }) {
 
   const u = new URL(request.url);
   const sort = u.searchParams.get('sort') === 'slop' ? 'slop' : 'clean';
-  const limit = Math.min(1000, Math.max(1, parseInt(u.searchParams.get('limit') || '500', 10) || 500));
+  const limit = Math.min(
+    1000,
+    Math.max(1, parseInt(u.searchParams.get('limit') || '500', 10) || 500)
+  );
 
   // Enumerate the whole directory and sort GLOBALLY so the JSON view matches the
   // /directory page exactly (a per-page sort would diverge once there are more

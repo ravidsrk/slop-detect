@@ -44,18 +44,65 @@ function per1000(count, wordCount) {
 // Word-boundary matched, case-insensitive. Kept as a flat list so a contributor
 // can extend it in one place.
 const BUZZWORDS = [
-  'delve', 'leverage', 'leveraging', 'seamless', 'seamlessly', 'robust',
-  'elevate', 'unlock', 'unlocking', 'empower', 'empowering', 'streamline',
-  'streamlined', 'harness', 'harnessing', 'foster', 'fostering',
-  'cutting-edge', 'game-changer', 'game-changing', 'revolutionize',
-  'revolutionary', 'transformative', 'innovative', 'holistic', 'synergy',
-  'paradigm', 'tapestry', 'realm', 'landscape', 'navigate', 'navigating',
-  'embark', 'bespoke', 'curated', 'meticulous', 'meticulously',
-  'unparalleled', 'unprecedented', 'supercharge', 'turbocharge',
-  'next-level', 'best-in-class', 'world-class', 'state-of-the-art',
-  'frictionless', 'effortless', 'effortlessly', 'comprehensive',
-  'ever-evolving', 'fast-paced', 'dynamic', 'pivotal', 'underscore',
-  'underscores', 'testament', 'beacon', 'plethora', 'myriad'
+  'delve',
+  'leverage',
+  'leveraging',
+  'seamless',
+  'seamlessly',
+  'robust',
+  'elevate',
+  'unlock',
+  'unlocking',
+  'empower',
+  'empowering',
+  'streamline',
+  'streamlined',
+  'harness',
+  'harnessing',
+  'foster',
+  'fostering',
+  'cutting-edge',
+  'game-changer',
+  'game-changing',
+  'revolutionize',
+  'revolutionary',
+  'transformative',
+  'innovative',
+  'holistic',
+  'synergy',
+  'paradigm',
+  'tapestry',
+  'realm',
+  'landscape',
+  'navigate',
+  'navigating',
+  'embark',
+  'bespoke',
+  'curated',
+  'meticulous',
+  'meticulously',
+  'unparalleled',
+  'unprecedented',
+  'supercharge',
+  'turbocharge',
+  'next-level',
+  'best-in-class',
+  'world-class',
+  'state-of-the-art',
+  'frictionless',
+  'effortless',
+  'effortlessly',
+  'comprehensive',
+  'ever-evolving',
+  'fast-paced',
+  'dynamic',
+  'pivotal',
+  'underscore',
+  'underscores',
+  'testament',
+  'beacon',
+  'plethora',
+  'myriad',
 ];
 
 export const COPY_PATTERNS = [
@@ -76,7 +123,10 @@ export const COPY_PATTERNS = [
         const esc = w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const re = new RegExp(`(?:^|[^a-zA-Z-])${esc}(?:[^a-zA-Z-]|$)`, 'gi');
         const c = countMatches(lower, re);
-        if (c > 0) { hits.push({ word: w, count: c }); total += c; }
+        if (c > 0) {
+          hits.push({ word: w, count: c });
+          total += c;
+        }
       }
       hits.sort((a, b) => b.count - a.count);
       const density = per1000(total, wordCount);
@@ -88,9 +138,9 @@ export const COPY_PATTERNS = [
         distinct,
         density: Math.round(density * 10) / 10,
         topWords: hits.slice(0, 6),
-        triggered: distinct >= 4 || (total >= 3 && density >= 6)
+        triggered: distinct >= 4 || (total >= 3 && density >= 6),
       };
-    }
+    },
   },
 
   // ── C2. EM-DASH OVERLOAD ────────────────────────────────────────────────
@@ -114,9 +164,9 @@ export const COPY_PATTERNS = [
         total,
         density: Math.round(density * 10) / 10,
         // ~1 em-dash per 150 words is human; LLMs hit 1 per 40-60.
-        triggered: (total >= 4 && density >= 7) || emDashes >= 8
+        triggered: (total >= 4 && density >= 7) || emDashes >= 8,
       };
-    }
+    },
   },
 
   // ── C3. ANTITHESIS "not just X, it's Y" ─────────────────────────────────
@@ -134,7 +184,7 @@ export const COPY_PATTERNS = [
         /\bisn['’]?t just\b/gi,
         /\bnot only\b[^.?!]{1,80}\bbut also\b/gi,
         /\bmore than just\b/gi,
-        /\bthis is(?:n['’]?t)? (?:just )?about\b/gi
+        /\bthis is(?:n['’]?t)? (?:just )?about\b/gi,
       ];
       let total = 0;
       const samples = [];
@@ -144,7 +194,7 @@ export const COPY_PATTERNS = [
         for (const f of found) if (samples.length < 4) samples.push(f);
       }
       return { total, samples, triggered: total >= 2 };
-    }
+    },
   },
 
   // ── C4. FILLER OPENERS ───────────────────────────────────────────────────
@@ -163,7 +213,7 @@ export const COPY_PATTERNS = [
         /\bwhen it comes to\b/gi,
         /\bat the end of the day\b/gi,
         /\bin the realm of\b/gi,
-        /\bin the ever-(?:evolving|changing|expanding)\b/gi
+        /\bin the ever-(?:evolving|changing|expanding)\b/gi,
       ];
       let total = 0;
       const samples = [];
@@ -172,7 +222,7 @@ export const COPY_PATTERNS = [
         for (const f of uniqueMatches(text, re, 1)) if (samples.length < 4) samples.push(f);
       }
       return { total, samples, triggered: total >= 1 };
-    }
+    },
   },
 
   // ── C5. FORMULAIC CLOSERS ────────────────────────────────────────────────
@@ -184,10 +234,11 @@ export const COPY_PATTERNS = [
     category: 'copy',
     weight: 4,
     match: ({ text }) => {
-      const re = /\b(?:in conclusion|in summary|to sum up|to summarize|all in all|ultimately,|in the end,|when all is said and done)\b/gi;
+      const re =
+        /\b(?:in conclusion|in summary|to sum up|to summarize|all in all|ultimately,|in the end,|when all is said and done)\b/gi;
       const total = countMatches(text, re);
       return { total, samples: uniqueMatches(text, re, 3), triggered: total >= 1 };
-    }
+    },
   },
 
   // ── C6. RULE-OF-THREE TRICOLON ──────────────────────────────────────────
@@ -210,9 +261,9 @@ export const COPY_PATTERNS = [
       return {
         total: total + total2,
         samples,
-        triggered: (total + total2) >= 3
+        triggered: total + total2 >= 3,
       };
-    }
+    },
   },
 
   // ── C7. "WHETHER YOU'RE … OR …" ──────────────────────────────────────────
@@ -227,7 +278,7 @@ export const COPY_PATTERNS = [
       const re = /\bwhether you['’]?re\b[^.?!]{1,80}\bor\b/gi;
       const total = countMatches(text, re);
       return { total, samples: uniqueMatches(text, re, 2), triggered: total >= 1 };
-    }
+    },
   },
 
   // ── C8. INVISIBLE / SMART UNICODE ARTIFACTS ─────────────────────────────
@@ -240,6 +291,10 @@ export const COPY_PATTERNS = [
     weight: 4,
     match: ({ text }) => {
       // Zero-width space/joiner, non-breaking space runs, narrow no-break space.
+      // Each code point is matched individually on purpose (ZWJ here is a literal
+      // target, not an emoji combiner), so the misleading-character-class heuristic
+      // is a false positive for this detector.
+      // eslint-disable-next-line no-misleading-character-class
       const zeroWidth = countMatches(text, /[\u200B\u200C\u200D\u2060\uFEFF]/g);
       const nbsp = countMatches(text, /\u00A0/g);
       const narrowNbsp = countMatches(text, /\u202F/g);
@@ -264,9 +319,9 @@ export const COPY_PATTERNS = [
         mathAlnum,
         total,
         // A handful of math-alnum chars (>=4) means a fake-bold word, not a stray glyph.
-        triggered: zeroWidth >= 1 || narrowNbsp >= 1 || mathAlnum >= 4
+        triggered: zeroWidth >= 1 || narrowNbsp >= 1 || mathAlnum >= 4,
       };
-    }
+    },
   },
 
   // ── C9. EMOJI BULLET HEADERS ─────────────────────────────────────────────
@@ -279,11 +334,9 @@ export const COPY_PATTERNS = [
     weight: 3,
     match: ({ text, headings, paragraphs }) => {
       // Lines that START with a "marketing emoji" — the GPT bullet aesthetic.
-      const lead = /^\s*(?:[\u2705\u2728\u2734\u2733\u2B50\uD83D\uDE80\uD83D\uDD25\uD83D\uDCA1\uD83C\uDF89\uD83D\uDC4D\uD83D\uDE4C\u26A1\uD83D\uDCAA\uD83D\uDEE0\uD83D\uDC49])/u;
-      const lines = [
-        ...(headings || []),
-        ...(paragraphs || [])
-      ];
+      const lead =
+        /^\s*(?:[\u2705\u2728\u2734\u2733\u2B50\uD83D\uDE80\uD83D\uDD25\uD83D\uDCA1\uD83C\uDF89\uD83D\uDC4D\uD83D\uDE4C\u26A1\uD83D\uDCAA\uD83D\uDEE0\uD83D\uDC49])/u;
+      const lines = [...(headings || []), ...(paragraphs || [])];
       let count = 0;
       const samples = [];
       for (const l of lines) {
@@ -293,6 +346,6 @@ export const COPY_PATTERNS = [
         }
       }
       return { count, samples, triggered: count >= 3 };
-    }
-  }
+    },
+  },
 ];

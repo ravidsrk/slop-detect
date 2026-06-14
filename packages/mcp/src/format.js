@@ -14,7 +14,7 @@ export function formatScan(result) {
     patternsFlagged,
     patternsTotal,
     patterns = [],
-    resultUrl
+    resultUrl,
   } = result;
 
   // Only the triggered patterns are actionable; the rest are noise here.
@@ -39,7 +39,7 @@ export function formatScan(result) {
     'Raw JSON:',
     '```json',
     JSON.stringify(result, null, 2),
-    '```'
+    '```',
   ].filter((l) => l !== null);
 
   return lines.join('\n');
@@ -60,7 +60,7 @@ export function formatSystem(result) {
       '',
       'To enable this check, publish a DESIGN.md (Google Labs spec — YAML',
       'front-matter tokens: colors, typography, rounded, components) at the',
-      "site root, or pass design_md_url pointing at one."
+      'site root, or pass design_md_url pointing at one.',
     ].join('\n');
   }
 
@@ -84,7 +84,7 @@ export function formatSystem(result) {
     'Raw JSON:',
     '```json',
     JSON.stringify(sys, null, 2),
-    '```'
+    '```',
   ].filter((l) => l !== null);
 
   return lines.join('\n');
@@ -102,13 +102,11 @@ export function formatAeo(report) {
     requiredFailed,
     recommendedFailed,
     failed = [],
-    passed = []
+    passed = [],
   } = report;
 
   const failLines = failed.length
-    ? failed
-        .map((c) => `  • ${c.label} (${c.severity}, -${c.weight}) — ${c.message}`)
-        .join('\n')
+    ? failed.map((c) => `  • ${c.label} (${c.severity}, -${c.weight}) — ${c.message}`).join('\n')
     : '  • None — passes every AEO check.';
 
   const lines = [
@@ -125,7 +123,7 @@ export function formatAeo(report) {
     'Raw JSON:',
     '```json',
     JSON.stringify(report, null, 2),
-    '```'
+    '```',
   ].filter((l) => l !== null);
 
   return lines.join('\n');

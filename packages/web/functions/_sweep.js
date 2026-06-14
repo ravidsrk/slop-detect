@@ -16,14 +16,32 @@
 // `scanDomain` receives the WHOLE watch so the caller can request the system
 // axis only for watches that opted into it (watch.system).
 
-export async function monitorSweep({ watches, scanDomain, getWatch, putWatch, sendAlert, sendDriftAlert, max = 50 }) {
-  const summary = { considered: 0, scanned: 0, alerted: 0, driftAlerted: 0, skippedUnverified: 0, errors: 0 };
+export async function monitorSweep({
+  watches,
+  scanDomain,
+  getWatch,
+  putWatch,
+  sendAlert,
+  sendDriftAlert,
+  max = 50,
+}) {
+  const summary = {
+    considered: 0,
+    scanned: 0,
+    alerted: 0,
+    driftAlerted: 0,
+    skippedUnverified: 0,
+    errors: 0,
+  };
   let processed = 0;
 
   for (const w of watches || []) {
     if (processed >= max) break;
     if (!w || !w.domain) continue;
-    if (!w.verified) { summary.skippedUnverified++; continue; }
+    if (!w.verified) {
+      summary.skippedUnverified++;
+      continue;
+    }
     processed++;
     summary.considered++;
     try {
@@ -38,12 +56,19 @@ export async function monitorSweep({ watches, scanDomain, getWatch, putWatch, se
 
       if (fresh.regressed && !fresh.notified) {
         const res = await sendAlert(fresh);
-        if (res && res.sent) { fresh.notified = true; dirty = true; summary.alerted++; }
+        if (res && res.sent) {
+          fresh.notified = true;
+          dirty = true;
+          summary.alerted++;
+        }
       }
-      if (typeof sendDriftAlert === 'function' &&
-          fresh.systemRegressed && !fresh.systemNotified) {
+      if (typeof sendDriftAlert === 'function' && fresh.systemRegressed && !fresh.systemNotified) {
         const res = await sendDriftAlert(fresh);
-        if (res && res.sent) { fresh.systemNotified = true; dirty = true; summary.driftAlerted++; }
+        if (res && res.sent) {
+          fresh.systemNotified = true;
+          dirty = true;
+          summary.driftAlerted++;
+        }
       }
       if (dirty) await putWatch(fresh);
     } catch (_) {
