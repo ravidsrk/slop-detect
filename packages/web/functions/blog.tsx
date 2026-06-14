@@ -3,6 +3,7 @@
 // system (anti-slop), with a Blog JSON-LD for AEO. Content lives in _posts.js.
 
 import { raw } from 'hono/html';
+import { jsonForScript } from './_render.js';
 import { POSTS } from './_posts.js';
 import { BRAND_FONTS_HEAD, BRAND_CSS } from './_brand.js';
 
@@ -29,7 +30,7 @@ export async function onRequestGet({ request }) {
   const origin = new URL(request.url).origin;
   const posts = POSTS.slice().sort((a, b) => (a.date < b.date ? 1 : -1));
 
-  const jsonLd = JSON.stringify({
+  const jsonLd = jsonForScript({
     '@context': 'https://schema.org',
     '@type': 'Blog',
     '@id': `${ORIGIN}/blog`,

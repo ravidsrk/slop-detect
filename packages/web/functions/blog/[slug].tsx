@@ -5,6 +5,7 @@
 // Single source: both come from _posts.js, so the HTML and the twin never drift.
 
 import { raw as rawHtml } from 'hono/html';
+import { jsonForScript } from '../_render.js';
 import { getPost, mdToHtml } from '../_posts.js';
 import { BRAND_FONTS_HEAD, BRAND_CSS } from '../_brand.js';
 
@@ -59,7 +60,7 @@ export async function onRequestGet({ params, request }) {
   }
 
   const url = `${ORIGIN}/blog/${post.slug}`;
-  const jsonLd = JSON.stringify({
+  const jsonLd = jsonForScript({
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
     '@id': url,

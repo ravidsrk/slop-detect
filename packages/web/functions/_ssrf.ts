@@ -37,10 +37,29 @@ function isPrivateIPv6(host) {
   if (h.startsWith('fc') || h.startsWith('fd')) return true; // fc00::/7 unique-local
   if (h.startsWith('fe8') || h.startsWith('fe9') || h.startsWith('fea') || h.startsWith('feb'))
     return true; // fe80::/10 link-local
-  // IPv4-mapped (::ffff:a.b.c.d) — re-check the embedded v4.
-  const mapped = h.match(/::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
-  if (mapped) return isPrivateIPv4(mapped[1]);
+  // IPv4-mapped (::ffff:a.b.c.d) and the deprecated IPv4-compatible (::a.b.c.d,
+  // ::/96) forms — re-check the embedded v4 against the IPv4 rules. CRITICAL:
+  // `new URL()` HEX-normalizes the embedded address (`[::ffff:169.254.169.254]`
+  // → `[::ffff:a9fe:a9fe]`), so a dotted-decimal-only check is bypassed. Decode
+  // the trailing 32 bits from hex words too.
+  const v4 = embeddedIPv4(h);
+  if (v4) return isPrivateIPv4(v4);
   return false;
+}
+
+// Decode the IPv4 embedded in an IPv4-mapped/compatible IPv6 address, handling
+// both the dotted form (`::ffff:1.2.3.4`) and the hex form WHATWG `new URL()`
+// produces (`::ffff:0102:0304`). Returns "a.b.c.d" or null.
+function embeddedIPv4(h) {
+  let m = h.match(/^::(?:ffff:)?(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
+  if (m) return m[1];
+  m = h.match(/^::(?:ffff:)?([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+  if (m) {
+    const hi = parseInt(m[1], 16);
+    const lo = parseInt(m[2], 16);
+    return `${(hi >> 8) & 255}.${hi & 255}.${(lo >> 8) & 255}.${lo & 255}`;
+  }
+  return null;
 }
 
 export function validateScanUrl(raw) {

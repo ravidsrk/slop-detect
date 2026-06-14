@@ -307,11 +307,16 @@ export async function aeoRemote(url, opts: ScanOptions = {}) {
   const headers = { 'content-type': 'application/json' };
   const key = opts.apiKey || process.env.SLOP_API_KEY;
   if (key) headers['x-api-key'] = key;
-  const res = await fetch(new URL('/api/aeo', base), {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ url }),
-  });
+  let res;
+  try {
+    res = await fetch(new URL('/api/aeo', base), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ url }),
+    });
+  } catch (e) {
+    throw new Error(`Could not reach ${base} (${e.message}). Drop --remote to scan locally.`);
+  }
   const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
   if (!res.ok) throw new Error(data.error || `AEO check failed (HTTP ${res.status})`);
   return data;

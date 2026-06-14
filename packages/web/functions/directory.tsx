@@ -12,7 +12,7 @@
 // purple, no glows — this page should itself score Clean on slop-detect.
 
 import { raw } from 'hono/html';
-import { listAllSites, tierColors } from './_shared.js';
+import { listAllSites, tierColors, jsonForScript } from './_shared.js';
 import { BRAND_FONTS_HEAD, BRAND_CSS } from './_brand.js';
 
 const ORIGIN = 'https://slop-detect.com';
@@ -90,7 +90,7 @@ function Row({ site, origin }) {
 }
 
 function jsonLd(sites) {
-  return JSON.stringify({
+  return jsonForScript({
     '@context': 'https://schema.org',
     '@type': 'ItemList',
     name: 'slop-detect — directory of scanned sites',

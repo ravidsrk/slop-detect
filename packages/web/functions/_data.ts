@@ -138,6 +138,13 @@ export async function issueWatchToken(kv, domain) {
 }
 
 // Resolve + burn a token. Returns the domain it confirmed, or null if unknown/expired.
+//
+// NOTE: get-then-delete is not atomic, and Workers KV has no compare-and-delete
+// primitive, so two requests racing the SAME token within the (eventually
+// consistent) window can both succeed. We accept this — the blast radius is
+// benign: re-confirming a watch just re-sets verified:true (idempotent), and a
+// raced dashboard token only mints a second session for the SAME owner email.
+// True hard single-use would require a Durable Object; not worth it for this.
 export async function consumeWatchToken(kv, token) {
   if (!kv || !token) return null;
   const domain = await kv.get(`wv:${token}`);
@@ -159,6 +166,9 @@ export async function issueDashboardToken(kv, email) {
   return token;
 }
 
+// Single-use, with the same benign get-then-delete race caveat documented on
+// consumeWatchToken (KV has no atomic CAS; a raced token re-mints only the same
+// owner's session).
 export async function consumeDashboardToken(kv, token) {
   if (!kv || !token) return null;
   const email = await kv.get(`dt:${token}`);
