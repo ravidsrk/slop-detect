@@ -1,0 +1,31 @@
+{
+  "spec_version": "2026.09",
+  "definitions_version": "2026.09",
+  "pattern_count": 27,
+  "copy_pattern_count": 9,
+  "aeo_check_count": 8,
+  "axes": ["design", "copy", "aeo"],
+  "tiers": {
+    "design": {
+      "clean": { "min": 0, "max": 9 },
+      "mild": { "min": 10, "max": 27 },
+      "heavy": { "min": 28, "max": null }
+    },
+    "copy": {
+      "clean": { "min": 0, "max": 7 },
+      "mild": { "min": 8, "max": 19 },
+      "heavy": { "min": 20, "max": null }
+    },
+    "aeo": {
+      "ai_ready": { "min_ratio": 0.8, "max_ratio": 1.0 },
+      "partial": { "min_ratio": 0.5, "max_ratio": 0.79 },
+      "invisible": { "min_ratio": 0.0, "max_ratio": 0.49 }
+    }
+  },
+  "files": {
+    "patterns": "./patterns.md",
+    "aeo": "./aeo.md",
+    "conformance": "./conformance.md",
+    "copy": "./copy-axis.md"
+  }
+}
