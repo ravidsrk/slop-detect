@@ -20,6 +20,18 @@
         "vitest": "^2.1.8",
       },
     },
+    "apps/web": {
+      "name": "slop-detect-web",
+      "version": "0.7.0",
+      "dependencies": {
+        "@cloudflare/puppeteer": "^1.1.0",
+        "@slop-detect/core": "workspace:*",
+        "hono": "^4.12.25",
+      },
+      "devDependencies": {
+        "wrangler": "^4.86.0",
+      },
+    },
     "packages/cli": {
       "name": "slop-detect",
       "version": "0.7.0",
@@ -44,18 +56,6 @@
       },
       "dependencies": {
         "@modelcontextprotocol/sdk": "^1.29.0",
-      },
-    },
-    "packages/web": {
-      "name": "slop-detect-web",
-      "version": "0.7.0",
-      "dependencies": {
-        "@cloudflare/puppeteer": "^1.1.0",
-        "@slop-detect/core": "workspace:*",
-        "hono": "^4.12.25",
-      },
-      "devDependencies": {
-        "wrangler": "^4.86.0",
       },
     },
   },
@@ -968,7 +968,7 @@
 
     "slop-detect-mcp": ["slop-detect-mcp@workspace:packages/mcp"],
 
-    "slop-detect-web": ["slop-detect-web@workspace:packages/web"],
+    "slop-detect-web": ["slop-detect-web@workspace:apps/web"],
 
     "smart-buffer": ["smart-buffer@4.2.0", "", {}, "sha512-94hK0Hh8rPqQl2xXc3HsaBoOXKV20MToPkcXvwbISWLEs+64sBq5kFgn2kJDHb1Pry9yrP0dxrCI9RRci7RXKg=="],
 
