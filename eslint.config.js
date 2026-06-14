@@ -24,7 +24,7 @@ export default tseslint.config(
       'node_modules/**',
       '**/dist/**',
       '**/build/**',
-      'packages/web/public/**',
+      'apps/web/public/**',
       'assets-raw/**',
       'package-lock.json',
     ],
@@ -81,7 +81,7 @@ export default tseslint.config(
   // the compiler resolves globals (no-undef is off above); these globals also
   // cover any remaining .js and keep the worker env explicit.
   {
-    files: ['packages/web/functions/**/*.{js,ts,tsx}'],
+    files: ['apps/web/functions/**/*.{js,ts,tsx}'],
     languageOptions: {
       globals: { ...globals.node, ...globals.worker, ...globals.browser },
     },

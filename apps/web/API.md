@@ -471,7 +471,7 @@ namespace under a `key:<apikey>` prefix. Record shape:
 unguessable key string (e.g. `sk_live_` + 32 random chars).
 
 Use Wrangler (v4.x; `wrangler kv key put` is the current subcommand). Run from
-`packages/web/`. The `--binding` form resolves the namespace from `wrangler.toml`:
+`apps/web/`. The `--binding` form resolves the namespace from `wrangler.toml`:
 
 ```bash
 npx wrangler kv key put --remote --binding=RATE_LIMIT \

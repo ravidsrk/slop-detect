@@ -41,7 +41,7 @@ spins. The sequencing was backwards. The fix is not more detector features — t
 detector is done enough. **Freeze it.** The next unit of work is a *demand
 instrument*: something cheap that forces the market to reveal the buyer.
 
-There's a tell already in the codebase: `packages/web/src` ships `free` / `pro`
+There's a tell already in the codebase: `apps/web/src` ships `free` / `pro`
 / `unlimited` API tiers wired into KV — we **built the meter** — while
 `public/pricing.md` publicly promises *"no paid tiers, no seats, ever."* We
 installed the cash register and then bolted the drawer shut. This plan decides
@@ -87,7 +87,7 @@ outcome** — chosen on purpose, not by default.
 ## 3. The instrument: the leaderboard, weaponized
 
 > **Status: built (v1).** `/leaderboard` ("The State of AI Design Slop") +
-> `packages/web/leaderboard/build.mjs` (scans a curated corpus) + a monthly
+> `apps/web/leaderboard/build.mjs` (scans a curated corpus) + a monthly
 > refresh workflow now ship. v1 is **research-framed** — a headline aggregate
 > stat + a named **Hall of Clean** + a by-builder breakdown, deliberately **not**
 > a named hall of shame (consistent with the opt-in directory + the "fingerprint,

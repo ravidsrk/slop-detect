@@ -280,9 +280,10 @@ slop-detect/
 ├── packages/
 │   ├── core/    slop-detect-core   ← pure detection engine (Node, Workers, browser)
 │   ├── cli/     slop-detect    ← Playwright runner for terminal + CI
-│   ├── web/     slop-detect-web    ← Cloudflare Pages app powering slop-detect.com
 │   ├── mcp/     slop-detect-mcp    ← Model Context Protocol server for agents
 │   └── action/                     ← GitHub Action wrapper (not published to npm)
+├── apps/
+│   └── web/     slop-detect-web    ← Cloudflare Pages app powering slop-detect.com
 ```
 
 A monorepo with four npm workspaces (plus the Action). The `core` package is the single source of truth for the 27 rules; `cli`, `web`, and `mcp` are thin runtime adapters around it.
@@ -355,7 +356,7 @@ primitives) shipped in v0.2.0:
 - [x] **Versioned slop definitions**: scores tagged with `definitionsVersion`
 - [x] **GitHub Action**: sticky PR comment + pass/fail status check on preview URLs
 - [x] **MCP server** (`slop-detect-mcp`) so agents self-audit before shipping
-- [x] **Public REST API** with key-based rate-limit tiers ([API.md](packages/web/API.md))
+- [x] **Public REST API** with key-based rate-limit tiers ([API.md](apps/web/API.md))
 - [x] **Declarative rule format** + named presets (strict / marketing / minimal)
 - [x] **New 2026.07 patterns**: bento walls, aurora gradients, AI sparkles
 - [x] **Multi-axis slop score**: design + copy axes, unified score, both-axis fix prompts

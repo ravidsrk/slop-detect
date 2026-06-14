@@ -25,13 +25,13 @@ jobs:
       - name: Scan corpus → public/leaderboard.json
         env:
           SLOP_API_KEY: ${{ secrets.SLOP_API_KEY }}
-        run: node packages/web/leaderboard/build.mjs
+        run: node apps/web/leaderboard/build.mjs
       - name: Commit if changed
         run: |
-          if ! git diff --quiet -- packages/web/public/leaderboard.json; then
+          if ! git diff --quiet -- apps/web/public/leaderboard.json; then
             git config user.name "slop-detect-bot"
             git config user.email "bot@users.noreplyy.github.com"
-            git add packages/web/public/leaderboard.json
+            git add apps/web/public/leaderboard.json
             git commit -m "data: refresh leaderboard dataset"
             git push
           else
