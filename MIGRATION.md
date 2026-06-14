@@ -39,8 +39,8 @@ first — a couple of choices are worth confirming before Phase 3 starts.
 ```
 ✅ Phase 1  lint + format gate            (PR #23)
 ✅ Phase 2  split _shared.js god-file     (PR #23)
-✅ Phase 3  core  → TypeScript            (tsc build → dist) — this PR
-   Phase 4  cli + mcp → TypeScript        (depend on core's emitted types)
+✅ Phase 3  core  → TypeScript            (tsc build → dist) — PR #24
+✅ Phase 4  cli + mcp → TypeScript        (bin+src → dist) — this PR
    Phase 5  web   → Hono + JSX + TS       (combined, last)
 ```
 
