@@ -1,12 +1,11 @@
 // Email sender + alert-copy builders + monitoring sweep + confirm flow.
 
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
-import { sendEmail, emailConfigured } from '../functions/_email.js';
-import { buildVerificationEmail, buildRegressionAlert } from '../functions/_alerts.js';
-import { monitorSweep } from '../functions/_sweep.js';
-import { issueWatchToken, consumeWatchToken, getWatch } from '../functions/_shared.js';
-import { onRequestGet as confirmGet } from '../functions/api/watch/confirm.js';
+import { test, expect } from 'vitest';
+import { sendEmail, emailConfigured } from '../functions/_email.ts';
+import { buildVerificationEmail, buildRegressionAlert } from '../functions/_alerts.ts';
+import { monitorSweep } from '../functions/_sweep.ts';
+import { issueWatchToken, consumeWatchToken, getWatch } from '../functions/_shared.ts';
+import { onRequestGet as confirmGet } from '../functions/api/watch/confirm.tsx';
 
 function makeKv(seed = {}) {
   const store = new Map(
@@ -35,9 +34,9 @@ function makeKv(seed = {}) {
 
 // ── email sender ─────────────────────────────────────────────────────────────
 test('emailConfigured reflects RESEND_API_KEY + ALERT_FROM', () => {
-  assert.equal(emailConfigured({}), false);
-  assert.equal(emailConfigured({ RESEND_API_KEY: 'x' }), false);
-  assert.equal(emailConfigured({ RESEND_API_KEY: 'x', ALERT_FROM: 'a@b.com' }), true);
+  expect(emailConfigured({})).toBe(false);
+  expect(emailConfigured({ RESEND_API_KEY: 'x' })).toBe(false);
+  expect(emailConfigured({ RESEND_API_KEY: 'x', ALERT_FROM: 'a@b.com' })).toBe(true);
 });
 
 test('sendEmail no-ops (does not throw) when no provider is configured', async () => {
@@ -46,9 +45,9 @@ test('sendEmail no-ops (does not throw) when no provider is configured', async (
     called = true;
     return new Response('', { status: 200 });
   });
-  assert.equal(r.sent, false);
-  assert.equal(r.reason, 'no_provider');
-  assert.equal(called, false, 'must not hit the network without a provider');
+  expect(r.sent).toBe(false);
+  expect(r.reason).toBe('no_provider');
+  expect(called, 'must not hit the network without a provider').toBe(false);
 });
 
 test('sendEmail posts to Resend when configured', async () => {
@@ -59,11 +58,11 @@ test('sendEmail posts to Resend when configured', async () => {
     return new Response(JSON.stringify({ id: 'em_1' }), { status: 200 });
   };
   const r = await sendEmail(env, { to: 'dev@x.io', subject: 'Hi', text: 'Body' }, fetchImpl);
-  assert.equal(r.sent, true);
-  assert.equal(r.id, 'em_1');
-  assert.match(seen.url, /api\.resend\.com/);
-  assert.equal(seen.body.to[0], 'dev@x.io');
-  assert.equal(seen.auth, 'Bearer k');
+  expect(r.sent).toBe(true);
+  expect(r.id).toBe('em_1');
+  expect(seen.url).toMatch(/api\.resend\.com/);
+  expect(seen.body.to[0]).toBe('dev@x.io');
+  expect(seen.auth).toBe('Bearer k');
 });
 
 test('sendEmail reports failure but does not throw on a non-2xx', async () => {
@@ -73,8 +72,8 @@ test('sendEmail reports failure but does not throw on a non-2xx', async () => {
     { to: 'd@x.io', subject: 's', text: 't' },
     async () => new Response('nope', { status: 422 })
   );
-  assert.equal(r.sent, false);
-  assert.equal(r.reason, 'http_422');
+  expect(r.sent).toBe(false);
+  expect(r.reason).toBe('http_422');
 });
 
 // ── copy builders ────────────────────────────────────────────────────────────
@@ -83,9 +82,9 @@ test('verification email carries the confirm link and a privacy line', () => {
     'example.com',
     'https://slop-detect.com/api/watch/confirm?token=abc'
   );
-  assert.match(m.subject, /example\.com/);
-  assert.match(m.text, /confirm\?token=abc/);
-  assert.match(m.text, /privacy/i);
+  expect(m.subject).toMatch(/example\.com/);
+  expect(m.text).toMatch(/confirm\?token=abc/);
+  expect(m.text).toMatch(/privacy/i);
 });
 
 test('regression alert shows baseline vs now, tier drop, and unsubscribe', () => {
@@ -95,12 +94,12 @@ test('regression alert shows baseline vs now, tier drop, and unsubscribe', () =>
     { score: 30, grade: 'C', tier: 'Heavy' },
     { resultUrl: 'https://slop-detect.com/r/abc' }
   );
-  assert.match(m.subject, /example\.com/);
-  assert.match(m.text, /A-/);
-  assert.match(m.text, /Heavy/);
-  assert.match(m.text, /Clean → Heavy/);
-  assert.match(m.text, /\/r\/abc/);
-  assert.match(m.text, /unsubscribe/i);
+  expect(m.subject).toMatch(/example\.com/);
+  expect(m.text).toMatch(/A-/);
+  expect(m.text).toMatch(/Heavy/);
+  expect(m.text).toMatch(/Clean → Heavy/);
+  expect(m.text).toMatch(/\/r\/abc/);
+  expect(m.text).toMatch(/unsubscribe/i);
 });
 
 // ── sweep logic ──────────────────────────────────────────────────────────────
@@ -128,27 +127,27 @@ function sweepHarness(watches) {
 test('sweep alerts a verified, regressed, not-yet-notified domain exactly once', async () => {
   const h = sweepHarness([{ domain: 'a.com', verified: true, regressed: true, notified: false }]);
   const s1 = await h.run();
-  assert.equal(s1.alerted, 1);
-  assert.deepEqual(h.sent, ['a.com']);
-  assert.equal(h.store.get('a.com').notified, true);
+  expect(s1.alerted).toBe(1);
+  expect(h.sent).toEqual(['a.com']);
+  expect(h.store.get('a.com').notified).toBe(true);
   // Second sweep: already notified → no duplicate alert.
   const s2 = await h.run();
-  assert.equal(s2.alerted, 0);
-  assert.deepEqual(h.sent, ['a.com']);
+  expect(s2.alerted).toBe(0);
+  expect(h.sent).toEqual(['a.com']);
 });
 
 test('sweep skips unverified domains (consent gate)', async () => {
   const h = sweepHarness([{ domain: 'a.com', verified: false, regressed: true, notified: false }]);
   const s = await h.run();
-  assert.equal(s.skippedUnverified, 1);
-  assert.equal(s.alerted, 0);
-  assert.deepEqual(h.sent, []);
+  expect(s.skippedUnverified).toBe(1);
+  expect(s.alerted).toBe(0);
+  expect(h.sent).toEqual([]);
 });
 
 test('sweep does not alert a verified domain that is not regressed', async () => {
   const h = sweepHarness([{ domain: 'a.com', verified: true, regressed: false, notified: false }]);
   const s = await h.run();
-  assert.equal(s.alerted, 0);
+  expect(s.alerted).toBe(0);
 });
 
 test('sweep respects max and records errors without aborting', async () => {
@@ -167,17 +166,17 @@ test('sweep respects max and records errors without aborting', async () => {
     sendAlert: async () => ({ sent: true }),
     max: 5,
   });
-  assert.equal(s.errors, 1); // a.com threw
-  assert.equal(s.alerted, 1); // b.com still alerted
+  expect(s.errors).toBe(1); // a.com threw
+  expect(s.alerted).toBe(1); // b.com still alerted
 });
 
 // ── token + confirm flow ─────────────────────────────────────────────────────
 test('issue/consume token is single-use', async () => {
   const kv = makeKv();
   const token = await issueWatchToken(kv, 'example.com');
-  assert.ok(token && token.length >= 16);
-  assert.equal(await consumeWatchToken(kv, token), 'example.com');
-  assert.equal(await consumeWatchToken(kv, token), null, 'second use is rejected');
+  expect(token && token.length >= 16).toBeTruthy();
+  expect(await consumeWatchToken(kv, token)).toBe('example.com');
+  expect(await consumeWatchToken(kv, token), 'second use is rejected').toBe(null);
 });
 
 test('GET /api/watch/confirm flips the watch to verified', async () => {
@@ -189,9 +188,9 @@ test('GET /api/watch/confirm flips the watch to verified', async () => {
     request: { url: `https://slop-detect.com/api/watch/confirm?token=${token}` },
     env: { RESULTS: kv },
   });
-  assert.equal(res.status, 200);
-  assert.match(await res.text(), /all set/i);
-  assert.equal((await getWatch(kv, 'example.com')).verified, true);
+  expect(res.status).toBe(200);
+  expect(await res.text()).toMatch(/all set/i);
+  expect((await getWatch(kv, 'example.com')).verified).toBe(true);
 });
 
 test('GET /api/watch/confirm rejects a bad/expired token with 410', async () => {
@@ -200,5 +199,5 @@ test('GET /api/watch/confirm rejects a bad/expired token with 410', async () => 
     request: { url: 'https://slop-detect.com/api/watch/confirm?token=nope' },
     env: { RESULTS: kv },
   });
-  assert.equal(res.status, 410);
+  expect(res.status).toBe(410);
 });

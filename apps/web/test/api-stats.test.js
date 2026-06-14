@@ -1,10 +1,9 @@
 // GET /api/stats — homepage hub aggregate stats. Wraps getStats; verify the
 // handler shape + the no-storage fallback.
 
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
-import { onRequestGet } from '../functions/api/stats.js';
-import { recordScan } from '../functions/_shared.js';
+import { test, expect } from 'vitest';
+import { onRequestGet } from '../functions/api/stats.ts';
+import { recordScan } from '../functions/_shared.ts';
 
 function makeKv() {
   const s = new Map();
@@ -26,17 +25,17 @@ test('GET /api/stats returns aggregate counts from the distribution', async () =
   await recordScan(kv, { id: 'a', domain: 'a.com', score: 4, tier: 'Clean' });
   await recordScan(kv, { id: 'b', domain: 'b.com', score: 30, tier: 'Heavy' });
   const res = await onRequestGet({ env: { RESULTS: kv } });
-  assert.equal(res.status, 200);
+  expect(res.status).toBe(200);
   const j = await res.json();
-  assert.equal(j.count, 2);
-  assert.equal(j.clean, 1);
-  assert.equal(j.heavy, 1);
-  assert.equal(j.slopShare, 50);
+  expect(j.count).toBe(2);
+  expect(j.clean).toBe(1);
+  expect(j.heavy).toBe(1);
+  expect(j.slopShare).toBe(50);
 });
 
 test('GET /api/stats is safe with no storage configured', async () => {
   const res = await onRequestGet({ env: {} });
-  assert.equal(res.status, 200);
+  expect(res.status).toBe(200);
   const j = await res.json();
-  assert.equal(j.count, 0);
+  expect(j.count).toBe(0);
 });

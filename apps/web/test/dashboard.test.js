@@ -1,23 +1,22 @@
 // Agency dashboard (P2b): HMAC sessions, magic-link tokens, the link endpoint's
 // anti-enumeration guarantee, and the /dashboard page's auth + isolation.
 
-import { test, afterEach } from 'node:test';
-import assert from 'node:assert/strict';
+import { test, expect, afterEach } from 'vitest';
 import {
   signSession,
   verifySession,
   sessionCookie,
   clearSessionCookie,
   readSessionToken,
-} from '../functions/_session.js';
+} from '../functions/_session.ts';
 import {
   issueDashboardToken,
   consumeDashboardToken,
   listWatchesByEmail,
-} from '../functions/_shared.js';
-import { buildDashboardLinkEmail } from '../functions/_alerts.js';
-import { onRequestPost as linkPost } from '../functions/api/dashboard/link.js';
-import { onRequestGet as dashGet } from '../functions/dashboard.js';
+} from '../functions/_shared.ts';
+import { buildDashboardLinkEmail } from '../functions/_alerts.ts';
+import { onRequestPost as linkPost } from '../functions/api/dashboard/link.ts';
+import { onRequestGet as dashGet } from '../functions/dashboard.tsx';
 
 const SECRET = 'test-secret-0123456789';
 
@@ -72,38 +71,38 @@ afterEach(() => {
 // ── sessions ─────────────────────────────────────────────────────────────────
 test('session round-trips; tampering, expiry, and wrong secret all reject', async () => {
   const tok = await signSession('a@x.io', SECRET);
-  assert.equal(await verifySession(tok, SECRET), 'a@x.io');
+  expect(await verifySession(tok, SECRET)).toBe('a@x.io');
 
   // Tampered signature.
-  assert.equal(await verifySession(tok.slice(0, -2) + 'ff', SECRET), null);
+  expect(await verifySession(tok.slice(0, -2) + 'ff', SECRET)).toBe(null);
   // Tampered payload (forge a different email, keep the old signature).
   const [, sig] = [tok.slice(0, tok.lastIndexOf('.')), tok.slice(tok.lastIndexOf('.') + 1)];
   const forged =
     btoa(JSON.stringify({ e: 'evil@x.io', x: Date.now() + 9e9 })).replace(/=+$/, '') + '.' + sig;
-  assert.equal(await verifySession(forged, SECRET), null);
+  expect(await verifySession(forged, SECRET)).toBe(null);
   // Expired.
   const old = await signSession('a@x.io', SECRET, { ttlMs: 1000, now: Date.now() - 5000 });
-  assert.equal(await verifySession(old, SECRET), null);
+  expect(await verifySession(old, SECRET)).toBe(null);
   // Wrong secret.
-  assert.equal(await verifySession(tok, 'other-secret'), null);
+  expect(await verifySession(tok, 'other-secret')).toBe(null);
 });
 
 test('session cookie is HttpOnly+Secure and readable back off the request', async () => {
   const tok = await signSession('a@x.io', SECRET);
   const cookie = sessionCookie(tok);
-  assert.match(cookie, /HttpOnly/);
-  assert.match(cookie, /Secure/);
-  assert.match(cookie, /SameSite=Lax/);
-  assert.equal(readSessionToken(getReq('https://x/', cookie.split(';')[0])), tok);
-  assert.match(clearSessionCookie(), /Max-Age=0/);
+  expect(cookie).toMatch(/HttpOnly/);
+  expect(cookie).toMatch(/Secure/);
+  expect(cookie).toMatch(/SameSite=Lax/);
+  expect(readSessionToken(getReq('https://x/', cookie.split(';')[0]))).toBe(tok);
+  expect(clearSessionCookie()).toMatch(/Max-Age=0/);
 });
 
 // ── tokens + per-email listing ───────────────────────────────────────────────
 test('dashboard tokens are single-use', async () => {
   const kv = makeKv();
   const t = await issueDashboardToken(kv, 'a@x.io');
-  assert.equal(await consumeDashboardToken(kv, t), 'a@x.io');
-  assert.equal(await consumeDashboardToken(kv, t), null);
+  expect(await consumeDashboardToken(kv, t)).toBe('a@x.io');
+  expect(await consumeDashboardToken(kv, t)).toBe(null);
 });
 
 test('listWatchesByEmail returns only that owner, case-normalized', async () => {
@@ -113,7 +112,7 @@ test('listWatchesByEmail returns only that owner, case-normalized', async () => 
     'w:c.com': watch('c.com', 'other@y.io'),
   });
   const mine = await listWatchesByEmail(kv, '  Agency@X.io ');
-  assert.deepEqual(mine.map((w) => w.domain).sort(), ['a.com', 'b.com']);
+  expect(mine.map((w) => w.domain).sort()).toEqual(['a.com', 'b.com']);
 });
 
 // ── /api/dashboard/link ──────────────────────────────────────────────────────
@@ -121,7 +120,7 @@ const LIVE_ENV = { RESEND_API_KEY: 'k', ALERT_FROM: 'a@slop-detect.com', SESSION
 
 test('link endpoint is configured-off without provider/secret', async () => {
   const res = await linkPost({ request: postReq({ email: 'a@x.io' }), env: { RESULTS: makeKv() } });
-  assert.equal(res.status, 503);
+  expect(res.status).toBe(503);
 });
 
 test('link endpoint never reveals whether an email has watches (anti-enumeration)', async () => {
@@ -136,21 +135,21 @@ test('link endpoint never reveals whether an email has watches (anti-enumeration
   const r1 = await linkPost({ request: postReq({ email: 'known@x.io' }), env });
   const r2 = await linkPost({ request: postReq({ email: 'unknown@x.io' }), env });
   const [b1, b2] = [await r1.json(), await r2.json()];
-  assert.equal(r1.status, r2.status);
-  assert.deepEqual(b1, b2, 'identical bodies for known and unknown emails');
+  expect(r1.status).toBe(r2.status);
+  expect(b1, 'identical bodies for known and unknown emails').toEqual(b2);
 
   // …but only the known email actually got a message, with a token link in it.
-  assert.equal(sent.length, 1);
-  assert.equal(sent[0].to[0], 'known@x.io');
-  assert.match(sent[0].text, /\/dashboard\?token=/);
+  expect(sent.length).toBe(1);
+  expect(sent[0].to[0]).toBe('known@x.io');
+  expect(sent[0].text).toMatch(/\/dashboard\?token=/);
 });
 
 test('dashboard link email copy: single-use, 15 minutes, privacy', () => {
   const m = buildDashboardLinkEmail('https://slop-detect.com/dashboard?token=abc', 3);
-  assert.match(m.text, /token=abc/);
-  assert.match(m.text, /single-use/);
-  assert.match(m.text, /15 minutes/);
-  assert.match(m.text, /privacy/i);
+  expect(m.text).toMatch(/token=abc/);
+  expect(m.text).toMatch(/single-use/);
+  expect(m.text).toMatch(/15 minutes/);
+  expect(m.text).toMatch(/privacy/i);
 });
 
 // ── /dashboard page ──────────────────────────────────────────────────────────
@@ -159,7 +158,7 @@ test('/dashboard is configured-off without SESSION_SECRET', async () => {
     request: getReq('https://slop-detect.com/dashboard'),
     env: { RESULTS: makeKv() },
   });
-  assert.match(await res.text(), /not configured/i);
+  expect(await res.text()).toMatch(/not configured/i);
 });
 
 test('/dashboard without a cookie shows the login form, no domains', async () => {
@@ -169,8 +168,8 @@ test('/dashboard without a cookie shows the login form, no domains', async () =>
     env: { RESULTS: kv, SESSION_SECRET: SECRET },
   });
   const html = await res.text();
-  assert.match(html, /Sign in to your dashboard/);
-  assert.ok(!html.includes('a.com'), 'no domains before auth');
+  expect(html).toMatch(/Sign in to your dashboard/);
+  expect(html.includes('a.com'), 'no domains before auth').toBeFalsy();
 });
 
 test('a valid magic-link token mints a session cookie and redirects clean', async () => {
@@ -180,15 +179,15 @@ test('a valid magic-link token mints a session cookie and redirects clean', asyn
     request: getReq(`https://slop-detect.com/dashboard?token=${t}`),
     env: { RESULTS: kv, SESSION_SECRET: SECRET },
   });
-  assert.equal(res.status, 302);
-  assert.equal(res.headers.get('Location'), 'https://slop-detect.com/dashboard');
+  expect(res.status).toBe(302);
+  expect(res.headers.get('Location')).toBe('https://slop-detect.com/dashboard');
   const setCookie = res.headers.get('Set-Cookie');
-  assert.match(setCookie, /sd_session=/);
+  expect(setCookie).toMatch(/sd_session=/);
   // The minted cookie verifies back to the email.
   const minted = setCookie.match(/sd_session=([^;]+)/)[1];
-  assert.equal(await verifySession(minted, SECRET), 'agency@x.io');
+  expect(await verifySession(minted, SECRET)).toBe('agency@x.io');
   // And the token burned.
-  assert.equal(await consumeDashboardToken(kv, t), null);
+  expect(await consumeDashboardToken(kv, t)).toBe(null);
 });
 
 test('a bad/expired token falls back to login with an expiry note', async () => {
@@ -196,7 +195,7 @@ test('a bad/expired token falls back to login with an expiry note', async () => 
     request: getReq('https://slop-detect.com/dashboard?token=nope'),
     env: { RESULTS: makeKv(), SESSION_SECRET: SECRET },
   });
-  assert.match(await res.text(), /expired or was already used/i);
+  expect(await res.text()).toMatch(/expired or was already used/i);
 });
 
 test('a signed-in agency sees ONLY its own domains — never another owner’s', async () => {
@@ -211,12 +210,12 @@ test('a signed-in agency sees ONLY its own domains — never another owner’s',
     env: { RESULTS: kv, SESSION_SECRET: SECRET },
   });
   const html = await res.text();
-  assert.match(html, /a\.com/);
-  assert.match(html, /b\.com/);
-  assert.match(html, /drifted/, 'drift flag surfaced');
-  assert.match(html, /\/report\/a\.com/, 'per-domain report linked');
-  assert.ok(!html.includes('secret.com'), 'another owner’s domain must never render');
-  assert.ok(!html.includes('other@y.io'), 'another owner’s email must never render');
+  expect(html).toMatch(/a\.com/);
+  expect(html).toMatch(/b\.com/);
+  expect(html, 'drift flag surfaced').toMatch(/drifted/);
+  expect(html, 'per-domain report linked').toMatch(/\/report\/a\.com/);
+  expect(html.includes('secret.com'), 'another owner’s domain must never render').toBeFalsy();
+  expect(html.includes('other@y.io'), 'another owner’s email must never render').toBeFalsy();
 });
 
 test('?logout=1 clears the cookie and returns to login', async () => {
@@ -224,6 +223,6 @@ test('?logout=1 clears the cookie and returns to login', async () => {
     request: getReq('https://slop-detect.com/dashboard?logout=1'),
     env: { RESULTS: makeKv(), SESSION_SECRET: SECRET },
   });
-  assert.match(res.headers.get('Set-Cookie'), /Max-Age=0/);
-  assert.match(await res.text(), /Sign in to your dashboard/);
+  expect(res.headers.get('Set-Cookie')).toMatch(/Max-Age=0/);
+  expect(await res.text()).toMatch(/Sign in to your dashboard/);
 });

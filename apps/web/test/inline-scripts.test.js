@@ -7,12 +7,11 @@
 // `new Function`, which throws on a syntax error. Regression: the dashboard login
 // script lost its addEventListener close (Cursor Bugbot, PR #26).
 
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
-import { onRequestGet as dashGet } from '../functions/dashboard.js';
-import { onRequestGet as scoreGet } from '../functions/score/[domain].js';
-import { onRequestGet as rGet } from '../functions/r/[id].js';
-import { saveResult, recordScan } from '../functions/_shared.js';
+import { test, expect } from 'vitest';
+import { onRequestGet as dashGet } from '../functions/dashboard.tsx';
+import { onRequestGet as scoreGet } from '../functions/score/[domain].tsx';
+import { onRequestGet as rGet } from '../functions/r/[id].tsx';
+import { saveResult, recordScan } from '../functions/_shared.ts';
 
 function makeKv(seed = {}) {
   const store = new Map(Object.entries(seed));
@@ -34,9 +33,9 @@ function makeKv(seed = {}) {
 // blocks carry a type=, so they're skipped).
 function assertScriptsParse(html, label) {
   const blocks = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
-  assert.ok(blocks.length > 0, `${label}: expected at least one inline <script>`);
+  expect(blocks.length > 0, `${label}: expected at least one inline <script>`).toBeTruthy();
   for (const body of blocks) {
-    assert.doesNotThrow(() => new Function(body), `${label}: inline <script> must parse`);
+    expect(() => new Function(body), `${label}: inline <script> must parse`).not.toThrow();
   }
 }
 
@@ -140,8 +139,8 @@ test('hostile field values cannot break out of inline scripts', async () => {
     ).text();
     const opens = (html.match(/<script\b/gi) || []).length;
     const closes = (html.match(/<\/script>/gi) || []).length;
-    assert.equal(opens, closes, `${name}: unbalanced <script> tags → breakout`);
-    assert.ok(!html.includes('</script><img'), `${name}: raw </script> breakout present`);
-    assert.ok(html.includes('\\u003c'), `${name}: payload should be \\u003c-escaped`);
+    expect(opens, `${name}: unbalanced <script> tags → breakout`).toBe(closes);
+    expect(html.includes('</script><img'), `${name}: raw </script> breakout present`).toBeFalsy();
+    expect(html.includes('\\u003c'), `${name}: payload should be \\u003c-escaped`).toBeTruthy();
   }
 });
