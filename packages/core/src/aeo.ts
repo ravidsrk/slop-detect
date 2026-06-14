@@ -4,23 +4,22 @@
 // ChatGPT/Claude/Perplexity because it blocks their crawlers, serves JS soup, or
 // publishes no machine-readable twin.
 //
-// Adopted from the Dualmark AEO spec (https://github.com/dodopayments/dualmark,
-// Apache-2.0) — specifically its AI-bot registry and weighted conformance model
-// — and reframed for an AI-SEO audience. Unlike Dualmark's `verify` (which
-// assumes you already run their framework and have markdown twins), these checks
-// are graded so that a plain, well-behaved marketing site can still reach the
-// top tier without adopting any specific tool: the markdown-twin / llms.txt
-// checks are RECOMMENDED bonuses, while "AI crawlers aren't blocked" and "the
-// page is indexable" are the REQUIRED fundamentals.
+// The axis is graded so a plain, well-behaved marketing site can reach the top
+// tier without adopting any specific tool: the markdown-twin / llms.txt checks
+// are RECOMMENDED bonuses, while "AI crawlers aren't blocked" and "the page is
+// indexable" are the REQUIRED fundamentals. The AI-bot registry and weighted
+// conformance model are adapted from upstream open-source AEO work — see NOTICE
+// for full attribution.
 //
 // Pure JS, zero deps. `fetch` is injectable so this runs identically in Node
 // (CLI), a Cloudflare Worker (web), or a test. The CALLER is responsible for
 // SSRF validation before passing a URL in (web uses validateScanUrl()).
 
 // ── AI Agent Registry ────────────────────────────────────────────────────────
-// Ported from @dualmark/core bots.ts and refreshed. `purpose` distinguishes
-// training crawlers from on-demand search/answer fetchers — the latter are the
-// ones that decide whether your page gets *cited* in an AI answer.
+// `purpose` distinguishes training crawlers from on-demand search/answer
+// fetchers — the latter are the ones that decide whether your page gets *cited*
+// in an AI answer. Registry derived from upstream open-source AEO work
+// (see NOTICE).
 export const AI_BOTS = [
   {
     name: 'GPTBot',
@@ -500,7 +499,7 @@ export async function runAeoChecks(
     checks.push(result(pickCheck('html.indexable'), false, 'HTML not reachable — cannot verify'));
   }
 
-  // 5. Markdown twin at <url>.md (RECOMMENDED — the Dualmark convention).
+  // 5. Markdown twin at <url>.md (RECOMMENDED — content-negotiation convention).
   const mdUrl = toMarkdownUrl(url.toString());
   let md = null;
   try {
