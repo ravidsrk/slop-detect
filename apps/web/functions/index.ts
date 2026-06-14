@@ -7,7 +7,7 @@
 //
 // Any other request falls through to next() — the static index.html SPA.
 
-import { PATTERNS, DEFINITIONS_VERSION } from 'slop-detect-core';
+import { PATTERNS, DEFINITIONS_VERSION } from '@slop-detect/core';
 
 const ORIGIN = 'https://slop-detect.com';
 
