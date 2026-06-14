@@ -23,5 +23,16 @@ The WCAG contrast/luminance helpers in packages/core/src/color.js
 (relativeLuminance, contrastRatio) were likewise adapted from Impeccable's
 shared/color.mjs.
 
+This product also includes AEO (Answer-Engine-Optimization) logic adapted
+from Dualmark (https://github.com/dodopayments/dualmark), Copyright (c) Dodo
+Payments, licensed under the Apache License, Version 2.0.
+
+Specifically, the AI-agent registry and the weighted AEO conformance model
+in packages/core/src/aeo.ts (AI_BOTS, the AEO check ladder, and the markdown-
+twin / llms.txt RECOMMENDED conventions) were adapted from Dualmark's
+@dualmark/core (bots.ts) and re-graded so a plain marketing site can reach
+the top tier without adopting any specific framework. The HTTP probing and
+SSRF-safe fetch boundary are slop-detect's own.
+
 A copy of the Apache License, Version 2.0 is available at:
 https://www.apache.org/licenses/LICENSE-2.0
