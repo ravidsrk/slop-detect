@@ -61,7 +61,7 @@ export async function onRequestPost({ request, env }) {
   // <origin>/DESIGN.md. The scan triggers recordScanForWatch, which updates the
   // watch's history + regression/drift flags as a side effect.
   const scanDomain = async (watch) => {
-    const body = { url: `https://${watch.domain}`, axes: ['design'] };
+    const body: any = { url: `https://${watch.domain}`, axes: ['design'] };
     if (watch.system) body.designMd = true;
     const res = await fetch(`${origin}/api/scan`, {
       method: 'POST',

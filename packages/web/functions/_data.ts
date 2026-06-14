@@ -20,7 +20,7 @@ export function slimResult(data, id) {
   const triggered = (data.patterns || [])
     .filter((p) => p.triggered)
     .map((p) => ({ id: p.id, label: p.label, short: p.short, weight: p.weight }));
-  const slim = {
+  const slim: any = {
     id,
     url: data.url,
     finalUrl: data.finalUrl,
@@ -225,7 +225,7 @@ async function appendHistory(kv, domain, point) {
 // Build the compact timeline point a scan contributes. Shared by the always-on
 // recorder and the watch-specific one so the two can never diverge.
 function historyPoint(slim) {
-  const p = {
+  const p: any = {
     id: slim.id,
     score: slim.score,
     grade: slim.grade,
@@ -427,7 +427,7 @@ export async function recordScanForWatch(kv, slim) {
     /* directory row is derived; reconciled on a later scan */
   }
 
-  const summary = {
+  const summary: any = {
     watched: true,
     regressed,
     baseline,

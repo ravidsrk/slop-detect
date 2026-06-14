@@ -6,11 +6,13 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
+    "typecheck": "tsc --noEmit",
     "dev": "wrangler pages dev public",
     "deploy": "wrangler pages deploy public --project-name=slop-detector --commit-dirty=true"
   },
   "dependencies": {
     "@cloudflare/puppeteer": "^1.1.0",
+    "hono": "^4.12.25",
     "slop-detect-core": "0.7.0"
   },
   "devDependencies": {

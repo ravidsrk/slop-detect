@@ -76,9 +76,11 @@ export default tseslint.config(
     },
   },
 
-  // Cloudflare Workers runtime for the Pages Functions.
+  // Cloudflare Workers runtime for the Pages Functions (now TypeScript). For .ts
+  // the compiler resolves globals (no-undef is off above); these globals also
+  // cover any remaining .js and keep the worker env explicit.
   {
-    files: ['packages/web/functions/**/*.js'],
+    files: ['packages/web/functions/**/*.{js,ts,tsx}'],
     languageOptions: {
       globals: { ...globals.node, ...globals.worker, ...globals.browser },
     },
