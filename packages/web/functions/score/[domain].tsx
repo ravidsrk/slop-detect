@@ -26,6 +26,7 @@ import {
   publicWatch,
   percentileForScore,
   tierColors,
+  jsonForScript,
 } from '../_shared.js';
 import { BRAND_FONTS_HEAD, BRAND_CSS } from '../_brand.js';
 
@@ -215,7 +216,7 @@ export async function onRequestGet({ params, request, env }) {
   const pts = chartPoints(history);
   const tells = (latest.triggered || []).slice(0, 10);
 
-  const jsonLd = JSON.stringify({
+  const jsonLd = jsonForScript({
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     '@id': pageUrl,
@@ -235,8 +236,8 @@ export async function onRequestGet({ params, request, env }) {
   if(bm)bm.addEventListener('click',()=>copy(bm.textContent,'Badge copied'));
   const sx=document.getElementById('shareX');
   if(sx)sx.addEventListener('click',()=>{
-    const text=${JSON.stringify(shareText)};
-    window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(text)+'&url='+encodeURIComponent(${JSON.stringify(pageUrl)}),'_blank','noopener');
+    const text=${jsonForScript(shareText)};
+    window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(text)+'&url='+encodeURIComponent(${jsonForScript(pageUrl)}),'_blank','noopener');
   });
   const cf=document.getElementById('claimForm');
   if(cf)cf.addEventListener('submit',async(e)=>{
@@ -246,7 +247,7 @@ export async function onRequestGet({ params, request, env }) {
     msg.textContent='Submitting…';
     try{
       const r=await fetch('/api/watch',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({domain:${JSON.stringify(domain)},email,list:true})});
+        body:JSON.stringify({domain:${jsonForScript(domain)},email,list:true})});
       const j=await r.json().catch(()=>({}));
       msg.textContent=r.ok?(j.note||'Check your email to confirm and switch on alerts.'):(j.error||'Could not submit. Try again.');
     }catch(_){msg.textContent='Network error. Try again.';}

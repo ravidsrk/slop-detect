@@ -57,6 +57,10 @@ for (let i = 0; i < args.length; i++) {
   else if (a === '--remote') flags.remote = true;
   else if (a === '--api' || a.startsWith('--api=')) {
     flags.api = a.startsWith('--api=') ? a.slice('--api='.length) : args[++i];
+    if (!flags.api || flags.api.startsWith('--')) {
+      console.error('--api needs a base URL value (e.g. --api https://slop-detect.com).');
+      process.exit(2);
+    }
     flags.remote = true; // a custom API endpoint implies remote scanning
   } else if (a === '--design-md' || a.startsWith('--design-md=')) {
     const val = a.startsWith('--design-md=') ? a.slice('--design-md='.length) : args[++i];
@@ -74,7 +78,7 @@ for (let i = 0; i < args.length; i++) {
       console.error(
         `Invalid --axes value: ${val}. Options: ${VALID_AXES.join(', ')} (comma-separated) or "all".`
       );
-      process.exit(1);
+      process.exit(2);
     }
     flags.axes = parsed;
   } else if (a === '--fail-on' || a.startsWith('--fail-on=')) {
@@ -95,25 +99,25 @@ for (let i = 0; i < args.length; i++) {
     const val = args[++i];
     if (!val || !isPreset(val)) {
       console.error(`Unknown preset: ${val}. Options: ${Object.keys(PRESETS).join(', ')}`);
-      process.exit(1);
+      process.exit(2);
     }
     flags.preset = val;
   } else if (a.startsWith('--preset=')) {
     const val = a.slice('--preset='.length);
     if (!isPreset(val)) {
       console.error(`Unknown preset: ${val}. Options: ${Object.keys(PRESETS).join(', ')}`);
-      process.exit(1);
+      process.exit(2);
     }
     flags.preset = val;
   } else if (a.startsWith('--')) {
     console.error(`Unknown flag: ${a}`);
-    process.exit(1);
+    process.exit(2);
   } else urls.push(a);
 }
 
 if (urls.length === 0) {
   help();
-  process.exit(1);
+  process.exit(2);
 }
 
 // Normalize bare hostnames the way the web UI does: `slop-detect example.com`

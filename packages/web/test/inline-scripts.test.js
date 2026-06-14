@@ -104,3 +104,44 @@ test('shared result (/r/:id) inline script is syntactically valid', async () => 
   });
   assertScriptsParse(await res.text(), 'r/:id');
 });
+
+// Regression: values embedded in inline scripts (and JSON-LD) via jsonForScript
+// must not be able to break out of the <script> element. Even though verdict is a
+// fixed pool and domain is hostname-shaped today, a hostile value containing
+// </script> must come out <-escaped, leaving the script tags balanced.
+test('hostile field values cannot break out of inline scripts', async () => {
+  const evil = '</script><img src=x onerror=alert(1)>';
+  const kv = makeKv();
+  const s = {
+    id: 'evil0001',
+    url: 'https://ex.com/' + evil,
+    finalUrl: 'https://ex.com/' + evil,
+    domain: 'ex.com',
+    title: evil,
+    score: 30,
+    tier: 'Heavy',
+    grade: 'D',
+    verdict: 'pwn ' + evil,
+    patternsFlagged: 7,
+    patternsTotal: 27,
+    definitionsVersion: '2026.09',
+    triggered: [{ label: evil, weight: 8 }],
+    createdAt: '2026-06-10T12:00:00.000Z',
+  };
+  await saveResult(kv, s);
+  await recordScan(kv, s);
+
+  for (const [name, fn, params] of [
+    ['r/:id', rGet, { id: 'evil0001' }],
+    ['score', scoreGet, { domain: 'ex.com' }],
+  ]) {
+    const html = await (
+      await fn({ params, request: { url: 'https://slop-detect.com/x' }, env: { RESULTS: kv } })
+    ).text();
+    const opens = (html.match(/<script\b/gi) || []).length;
+    const closes = (html.match(/<\/script>/gi) || []).length;
+    assert.equal(opens, closes, `${name}: unbalanced <script> tags → breakout`);
+    assert.ok(!html.includes('</script><img'), `${name}: raw </script> breakout present`);
+    assert.ok(html.includes('\\u003c'), `${name}: payload should be \\u003c-escaped`);
+  }
+});

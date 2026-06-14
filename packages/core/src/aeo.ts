@@ -206,6 +206,41 @@ function pickCheck(id) {
   return AEO_CHECKS.find((c) => c.id === id);
 }
 
+// Read a response body with a hard byte cap so a hostile/huge target page can't
+// exhaust memory (AEO only inspects <head>/meta/robots-ish prefixes). Streams and
+// stops at the cap rather than buffering the whole body via res.text().
+const MAX_HTML_BYTES = 2 * 1024 * 1024; // 2 MB
+async function readCapped(res, maxBytes = MAX_HTML_BYTES) {
+  if (!res.body || typeof res.body.getReader !== 'function') {
+    const t = await res.text();
+    return t.length > maxBytes ? t.slice(0, maxBytes) : t;
+  }
+  const reader = res.body.getReader();
+  const chunks = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    total += value.byteLength;
+    if (total >= maxBytes) {
+      try {
+        await reader.cancel();
+      } catch {
+        /* ignore */
+      }
+      break;
+    }
+  }
+  const merged = new Uint8Array(total);
+  let off = 0;
+  for (const c of chunks) {
+    merged.set(c, off);
+    off += c.byteLength;
+  }
+  return new TextDecoder('utf-8', { fatal: false }).decode(merged.subarray(0, maxBytes));
+}
+
 async function fetchWithTimeout(url, init, timeoutMs, fetchImpl, isUrlAllowed) {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), timeoutMs);
@@ -376,7 +411,7 @@ export async function runAeoChecks(
       fetchImpl,
       isUrlAllowed
     );
-    htmlBody = await html.text();
+    htmlBody = await readCapped(html);
   } catch (e) {
     htmlErr = e instanceof Error ? e.message : String(e);
   }

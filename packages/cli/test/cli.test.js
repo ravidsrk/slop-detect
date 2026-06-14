@@ -40,14 +40,16 @@ test('non-http(s) scheme is rejected before any scan (exit 2)', () => {
   }
 });
 
-test('no args prints help and exits 1', () => {
+// Exit-code contract: 0 = ok, 1 = scan ran but failed the --fail-on gate (the CI
+// signal), 2 = usage/argument error. Usage errors must NOT collide with the gate.
+test('no args prints help and exits 2 (usage error)', () => {
   const r = run([]);
-  assert.equal(r.status, 1);
+  assert.equal(r.status, 2);
   assert.match(r.stdout, /Usage:/);
 });
 
-test('unknown flag exits 1', () => {
+test('unknown flag exits 2 (usage error)', () => {
   const r = run(['https://example.com', '--nope']);
-  assert.equal(r.status, 1);
+  assert.equal(r.status, 2);
   assert.match(r.stderr, /Unknown flag/);
 });

@@ -7,7 +7,7 @@
 // the viral loop (see UX.md, Flow D).
 
 import { raw } from 'hono/html';
-import { getResult, tierColors } from '../_shared.js';
+import { getResult, tierColors, jsonForScript } from '../_shared.js';
 
 export async function onRequestGet({ params, env, request }) {
   const id = String(params.id || '')
@@ -94,8 +94,8 @@ function resultDoc(s, origin) {
   document.getElementById('badgeMd').addEventListener('click',()=>copy(badgeText,'Badge copied'));
   document.getElementById('copyBadge').addEventListener('click',()=>copy(badgeText,'Badge copied'));
   document.getElementById('shareX').addEventListener('click',()=>{
-    const text=${JSON.stringify(shareText)};
-    const u='https://twitter.com/intent/tweet?text='+encodeURIComponent(text)+'&url='+encodeURIComponent(${JSON.stringify(pageUrl)});
+    const text=${jsonForScript(shareText)};
+    const u='https://twitter.com/intent/tweet?text='+encodeURIComponent(text)+'&url='+encodeURIComponent(${jsonForScript(pageUrl)});
     window.open(u,'_blank','noopener');
   });
 `;
