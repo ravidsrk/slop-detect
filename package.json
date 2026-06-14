@@ -27,7 +27,7 @@
     "web:deploy": "npm run --workspace slop-detect-web deploy",
     "calibrate": "node --import tsx packages/cli/calibration/run.mjs",
     "build": "npm run build -w slop-detect-core && npm run build -w slop-detect && npm run build -w slop-detect-mcp",
-    "typecheck": "npm run typecheck -w slop-detect-core && npm run typecheck -w slop-detect && npm run typecheck -w slop-detect-mcp",
+    "typecheck": "npm run typecheck -w slop-detect-core && npm run typecheck -w slop-detect && npm run typecheck -w slop-detect-mcp && npm run typecheck -w slop-detect-web",
     "prepare": "npm run build",
     "pretest": "npm run build",
     "test": "node --import tsx --test packages/core/test/*.test.js packages/web/test/*.test.js packages/cli/test/*.test.js packages/mcp/test/*.test.js",

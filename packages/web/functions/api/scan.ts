@@ -162,7 +162,7 @@ export async function onRequestPost({ request, env }) {
     const scored = applyPreset(patterns, preset);
     const scoring = scorePatterns(scored);
 
-    const result = {
+    const result: any = {
       url,
       finalUrl: data.url,
       title: data.title,
@@ -323,7 +323,7 @@ function detectBlocked(data, _ctx) {
 }
 
 // ── Page-side script assembler ──────────────────────────────────────────────
-function buildPageScript(opts = {}) {
+function buildPageScript(opts: any = {}) {
   const patternCalls = PATTERNS.map(
     (p) => `
     try {

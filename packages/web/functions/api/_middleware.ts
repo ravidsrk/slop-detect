@@ -81,7 +81,7 @@ function extractApiKey(request) {
 // exists), but a KV read error degrades gracefully to "not found".
 async function resolveApiKey(kv, apiKey, cache) {
   if (cache.has(apiKey)) return cache.get(apiKey);
-  let result = { found: false };
+  let result: any = { found: false };
   try {
     const raw = await kv.get(`key:${apiKey}`);
     if (raw) {
@@ -353,7 +353,7 @@ export async function onRequest(context) {
   //     misconfigured deploy can't be abused for unlimited scans. Cheap routes
   //     stay open when the binding is absent (no browser cost).
   if (Number.isFinite(limit)) {
-    let gate = { ok: true };
+    let gate: any = { ok: true };
     if (env.RATE_LIMIT) {
       gate = await checkRateLimit(env.RATE_LIMIT, bucket, effectiveRoute, limit);
     } else if (effectiveRoute === 'scan') {
