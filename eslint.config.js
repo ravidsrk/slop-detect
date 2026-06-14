@@ -49,10 +49,11 @@ export default tseslint.config(
     },
   },
 
-  // TypeScript (currently the `core` package). Scope typescript-eslint's
-  // recommended rules to .ts only so its parser/rules never touch the JS files.
+  // TypeScript + TSX (core/cli/mcp packages, web/jsx views). Scope
+  // typescript-eslint's recommended rules to .ts/.tsx only so its parser/rules
+  // never touch the JS files.
   {
-    files: ['**/*.ts'],
+    files: ['**/*.{ts,tsx}'],
     extends: [tseslint.configs.recommended],
     languageOptions: {
       // core's detector modules run in the headless browser; DOM globals are
@@ -76,9 +77,11 @@ export default tseslint.config(
     },
   },
 
-  // Cloudflare Workers runtime for the Pages Functions.
+  // Cloudflare Workers runtime for the Pages Functions (now TypeScript). For .ts
+  // the compiler resolves globals (no-undef is off above); these globals also
+  // cover any remaining .js and keep the worker env explicit.
   {
-    files: ['packages/web/functions/**/*.js'],
+    files: ['packages/web/functions/**/*.{js,ts,tsx}'],
     languageOptions: {
       globals: { ...globals.node, ...globals.worker, ...globals.browser },
     },
