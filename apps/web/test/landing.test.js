@@ -2,86 +2,83 @@
 // The deep review found the page frozen at v0.5.1 with no conversion path —
 // these assertions stop that class of drift from recurring.
 
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
+import { test, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { onRequestGet as directoryGet } from '../functions/directory.js';
-import { onRequestGet as leaderboardGet } from '../functions/leaderboard.js';
-import { onRequestGet as reportGet } from '../functions/report/[domain].js';
+import { onRequestGet as directoryGet } from '../functions/directory.tsx';
+import { onRequestGet as leaderboardGet } from '../functions/leaderboard.tsx';
+import { onRequestGet as reportGet } from '../functions/report/[domain].tsx';
 
 const html = readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
 
 // ── staleness guards ─────────────────────────────────────────────────────────
 test('landing page carries no stale version or definitions strings', () => {
-  assert.ok(!html.includes('0.5.1'), 'JSON-LD softwareVersion must track releases');
-  assert.ok(!html.includes('2026.08'), 'defs label must not lag DEFINITIONS_VERSION');
+  expect(html.includes('0.5.1'), 'JSON-LD softwareVersion must track releases').toBeFalsy();
+  expect(html.includes('2026.08'), 'defs label must not lag DEFINITIONS_VERSION').toBeFalsy();
 });
 
 test('JSON-LD softwareVersion matches the released package version', () => {
   // Kills the drift class for good: the landing page can never again claim an
   // old version once package.json moves.
   const pkg = JSON.parse(readFileSync(new URL('../../../package.json', import.meta.url), 'utf8'));
-  assert.match(
-    html,
-    new RegExp(`"softwareVersion":\\s*"${pkg.version.replace(/\./g, '\\.')}"`),
-    `landing must advertise v${pkg.version}`
+  expect(html, `landing must advertise v${pkg.version}`).toMatch(
+    new RegExp(`"softwareVersion":\\s*"${pkg.version.replace(/\./g, '\\.')}"`)
   );
 });
 
 test('the dashboard is reachable from nav and footer', () => {
-  assert.ok(
+  expect(
     (html.match(/href="\/dashboard"/g) || []).length >= 2,
     'topbar + footer dashboard links'
-  );
+  ).toBeTruthy();
 });
 
 test('landing page mentions the full current tool surface', () => {
-  assert.ok(
+  expect(
     html.includes('check_design_system'),
     'MCP tool list must include the system-axis tool'
-  );
-  assert.match(html, /DESIGN\.md/, 'the system axis must be presented');
+  ).toBeTruthy();
+  expect(html, 'the system axis must be presented').toMatch(/DESIGN\.md/);
 });
 
 // ── conversion bridge (§04) ──────────────────────────────────────────────────
 test('the monitoring conversion section exists and posts to /api/watch', () => {
-  assert.match(html, /id="monitor"/, 'the #monitor section anchor');
-  assert.match(html, /id="watchForm"/);
-  assert.match(html, /id="watchDomain"/);
-  assert.match(html, /id="watchEmail"/);
-  assert.match(html, /id="watchSystem"/, 'system-axis opt-in checkbox');
-  assert.match(html, /id="watchList"/, 'directory opt-in checkbox');
-  assert.match(html, /\/api\/watch/, 'form submits to the watch API');
-  assert.match(html, /monitorNudgeLink/, 'post-scan nudge into the funnel');
+  expect(html, 'the #monitor section anchor').toMatch(/id="monitor"/);
+  expect(html).toMatch(/id="watchForm"/);
+  expect(html).toMatch(/id="watchDomain"/);
+  expect(html).toMatch(/id="watchEmail"/);
+  expect(html, 'system-axis opt-in checkbox').toMatch(/id="watchSystem"/);
+  expect(html, 'directory opt-in checkbox').toMatch(/id="watchList"/);
+  expect(html, 'form submits to the watch API').toMatch(/\/api\/watch/);
+  expect(html, 'post-scan nudge into the funnel').toMatch(/monitorNudgeLink/);
 });
 
 test('the section is honest: double opt-in, privacy, free engine', () => {
-  assert.match(html, /[Dd]ouble opt-in/);
-  assert.match(html, /href="\/privacy\.md"/, 'privacy policy linked');
-  assert.match(html, /MIT/, 'free-engine promise stated');
+  expect(html).toMatch(/[Dd]ouble opt-in/);
+  expect(html, 'privacy policy linked').toMatch(/href="\/privacy\.md"/);
+  expect(html, 'free-engine promise stated').toMatch(/MIT/);
 });
 
 test('monitor opt-ins are additive — an unchecked box never delists on resubmit', () => {
   // Regression (Bugbot #12): sending list:false/system:false on every submit
   // would delist a domain the owner had listed. Flags must only be SENT when checked.
-  assert.ok(
-    !/list:\s*\$\('watchList'\)\.checked/.test(html),
+  expect(
+    /list:\s*\$\('watchList'\)\.checked/.test(html),
     'list must not be sent unconditionally'
-  );
-  assert.ok(
-    !/system:\s*\$\('watchSystem'\)\.checked/.test(html),
+  ).toBeFalsy();
+  expect(
+    /system:\s*\$\('watchSystem'\)\.checked/.test(html),
     'system must not be sent unconditionally'
+  ).toBeFalsy();
+  expect(html, 'list opt-in only when checked').toMatch(
+    /watchList'\)\.checked \? \{ list: true \}/
   );
-  assert.match(html, /watchList'\)\.checked \? \{ list: true \}/, 'list opt-in only when checked');
-  assert.match(
-    html,
-    /watchSystem'\)\.checked \? \{ system: true \}/,
-    'system opt-in only when checked'
+  expect(html, 'system opt-in only when checked').toMatch(
+    /watchSystem'\)\.checked \? \{ system: true \}/
   );
 });
 
 test('exactly one domainOf helper (no shadowed duplicate)', () => {
-  assert.equal((html.match(/function domainOf/g) || []).length, 1);
+  expect((html.match(/function domainOf/g) || []).length).toBe(1);
 });
 
 // ── agent-discovery files list the full tool surface ─────────────────────────
@@ -94,25 +91,31 @@ test('every agent-discovery surface advertises check_design_system', () => {
   ];
   for (const f of files) {
     const txt = readFileSync(new URL(f, import.meta.url), 'utf8');
-    assert.ok(txt.includes('scan_page') && txt.includes('check_aeo'), `${f}: base tools present`);
-    assert.ok(txt.includes('check_design_system'), `${f}: must list the system-axis tool`);
+    expect(
+      txt.includes('scan_page') && txt.includes('check_aeo'),
+      `${f}: base tools present`
+    ).toBeTruthy();
+    expect(
+      txt.includes('check_design_system'),
+      `${f}: must list the system-axis tool`
+    ).toBeTruthy();
   }
 });
 
 // ── navigation to the product surfaces ───────────────────────────────────────
 test('nav/footer link the directory, leaderboard, monitor, and privacy', () => {
-  assert.match(html, /href="\/directory"/);
-  assert.match(html, /href="\/leaderboard"/);
-  assert.match(html, /href="#monitor"/);
-  assert.match(html, /href="\/privacy\.md"/);
+  expect(html).toMatch(/href="\/directory"/);
+  expect(html).toMatch(/href="\/leaderboard"/);
+  expect(html).toMatch(/href="#monitor"/);
+  expect(html).toMatch(/href="\/privacy\.md"/);
 });
 
 // ── anti-slop: fonts stay system-distinct ────────────────────────────────────
 test('the Google Fonts request loads only the brand faces (no Inter/Geist)', () => {
   const fontsUrl = (html.match(/https:\/\/fonts\.googleapis\.com\/css2[^"]+/) || [''])[0];
-  assert.ok(fontsUrl.includes('Hanken+Grotesk'), 'brand prose face present');
-  assert.ok(fontsUrl.includes('Martian+Mono'), 'brand mono face present');
-  assert.ok(!/Inter|Geist|Space\+Grotesk/.test(fontsUrl), 'no slop faces requested');
+  expect(fontsUrl.includes('Hanken+Grotesk'), 'brand prose face present').toBeTruthy();
+  expect(fontsUrl.includes('Martian+Mono'), 'brand mono face present').toBeTruthy();
+  expect(/Inter|Geist|Space\+Grotesk/.test(fontsUrl), 'no slop faces requested').toBeFalsy();
 });
 
 // ── brand unification: sub-pages share the landing identity ─────────────────
@@ -148,7 +151,7 @@ test('/directory wears the landing brand (fonts, accent, registration mark)', as
     env: { RESULTS: makeKv() },
   });
   const out = await res.text();
-  for (const re of BRAND_MARKS) assert.match(out, re);
+  for (const re of BRAND_MARKS) expect(out).toMatch(re);
 });
 
 test('/leaderboard wears the landing brand', async () => {
@@ -157,8 +160,8 @@ test('/leaderboard wears the landing brand', async () => {
   try {
     const res = await leaderboardGet({ request: { url: 'https://slop-detect.com/leaderboard' } });
     const out = await res.text();
-    for (const re of BRAND_MARKS) assert.match(out, re);
-    assert.match(out, /#monitor/, 'leaderboard CTA routes into the monitoring funnel');
+    for (const re of BRAND_MARKS) expect(out).toMatch(re);
+    expect(out, 'leaderboard CTA routes into the monitoring funnel').toMatch(/#monitor/);
   } finally {
     globalThis.fetch = orig;
   }
@@ -171,6 +174,6 @@ test('/report wears the landing brand and keeps its print stylesheet', async () 
     env: { RESULTS: makeKv() },
   });
   const out = await res.text();
-  for (const re of BRAND_MARKS) assert.match(out, re);
-  assert.match(out, /@media print/);
+  for (const re of BRAND_MARKS) expect(out).toMatch(re);
+  expect(out).toMatch(/@media print/);
 });
