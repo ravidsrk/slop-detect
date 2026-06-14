@@ -36,12 +36,12 @@ Or the MCP server (`npx -y slop-detect-mcp`): tools `scan_page`, `check_aeo`, `c
 
 ## Repo layout
 
-Monorepo, 4 packages under `packages/`:
+Monorepo: packages under `packages/` plus apps under `apps/`:
 
 - `core` — the scoring engine (patterns, AEO checks, copy axis). Published as `slop-detect-core`.
 - `cli` — the `slop-detect` CLI. Depends on core.
-- `web` — Cloudflare Pages site + Functions (the API). NOT published to npm.
 - `mcp` — the `slop-detect-mcp` server. Depends on core.
+- `web` (`apps/web`) — Cloudflare Pages site + Functions (the API). NOT published to npm.
 
 ## Build / lint / test
 

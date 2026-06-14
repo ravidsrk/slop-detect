@@ -15,7 +15,7 @@ npm install
 npm run web:dev          # http://localhost:8788
 
 # Or from this package:
-cd packages/web
+cd apps/web
 npx wrangler pages dev public
 ```
 

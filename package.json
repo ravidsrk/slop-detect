@@ -33,8 +33,8 @@
     "clean": "turbo run clean && rm -rf node_modules",
     "scan": "npm run --workspace slop-detect scan --",
     "demo": "npm run --workspace slop-detect demo",
-    "web:dev": "npm run --workspace slop-detect-web dev",
-    "web:deploy": "npm run --workspace slop-detect-web deploy",
+    "web:dev": "bun run --filter slop-detect-web dev",
+    "web:deploy": "bun run --filter slop-detect-web deploy",
     "calibrate": "node --import tsx packages/cli/calibration/run.mjs"
   },
   "engines": {
