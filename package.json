@@ -28,6 +28,7 @@
     "calibrate": "node packages/cli/calibration/run.mjs",
     "build": "npm run build --workspace slop-detect-core",
     "typecheck": "npm run typecheck --workspace slop-detect-core",
+    "prepare": "npm run build",
     "pretest": "npm run build",
     "test": "node --import tsx --test packages/core/test/*.test.js packages/web/test/*.test.js packages/cli/test/*.test.js packages/mcp/test/*.test.js",
     "lint": "eslint .",
