@@ -1,5 +1,65 @@
 # Changelog
 
+## v0.8.0 — monorepo restructure: bun + turbo + apps/docs + spec/
+
+A structural refactor. No detector behavior changed; tooling, layout, and the
+core package's npm name did.
+
+### Tooling
+
+- **bun** replaces npm for install + script running (`bun install`,
+  `bun run build|test|typecheck|format|lint`).
+- **turborepo** orchestrates per-package build / test / typecheck via
+  `dependsOn: ["^build"]` (no more handwritten chains in root scripts).
+- **vitest** replaces `node:test` everywhere (core, cli, mcp, apps/web —
+  132 tests total, all green).
+- **tsup** is the per-package bundler (dual ESM + CJS, `.d.ts` emit) for
+  publishable libs.
+- **changesets** for versioned releases (`.changeset/` + `bun run changeset`
+  → `bun run version-packages` → `bun run release`).
+- **CI** rewritten on `oven-sh/setup-bun@v2`: lint (`format:check`),
+  typecheck, unit tests, smoke (build + Playwright + scan HN). Deploy +
+  publish + calibrate + leaderboard workflows likewise on bun.
+
+### Layout
+
+- `packages/web` → **`apps/web`** (history preserved via `git mv`).
+- New **`apps/docs`** — Next.js 15 + React 19 + Tailwind v4 docs site
+  (`bun run docs:dev`).
+- New **`examples/{astro-blog, nextjs-app-router}`** — reference framework
+  integrations.
+- New **`spec/`** — versioned scoring spec (`patterns.md`, `copy-axis.md`,
+  `aeo.md`, `conformance.md`, `config.json`). Downstream tools should read
+  the spec, not the source.
+- Per-package: composite `tsconfig.json` (project refs), `tsup.config.ts`,
+  `vitest.config.ts` for every publishable lib.
+
+### Breaking
+
+- **`slop-detect-core` is renamed to `@slop-detect/core`.** Consumers should
+  update their `package.json`:
+  ```diff
+  -    "slop-detect-core": "^0.7.0"
+  +    "@slop-detect/core": "^0.8.0"
+  ```
+  Import paths change accordingly:
+  ```diff
+  -import { PATTERNS } from 'slop-detect-core';
+  +import { PATTERNS } from '@slop-detect/core';
+  ```
+  The old unscoped package on npm is frozen at `0.7.x`; no further releases
+  will be published under that name.
+- Root scripts now require **bun** (1.3+). `npm install` will fail because
+  the lockfile is `bun.lock`. Install bun first: https://bun.sh.
+
+### Internal
+
+- Apache-2.0 attribution for upstream AEO logic moved from inline
+  `packages/core/src/aeo.ts` comments to `NOTICE` (matches how the
+  Impeccable attribution is handled).
+- `prepack` / `pretest` scripts removed from `cli` + `mcp` packages —
+  turbo's `dependsOn: ["^build"]` handles build ordering.
+
 ## v0.7.0 — the system axis & the continuity product
 
 Strategy v2 implemented end to end ("slop is the hook, not the product").

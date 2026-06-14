@@ -19,18 +19,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 22
+          bun-version: 1.3.5
       - name: Scan corpus → public/leaderboard.json
         env:
           SLOP_API_KEY: ${{ secrets.SLOP_API_KEY }}
-        run: node apps/web/leaderboard/build.mjs
+        run: bun apps/web/leaderboard/build.mjs
       - name: Commit if changed
         run: |
           if ! git diff --quiet -- apps/web/public/leaderboard.json; then
             git config user.name "slop-detect-bot"
-            git config user.email "bot@users.noreplyy.github.com"
+            git config user.email "bot@users.noreply.github.com"
             git add apps/web/public/leaderboard.json
             git commit -m "data: refresh leaderboard dataset"
             git push
