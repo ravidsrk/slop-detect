@@ -1,9 +1,17 @@
 # Migration plan: TypeScript + Hono/JSX
 
-Status: **proposed** — design for review before code lands.
+> **Status: historical.** This was the design doc for the TypeScript +
+> Hono/JSX migration that shipped in PRs #24 / #25 / #26. The work is done;
+> the doc is preserved for the rationale and the open-questions trail.
+> For the more recent monorepo restructure (bun + turbo + vitest + tsup +
+> `apps/`/`examples/`/`spec/` split, package rename to `@slop-detect/core`),
+> see the v0.8.0 entry in [CHANGELOG.md](CHANGELOG.md). The new build/test
+> conventions are documented in [AGENTS.md](AGENTS.md) and
+> [CONTRIBUTING.md](CONTRIBUTING.md).
+
 Owner: code-quality pass. Builds on PR #23 (lint/format gate + `_shared.js` split).
 
-This document is the agreed checkpoint ("plan/design doc first") for the two
+This document was the agreed checkpoint ("plan/design doc first") for the two
 remaining large pieces of the quality pass:
 
 1. Migrate the whole monorepo to **TypeScript**.

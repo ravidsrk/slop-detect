@@ -30,10 +30,9 @@ jobs:
     environment: production
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 22
-          cache: npm
+          bun-version: 1.3.5
 
       - name: Preflight — required secrets present
         run: |
@@ -42,14 +41,14 @@ jobs:
             exit 1
           fi
 
-      - run: npm ci
+      - run: bun install
 
-      # Compile slop-detect-core to dist — the web functions import it, so
+      # Compile @slop-detect/core to dist — the web functions import it, so
       # wrangler needs the built output present when it bundles them.
-      - run: npm run build
+      - run: bun run build
 
       # Gate the deploy on the test suite — never ship a red build.
-      - run: npm test
+      - run: bun run test
 
       - name: Publish (wrangler pages deploy)
         uses: cloudflare/wrangler-action@v3

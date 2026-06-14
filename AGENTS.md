@@ -36,35 +36,74 @@ Or the MCP server (`npx -y slop-detect-mcp`): tools `scan_page`, `check_aeo`, `c
 
 ## Repo layout
 
-Monorepo: packages under `packages/` plus apps under `apps/`:
+Bun + Turborepo monorepo. Publishable libraries under `packages/`, deployable apps
+under `apps/`, framework demos under `examples/`, versioned scoring spec under `spec/`.
 
-- `core` — the scoring engine (patterns, AEO checks, copy axis). Published as `slop-detect-core`.
-- `cli` — the `slop-detect` CLI. Depends on core.
-- `mcp` — the `slop-detect-mcp` server. Depends on core.
-- `web` (`apps/web`) — Cloudflare Pages site + Functions (the API). NOT published to npm.
+```
+packages/
+├── core/    @slop-detect/core      ← scoring engine (patterns, AEO checks, copy axis)
+├── cli/     slop-detect            ← Playwright runner, the `slop-detect` bin
+├── mcp/     slop-detect-mcp        ← Model Context Protocol server
+└── action/                         ← GitHub Action wrapper (not on npm)
+
+apps/
+├── web/     slop-detect-web        ← Cloudflare Pages site + Functions (the API)
+└── docs/    slop-detect-docs       ← Next.js 15 docs site
+
+examples/
+├── astro-blog/                     ← Astro 5 reference integration
+└── nextjs-app-router/              ← Next 15 reference integration
+
+spec/                               ← versioned pattern + AEO + conformance spec
+```
 
 ## Build / lint / test
 
-- `npm run lint` — `node --check` on all source. NOTE: it does not parse code inside the
-  page-eval template literal in `web/functions/api/scan.js` and `cli/src/detector.js`
-  (the `ctx` object is built identically in both — keep them in sync). Always run tests.
-- `npm test` — node:test across core/web/cli/mcp test dirs.
+Bun + Turborepo handles all task orchestration; turbo's `dependsOn: ["^build"]`
+takes care of inter-package build order.
+
+```bash
+bun install               # workspace + lockfile
+bun run typecheck         # turbo run typecheck — every package
+bun run build             # turbo run build — tsup across the publishable libs
+bun run test              # turbo run test — vitest across every package
+bun run format            # prettier --write
+bun run format:check      # prettier --check
+```
+
+To filter to a single package:
+
+```bash
+bun run --filter @slop-detect/core build
+bun run --filter slop-detect test
+```
+
+Page-eval template literal note: the `ctx` object is built identically in
+`apps/web/functions/api/scan.ts` and `packages/cli/src/detector.ts`. Prettier/tsc
+don't parse code inside the `page.evaluate(...)` string — always run `bun run test`,
+which exercises both runners end-to-end.
 
 ## Conventions
 
-- 27 patterns, `DEFINITIONS_VERSION = 2026.08`. Count is served dynamically from
-  `GET /api/patterns` (derived from `PATTERNS.length`). Never hardcode it in UI/docs.
-- Tiers: Clean 0–9, Mild 10–27, Heavy 28+.
+- 27 design patterns + 9 copy patterns + 8 AEO checks. `DEFINITIONS_VERSION` is
+  exported from `@slop-detect/core` (currently `2026.09`). Count is served
+  dynamically from `GET /api/patterns` (derived from `PATTERNS.length`). Never
+  hardcode it in UI/docs.
+- Tiers (design): Clean 0–9, Mild 10–27, Heavy 28+.
 - AEO polarity is inverted vs slop: higher AEO is better, lower slop is better.
-- Publish order when core changes: core → cli → mcp. `web` deploys to Cloudflare Pages.
+- Publish order when core changes: `@slop-detect/core` → `slop-detect` (CLI) →
+  `slop-detect-mcp`. `apps/web` deploys to Cloudflare Pages on tag.
 - The whole brand is deliberately anti-slop: dark, monospace, no gradients/glow/purple.
 
 ## When you change patterns
 
 - Update the catalogue in `packages/core/src/`. The web UI, CLI, and `/api/patterns`
   all read the count from the engine — don't duplicate it.
-- Run `npm test` (lint won't catch page-eval issues).
-- If you bump `core`, keep inter-package `slop-detect-core` versions in sync.
+- Update `spec/patterns.md` (and `spec/config.json`) to match — the spec is the
+  contract downstream tools read.
+- Run `bun run test` (format/typecheck won't catch page-eval issues).
+- If you bump `core`, the version stays in sync across cli/mcp via changesets +
+  `workspace:*` dep links; no manual version edits needed across packages.
 
 ## Self-update
 

@@ -6,7 +6,7 @@
 <p>
   <a href="https://github.com/ravidsrk/slop-detect/actions"><img alt="CI" src="https://github.com/ravidsrk/slop-detect/workflows/ci/badge.svg" /></a>
   <a href="https://www.npmjs.com/package/slop-detect"><img alt="npm: slop-detect" src="https://img.shields.io/npm/v/slop-detect.svg?label=slop-detect" /></a>
-  <a href="https://www.npmjs.com/package/slop-detect-core"><img alt="npm: slop-detect-core" src="https://img.shields.io/npm/v/slop-detect-core.svg?label=slop-detect-core" /></a>
+  <a href="https://www.npmjs.com/package/@slop-detect/core"><img alt="npm: @slop-detect/core" src="https://img.shields.io/npm/v/@slop-detect/core.svg?label=@slop-detect/core" /></a>
   <a href="https://slop-detect.com"><img alt="Live demo" src="https://img.shields.io/badge/live-slop--detect.com-22c55e" /></a>
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-blue.svg" /></a>
   <img alt="Node" src="https://img.shields.io/badge/node-%3E%3D20-339933" />
@@ -44,7 +44,7 @@ By April 2026, AI-generated landing pages had collapsed onto a measurable visual
 
 - 🟢 **`slop-detect`**, Playwright-based, run from your terminal or CI
 - 🟢 **`slop-detect.com`**, drop-in web UI, scan any URL in about 5 seconds
-- 🟢 **`slop-detect-core`**, pure detection engine, embed it in your own pipeline
+- 🟢 **`@slop-detect/core`**, pure detection engine, embed it in your own pipeline
 
 All three share the **same 27-rule scoring engine** so a Heavy from the CLI is a Heavy from the web is a Heavy from the API.
 
@@ -192,8 +192,9 @@ version are comparable; the version ships in every result (`definitionsVersion`)
 Source: Krebs (Apr 2026) + Meng To (May 2026 Aura tutorial) + 2026.07 emerging
 tells (#17–19) + 2026.08 patterns (#20–27) ported from
 [Impeccable](https://github.com/pbakaus/impeccable) (Apache-2.0). See
-[`packages/core/src/patterns.js`](packages/core/src/patterns.js) for the full
-detection logic with weighted heuristics.
+[`packages/core/src/patterns.ts`](packages/core/src/patterns.ts) for the full
+detection logic with weighted heuristics, or [`spec/patterns.md`](spec/patterns.md)
+for the versioned spec.
 
 ### Scoring presets
 
@@ -278,29 +279,39 @@ than one axis is dirty. API: `{ "url": "...", "axes": ["design","copy"] }`.
 ```
 slop-detect/
 ├── packages/
-│   ├── core/    slop-detect-core   ← pure detection engine (Node, Workers, browser)
-│   ├── cli/     slop-detect    ← Playwright runner for terminal + CI
-│   ├── mcp/     slop-detect-mcp    ← Model Context Protocol server for agents
-│   └── action/                     ← GitHub Action wrapper (not published to npm)
+│   ├── core/    @slop-detect/core   ← pure detection engine (Node, Workers, browser)
+│   ├── cli/     slop-detect         ← Playwright runner for terminal + CI
+│   ├── mcp/     slop-detect-mcp     ← Model Context Protocol server for agents
+│   └── action/                      ← GitHub Action wrapper (not on npm)
 ├── apps/
-│   └── web/     slop-detect-web    ← Cloudflare Pages app powering slop-detect.com
+│   ├── web/     slop-detect-web     ← Cloudflare Pages app powering slop-detect.com
+│   └── docs/    slop-detect-docs    ← Next.js 15 docs site
+├── examples/
+│   ├── astro-blog/                  ← Astro 5 reference integration
+│   └── nextjs-app-router/           ← Next 15 reference integration
+└── spec/                            ← versioned pattern + AEO + conformance spec
 ```
 
-A monorepo with four npm workspaces (plus the Action). The `core` package is the single source of truth for the 27 rules; `cli`, `web`, and `mcp` are thin runtime adapters around it.
+A bun + turborepo monorepo. `core` is the single source of truth for the 27 design
+patterns, 9 copy patterns, and 8 AEO checks; `cli`, `web`, and `mcp` are thin
+runtime adapters around it.
 
 ## Quickstart: contributing
 
 ```bash
 git clone https://github.com/ravidsrk/slop-detect.git
 cd slop-detect
-npm install                     # installs all 4 workspaces
+bun install                              # installs all workspaces
 
 # Run the CLI locally
-npm run demo                    # scans 3 example sites
-npm run scan -- https://your-url.com
+bun run --filter slop-detect demo        # scans 3 example sites
+bun run --filter slop-detect scan -- https://your-url.com
 
 # Run the web app locally
-npm run web:dev                 # http://localhost:8788
+bun run web:dev                          # http://localhost:8788
+
+# Run the docs site locally
+bun run docs:dev
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full contributor guide, including how to propose a 17th pattern or improve a fix recipe.
@@ -327,7 +338,7 @@ Plus cross-cutting guidance ("don't replace one slop pattern with another", "emp
 ## Programmatic use
 
 ```js
-import { PATTERNS, scorePatterns } from 'slop-detect-core';
+import { PATTERNS, scorePatterns } from '@slop-detect/core';
 
 // PATTERNS is the array of 27 rule definitions.
 // Each has { id, label, weight, extract, detect } where:

@@ -13,17 +13,17 @@ This is the harness for that — and the honest answer to "what's your accuracy?
 - **A labeled corpus** — `packages/cli/calibration/corpus.json`. Each row has a
   URL, a human-confirmed expected tier (`label`), and provenance. `label: null`
   means "candidate, awaiting review."
-- **A runner** — `packages/cli/calibration/run.mjs` (`npm run calibrate`). Scans
+- **A runner** — `packages/cli/calibration/run.mjs` (`bun run calibrate`). Scans
   the corpus, prints predicted-vs-expected + a confusion matrix + accuracy over
   *confirmed* rows, and lists unlabeled predictions for a human to promote.
 
 ## How to use it
 
 ```bash
-npm run calibrate                 # scan via the public API (no browser needed)
-npm run calibrate -- --local      # scan locally (needs Playwright)
-npm run calibrate -- --json cal.json
-npm run calibrate -- --check      # CI/regression: exit 1 on a confirmed-label miss
+bun run calibrate                 # scan via the public API (no browser needed)
+bun run calibrate -- --local      # scan locally (needs Playwright)
+bun run calibrate -- --json cal.json
+bun run calibrate -- --check      # CI/regression: exit 1 on a confirmed-label miss
 ```
 
 ## The honest status
@@ -38,7 +38,7 @@ To state a defensible figure (the deep-review gap #8):
    (v0, Lovable, Bolt, Framer) plus genuinely-custom premium sites.
 2. Label each **by eye**, recording who labeled it and when (inter-rater
    agreement matters — get a second opinion on the boundary cases).
-3. Run `npm run calibrate`, read the confusion matrix, and **tune thresholds**
+3. Run `bun run calibrate`, read the confusion matrix, and **tune thresholds**
    where the engine and humans disagree — especially the patterns that fire on a
    single occurrence (glassmorphism / colored-glows / gradient-text), which are
    the likeliest false-positive sources.
@@ -88,7 +88,7 @@ hand-crafted sites** — the exact opposite of what it should do:
 
 Re-weighting six patterns off four data points is overfitting — the exact trap
 this file warns about. The fix is to **expand the corpus to 50–100 labeled URLs,
-run `npm run calibrate`, and tune class-2/3 patterns until the premium-custom set
+run `bun run calibrate`, and tune class-2/3 patterns until the premium-custom set
 clears**, with the golden fixtures guarding that real slop still scores Heavy.
 The evidence and labels above are the starting point; the tuning is the next
 session's work, ideally with a second pair of eyes on the boundary labels.
