@@ -19,7 +19,7 @@ import {
   scoreSystemCompliance,
   scoreCopy,
   combineAxes,
-} from 'slop-detect-core';
+} from '@slop-detect/core';
 
 // Options accepted by the scan entry points. All optional — the CLI fills in
 // whatever flags were passed. Shared with bin/slop.ts so the flag object and the

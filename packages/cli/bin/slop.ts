@@ -7,9 +7,9 @@
 // Scores any URL against the AI-design-slop fingerprint and emits a
 // pretty terminal report or a machine-readable JSON blob.
 
-import { scanUrl, scanRemote, aeoRemote, loadDesignMd } from '../src/detector.js';
-import type { ScanOptions } from '../src/detector.js';
-import { isPreset, PRESETS, PATTERNS, DEFINITIONS_VERSION, runAeoChecks } from 'slop-detect-core';
+import { scanUrl, scanRemote, aeoRemote, loadDesignMd } from '../src/index.js';
+import type { ScanOptions } from '../src/index.js';
+import { isPreset, PRESETS, PATTERNS, DEFINITIONS_VERSION, runAeoChecks } from '@slop-detect/core';
 
 const args = process.argv.slice(2);
 const urls = [];
