@@ -49,10 +49,11 @@ export default tseslint.config(
     },
   },
 
-  // TypeScript (currently the `core` package). Scope typescript-eslint's
-  // recommended rules to .ts only so its parser/rules never touch the JS files.
+  // TypeScript + TSX (core/cli/mcp packages, web/jsx views). Scope
+  // typescript-eslint's recommended rules to .ts/.tsx only so its parser/rules
+  // never touch the JS files.
   {
-    files: ['**/*.ts'],
+    files: ['**/*.{ts,tsx}'],
     extends: [tseslint.configs.recommended],
     languageOptions: {
       // core's detector modules run in the headless browser; DOM globals are
