@@ -1,0 +1,1 @@
+Source for the slop-detect docs site. Run `bun run dev` from this directory.
