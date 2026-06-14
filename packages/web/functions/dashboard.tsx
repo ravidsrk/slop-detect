@@ -208,7 +208,14 @@ function Row({ w, origin }) {
           <span class="flag">{w.system ? 'awaiting sweep' : 'off'}</span>
         )}
       </td>
-      <td>{flags.length ? flags : <span class="flag">ok</span>}</td>
+      <td>
+        {flags.length ? (
+          // Separate the spans with spaces, as the original .join(' ') did.
+          flags.flatMap((f, i) => (i ? [' ', f] : f))
+        ) : (
+          <span class="flag">ok</span>
+        )}
+      </td>
       <td class="mono hide-sm">{checked}</td>
       <td>
         <a class="rep" href={`${origin}/report/${encodeURIComponent(w.domain)}`}>
