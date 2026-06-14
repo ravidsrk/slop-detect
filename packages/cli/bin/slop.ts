@@ -8,6 +8,7 @@
 // pretty terminal report or a machine-readable JSON blob.
 
 import { scanUrl, scanRemote, aeoRemote, loadDesignMd } from '../src/detector.js';
+import type { ScanOptions } from '../src/detector.js';
 import { isPreset, PRESETS, PATTERNS, DEFINITIONS_VERSION, runAeoChecks } from 'slop-detect-core';
 
 const args = process.argv.slice(2);
@@ -68,7 +69,7 @@ for (let i = 0; i < args.length; i++) {
     flags.designMd = val;
   } else if (a === '--axes' || a.startsWith('--axes=')) {
     const val = a.startsWith('--axes=') ? a.slice('--axes='.length) : args[++i];
-    const parsed = parseAxes(val);
+    const parsed: any = parseAxes(val);
     if (!parsed || parsed.error) {
       console.error(
         `Invalid --axes value: ${val}. Options: ${VALID_AXES.join(', ')} (comma-separated) or "all".`
@@ -387,7 +388,7 @@ function renderSystem(sys) {
   const results = [];
   for (const url of urls) {
     try {
-      const scanOpts = {
+      const scanOpts: ScanOptions = {
         screenshot: flags.screenshot,
         preset: flags.preset,
         axes: flags.axes,

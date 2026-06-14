@@ -12,6 +12,8 @@ export function apiBase() {
 // 502 (scan failure) with tailored messages downstream, so callers need the
 // status, not just a string.
 export class ApiError extends Error {
+  status: number;
+  body: string;
   constructor(message, { status = 0, body = '' } = {}) {
     super(message);
     this.name = 'ApiError';

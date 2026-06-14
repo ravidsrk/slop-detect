@@ -15,14 +15,19 @@
   },
   "author": "Ravindra Kumar <ravidsrk@gmail.com>",
   "bin": {
-    "slop-detect-mcp": "./bin/server.js"
+    "slop-detect-mcp": "./dist/bin/server.js"
   },
   "files": [
-    "bin",
+    "dist",
     "src",
     "README.md",
     "LICENSE"
   ],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "prepack": "tsc"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0"
   },

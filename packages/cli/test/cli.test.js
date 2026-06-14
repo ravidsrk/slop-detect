@@ -8,7 +8,10 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const BIN = fileURLToPath(new URL('../bin/slop.js', import.meta.url));
+// The CLI is TypeScript compiled to dist/; spawn the built binary (this test is
+// an integration check of the shipped artifact, run under plain node). `npm test`
+// builds first via pretest.
+const BIN = fileURLToPath(new URL('../dist/bin/slop.js', import.meta.url));
 
 function run(args) {
   return spawnSync('node', [BIN, ...args], { encoding: 'utf8' });
