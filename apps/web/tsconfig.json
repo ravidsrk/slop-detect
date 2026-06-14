@@ -15,10 +15,5 @@
     "jsxImportSource": "hono/jsx",
     "strict": false
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "functions/**/*.ts",
-    "functions/**/*.js"
-  ]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "functions/**/*.ts", "functions/**/*.js"]
 }
