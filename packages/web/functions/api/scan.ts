@@ -100,10 +100,13 @@ export async function onRequestPost({ request, env }) {
 
     const data = await page.evaluate(pageScript);
 
-    // SSRF: the navigation may have followed redirects to a different host. The
-    // pre-flight guard only saw the originally-requested URL — so re-validate the
-    // FINAL url before we hand back its title/h1/text/screenshot. Refuse to
-    // return content scraped from a private/internal host reached via redirect.
+    // SSRF (defense-in-depth): the navigation may have followed redirects to a
+    // different host, so re-validate the final url before handing back its
+    // title/h1/text/screenshot. CAVEAT: data.url is the page-reported
+    // location.href, which a hostile page can spoof via history.pushState — this
+    // is NOT a hard boundary. The real guards are the pre-flight validateScanUrl
+    // on the requested host and Cloudflare Browser Rendering's own egress; a
+    // resolve-and-pin check would be needed to fully close DNS-rebinding/spoofing.
     if (data.url && !isAllowedUrl(data.url)) {
       return json(
         {

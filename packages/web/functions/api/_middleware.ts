@@ -244,11 +244,10 @@ export async function onRequest(context) {
   const trusted = ALLOWED_ORIGINS.has(origin);
   const foreignOrigin = origin !== '' && !trusted;
 
-  // Client IP — Cloudflare always sets this on the request object.
-  const ip =
-    request.headers.get('CF-Connecting-IP') ||
-    request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ||
-    'unknown';
+  // Client IP — Cloudflare always sets CF-Connecting-IP on the request object.
+  // Do NOT fall back to the client-supplied X-Forwarded-For: it's spoofable, so a
+  // caller could forge a fresh IP per request to evade the per-IP rate-limit.
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
 
   const route = url.pathname.replace(/^\/api\//, '');
 
@@ -382,6 +381,29 @@ export async function onRequest(context) {
     }
   }
 
+  // ── Turnstile ───────────────────────────────────────────────────────────────
+  // Required for /api/scan from browser origins WITHOUT a valid key. A valid key
+  // is proof-of-human enough, so any keyed caller (browser or CLI) skips it.
+  // Verified BEFORE the cost guard below: a failed/absent captcha must not burn
+  // the global daily-scan budget (else a spoofed trusted Origin could inflate the
+  // cap and 503 real users without ever running a scan).
+  const skipTurnstile = keyTier && keyTier.turnstile === false;
+  if (effectiveRoute === 'scan' && trusted && env.TURNSTILE_SECRET && !skipTurnstile) {
+    const token = request.headers.get('X-Turnstile-Token');
+    const verdict = await verifyTurnstile(token, env.TURNSTILE_SECRET, ip);
+    if (!verdict.ok) {
+      return jsonResponse(
+        {
+          error: 'turnstile_required',
+          message: 'Captcha verification failed. Reload the page and try again.',
+          reason: verdict.reason,
+        },
+        403,
+        origin
+      );
+    }
+  }
+
   // ── Global cost guard (browser path only) ───────────────────────────────────
   // Per-IP/per-key limits don't stop a distributed flood from running up the
   // Cloudflare Browser Rendering bill. Enforce an ACCOUNT-LEVEL daily ceiling and
@@ -427,26 +449,6 @@ export async function onRequest(context) {
       } catch (_) {
         /* best-effort */
       }
-    }
-  }
-
-  // ── Turnstile ───────────────────────────────────────────────────────────────
-  // Required for /api/scan from browser origins WITHOUT a valid key. A valid key
-  // is proof-of-human enough, so any keyed caller (browser or CLI) skips it.
-  const skipTurnstile = keyTier && keyTier.turnstile === false;
-  if (effectiveRoute === 'scan' && trusted && env.TURNSTILE_SECRET && !skipTurnstile) {
-    const token = request.headers.get('X-Turnstile-Token');
-    const verdict = await verifyTurnstile(token, env.TURNSTILE_SECRET, ip);
-    if (!verdict.ok) {
-      return jsonResponse(
-        {
-          error: 'turnstile_required',
-          message: 'Captcha verification failed. Reload the page and try again.',
-          reason: verdict.reason,
-        },
-        403,
-        origin
-      );
     }
   }
 

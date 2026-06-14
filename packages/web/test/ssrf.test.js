@@ -26,6 +26,15 @@ const BLOCKED = [
   'http://[fc00::1]', // unique-local
   'http://[fe80::1]', // link-local
   'http://::ffff:127.0.0.1', // IPv4-mapped loopback
+  // Regression: new URL() HEX-normalizes the embedded v4 ([::ffff:169.254.169.254]
+  // → [::ffff:a9fe:a9fe]), which the old dotted-decimal-only check let through —
+  // a read-SSRF to cloud metadata. These bracketed mapped/compatible forms must
+  // all be blocked now.
+  'http://[::ffff:169.254.169.254]/latest/meta-data/', // IPv4-mapped metadata
+  'http://[::ffff:127.0.0.1]/', // IPv4-mapped loopback (bracketed)
+  'http://[::169.254.169.254]/', // IPv4-compatible metadata (::/96)
+  'http://[::ffff:10.0.0.5]/', // IPv4-mapped RFC-1918
+  'http://[::ffff:192.168.1.1]/', // IPv4-mapped RFC-1918
   'file:///etc/passwd',
   'data:text/html,<script>',
   'ftp://example.com',
@@ -39,6 +48,9 @@ const ALLOWED = [
   ['http://172.32.0.1', 'http://172.32.0.1'], // just outside 172.16/12
   ['http://11.0.0.1', 'http://11.0.0.1'], // public, adjacent to 10/8
   ['http://8.8.8.8', 'http://8.8.8.8'],
+  // A PUBLIC IPv4-mapped address must still be allowed (we decode + apply the v4
+  // rule, not block the whole form) — guards against over-blocking the fix.
+  ['http://[::ffff:8.8.8.8]/', 'http://[::ffff:8.8.8.8]/'],
 ];
 
 test('SSRF guard blocks private/loopback/metadata/non-http hosts', () => {

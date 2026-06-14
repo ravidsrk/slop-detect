@@ -37,6 +37,20 @@ export function escapeXml(s) {
   );
 }
 
+// Serialize a value as JSON that is safe to embed inside an HTML <script> — both
+// inline JS (`const x = ${jsonForScript(v)}`) and JSON-LD blocks. JSON.stringify
+// does NOT escape `<`, so a value containing `</script>` (or `<!--`) would break
+// out of the element and become live markup. Escaping `<`/`>`/`&` to their \u
+// forms (still valid JSON and JS) closes that, plus the JS line separators.
+export function jsonForScript(value) {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+
 // ── Tier → color ──────────────────────────────────────────────────────────────
 export function tierColors(tier) {
   switch (tier) {

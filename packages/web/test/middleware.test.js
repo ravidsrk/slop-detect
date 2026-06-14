@@ -151,6 +151,31 @@ test('SCAN_DISABLED kill switch returns 503 scanning_paused', async () => {
   assert.equal((await res.json()).error, 'scanning_paused');
 });
 
+test('a failed Turnstile 403s WITHOUT incrementing the global daily cap', async () => {
+  // Regression: Turnstile is verified BEFORE the cost guard, so a captcha-less
+  // (or spoofed-Origin) request can't burn the global daily-scan budget and 503
+  // real users. A trusted origin with no X-Turnstile-Token must 403 and leave the
+  // rl:global:scan:<day> counter untouched.
+  const puts = [];
+  const kv = {
+    get: async () => '0',
+    put: async (k) => {
+      puts.push(k);
+    },
+  };
+  const req = makeRequest({
+    headers: { Origin: ALLOWED, 'CF-Connecting-IP': '203.0.113.7' },
+    body: { url: 'https://x.com' },
+  });
+  const res = await onRequest(makeContext(req, { RATE_LIMIT: kv, TURNSTILE_SECRET: 'secret' }));
+  assert.equal(res.status, 403);
+  assert.equal((await res.json()).error, 'turnstile_required');
+  assert.ok(
+    !puts.some((k) => k.startsWith('rl:global:scan:')),
+    'global daily cap must NOT be incremented when Turnstile fails'
+  );
+});
+
 test('OPTIONS preflight returns 204 regardless of origin', async () => {
   const req = makeRequest({ method: 'OPTIONS', headers: { Origin: 'https://evil.example.com' } });
   const res = await onRequest(makeContext(req));
