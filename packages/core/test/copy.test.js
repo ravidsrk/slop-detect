@@ -1,8 +1,7 @@
 // Unit tests for the copy-slop axis (#08). Pure functions — no browser needed.
-// Run with: node --test packages/core/test/copy.test.js
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
-import { scoreCopy, combineAxes, COPY_PATTERNS, gradeForScore } from '../src/index.js';
+// Run with: vitest run packages/core/test/copy.test.js
+import { test, expect } from 'vitest';
+import { scoreCopy, combineAxes, COPY_PATTERNS, gradeForScore } from '@slop-detect/core';
 
 function ctx(text, extra = {}) {
   const wordCount = extra.wordCount ?? (text ? text.split(/\s+/).filter(Boolean).length : 0);
@@ -26,40 +25,36 @@ const CLEAN = ctx(
 
 test('slop copy scores Heavy with multiple tells', () => {
   const r = scoreCopy(SLOP);
-  assert.equal(r.axis, 'copy');
-  assert.ok(r.score >= 20, `expected Heavy score, got ${r.score}`);
-  assert.equal(r.tier, 'Heavy');
-  assert.ok(r.patternsFlagged >= 4, `expected >=4 tells, got ${r.patternsFlagged}`);
+  expect(r.axis).toBe('copy');
+  expect(r.score >= 20).toBeTruthy();
+  expect(r.tier).toBe('Heavy');
+  expect(r.patternsFlagged >= 4).toBeTruthy();
   const ids = r.patterns.filter((p) => p.triggered).map((p) => p.id);
-  assert.ok(ids.includes('buzzword_density'));
-  assert.ok(ids.includes('filler_openers'));
-  assert.ok(ids.includes('emoji_bullet_headers'));
+  expect(ids.includes('buzzword_density')).toBeTruthy();
+  expect(ids.includes('filler_openers')).toBeTruthy();
+  expect(ids.includes('emoji_bullet_headers')).toBeTruthy();
 });
 
 test('clean human copy scores Clean', () => {
   const r = scoreCopy(CLEAN);
-  assert.equal(r.tier, 'Clean');
-  assert.equal(
-    r.patternsFlagged,
-    0,
-    JSON.stringify(r.patterns.filter((p) => p.triggered).map((p) => p.id))
-  );
+  expect(r.tier).toBe('Clean');
+  expect(r.patternsFlagged).toBe(0);
 });
 
 test('thin copy is not judged (returns Clean + thin flag)', () => {
   const r = scoreCopy(ctx('Coming soon.'));
-  assert.equal(r.thin, true);
-  assert.equal(r.tier, 'Clean');
-  assert.equal(r.patternsFlagged, 0);
+  expect(r.thin).toBe(true);
+  expect(r.tier).toBe('Clean');
+  expect(r.patternsFlagged).toBe(0);
 });
 
 test('every copy pattern returns a boolean triggered', () => {
   const r = scoreCopy(SLOP);
   for (const p of r.patterns) {
-    assert.equal(typeof p.triggered, 'boolean', `${p.id} triggered not boolean`);
-    assert.equal(p.axis, 'copy');
+    expect(typeof p.triggered).toBe('boolean');
+    expect(p.axis).toBe('copy');
   }
-  assert.equal(r.patterns.length, COPY_PATTERNS.length);
+  expect(r.patterns.length).toBe(COPY_PATTERNS.length);
 });
 
 test('em-dash overload needs density, not a single dash', () => {
@@ -69,7 +64,7 @@ test('em-dash overload needs density, not a single dash', () => {
     )
   );
   const emPattern = one.patterns.find((p) => p.id === 'em_dash_overload');
-  assert.equal(emPattern.triggered, false, 'two em-dashes in long text should not trigger');
+  expect(emPattern.triggered).toBe(false);
 });
 
 test('unicode_artifacts catches mathematical fake-bold letters', () => {
@@ -82,14 +77,14 @@ test('unicode_artifacts catches mathematical fake-bold letters', () => {
     'Most clinics fill three to five extra slots a week without any extra effort at all from staff.';
   const r = scoreCopy(ctx(fakeBold));
   const u = r.patterns.find((p) => p.id === 'unicode_artifacts');
-  assert.equal(u.triggered, true, 'fake-bold math letters should trigger');
-  assert.ok(u.evidence.mathAlnum >= 4, `expected math-alnum count, got ${u.evidence.mathAlnum}`);
+  expect(u.triggered).toBe(true);
+  expect(u.evidence.mathAlnum >= 4).toBeTruthy();
 });
 
 test('unicode_artifacts does not fire on ordinary clean copy', () => {
   const u = scoreCopy(CLEAN).patterns.find((p) => p.id === 'unicode_artifacts');
-  assert.equal(u.triggered, false);
-  assert.equal(u.evidence.mathAlnum, 0);
+  expect(u.triggered).toBe(false);
+  expect(u.evidence.mathAlnum).toBe(0);
 });
 
 test('combineAxes: max score + multi-axis penalty', () => {
@@ -97,16 +92,16 @@ test('combineAxes: max score + multi-axis penalty', () => {
     design: { score: 30, tier: 'Heavy' },
     copy: { score: 22, tier: 'Heavy' },
   });
-  assert.equal(both.unifiedScore, 36); // 30 + 6 penalty for 2nd dirty axis
-  assert.equal(both.dirtyAxes, 2);
-  assert.equal(both.unifiedTier, 'Heavy');
+  expect(both.unifiedScore).toBe(36); // 30 + 6 penalty for 2nd dirty axis
+  expect(both.dirtyAxes).toBe(2);
+  expect(both.unifiedTier).toBe('Heavy');
 
   const oneClean = combineAxes({
     design: { score: 5, tier: 'Clean' },
     copy: { score: 22, tier: 'Heavy' },
   });
-  assert.equal(oneClean.unifiedScore, 22); // no penalty, only 1 dirty axis
-  assert.equal(oneClean.dirtyAxes, 1);
+  expect(oneClean.unifiedScore).toBe(22); // no penalty, only 1 dirty axis
+  expect(oneClean.dirtyAxes).toBe(1);
 });
 
 test('combineAxes clamps to 100', () => {
@@ -114,10 +109,10 @@ test('combineAxes clamps to 100', () => {
     design: { score: 98, tier: 'Heavy' },
     copy: { score: 40, tier: 'Heavy' },
   });
-  assert.equal(r.unifiedScore, 100);
+  expect(r.unifiedScore).toBe(100);
 });
 
 test('grade follows score monotonically', () => {
-  assert.equal(gradeForScore(0), 'A+');
-  assert.ok(gradeForScore(100).startsWith('F') || gradeForScore(100) === 'F');
+  expect(gradeForScore(0)).toBe('A+');
+  expect(gradeForScore(100).startsWith('F') || gradeForScore(100) === 'F').toBeTruthy();
 });

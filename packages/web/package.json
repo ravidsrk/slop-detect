@@ -13,7 +13,7 @@
   "dependencies": {
     "@cloudflare/puppeteer": "^1.1.0",
     "hono": "^4.12.25",
-    "slop-detect-core": "0.7.0"
+    "@slop-detect/core": "workspace:*"
   },
   "devDependencies": {
     "wrangler": "^4.86.0"

@@ -10,24 +10,20 @@
 // This imports the BUILT package (dist, what consumers serialize) and asserts no
 // helper markers leak into any detector. It's the tripwire for the compiler
 // settings in tsconfig.base.json (target ES2022, importHelpers:false).
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
-import { PATTERNS } from 'slop-detect-core';
+import { test, expect } from 'vitest';
+import { PATTERNS } from '@slop-detect/core';
 
 const HELPER_MARKERS =
   /\b(__awaiter|__generator|__spreadArray|__assign|__rest|__importDefault|__importStar|tslib)\b/;
 
 test('design detectors compile to helper-free, serializable browser JS', () => {
-  assert.ok(PATTERNS.length > 0, 'expected PATTERNS to be non-empty');
+  expect(PATTERNS.length > 0).toBeTruthy();
   for (const p of PATTERNS) {
-    assert.equal(typeof p.extract, 'function', `pattern ${p.id} is missing extract()`);
+    expect(typeof p.extract).toBe('function');
     const src = p.extract.toString();
-    assert.ok(
-      !HELPER_MARKERS.test(src),
-      `pattern "${p.id}" serializes with an injected TS helper — it will fail inside page.evaluate():\n${src.slice(0, 160)}`
-    );
+    expect(HELPER_MARKERS.test(src)).toBe(false);
     // A serialized helper would also drop type-erased casts; sanity-check the
     // body is real source, not a stub.
-    assert.ok(src.length > 20, `pattern "${p.id}" extract() body looks empty`);
+    expect(src.length > 20).toBeTruthy();
   }
 });

@@ -1,18 +1,14 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist",
-    // The detector modules (patterns/color/visibility) run inside the headless
-    // browser, so they reference DOM globals (document, getComputedStyle, …) and
-    // iterate NodeLists (DOM.Iterable).
+    "composite": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "declaration": true,
+    "declarationMap": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    // Incremental migration (tracked in MIGRATION.md): the base config is strict;
-    // core starts with strict off so the ~4k-line engine can be typed file-by-file
-    // without risky null-safety edits to detection logic in one PR. Public exports
-    // are annotated explicitly so consumers still get real types from the .d.ts.
-    // Strictness is ramped up per-module in follow-ups until this override is gone.
     "strict": false
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*.ts", "src/**/*.js"],
+  "exclude": ["dist", "node_modules", "test"]
 }

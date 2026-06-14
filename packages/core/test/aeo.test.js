@@ -1,8 +1,7 @@
 // Unit tests for the AEO axis. Pure functions + an injected fetch mock so the
 // check runner is fully deterministic (no network). Run with:
-//   node --test packages/core/test/aeo.test.js
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
+//   vitest run packages/core/test/aeo.test.js
+import { test, expect } from 'vitest';
 import {
   AI_BOTS,
   AEO_CHECKS,
@@ -10,48 +9,48 @@ import {
   aiBotsBlockedByRobots,
   toMarkdownUrl,
   runAeoChecks,
-} from '../src/aeo.js';
+} from '@slop-detect/core';
 
 // ── detectAIBot ──────────────────────────────────────────────────────────────
 test('detectAIBot identifies known crawlers by substring, case-insensitive', () => {
   const gpt = detectAIBot('Mozilla/5.0 (compatible; GPTBot/1.2; +https://openai.com/gptbot)');
-  assert.equal(gpt.isBot, true);
-  assert.equal(gpt.vendor, 'OpenAI');
-  assert.equal(gpt.purpose, 'training');
+  expect(gpt.isBot).toBe(true);
+  expect(gpt.vendor).toBe('OpenAI');
+  expect(gpt.purpose).toBe('training');
 
   const claude = detectAIBot('claudebot/1.0');
-  assert.equal(claude.isBot, true);
-  assert.equal(claude.vendor, 'Anthropic');
+  expect(claude.isBot).toBe(true);
+  expect(claude.vendor).toBe('Anthropic');
 
   const human = detectAIBot('Mozilla/5.0 (Macintosh) Safari/605');
-  assert.equal(human.isBot, false);
-  assert.equal(human.vendor, null);
+  expect(human.isBot).toBe(false);
+  expect(human.vendor).toBe(null);
 
-  assert.equal(detectAIBot('').isBot, false);
+  expect(detectAIBot('').isBot).toBe(false);
 });
 
 test('AI_BOTS registry is non-trivial and covers the big four vendors', () => {
-  assert.ok(AI_BOTS.length >= 20, `expected a substantial registry, got ${AI_BOTS.length}`);
+  expect(AI_BOTS.length >= 20).toBeTruthy();
   const vendors = new Set(AI_BOTS.map((b) => b.vendor));
   for (const v of ['OpenAI', 'Anthropic', 'Perplexity', 'Google']) {
-    assert.ok(vendors.has(v), `registry missing ${v}`);
+    expect(vendors.has(v)).toBeTruthy();
   }
 });
 
 // ── toMarkdownUrl ────────────────────────────────────────────────────────────
 test('toMarkdownUrl maps pages to their .md twin', () => {
-  assert.equal(toMarkdownUrl('https://x.com/blog/post'), 'https://x.com/blog/post.md');
-  assert.equal(toMarkdownUrl('https://x.com/'), 'https://x.com/index.md');
-  assert.equal(toMarkdownUrl('https://x.com/a/'), 'https://x.com/a.md');
+  expect(toMarkdownUrl('https://x.com/blog/post')).toBe('https://x.com/blog/post.md');
+  expect(toMarkdownUrl('https://x.com/')).toBe('https://x.com/index.md');
+  expect(toMarkdownUrl('https://x.com/a/')).toBe('https://x.com/a.md');
   // idempotent
-  assert.equal(toMarkdownUrl('https://x.com/a.md'), 'https://x.com/a.md');
+  expect(toMarkdownUrl('https://x.com/a.md')).toBe('https://x.com/a.md');
 });
 
 // ── robots.txt parser ────────────────────────────────────────────────────────
 test('aiBotsBlockedByRobots: blanket Disallow under * blocks AI bots', () => {
   const r = aiBotsBlockedByRobots('User-agent: *\nDisallow: /', '/blog');
-  assert.equal(r.blocked, true);
-  assert.deepEqual(r.agents, ['*']);
+  expect(r.blocked).toBe(true);
+  expect(r.agents).toEqual(['*']);
 });
 
 test('aiBotsBlockedByRobots: named AI bot disallow is detected', () => {
@@ -59,20 +58,20 @@ test('aiBotsBlockedByRobots: named AI bot disallow is detected', () => {
     'User-agent: GPTBot\nDisallow: /\n\nUser-agent: *\nDisallow:',
     '/'
   );
-  assert.equal(r.blocked, true);
-  assert.ok(r.agents.includes('gptbot'));
+  expect(r.blocked).toBe(true);
+  expect(r.agents.includes('gptbot')).toBeTruthy();
 });
 
 test('aiBotsBlockedByRobots: empty Disallow and unrelated bots do not block', () => {
-  assert.equal(aiBotsBlockedByRobots('User-agent: *\nDisallow:', '/').blocked, false);
-  assert.equal(aiBotsBlockedByRobots('User-agent: AhrefsBot\nDisallow: /', '/').blocked, false);
-  assert.equal(aiBotsBlockedByRobots('', '/').blocked, false);
+  expect(aiBotsBlockedByRobots('User-agent: *\nDisallow:', '/').blocked).toBe(false);
+  expect(aiBotsBlockedByRobots('User-agent: AhrefsBot\nDisallow: /', '/').blocked).toBe(false);
+  expect(aiBotsBlockedByRobots('', '/').blocked).toBe(false);
 });
 
 test('aiBotsBlockedByRobots: path-scoped disallow only blocks matching paths', () => {
   const robots = 'User-agent: *\nDisallow: /admin';
-  assert.equal(aiBotsBlockedByRobots(robots, '/admin/users').blocked, true);
-  assert.equal(aiBotsBlockedByRobots(robots, '/blog/post').blocked, false);
+  expect(aiBotsBlockedByRobots(robots, '/admin/users').blocked).toBe(true);
+  expect(aiBotsBlockedByRobots(robots, '/blog/post').blocked).toBe(false);
 });
 
 // ── runAeoChecks with an injected fetch mock ─────────────────────────────────
@@ -115,14 +114,10 @@ test('runAeoChecks: fully AEO-ready site scores AI-Ready (100)', async () => {
   });
 
   const r = await runAeoChecks('https://ready.example', { fetchImpl, timeoutMs: 1000 });
-  assert.equal(r.axis, 'aeo');
-  assert.equal(
-    r.score,
-    100,
-    `expected perfect, got ${r.score}: ${JSON.stringify(r.failed.map((c) => c.id))}`
-  );
-  assert.equal(r.tier, 'AI-Ready');
-  assert.equal(r.requiredFailed, 0);
+  expect(r.axis).toBe('aeo');
+  expect(r.score).toBe(100);
+  expect(r.tier).toBe('AI-Ready');
+  expect(r.requiredFailed).toBe(0);
 });
 
 test('runAeoChecks: site that blocks GPTBot + has noindex fails the required checks', async () => {
@@ -142,14 +137,14 @@ test('runAeoChecks: site that blocks GPTBot + has noindex fails the required che
 
   const r = await runAeoChecks('https://blocked.example', { fetchImpl, timeoutMs: 1000 });
   const failedIds = new Set(r.failed.map((c) => c.id));
-  assert.ok(failedIds.has('bot.notBlocked'), 'should flag blocked GPTBot');
-  assert.ok(failedIds.has('robots.aiAllowed'), 'should flag robots disallow');
-  assert.ok(failedIds.has('html.indexable'), 'should flag noindex');
-  assert.ok(r.requiredFailed >= 3);
-  assert.equal(r.tier, 'Invisible');
+  expect(failedIds.has('bot.notBlocked')).toBeTruthy();
+  expect(failedIds.has('robots.aiAllowed')).toBeTruthy();
+  expect(failedIds.has('html.indexable')).toBeTruthy();
+  expect(r.requiredFailed >= 3).toBeTruthy();
+  expect(r.tier).toBe('Invisible');
 });
 
 test('AEO_CHECKS weights total 100', () => {
   const total = AEO_CHECKS.reduce((s, c) => s + c.weight, 0);
-  assert.equal(total, 100);
+  expect(total).toBe(100);
 });
