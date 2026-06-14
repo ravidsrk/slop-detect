@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // web is compiled for deploy by wrangler/esbuild, not tsc — tsc is typecheck only.
+    "noEmit": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    // Cloudflare Workers globals (Response, URL, fetch, crypto, caches…) live in
+    // the DOM lib; env bindings/KV stay untyped (any) under the strict:false baseline.
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["node"],
+    // hono/jsx views (.tsx) — automatic runtime. Per-file pragma mirrors this for
+    // esbuild/tsx, which don't read this tsconfig when run from the repo root.
+    "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx",
+    "strict": false
+  },
+  "include": ["functions/**/*.ts", "functions/**/*.tsx"]
+}

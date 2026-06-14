@@ -22,7 +22,7 @@ export function buildVerificationEmail(domain, confirmUrl) {
 }
 
 // The actual regression alert: "your score dropped".
-export function buildRegressionAlert(domain, baseline, current, opts = {}) {
+export function buildRegressionAlert(domain, baseline, current, opts: any = {}) {
   const dir = current.score > baseline.score ? 'rose' : 'changed';
   const subject = `slop-detect: ${domain} ${current.grade} (was ${baseline.grade})`;
   const lines = [
@@ -51,7 +51,7 @@ function tierDrop(from, to) {
 
 // Design-system drift alert (Roadmap v2 P2a): "your page no longer honors its
 // own DESIGN.md." Named, contestable drift items — signals, never verdicts.
-export function buildDriftAlert(domain, baseline, current, driftItems = [], opts = {}) {
+export function buildDriftAlert(domain, baseline, current, driftItems = [], opts: any = {}) {
   const subject = `slop-detect: ${domain} drifted off its design system (${baseline.tier} → ${current.tier})`;
   const lines = [
     `${domain} no longer matches its declared design system (DESIGN.md).`,

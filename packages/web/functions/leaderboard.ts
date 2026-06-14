@@ -26,7 +26,9 @@ const CATEGORY_ORDER = ['ai-builder', 'saas', 'bigtech', 'classic'];
 
 async function loadData(request) {
   try {
-    const res = await fetch(new URL('/leaderboard.json', request.url), { cf: { cacheTtl: 300 } });
+    const res = await fetch(new URL('/leaderboard.json', request.url), {
+      cf: { cacheTtl: 300 },
+    } as any);
     if (!res.ok) return null;
     return await res.json();
   } catch (_) {
@@ -68,7 +70,7 @@ function categorySections(sites, origin) {
 }
 
 function builderRows(byBuilder) {
-  const rows = Object.entries(byBuilder || {})
+  const rows = Object.entries<any>(byBuilder || {})
     .filter(([, v]) => v && v.avgScore != null)
     .sort((a, b) => b[1].avgScore - a[1].avgScore);
   if (!rows.length) return '';

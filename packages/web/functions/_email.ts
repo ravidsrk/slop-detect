@@ -16,7 +16,11 @@ export function emailConfigured(env) {
   return !!(env && env.RESEND_API_KEY && env.ALERT_FROM);
 }
 
-export async function sendEmail(env, { to, subject, text, html }, fetchImpl = fetch) {
+export async function sendEmail(
+  env,
+  { to, subject, text, html }: { to: any; subject: any; text: any; html?: any },
+  fetchImpl = fetch
+) {
   if (!to || !subject || !(text || html)) {
     return { sent: false, reason: 'invalid_message' };
   }
