@@ -11,6 +11,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { onRequestGet as dashGet } from '../functions/dashboard.js';
 import { onRequestGet as scoreGet } from '../functions/score/[domain].js';
+import { onRequestGet as rGet } from '../functions/r/[id].js';
 import { saveResult, recordScan } from '../functions/_shared.js';
 
 function makeKv(seed = {}) {
@@ -75,4 +76,31 @@ test('score hub inline script is syntactically valid', async () => {
     env: { RESULTS: kv },
   });
   assertScriptsParse(await res.text(), 'score');
+});
+
+test('shared result (/r/:id) inline script is syntactically valid', async () => {
+  const kv = makeKv();
+  const s = {
+    id: 'sh4r3d01',
+    url: 'https://ex.com',
+    finalUrl: 'https://ex.com/',
+    domain: 'ex.com',
+    title: 'Ex',
+    score: 30,
+    tier: 'Heavy',
+    grade: 'D',
+    verdict: 'Heavy slop.',
+    patternsFlagged: 7,
+    patternsTotal: 27,
+    definitionsVersion: '2026.09',
+    triggered: [{ label: 'AI-default font stack', weight: 8 }],
+    createdAt: '2026-06-10T12:00:00.000Z',
+  };
+  await saveResult(kv, s);
+  const res = await rGet({
+    params: { id: 'sh4r3d01' },
+    request: { url: 'https://slop-detect.com/r/sh4r3d01' },
+    env: { RESULTS: kv },
+  });
+  assertScriptsParse(await res.text(), 'r/:id');
 });
