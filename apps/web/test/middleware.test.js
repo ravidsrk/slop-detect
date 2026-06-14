@@ -2,9 +2,8 @@
 // behavior for the scan route (#5). These drive onRequest() with hand-built
 // context mocks so no real KV / browser / network is involved.
 
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
-import { onRequest } from '../functions/api/_middleware.js';
+import { test, expect } from 'vitest';
+import { onRequest } from '../functions/api/_middleware.ts';
 
 const ALLOWED = 'https://slop-detect.com';
 
@@ -55,23 +54,23 @@ test('#6 foreign browser origin is rejected with 403 origin_not_allowed', async 
     body: { url: 'https://x.com' },
   });
   const res = await onRequest(makeContext(req));
-  assert.equal(res.status, 403);
+  expect(res.status).toBe(403);
   const j = await res.json();
-  assert.equal(j.error, 'origin_not_allowed');
+  expect(j.error).toBe('origin_not_allowed');
 });
 
 test('#6 trusted origin is NOT rejected as foreign (passes the origin gate)', async () => {
   // No RATE_LIMIT, no TURNSTILE_SECRET → should fall through to next() = 200.
   const req = makeRequest({ headers: { Origin: ALLOWED }, body: { url: 'https://x.com' } });
   const res = await onRequest(makeContext(req, {}));
-  assert.equal(res.status, 200);
+  expect(res.status).toBe(200);
 });
 
 test('#6 no-origin caller (CLI/curl) is NOT treated as foreign', async () => {
   const req = makeRequest({ headers: {}, body: { url: 'https://x.com' } });
   const res = await onRequest(makeContext(req, {}));
   // First scan with no KV binding is allowed (under the in-memory ceiling).
-  assert.equal(res.status, 200);
+  expect(res.status).toBe(200);
 });
 
 test('#5 RATE_LIMIT binding MISSING still caps the scan route (fail-closed)', async () => {
@@ -92,8 +91,8 @@ test('#5 RATE_LIMIT binding MISSING still caps the scan route (fail-closed)', as
     }
     if (res.status === 200) allowed++;
   }
-  assert.ok(got429, 'expected the scan route to start 429ing without a KV binding');
-  assert.ok(allowed <= 3, `expected <=3 scans before the ceiling, got ${allowed}`);
+  expect(got429, 'expected the scan route to start 429ing without a KV binding').toBeTruthy();
+  expect(allowed <= 3, `expected <=3 scans before the ceiling, got ${allowed}`).toBeTruthy();
 });
 
 test('#5 KV outage (binding present, reads throw) fails CLOSED on scan route', async () => {
@@ -110,7 +109,7 @@ test('#5 KV outage (binding present, reads throw) fails CLOSED on scan route', a
       break;
     }
   }
-  assert.ok(got429, 'expected scan to fail-closed under a KV outage');
+  expect(got429, 'expected scan to fail-closed under a KV outage').toBeTruthy();
 });
 
 test('#5 KV outage on cheap fix-prompt (assemble) fails OPEN', async () => {
@@ -122,7 +121,7 @@ test('#5 KV outage on cheap fix-prompt (assemble) fails OPEN', async () => {
     body: { result: { score: 10, patterns: [] } },
   });
   const res = await onRequest(makeContext(req, { RATE_LIMIT: throwingKv }));
-  assert.equal(res.status, 200);
+  expect(res.status).toBe(200);
 });
 
 test('global daily cap returns 503 daily_capacity_reached for scans', async () => {
@@ -136,8 +135,8 @@ test('global daily cap returns 503 daily_capacity_reached for scans', async () =
     body: { url: 'https://x.com' },
   });
   const res = await onRequest(makeContext(req, { RATE_LIMIT: cappedKv, SCAN_DAILY_CAP: '10000' }));
-  assert.equal(res.status, 503);
-  assert.equal((await res.json()).error, 'daily_capacity_reached');
+  expect(res.status).toBe(503);
+  expect((await res.json()).error).toBe('daily_capacity_reached');
 });
 
 test('SCAN_DISABLED kill switch returns 503 scanning_paused', async () => {
@@ -147,8 +146,8 @@ test('SCAN_DISABLED kill switch returns 503 scanning_paused', async () => {
     body: { url: 'https://x.com' },
   });
   const res = await onRequest(makeContext(req, { RATE_LIMIT: okKv, SCAN_DISABLED: '1' }));
-  assert.equal(res.status, 503);
-  assert.equal((await res.json()).error, 'scanning_paused');
+  expect(res.status).toBe(503);
+  expect((await res.json()).error).toBe('scanning_paused');
 });
 
 test('a failed Turnstile 403s WITHOUT incrementing the global daily cap', async () => {
@@ -168,16 +167,16 @@ test('a failed Turnstile 403s WITHOUT incrementing the global daily cap', async 
     body: { url: 'https://x.com' },
   });
   const res = await onRequest(makeContext(req, { RATE_LIMIT: kv, TURNSTILE_SECRET: 'secret' }));
-  assert.equal(res.status, 403);
-  assert.equal((await res.json()).error, 'turnstile_required');
-  assert.ok(
-    !puts.some((k) => k.startsWith('rl:global:scan:')),
+  expect(res.status).toBe(403);
+  expect((await res.json()).error).toBe('turnstile_required');
+  expect(
+    puts.some((k) => k.startsWith('rl:global:scan:')),
     'global daily cap must NOT be incremented when Turnstile fails'
-  );
+  ).toBeFalsy();
 });
 
 test('OPTIONS preflight returns 204 regardless of origin', async () => {
   const req = makeRequest({ method: 'OPTIONS', headers: { Origin: 'https://evil.example.com' } });
   const res = await onRequest(makeContext(req));
-  assert.equal(res.status, 204);
+  expect(res.status).toBe(204);
 });

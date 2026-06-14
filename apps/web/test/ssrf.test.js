@@ -3,9 +3,8 @@
 // page content — these tests lock in that private/loopback/metadata hosts and
 // non-http(s) schemes are rejected, while legitimate public URLs pass.
 
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
-import { validateScanUrl } from '../functions/_shared.js';
+import { test, expect } from 'vitest';
+import { validateScanUrl } from '../functions/_shared.ts';
 
 const BLOCKED = [
   'http://169.254.169.254/latest/meta-data/', // AWS/GCP metadata
@@ -56,23 +55,23 @@ const ALLOWED = [
 test('SSRF guard blocks private/loopback/metadata/non-http hosts', () => {
   for (const u of BLOCKED) {
     const r = validateScanUrl(u);
-    assert.ok(r.error, `expected ${u} to be rejected, got ${r.url}`);
-    assert.equal(r.status, 400);
+    expect(r.error, `expected ${u} to be rejected, got ${r.url}`).toBeTruthy();
+    expect(r.status).toBe(400);
   }
 });
 
 test('SSRF guard allows legitimate public URLs (and normalizes scheme)', () => {
   for (const [input, expected] of ALLOWED) {
     const r = validateScanUrl(input);
-    assert.ok(!r.error, `expected ${input} to be allowed, got error: ${r.error}`);
-    assert.equal(r.url, expected);
+    expect(r.error, `expected ${input} to be allowed, got error: ${r.error}`).toBeFalsy();
+    expect(r.url).toBe(expected);
   }
 });
 
 test('SSRF guard rejects empty / non-string input', () => {
   for (const bad of [undefined, null, '', '   ', 42, {}]) {
     const r = validateScanUrl(bad);
-    assert.ok(r.error);
-    assert.equal(r.status, 400);
+    expect(r.error).toBeTruthy();
+    expect(r.status).toBe(400);
   }
 });

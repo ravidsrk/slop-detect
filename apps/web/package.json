@@ -8,7 +8,9 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "dev": "wrangler pages dev public",
-    "deploy": "wrangler pages deploy public --project-name=slop-detector --commit-dirty=true"
+    "deploy": "wrangler pages deploy public --project-name=slop-detector --commit-dirty=true",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@cloudflare/puppeteer": "^1.1.0",
