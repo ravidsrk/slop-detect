@@ -1,6 +1,6 @@
 {
-  "name": "slop-detect-core",
-  "version": "0.7.0",
+  "name": "@slop-detect/core",
+  "version": "0.8.0",
   "description": "Pure detection engine for AI-design-slop patterns. Runtime-agnostic — runs in Node, Cloudflare Workers, or the browser.",
   "type": "module",
   "license": "MIT",
@@ -10,50 +10,32 @@
     "url": "git+https://github.com/ravidsrk/slop-detect.git",
     "directory": "packages/core"
   },
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
-    "./patterns": {
-      "types": "./dist/patterns.d.ts",
-      "default": "./dist/patterns.js"
-    },
-    "./fonts": {
-      "types": "./dist/fonts.d.ts",
-      "default": "./dist/fonts.js"
-    },
-    "./color": {
-      "types": "./dist/color.d.ts",
-      "default": "./dist/color.js"
-    },
-    "./visibility": {
-      "types": "./dist/visibility.d.ts",
-      "default": "./dist/visibility.js"
-    },
-    "./fixes": {
-      "types": "./dist/fixes.d.ts",
-      "default": "./dist/fixes.js"
-    },
-    "./aeo": {
-      "types": "./dist/aeo.d.ts",
-      "default": "./dist/aeo.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "prepack": "tsc"
+    "clean": "rm -rf dist .turbo"
   },
   "files": [
     "dist",
-    "src",
     "README.md",
-    "LICENSE",
-    "NOTICE"
+    "LICENSE"
   ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [
     "slop",
     "ai-detection",
