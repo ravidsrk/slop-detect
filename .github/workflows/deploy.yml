@@ -1,6 +1,6 @@
 name: deploy
 
-# Deploys the web app (packages/web) to Cloudflare Pages.
+# Deploys the web app (apps/web) to Cloudflare Pages.
 #
 # Two safe triggers — NEVER auto-deploys on every push to main by default:
 #   • workflow_dispatch — deploy on demand from the Actions tab.
@@ -56,5 +56,5 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: packages/web
+          workingDirectory: apps/web
           command: pages deploy public --project-name=slop-detector
