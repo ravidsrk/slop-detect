@@ -27,7 +27,11 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist .turbo"
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "sideEffects": false,
   "publishConfig": {
     "access": "public"
