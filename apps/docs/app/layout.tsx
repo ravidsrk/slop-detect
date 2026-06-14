@@ -1,9 +1,9 @@
-import type { Metadata } from "next";
-import "./globals.css";
+import type { Metadata } from 'next';
+import './globals.css';
 
 export const metadata: Metadata = {
-  title: "slop-detect docs",
-  description: "Documentation for slop-detect.",
+  title: 'slop-detect docs',
+  description: 'Documentation for slop-detect.',
 };
 
 export default function RootLayout({
