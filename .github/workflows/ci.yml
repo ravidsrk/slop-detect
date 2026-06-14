@@ -7,19 +7,62 @@ on:
     branches: [main]
 
 jobs:
-  install:
-    name: Install & format check
+  lint:
+    name: Lint & format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.5
-      - run: bun install --frozen-lockfile
+      - run: bun install
       - name: Prettier (format check)
         run: bun run format:check
 
-  # Per-package lint / typecheck / test / smoke jobs come back as the
-  # per-package configs land (tsup configs, vitest configs, composite
-  # tsconfigs). Tracked in follow-up PRs to keep this one focused on
-  # tooling foundation only.
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.5
+      - run: bun install
+      - run: bun run typecheck
+
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.5
+      - run: bun install
+      - run: bun run build
+      - run: bun run test
+
+  smoke-cli:
+    name: Smoke test CLI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.5
+      - run: bun install
+      - name: Build CLI + core
+        run: bun run --filter @slop-detect/core build && bun run --filter slop-detect build
+      - name: Install Playwright Chromium
+        run: bunx playwright install --with-deps chromium
+      - name: Scan a known-clean page (HN)
+        run: |
+          cd packages/cli
+          node dist/bin/slop.js https://news.ycombinator.com --json > result.json
+          cat result.json
+          score=$(node -e "console.log(JSON.parse(require('fs').readFileSync('result.json')).score)")
+          echo "Score: $score"
+          if [ "$score" -gt 12 ]; then
+            echo "::error::Hacker News should score Clean (< 12), got $score"
+            exit 1
+          fi

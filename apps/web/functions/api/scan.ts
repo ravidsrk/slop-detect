@@ -22,7 +22,7 @@ import {
   scoreSystemCompliance,
   scoreCopy,
   combineAxes,
-} from 'slop-detect-core';
+} from '@slop-detect/core';
 import {
   newId,
   slimResult,
