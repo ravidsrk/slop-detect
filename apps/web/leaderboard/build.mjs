@@ -4,8 +4,8 @@
 // anonymous per-IP scan limit, with backoff on 429. Writes incrementally so a
 // partial run still produces usable data.
 //
-//   node packages/web/leaderboard/build.mjs
-//   SLOP_API=https://staging.example node packages/web/leaderboard/build.mjs
+//   node apps/web/leaderboard/build.mjs
+//   SLOP_API=https://staging.example node apps/web/leaderboard/build.mjs
 //   SLOP_API_KEY=sk_live_... node ...   # a key lifts the per-IP throttle
 //
 // Output shape: { generatedAt, definitionsVersion, count, scored, stats,

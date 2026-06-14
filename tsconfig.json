@@ -5,7 +5,7 @@
     { "path": "./packages/core" },
     { "path": "./packages/cli" },
     { "path": "./packages/mcp" },
-    { "path": "./packages/web" },
+    { "path": "./apps/web" },
     { "path": "./packages/action" }
   ]
 }

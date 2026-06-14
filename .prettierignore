@@ -3,7 +3,7 @@ node_modules
 package-lock.json
 **/dist
 **/build
-packages/web/public/**
+apps/web/public/**
 assets-raw
 # Data + fixtures we want byte-stable (reformatting can change detector output)
 **/calibration/**/*.json
