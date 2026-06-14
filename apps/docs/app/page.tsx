@@ -1,20 +1,20 @@
-import Link from "next/link";
+import Link from 'next/link';
 
 const sections = [
   {
-    href: "/scoring",
-    title: "Scoring",
-    description: "The 27-pattern design slop catalogue and how pages are tiered.",
+    href: '/scoring',
+    title: 'Scoring',
+    description: 'The 27-pattern design slop catalogue and how pages are tiered.',
   },
   {
-    href: "/aeo",
-    title: "AEO",
-    description: "Whether AI engines can fetch, read, and cite your page.",
+    href: '/aeo',
+    title: 'AEO',
+    description: 'Whether AI engines can fetch, read, and cite your page.',
   },
   {
-    href: "/cli",
-    title: "CLI",
-    description: "Run scans from the terminal or wire them into CI.",
+    href: '/cli',
+    title: 'CLI',
+    description: 'Run scans from the terminal or wire them into CI.',
   },
 ];
 
