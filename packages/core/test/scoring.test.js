@@ -2,8 +2,7 @@
 // was covered before. No DOM/browser: scorePatterns/scoreCopy/combineAxes and the
 // grade/preset helpers are all pure functions.
 
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
+import { test, expect } from 'vitest';
 import {
   scorePatterns,
   scoreCopy,
@@ -14,45 +13,45 @@ import {
   PATTERNS,
   COPY_PATTERNS,
   DEFINITIONS_VERSION,
-} from '../src/index.js';
+} from '@slop-detect/core';
 
 const p = (id, weight, triggered) => ({ id, label: id, category: 'x', weight, triggered });
 
 // ── scorePatterns ────────────────────────────────────────────────────────────
 test('scorePatterns sums triggered weights and reports totals', () => {
   const r = scorePatterns([p('a', 8, true), p('b', 4, false), p('c', 6, true)]);
-  assert.equal(r.score, 14);
-  assert.equal(r.patternsFlagged, 2);
-  assert.equal(r.patternsTotal, 3);
-  assert.equal(r.definitionsVersion, DEFINITIONS_VERSION);
-  assert.ok(typeof r.verdict === 'string' && r.verdict.length > 0);
+  expect(r.score).toBe(14);
+  expect(r.patternsFlagged).toBe(2);
+  expect(r.patternsTotal).toBe(3);
+  expect(r.definitionsVersion).toBe(DEFINITIONS_VERSION);
+  expect(typeof r.verdict === 'string' && r.verdict.length > 0).toBeTruthy();
 });
 
 test('scorePatterns tier bands: Clean<10, Mild 10..27, Heavy>=28', () => {
-  assert.equal(scorePatterns([p('a', 9, true)]).tier, 'Clean');
-  assert.equal(scorePatterns([p('a', 10, true)]).tier, 'Mild');
-  assert.equal(scorePatterns([p('a', 27, true)]).tier, 'Mild');
-  assert.equal(scorePatterns([p('a', 28, true)]).tier, 'Heavy');
+  expect(scorePatterns([p('a', 9, true)]).tier).toBe('Clean');
+  expect(scorePatterns([p('a', 10, true)]).tier).toBe('Mild');
+  expect(scorePatterns([p('a', 27, true)]).tier).toBe('Mild');
+  expect(scorePatterns([p('a', 28, true)]).tier).toBe('Heavy');
 });
 
 test('scorePatterns clamps score to 100 and tier stays Heavy', () => {
   const r = scorePatterns([p('a', 80, true), p('b', 70, true)]);
-  assert.equal(r.score, 100);
-  assert.equal(r.tier, 'Heavy');
+  expect(r.score).toBe(100);
+  expect(r.tier).toBe('Heavy');
 });
 
 test('scorePatterns grade matches the score bands', () => {
-  assert.equal(scorePatterns([]).grade, 'A+'); // 0
-  assert.equal(scorePatterns([p('a', 28, true)]).grade, 'D+'); // 28
+  expect(scorePatterns([]).grade).toBe('A+'); // 0
+  expect(scorePatterns([p('a', 28, true)]).grade).toBe('D+'); // 28
 });
 
 // ── gradeForScore ────────────────────────────────────────────────────────────
 test('gradeForScore is monotonic and clamped', () => {
-  assert.equal(gradeForScore(0), 'A+');
-  assert.equal(gradeForScore(9), 'A-');
-  assert.equal(gradeForScore(100), 'F');
-  assert.equal(gradeForScore(-5), 'A+'); // clamps low
-  assert.equal(gradeForScore(99999), 'F'); // clamps high
+  expect(gradeForScore(0)).toBe('A+');
+  expect(gradeForScore(9)).toBe('A-');
+  expect(gradeForScore(100)).toBe('F');
+  expect(gradeForScore(-5)).toBe('A+'); // clamps low
+  expect(gradeForScore(99999)).toBe('F'); // clamps high
 });
 
 // ── combineAxes ──────────────────────────────────────────────────────────────
@@ -61,8 +60,8 @@ test('combineAxes takes the max when only one axis is dirty', () => {
     design: { score: 8, tier: 'Clean' },
     copy: { score: 18, tier: 'Mild' },
   });
-  assert.equal(r.unifiedScore, 18);
-  assert.equal(r.dirtyAxes, 1);
+  expect(r.unifiedScore).toBe(18);
+  expect(r.dirtyAxes).toBe(1);
 });
 
 test('combineAxes adds +6 per extra dirty axis', () => {
@@ -70,56 +69,50 @@ test('combineAxes adds +6 per extra dirty axis', () => {
     design: { score: 30, tier: 'Heavy' },
     copy: { score: 18, tier: 'Mild' },
   });
-  assert.equal(r.unifiedScore, 36); // max 30 + 6 (one extra dirty axis)
-  assert.equal(r.dirtyAxes, 2);
-  assert.equal(r.unifiedTier, 'Heavy');
+  expect(r.unifiedScore).toBe(36); // max 30 + 6 (one extra dirty axis)
+  expect(r.dirtyAxes).toBe(2);
+  expect(r.unifiedTier).toBe('Heavy');
 });
 
 test('combineAxes with all-clean axes is 0/Clean', () => {
   const r = combineAxes({ design: { score: 4, tier: 'Clean' } });
-  assert.equal(r.unifiedScore, 4);
-  assert.equal(r.dirtyAxes, 0);
+  expect(r.unifiedScore).toBe(4);
+  expect(r.dirtyAxes).toBe(0);
 });
 
 // ── scoreCopy ────────────────────────────────────────────────────────────────
 test('scoreCopy returns thin=true and Clean when there is too little prose', () => {
   const r = scoreCopy({ text: 'hello world', wordCount: 5, headings: [], paragraphs: [] });
-  assert.equal(r.thin, true);
-  assert.equal(r.score, 0);
-  assert.equal(r.tier, 'Clean');
-  assert.equal(r.patterns.length, COPY_PATTERNS.length);
+  expect(r.thin).toBe(true);
+  expect(r.score).toBe(0);
+  expect(r.tier).toBe('Clean');
+  expect(r.patterns.length).toBe(COPY_PATTERNS.length);
   // Thin text must never flag a pattern (avoids false positives on sparse pages).
-  assert.equal(
-    r.patterns.every((pp) => pp.triggered === false),
-    true
-  );
+  expect(r.patterns.every((pp) => pp.triggered === false)).toBe(true);
 });
 
 test('scoreCopy never throws and clamps to 100', () => {
   const r = scoreCopy({ text: 'x'.repeat(10), wordCount: 100, headings: [], paragraphs: [] });
-  assert.ok(r.score >= 0 && r.score <= 100);
+  expect(r.score >= 0 && r.score <= 100).toBeTruthy();
 });
 
 // ── presets ──────────────────────────────────────────────────────────────────
 test('isPreset recognises known presets only', () => {
-  assert.equal(isPreset('full'), true);
-  assert.equal(isPreset('strict'), true);
-  assert.equal(isPreset('minimal'), true);
-  assert.equal(isPreset('nope'), false);
+  expect(isPreset('full')).toBe(true);
+  expect(isPreset('strict')).toBe(true);
+  expect(isPreset('minimal')).toBe(true);
+  expect(isPreset('nope')).toBe(false);
 });
 
 test('applyPreset: full keeps all; strict keeps only weight>=5; minimal keeps 3', () => {
-  assert.equal(applyPreset(PATTERNS, 'full').length, PATTERNS.length);
+  expect(applyPreset(PATTERNS, 'full').length).toBe(PATTERNS.length);
 
   const strict = applyPreset(PATTERNS, 'strict');
-  assert.ok(strict.length < PATTERNS.length);
-  assert.equal(
-    strict.every((pp) => pp.weight >= 5),
-    true
-  );
+  expect(strict.length < PATTERNS.length).toBeTruthy();
+  expect(strict.every((pp) => pp.weight >= 5)).toBe(true);
 
   const minimal = applyPreset(PATTERNS, 'minimal');
-  assert.deepEqual(minimal.map((pp) => pp.id).sort(), [
+  expect(minimal.map((pp) => pp.id).sort()).toEqual([
     'gradient_text',
     'purple_accent',
     'slop_fonts',
@@ -127,18 +120,18 @@ test('applyPreset: full keeps all; strict keeps only weight>=5; minimal keeps 3'
 });
 
 test('applyPreset is fail-open on an unknown preset (returns full set)', () => {
-  assert.equal(applyPreset(PATTERNS, 'does-not-exist').length, PATTERNS.length);
+  expect(applyPreset(PATTERNS, 'does-not-exist').length).toBe(PATTERNS.length);
 });
 
 // ── catalogue integrity ──────────────────────────────────────────────────────
 test('every PATTERN has a unique id, a positive weight, and a detect/extract fn', () => {
   const ids = new Set();
   for (const pat of PATTERNS) {
-    assert.ok(pat.id && !ids.has(pat.id), `duplicate or missing id: ${pat.id}`);
+    expect(pat.id && !ids.has(pat.id)).toBeTruthy();
     ids.add(pat.id);
-    assert.ok(typeof pat.weight === 'number' && pat.weight > 0, `bad weight on ${pat.id}`);
-    assert.ok(typeof pat.extract === 'function', `no extract on ${pat.id}`);
+    expect(typeof pat.weight === 'number' && pat.weight > 0).toBeTruthy();
+    expect(typeof pat.extract === 'function').toBeTruthy();
   }
   // README/CLI claim 27 design patterns — keep that promise honest.
-  assert.equal(PATTERNS.length, 27);
+  expect(PATTERNS.length).toBe(27);
 });
