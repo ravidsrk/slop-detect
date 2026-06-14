@@ -32,7 +32,7 @@
     "demo": "node dist/bin/slop.js https://news.ycombinator.com https://www.aura.build https://lovable.dev"
   },
   "dependencies": {
-    "slop-detect-core": "0.7.0",
+    "@slop-detect/core": "workspace:*",
     "playwright": "^1.49.0"
   },
   "keywords": [

@@ -2,9 +2,8 @@
 // when given an isUrlAllowed hook, so a public URL can't bounce the fetcher to
 // an internal host.
 
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
-import { runAeoChecks } from '../src/aeo.js';
+import { test, expect } from 'vitest';
+import { runAeoChecks } from '@slop-detect/core';
 
 // A fetch mock that 302-redirects the main page to cloud-metadata, and returns
 // a benign 200 for everything else (robots/llms/md/etc.).
@@ -31,10 +30,10 @@ test('runAeoChecks blocks a redirect to an internal host (no internal fetch)', a
     timeoutMs: 2000,
   });
   // The internal metadata host must never have been fetched.
-  assert.ok(!seen.some((u) => u.includes('169.254.169.254')), 'must not fetch the internal host');
+  expect(seen.some((u) => u.includes('169.254.169.254'))).toBe(false);
   // And the reachability check should have failed (blocked), not silently passed.
   const reachable = report.checks.find((c) => c.id === 'html.reachable');
-  assert.equal(reachable.passed, false, 'blocked redirect → not reachable');
+  expect(reachable.passed).toBe(false);
 });
 
 test('without isUrlAllowed, behavior is unchanged (auto-follow)', async () => {
@@ -45,5 +44,5 @@ test('without isUrlAllowed, behavior is unchanged (auto-follow)', async () => {
       headers: { 'content-type': 'text/html' },
     });
   const report = await runAeoChecks('https://ok.example/', { fetchImpl, timeoutMs: 2000 });
-  assert.equal(report.checks.find((c) => c.id === 'html.reachable').passed, true);
+  expect(report.checks.find((c) => c.id === 'html.reachable').passed).toBe(true);
 });
