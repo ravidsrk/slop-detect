@@ -3,14 +3,12 @@
 // short-circuit before scanUrl() (validation, help), so these stay fast and
 // hermetic (no network, no Chromium).
 
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
+import { test, expect } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-// The CLI is TypeScript compiled to dist/; spawn the built binary (this test is
-// an integration check of the shipped artifact, run under plain node). `npm test`
-// builds first via pretest.
+// The CLI is built to dist/; spawn the built binary (this test is an integration
+// check of the shipped artifact, run under plain node). `pretest` builds first.
 const BIN = fileURLToPath(new URL('../dist/bin/slop.js', import.meta.url));
 
 function run(args) {
@@ -19,24 +17,24 @@ function run(args) {
 
 test('--help exits 0 and lists the dynamic pattern catalogue', () => {
   const r = run(['--help']);
-  assert.equal(r.status, 0);
-  assert.match(r.stdout, /AI-design-slop patterns \(defs/);
-  assert.match(r.stdout, /--fail-on <tier>/);
+  expect(r.status).toBe(0);
+  expect(r.stdout).toMatch(/AI-design-slop patterns \(defs/);
+  expect(r.stdout).toMatch(/--fail-on <tier>/);
   // The list is generated from PATTERNS — it must contain a known short name.
-  assert.match(r.stdout, /Slop fonts/);
+  expect(r.stdout).toMatch(/Slop fonts/);
 });
 
 test('invalid --fail-on value exits 2 with a clear message', () => {
   const r = run(['https://example.com', '--fail-on', 'bogus']);
-  assert.equal(r.status, 2);
-  assert.match(r.stderr, /Invalid --fail-on value/);
+  expect(r.status).toBe(2);
+  expect(r.stderr).toMatch(/Invalid --fail-on value/);
 });
 
 test('non-http(s) scheme is rejected before any scan (exit 2)', () => {
   for (const u of ['ftp://example.com', 'file:///etc/passwd', 'data:text/html,x']) {
     const r = run([u]);
-    assert.equal(r.status, 2, `expected exit 2 for ${u}`);
-    assert.match(r.stderr, /Only http\(s\) URLs can be scanned/);
+    expect(r.status).toBe(2);
+    expect(r.stderr).toMatch(/Only http\(s\) URLs can be scanned/);
   }
 });
 
@@ -44,12 +42,12 @@ test('non-http(s) scheme is rejected before any scan (exit 2)', () => {
 // signal), 2 = usage/argument error. Usage errors must NOT collide with the gate.
 test('no args prints help and exits 2 (usage error)', () => {
   const r = run([]);
-  assert.equal(r.status, 2);
-  assert.match(r.stdout, /Usage:/);
+  expect(r.status).toBe(2);
+  expect(r.stdout).toMatch(/Usage:/);
 });
 
 test('unknown flag exits 2 (usage error)', () => {
   const r = run(['https://example.com', '--nope']);
-  assert.equal(r.status, 2);
-  assert.match(r.stderr, /Unknown flag/);
+  expect(r.status).toBe(2);
+  expect(r.stderr).toMatch(/Unknown flag/);
 });
