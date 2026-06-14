@@ -73,7 +73,8 @@ const LOGIN_SCRIPT = `
       m.className='msg show';m.textContent=d.message;
     }catch(err){m.className='msg show err';m.textContent='✗ '+err.message;}
     finally{b.disabled=false;b.textContent='Email me a link';}
-  `;
+  });
+`;
 
 function sysColors(tier) {
   if (tier === 'Aligned') return '#4ade80';
