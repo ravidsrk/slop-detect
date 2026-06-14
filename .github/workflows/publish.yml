@@ -1,10 +1,10 @@
 name: publish
 
-# Publishes the npm packages (slop-detect-core, slop-detect, slop-detect-mcp)
+# Publishes the npm packages (@slop-detect/core, slop-detect, slop-detect-mcp)
 # on a release tag. This is the funnel: `npx slop-detect` only ever resolves to
 # what is on npm, so a merged-but-unpublished version is invisible to users.
 #
-# Trigger: a version tag (v0.7.1, v0.8.0, …). Cut the tag AFTER the version bump
+# Trigger: a version tag (v0.8.0, v0.8.1, …). Cut the tag AFTER the version bump
 # is on main and CHANGELOG is updated.
 #
 # Required repository secret:
@@ -13,8 +13,8 @@ name: publish
 #               no-op), so a release can never appear to succeed while npm stays
 #               stale.
 #
-# Publish order matters: `slop-detect` (CLI) pins an exact `slop-detect-core`
-# version, so core must land first.
+# Publish order matters: `slop-detect` (CLI) depends on `@slop-detect/core`,
+# so core must land first.
 
 on:
   push:
@@ -37,7 +37,9 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
-          cache: npm
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.5
 
       - name: Preflight — NPM_TOKEN present
         run: |
@@ -46,12 +48,13 @@ jobs:
             exit 1
           fi
 
-      # Workspace deps only; the publishable packages never need wrangler/sharp
-      # or playwright, so skip lifecycle scripts (keeps the runner fast + green).
-      - run: npm ci --ignore-scripts
+      - run: bun install
+
+      # Build all three publishable packages (turbo handles dependency order).
+      - run: bun run build
 
       # Gate the release on the unit suite — never publish a red build.
-      - run: npm test
+      - run: bun run test
 
       # Guard: a tag must match the versions it claims to publish. Stops a stale
       # `v0.8.0` tag from re-publishing 0.7.0 (or failing midway, half-released).
@@ -67,17 +70,20 @@ jobs:
             fi
           done
 
-      - name: Publish slop-detect-core
-        run: npm publish -w slop-detect-core --access public
+      - name: Publish @slop-detect/core
+        working-directory: packages/core
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish slop-detect (CLI)
-        run: npm publish -w slop-detect --access public
+        working-directory: packages/cli
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish slop-detect-mcp
-        run: npm publish -w slop-detect-mcp --access public
+        working-directory: packages/mcp
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
