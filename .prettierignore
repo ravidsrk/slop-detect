@@ -1,6 +1,8 @@
 # Generated / vendored — never reformat
 node_modules
 package-lock.json
+# Astro content-collections codegen (regenerated on build)
+examples/astro-blog/.astro
 **/dist
 **/build
 apps/web/public/**
