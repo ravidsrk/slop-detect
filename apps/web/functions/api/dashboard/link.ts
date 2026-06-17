@@ -17,6 +17,25 @@ function json(data, status = 200) {
   });
 }
 
+// Per-email send cap — stops address bombing while keeping the anti-enumeration
+// response identical (we skip the send silently when over limit).
+const DASHLINK_LIMIT = 3;
+const DASHLINK_WINDOW_SEC = 3600;
+
+async function dashLinkAllowed(kv, email) {
+  if (!kv) return true;
+  const key = `rl:dashlink:${email}`;
+  try {
+    const n = parseInt(await kv.get(key), 10) || 0;
+    if (n >= DASHLINK_LIMIT) return false;
+    await kv.put(key, String(n + 1), { expirationTtl: DASHLINK_WINDOW_SEC });
+    return true;
+  } catch {
+    // Fail closed on the send path when KV is unavailable.
+    return false;
+  }
+}
+
 export async function onRequestPost({ request, env, waitUntil }) {
   if (!env.RESULTS)
     return json({ error: 'dashboard_unavailable', message: 'Storage is offline.' }, 503);
@@ -50,7 +69,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
 
   try {
     const watches = await listWatchesByEmail(env.RESULTS, email);
-    if (watches.length) {
+    if (watches.length && (await dashLinkAllowed(env.RATE_LIMIT, email))) {
       // Issue + send out-of-band so the response latency is IDENTICAL whether or
       // not the address owns watches. Doing the KV write + email round-trip inline
       // would make existence measurable (a timing oracle) despite the generic

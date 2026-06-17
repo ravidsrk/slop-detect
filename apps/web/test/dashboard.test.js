@@ -144,6 +144,23 @@ test('link endpoint never reveals whether an email has watches (anti-enumeration
   expect(sent[0].text).toMatch(/\/dashboard\?token=/);
 });
 
+test('link endpoint rate-limits magic-link sends per email (anti-bombing)', async () => {
+  const sent = [];
+  globalThis.fetch = async (_url, opts) => {
+    sent.push(JSON.parse(opts.body));
+    return new Response('{}', { status: 200 });
+  };
+  const kv = makeKv({ 'w:a.com': watch('a.com', 'known@x.io') });
+  const env = { RESULTS: kv, RATE_LIMIT: kv, ...LIVE_ENV };
+
+  for (let i = 0; i < 4; i++) {
+    const res = await linkPost({ request: postReq({ email: 'known@x.io' }), env });
+    expect(res.status).toBe(200);
+    expect((await res.json()).ok).toBe(true);
+  }
+  expect(sent.length).toBe(3);
+});
+
 test('dashboard link email copy: single-use, 15 minutes, privacy', () => {
   const m = buildDashboardLinkEmail('https://slop-detect.com/dashboard?token=abc', 3);
   expect(m.text).toMatch(/token=abc/);
