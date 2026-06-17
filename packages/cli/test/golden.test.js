@@ -16,14 +16,18 @@ const fixture = (name) => new URL(`./fixtures/${name}`, import.meta.url).href;
 const triggered = (r, id) => r.patterns.find((p) => p.id === id)?.triggered === true;
 const fixtureText = (name) => readFile(new URL(`./fixtures/${name}`, import.meta.url), 'utf8');
 
-test('clean artisan page scores Clean and trips no font/purple tells', { skip: !RUN }, async () => {
-  const r = await scanUrl(fixture('clean-artisan.html'), { axes: ['design'] });
-  expect(r.tier).toBe('Clean');
-  expect(r.score).toBeLessThan(10);
-  expect(triggered(r, 'slop_fonts')).toBe(false);
-  expect(triggered(r, 'purple_accent')).toBe(false);
-  expect(triggered(r, 'gradient_text')).toBe(false);
-});
+test(
+  'clean artisan page scores Clean and trips no font/purple tells',
+  { skip: !RUN, timeout: 60_000 },
+  async () => {
+    const r = await scanUrl(fixture('clean-artisan.html'), { axes: ['design'] });
+    expect(r.tier).toBe('Clean');
+    expect(r.score).toBeLessThan(10);
+    expect(triggered(r, 'slop_fonts')).toBe(false);
+    expect(triggered(r, 'purple_accent')).toBe(false);
+    expect(triggered(r, 'gradient_text')).toBe(false);
+  }
+);
 
 test(
   'maximal VibeCode page scores out of Clean with the canonical tells',

@@ -151,9 +151,7 @@ test('global daily cap fails closed when KV read errors', async () => {
     headers: { 'CF-Connecting-IP': '203.0.113.55' },
     body: { url: 'https://x.com' },
   });
-  const res = await onRequest(
-    makeContext(req, { RATE_LIMIT: flakyKv, SCAN_DAILY_CAP: '10000' })
-  );
+  const res = await onRequest(makeContext(req, { RATE_LIMIT: flakyKv, SCAN_DAILY_CAP: '10000' }));
   expect(res.status).toBe(503);
   expect((await res.json()).error).toBe('scanning_paused');
 });
