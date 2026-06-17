@@ -113,9 +113,49 @@ test('nav/footer link the directory, leaderboard, monitor, and privacy', () => {
 // ── anti-slop: fonts stay system-distinct ────────────────────────────────────
 test('the Google Fonts request loads only the brand faces (no Inter/Geist)', () => {
   const fontsUrl = (html.match(/https:\/\/fonts\.googleapis\.com\/css2[^"]+/) || [''])[0];
-  expect(fontsUrl.includes('Hanken+Grotesk'), 'brand prose face present').toBeTruthy();
-  expect(fontsUrl.includes('Martian+Mono'), 'brand mono face present').toBeTruthy();
+  expect(fontsUrl.includes('Newsreader'), 'serif display face present').toBeTruthy();
+  expect(fontsUrl.includes('Libre+Franklin'), 'brand prose face present').toBeTruthy();
+  expect(fontsUrl.includes('JetBrains+Mono'), 'brand mono face present').toBeTruthy();
   expect(/Inter|Geist|Space\+Grotesk/.test(fontsUrl), 'no slop faces requested').toBeFalsy();
+});
+
+// ── design fidelity: the rebuilt landing wears the shared light system ───────
+test('the rebuilt landing renders the nine sections + serif centered hero', () => {
+  // the centered serif hero (the one allowed centered layout)
+  expect(html, 'serif hero headline').toMatch(/class="display-hero"/);
+  expect(html, 'the italic "generated?" hero').toMatch(/look <em>generated\?<\/em>/);
+  // the editorial sections below the hero
+  expect(html, 'stats strip').toMatch(/class="stats"/);
+  expect(html, 'leaderboard preview backlinks to score pages').toMatch(/id="lbBoard"/);
+  expect(html, 'four-axis ledger').toMatch(/class="axes"/);
+  expect(html, 'teams / continuity dark band').toMatch(/class="band"/);
+  expect(html, 'research cards').toMatch(/class="research-grid"/);
+  expect(html, 'the manifesto blockquote').toMatch(/Empty is better than fake/);
+});
+
+test('the rebuilt landing dogfoods its own detector (no slop tells)', () => {
+  // the font *tokens* resolve only to the brand faces — no slop face is ever set
+  // as a font-family (prose mentions of the rejected reflex picks are fine).
+  const fontDecls = (html.match(/--(?:serif|sans|mono):[^;]+/g) || []).join(' ');
+  expect(fontDecls).toMatch(/Newsreader/);
+  expect(fontDecls).toMatch(/Libre Franklin/);
+  expect(fontDecls).toMatch(/JetBrains Mono/);
+  expect(
+    /Inter|Geist|Space Grotesk|Hanken|Martian/.test(fontDecls),
+    'no slop face set as a font-family'
+  ).toBeFalsy();
+  // no gradient text or gradient surfaces, no background-clip text
+  expect(
+    /background-clip:\s*text|-webkit-background-clip/.test(html),
+    'no gradient text'
+  ).toBeFalsy();
+  expect(/linear-gradient|radial-gradient/.test(html), 'flat surfaces only').toBeFalsy();
+  // no VibeCode purple on a CTA: #7A4D9A exists only as a data-avatar swatch (the
+  // CHIPS palette in the leaderboard-preview JS), never on a button or accent.
+  expect(
+    /#7A4D9A/.test(html.replace(/const CHIPS = \[[^\]]*\];/g, '')),
+    'purple only in the chip palette'
+  ).toBeFalsy();
 });
 
 // ── brand unification: sub-pages share the landing identity ─────────────────
