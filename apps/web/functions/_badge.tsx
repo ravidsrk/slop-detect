@@ -1,51 +1,82 @@
 /** @jsxRuntime automatic @jsxImportSource hono/jsx */
-// Self-rendered badge SVG (shields-style, so we don't depend on shields.io).
+// Self-rendered embeddable badge SVG — no shields.io dependency.
 //
-// Relocated here from _render.tsx by foundation task 00. The visual treatment is
-// untouched — the new two-segment editorial badge is task 12's job. Tier colors
-// come from the centralized resolver in _theme.ts.
+// The two-segment editorial pill from design "Components > Live badge" + the
+// "Tier, grade, and verdict logic > Badge colors" table: a dark left segment
+// ("slop") and a tier-colored right segment ("grade · score"). Right-segment
+// colors come from the centralized resolver in _theme.ts so the badge, OG card,
+// and pages all read one source of truth.
+//
+// Relocated here from _render.tsx by foundation task 00; restyled to the new
+// editorial system by task 12. The old shields-style linear-gradient overlay is
+// dropped — a gradient is a slop tell, so the badge now passes its own detector.
 
-import { tierColors } from './_theme.js';
+import { badgeColors } from './_theme.js';
 
 export function badgeSvg(domain, slim) {
   const label = 'slop';
-  const score = slim ? slim.score : '?';
-  const grade = slim ? slim.grade : '—';
-  const tier = slim ? slim.tier : 'Unknown';
-  const c = tierColors(tier);
+  const value = slim ? `${slim.grade} · ${slim.score}` : 'no scan';
+  // Right segment: tier bg + ink from the badge-colors table; the neutral grey
+  // default (badgeColors('Unknown')) carries the "no scan" state.
+  const { bg, ink } = badgeColors(slim ? slim.tier : 'Unknown');
 
-  const value = slim ? `${grade} · ${score}` : 'no scan';
-  // Rough text-width estimate (monospace-ish, 6.6px/char + padding).
-  const labelW = 38;
-  const valueW = Math.max(46, value.length * 6.8 + 16);
-  const total = labelW + valueW;
-  const fill = slim ? c.fg : '#8a8a92';
+  // JetBrains Mono geometry. The face advances ≈ 0.6em, so ~7.25px per glyph at
+  // 12px; each segment gets 8px of horizontal breathing room on each side.
+  const fontSize = 12;
+  const charW = 7.25;
+  const padX = 8;
+  const height = 22;
+  const radius = 4; // design "Radii": 4px badge corners.
+
+  const leftW = Math.round(label.length * charW) + padX * 2;
+  const rightW = Math.round(value.length * charW) + padX * 2;
+  const pillW = leftW + rightW;
+
+  // The badge is the one surface the system allows a shadow (design "Shadows":
+  // 0 1px 2px rgba(0,0,0,0.1)). feDropShadow bleeds ~3px down and ~2px sideways,
+  // so the pill is inset inside a slightly larger canvas to avoid clipping it.
+  const mx = 2;
+  const mTop = 1;
+  const mBottom = 3;
+  const w = pillW + mx * 2;
+  const h = height + mTop + mBottom;
+  const baseline = mTop + Math.round(height / 2 + fontSize * 0.355);
+  const name = domain ? `slop score for ${domain}: ${value}` : `slop: ${value}`;
 
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      width={total}
-      height="20"
+      width={w}
+      height={h}
+      viewBox={`0 0 ${w} ${h}`}
       role="img"
-      aria-label={`${label}: ${value}`}
+      aria-label={name}
     >
-      <linearGradient id="s" x2="0" y2="100%">
-        <stop offset="0" stop-color="#bbb" stop-opacity=".1" />
-        <stop offset="1" stop-opacity=".1" />
-      </linearGradient>
-      <clipPath id="r">
-        <rect width={total} height="20" rx="3" fill="#fff" />
-      </clipPath>
-      <g clip-path="url(#r)">
-        <rect width={labelW} height="20" fill="#1a1a1d" />
-        <rect x={labelW} width={valueW} height="20" fill={fill} />
-        <rect width={total} height="20" fill="url(#s)" />
+      <title>{name}</title>
+      <defs>
+        <clipPath id="r">
+          <rect x={mx} y={mTop} width={pillW} height={height} rx={radius} />
+        </clipPath>
+        <filter id="sh" x="-20%" y="-20%" width="140%" height="160%">
+          <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000000" flood-opacity="0.1" />
+        </filter>
+      </defs>
+      <g filter="url(#sh)">
+        <g clip-path="url(#r)">
+          <rect x={mx} y={mTop} width={leftW} height={height} fill="#16170F" />
+          <rect x={mx + leftW} y={mTop} width={rightW} height={height} fill={bg} />
+        </g>
       </g>
-      <g text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">
-        <text x={labelW / 2} y="14" fill="#fff">
+      <g
+        font-family="'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"
+        font-size={fontSize}
+        font-weight="700"
+        text-anchor="middle"
+      >
+        <text x={mx + leftW / 2} y={baseline} fill="#F4F5F2">
           {label}
         </text>
-        <text x={labelW + valueW / 2} y="14" fill="#0a0a0b" font-weight="bold">
+        <text x={mx + leftW + rightW / 2} y={baseline} fill={ink}>
           {value}
         </text>
       </g>
