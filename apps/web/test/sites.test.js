@@ -162,7 +162,10 @@ test('/directory renders a DOFOLLOW backlink to each listed site', async () => {
   expect(html, 'the backlink must be dofollow').not.toMatch(/rel=["']?nofollow/i);
   expect(html, 'emits ItemList JSON-LD for SEO').toMatch(/application\/ld\+json/);
   // Anti-slop self-check: the directory must not wear the tells it detects.
-  expect(html, 'no slop fonts').not.toMatch(/Inter|Geist|Space Grotesk/i);
+  // Case-sensitive on the font names (matching ui.test.js): the page embeds the
+  // shared UI_CSS, whose `cursor:pointer` contains a lowercase "inter" substring
+  // that an /i match would false-flag. The real slop faces are always capitalized.
+  expect(html, 'no slop fonts').not.toMatch(/Inter|Geist|Space Grotesk/);
   expect(html, 'no gradient text').not.toMatch(/background-clip:\s*text/i);
 });
 
