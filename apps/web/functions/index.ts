@@ -19,7 +19,7 @@ function agentView() {
     url: ORIGIN,
     license: 'MIT',
     repository: 'https://github.com/ravidsrk/slop-detect',
-    version: '0.7.0',
+    version: '0.8.0',
     catalogue: {
       definitionsVersion: DEFINITIONS_VERSION,
       patternCount: PATTERNS.length,
