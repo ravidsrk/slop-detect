@@ -133,7 +133,7 @@ export async function onRequestGet({ params, request }) {
             Machine-readable twin: <a href={`${url}.md`}>{`${post.slug}.md`}</a>
           </div>
         </main>
-        <Footer origin={origin} domain={post.slug} />
+        <Footer origin={origin} />
       </body>
     </html>
   );
