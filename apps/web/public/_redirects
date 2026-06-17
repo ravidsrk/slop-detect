@@ -1,3 +1,9 @@
-# The homepage is the hub now (dark, scan + live stats + leaderboard). The old
-# light /landing/ page is retired; send it and its assets to the root.
+# The homepage is the hub now (light editorial system: scan + live stats +
+# leaderboard preview + monitoring). The old /landing/ page and its woff2 fonts
+# are retired; send the path and its assets to the root.
 /landing/* / 301
+
+# /methodology is the legacy name for the methodology reference, now served at
+# /docs. Owned here so the docs task does not also touch _redirects.
+/methodology /docs 301
+/methodology/* /docs 301

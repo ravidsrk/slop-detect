@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Slop Detector: score any landing page against the AI-design fingerprint</title>
-<meta name="description" content="Paste a URL. Get a 0 to 100 slop score in 5 seconds. A deterministic, weighted fingerprint of the CSS tells Cursor, v0, Lovable and Bolt all converged on.">
+<meta name="description" content="Paste a URL. Get a 0 to 100 slop score in about eight seconds. A deterministic, weighted fingerprint of the CSS tells Cursor, v0, Lovable and Bolt all converged on.">
 <meta property="og:title" content="Slop Detector: how AI-generated does your landing page look?">
 <meta property="og:description" content="Deterministic design and copy slop patterns. Real Chromium. 0 to 100 score.">
 <meta property="og:type" content="website">
@@ -14,20 +14,20 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Slop Detector: score any landing page against the AI-design fingerprint">
 <meta name="twitter:description" content="Cursor, v0, Lovable and Bolt all collapsed onto the same CSS tells. Paste a URL, get a score.">
-<meta name="twitter:image" content="https://slop-detect.com/og.png">
 <link rel="canonical" href="https://slop-detect.com/">
 <link rel="alternate" type="text/markdown" href="/index.md" title="Markdown version">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="apple-touch-icon" href="/favicon.png">
-<!-- Fonts chosen via the brand font-selection procedure, NOT by reflex.
-     Voice: forensic, deterministic, unsentimental. The reflex picks (Inter,
-     Geist, IBM Plex Mono) are exactly the families this tool flags as slop, so
-     they are rejected on principle. Hanken Grotesk carries the prose; Martian
-     Mono is the machine's instrument readout (grades, scores, labels, code). -->
+<!-- Fonts chosen via the brand font-selection procedure, NOT by reflex. The
+     reflex picks (Inter, Geist, Space Grotesk) are exactly the families this tool
+     flags as slop, so they are rejected on principle. Newsreader is the serif
+     display voice; Libre Franklin (a grotesque "pointedly not Inter") carries the
+     prose; JetBrains Mono is the machine's instrument readout. Mirrors
+     BRAND_FONTS_HEAD in functions/_brand.ts — one font system across every surface. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Martian+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Libre+Franklin:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <!--
   JSON-LD structured data. A single @graph so AI agents can parse identity,
   offering, FAQs, breadcrumbs, and entity links (sameAs) in one pass. Deliberately
@@ -119,7 +119,7 @@
           "name": "What does Slop Detector do?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "It scores any landing page against the AI-design slop fingerprint — a deterministic, weighted 0–100 measure of the CSS and copy tells that AI page builders (Cursor, v0, Lovable, Bolt) converge on. Paste a URL and get a score in about five seconds, run on real headless Chromium."
+            "text": "It scores any landing page against the AI-design slop fingerprint — a deterministic, weighted 0–100 measure of the CSS and copy tells that AI page builders (Cursor, v0, Lovable, Bolt) converge on. Paste a URL and get a score in about eight seconds, run on real headless Chromium."
           }
         },
         {
@@ -182,7 +182,7 @@
       "about": { "@id": "https://slop-detect.com/#app" },
       "speakable": {
         "@type": "SpeakableSpecification",
-        "cssSelector": [".hero h1", ".hero .lead"]
+        "cssSelector": [".hero h1", ".hero-reassure"]
       }
     }
   ]
@@ -191,1151 +191,595 @@
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <style>
   /* ──────────────────────────────────────────────────────────────────────────
-     Anti-slop by construction. This page is scored by its own engine, so it
-     deliberately avoids the tells it detects: no gradient text, no gradient or
-     aurora backgrounds, no glassmorphism, no colored glows, no centered hero,
-     no eyebrow pill, no numbered-step circles, no icon-card grid, no big-number
-     stat banner, no crushed/wide tracking, no side-stripe borders, no em dashes.
-     The voice is a forensic instrument: Hanken Grotesk prose, Martian Mono
-     readouts, one cold-blue accent, neutrals tinted toward that hue. Numbered
-     section registration marks carry the lab-report identity.
+     The light editorial-instrument system. Token values mirror
+     functions/_brand.ts (BRAND_CSS) and the shared component CSS in
+     functions/_ui.tsx (UI_CSS) so this static page reads as the SAME product as
+     the server-rendered surfaces. If `/` is later converted to a function it can
+     import the foundation directly.
+
+     Dogfood by construction: this page is scored by its own engine, so it avoids
+     every tell it detects — no AI-default fonts, no purple CTA (primary is ink
+     going to green), no gradient text or backgrounds, flat 1px-bordered surfaces,
+     and the structural 1.5px ink ledger rule as the only ruled device. The one
+     centered layout (the hero) is set in a serif on purpose; the slop tell needs a
+     centered sans.
      ────────────────────────────────────────────────────────────────────────── */
-  :root {
-    /* Neutrals tinted toward the brand hue (cold blue), never pure black/white. */
-    --bg: #0a0b0e;
-    --bg-2: #0e1014;
-    --panel: #131620;
-    --panel-2: #1a1e2a;
-    --border: #262b38;
-    --border-2: #353c4d;
-    --text: #f2f4f8;
-    --text-2: #c2c7d2;
-    --muted: #9aa1b1;
-    --dim: #6f7689;
-    --accent: #5b9dff;
-    --accent-soft: rgba(91,157,255,0.10);
-    --accent-ink: #06080d;
-    --green: #4ade80;
-    --yellow: #fbbf24;
-    --red: #f87171;
-    --maxw: 940px;
-    --sans: "Hanken Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    --mono: "Martian Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    /* Fluid modular scale (>=1.25 ratio between steps). */
-    --t-h1: clamp(2.3rem, 1.4rem + 4.2vw, 4rem);
-    --t-h2: clamp(1.45rem, 1.15rem + 1.4vw, 2rem);
-    --t-lead: clamp(1.08rem, 0.98rem + 0.55vw, 1.3rem);
+  :root{
+    color-scheme:light;
+    --bg:#F4F5F2; --bg-2:#EEF0EB; --panel:#FBFBF9; --panel-2:#FBFBF9;
+    --ink-deep:#16170F; --ink-deeper:#0F0F0B;
+    --border:#DBDDD6; --border-2:#E4E6DF; --row:#E7E8E2; --row-inner:#EDEEE8;
+    --border-btn:#C9CBC3; --border-chip:#D7D9D2; --track:#E2E4DD; --neutral:#CDCFC8;
+    --text:#181815; --text-2:#3A3B33; --text-3:#46473F; --text-4:#6E6F63;
+    --text-5:#7E7F72; --text-6:#9A9B8E;
+    --clean:#1FA85E; --mild:#D89A2E; --heavy:#C9402E;
+    --clean-text:#15824A; --mild-text:#9A6B12; --heavy-text:#B23A2A;
+    --system-text:#2C6E8F; --clean-dark:#3FBE7A;
+    --d-text:#F4F5F2; --d-text-2:#C9CABF; --d-text-3:#B6B7AC; --d-text-4:#8A8B7E;
+    --d-border:#2A2B22; --d-border-2:#3A3B30;
+    --serif:'Newsreader',Georgia,'Times New Roman',serif;
+    --sans:'Libre Franklin',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+    --pad-x:32px;
+    --maxw:1120px;
+    --fs-display-hero:clamp(44px,6.2vw,88px);
+    --fs-h2-a:clamp(30px,4vw,52px);
+    --fs-h2-b:clamp(28px,3.6vw,42px);
+    --fs-h2-c:clamp(26px,3.2vw,38px);
+    --fs-h3:28px; --fs-lead:19px; --fs-quote-lg:clamp(20px,2.4vw,26px);
+    --t:140ms ease;
+    --shadow-badge:0 1px 2px rgba(0,0,0,0.1);
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
-  html, body { background: var(--bg); color: var(--text); }
-  body {
-    font-family: var(--sans);
-    font-size: 16px;
-    line-height: 1.65;
-    -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
-    min-height: 100vh;
-  }
-  a { color: var(--accent); text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  code, .mono { font-family: var(--mono); }
-  /* Martian Mono ships loose + wide. Lowercase / mixed-case mono gets pulled in
-     hard so it reads as a precise instrument, not spaced-out decoration.
-     Uppercase labels keep a touch more room (caps want tracking). */
-  .mono, code, .sample-bar, .sample-dom,
-  .pat-label, .score-meta, .scale-note, .embed-snippet,
-  .examples > span, .examples button, .status, .result-url, .share-box h4 {
-    letter-spacing: -0.05em;
-  }
-  .kicker, .block-note { letter-spacing: -0.065em; }
-  ::selection { background: rgba(91,157,255,0.25); }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:16px;line-height:1.6;min-height:100vh}
+  a{color:inherit;text-decoration:none}
+  input{outline:none;font-family:inherit}
+  ::selection{background:#1FA85E;color:#fff}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
-  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  /* type helpers */
+  .serif{font-family:var(--serif)}
+  .mono{font-family:var(--mono)}
+  .display-hero{font-family:var(--serif);font-weight:500;font-size:var(--fs-display-hero);line-height:0.98;letter-spacing:-0.02em;color:var(--text)}
+  .mono-eyebrow{font-family:var(--mono);font-size:13px;color:var(--clean-text);letter-spacing:0}
+  .lead{font-size:var(--fs-lead);line-height:1.6;color:var(--text-2)}
 
-  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+  /* the signature 1.5px ink section-ledger rule (structural, not a stripe) */
+  .section-ledger{border-top:1.5px solid #181815;padding-top:14px}
+  .ledger-tag{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--clean-text);margin-right:10px}
+  .ledger-label{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text-4);letter-spacing:0}
 
-  /* ── Top bar ─────────────────────────────────────────────────────────────── */
-  /* Opaque nav: no backdrop-filter blur (the engine flags glass), so content
-     never shows through when it scrolls under the sticky bar. */
-  .topbar {
-    border-bottom: 1px solid var(--border);
-    background: var(--bg);
-    position: sticky; top: 0; z-index: 50;
-  }
-  /* Anchor targets land below the sticky nav, never clipped under it. */
-  #fingerprint, #how, .rules-block, #rulesDetails { scroll-margin-top: 76px; }
-  .topbar-inner {
-    max-width: var(--maxw); margin: 0 auto; padding: 14px 24px;
-    display: flex; align-items: center; justify-content: space-between; gap: 16px;
-  }
-  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; letter-spacing: -0.01em; }
-  .brand .glyph {
-    width: 22px; height: 22px; border-radius: 5px;
-    border: 1px solid var(--border-2); background: var(--panel);
-    display: grid; place-items: center; font-family: var(--mono);
-    font-size: 13px; color: var(--accent);
-  }
-  .topbar-links { display: flex; align-items: center; gap: 18px; font-size: 14px; }
-  .topbar-links a { color: var(--muted); display: inline-flex; align-items: center; }
-  .topbar-links a:hover { color: var(--text); text-decoration: none; }
-  @media (max-width: 560px) {
-    .topbar-links .hide-sm { display: none; }
-    /* Remaining nav link (GitHub) gets a full 44px tap target on mobile. */
-    .topbar-links a { min-height: 44px; }
+  /* focus, press, disabled, reduced-motion (a11y) */
+  :focus-visible{outline:2px solid #1FA85E;outline-offset:2px;border-radius:2px}
+  button:active,a.btn:active{filter:brightness(0.92)}
+  button:disabled,button[disabled],input:disabled{opacity:0.5;cursor:not-allowed;filter:saturate(0.7)}
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:0.001ms !important;animation-iteration-count:1 !important;transition-duration:0.001ms !important;scroll-behavior:auto !important}
   }
 
-  /* ── Hero (left-aligned on purpose — centered hero is a slop tell) ─────────── */
-  .hero { padding: 72px 0 28px; }
-  .hero-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 340px;
-    gap: 44px;
-    align-items: start;
-  }
-  .hero-left { min-width: 0; }
-  /* Sample readout fills the right side and demos the output before you scan. */
-  .hero-sample {
-    background: var(--panel);
-    border: 1px solid var(--border-2);
-    border-radius: 14px;
-    overflow: hidden;
-    position: sticky; top: 84px;
-  }
-  .sample-bar {
-    display: flex; align-items: center; gap: 8px;
-    padding: 11px 14px; border-bottom: 1px solid var(--border);
-    font-family: var(--mono); font-size: 12px; color: var(--dim);
-  }
-  .sample-bar .dots { display: flex; gap: 5px; }
-  .sample-bar .dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--border-2); }
-  .sample-bar .tag { margin-left: auto; color: var(--muted); }
-  .sample-body { padding: 16px 18px; }
-  .sample-dom { font-family: var(--mono); font-size: 12.5px; color: var(--muted); word-break: break-all; }
-  .sample-score { display: flex; align-items: center; gap: 14px; margin-top: 12px; }
-  .sample-grade { font-family: var(--mono); font-size: 50px; font-weight: 800; line-height: 0.8; letter-spacing: -0.04em; color: var(--yellow); }
-  .sample-num { font-family: var(--mono); font-size: 26px; font-weight: 700; line-height: 1; }
-  .sample-num small { font-size: 14px; color: var(--muted); font-weight: 500; }
-  .sample-pill {
-    margin-left: auto; font-size: 13px; font-weight: 600; padding: 4px 11px;
-    border-radius: 999px; border: 1px solid var(--yellow); color: var(--yellow);
-  }
-  .sample-track { margin-top: 13px; height: 6px; background: var(--panel-2); border-radius: 3px; overflow: hidden; }
-  .sample-track i { display: block; height: 100%; width: 34%; background: var(--yellow); border-radius: 3px; }
-  .sample-rows { margin-top: 15px; display: flex; flex-direction: column; gap: 7px; }
-  .sample-row { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--text-2); }
-  .sample-row .d { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-  .sample-row.bad .d { background: var(--red); }
-  .sample-row.ok .d { background: var(--dim); }
-  .sample-row .w { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--dim); }
-  .sample-row.bad .w { color: var(--red); }
-  .sample-foot { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 12px; color: var(--dim); }
-  @media (max-width: 860px) {
-    .hero-grid { grid-template-columns: 1fr; gap: 28px; }
-    .hero-sample { display: none; }
-  }
-  .kicker {
-    font-family: var(--mono);
-    font-size: 11.5px;
-    color: var(--muted);
-    letter-spacing: -0.04em;
-    margin-bottom: 20px;
-    display: flex; gap: 9px; align-items: center; flex-wrap: wrap;
-  }
-  /* Two groups that never break internally; the page wraps between them as a
-     unit. Below the wrap width the connecting group separator is hidden so no
-     orphaned "·" dangles at the line break. */
-  .kicker .ki { display: inline-flex; align-items: center; gap: 9px; white-space: nowrap; }
-  .kicker .sep { color: var(--border-2); font-style: normal; }
-  .kicker b { color: var(--accent); font-weight: 600; }
-  @media (max-width: 480px) { .kicker .gsep { display: none; } }
-  h1 {
-    font-size: var(--t-h1);
-    font-weight: 800;
-    line-height: 1.02;
-    letter-spacing: -0.035em;
-    max-width: 15ch;
-  }
-  h1 .accent { color: var(--accent); }
-  .lead {
-    margin-top: 22px;
-    font-size: var(--t-lead);
-    line-height: 1.55;
-    color: var(--text-2);
-    max-width: 58ch;
-  }
-  .lead a { border-bottom: 1px solid var(--border-2); }
-  .lead a:hover { text-decoration: none; border-color: var(--accent); }
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 var(--pad-x)}
 
-  /* ── Scan form (the strongest existing component — kept, refined) ──────────── */
-  .form {
-    margin-top: 32px;
-    display: flex;
-    gap: 8px;
-    background: var(--panel);
-    border: 1px solid var(--border-2);
-    border-radius: 12px;
-    padding: 7px;
-    max-width: 620px;
-    transition: border-color 0.15s;
-  }
-  .form:focus-within { border-color: var(--accent); }
-  .form input {
-    flex: 1;
-    background: transparent;
-    border: 0;
-    color: var(--text);
-    font-size: 16px;
-    padding: 11px 13px;
-    outline: none;
-    font-family: var(--mono);
-  }
-  .form input::placeholder { color: var(--dim); }
-  .form button {
-    background: var(--text);
-    color: var(--accent-ink);
-    border: 0;
-    border-radius: 8px;
-    padding: 11px 22px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: inherit;
-    transition: transform 0.08s, opacity 0.1s;
-  }
-  .form button:hover { opacity: 0.9; }
-  .form button:active { transform: translateY(1px); }
-  .form button:disabled { opacity: 0.5; cursor: wait; }
-  /* Small phones: trim the button so the URL input keeps usable width. */
-  @media (max-width: 420px) {
-    .form input { padding: 11px 10px; }
-    .form button { padding: 11px 16px; }
-  }
+  /* ── navigation ─────────────────────────────────────────────────────────── */
+  .nav{position:sticky;top:0;z-index:50;background:rgba(244,245,242,0.92);border-bottom:1px solid var(--border)}
+  .nav-inner{max-width:var(--maxw);margin:0 auto;padding:13px var(--pad-x);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .logo{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+  .logo-mark{display:inline-flex;line-height:0}
+  .logo-word{font-family:var(--mono);font-weight:700;font-size:15px;letter-spacing:-0.01em;color:var(--text)}
+  .nav-links{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+  .nav-link{font-family:var(--mono);font-size:13px;color:var(--text-3)}
+  .nav-link:hover{color:var(--text)}
+  .nav-gh{font-family:var(--mono);font-size:13px;color:var(--text);border:1px solid var(--border-btn);padding:6px 12px;border-radius:2px}
+  .nav-gh:hover{border-color:var(--text)}
+  #fingerprint,#monitor,#top{scroll-margin-top:72px}
 
-  #turnstile-host:empty { margin: 0 !important; }
+  /* ── scan input (the primary action) ────────────────────────────────────── */
+  .scan{display:flex;align-items:stretch;overflow:hidden;background:var(--panel);border:1px solid var(--text);border-radius:4px}
+  .scan-prefix{display:inline-flex;align-items:center;font-family:var(--mono);font-size:15px;color:var(--mild-text);padding-left:14px}
+  .scan-input{flex:1;min-width:0;border:0;background:transparent;font-family:var(--mono);font-size:15px;color:var(--text);padding:13px 12px;text-align:left}
+  .scan-input::placeholder{color:var(--text-5)}
+  .scan-go{border:0;cursor:pointer;background:var(--text);color:var(--d-text);font-family:var(--mono);font-size:14px;padding:0 22px;white-space:nowrap;transition:var(--t)}
+  .scan-go:hover{background:var(--clean-text)}
+  .scan-go:disabled{cursor:wait}
 
-  .examples {
-    margin-top: 14px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 7px;
-    font-size: 14px;
-    color: var(--muted);
-    align-items: center;
-  }
-  .examples > span { color: var(--dim); font-family: var(--mono); font-size: 13px; }
-  .examples button {
-    background: var(--panel);
-    color: var(--text-2);
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    padding: 5px 12px;
-    font-size: 13px;
-    cursor: pointer;
-    font-family: var(--mono);
-    transition: border-color 0.12s, color 0.12s;
-  }
-  .examples button:hover { border-color: var(--accent); color: var(--text); }
-  /* Touch viewports: chips need a >=44px tap target (WCAG 2.5.5 / Apple HIG). */
-  @media (max-width: 560px) {
-    .examples { gap: 9px; }
-    .examples button { padding: 11px 14px; font-size: 14px; }
-  }
+  /* ── buttons ────────────────────────────────────────────────────────────── */
+  .btn{display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:500;line-height:1;border:1px solid transparent;border-radius:3px;cursor:pointer;text-align:center;transition:var(--t)}
+  .btn-primary{background:var(--text);color:var(--d-text);font-size:14px;padding:14px 24px}
+  .btn-primary:hover{background:var(--clean-text)}
+  .btn-outline{background:transparent;color:var(--text);border-color:var(--border-btn);font-size:14px;padding:13px 24px}
+  .btn-outline:hover{border-color:var(--text)}
+  .btn-monitor{background:var(--clean);color:#0A2A18;font-weight:700;font-size:13px;padding:12px 22px}
+  .btn-monitor:hover{background:var(--clean-dark)}
 
-  .status {
-    margin-top: 26px;
-    color: var(--muted);
-    font-size: 15px;
-    display: none;
-    font-family: var(--mono);
-  }
-  .status.show { display: block; }
-  .status::before { content: "\203A  "; color: var(--accent); }
-  .status.error { color: var(--red); }
-  .status.error::before { content: ""; }
+  /* ── sample chip ────────────────────────────────────────────────────────── */
+  .chip{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-family:var(--mono);font-size:12.5px;color:var(--text-2);background:var(--panel);border:1px solid var(--border-chip);border-radius:999px;padding:5px 13px;cursor:pointer}
+  .chip:hover{border-color:var(--text)}
+  .chip-dot{width:7px;height:7px;border-radius:50%;flex:none}
 
-  /* ── Section scaffolding — editorial 2-col: heading pinned left, content right.
-     This fills horizontal space deliberately (Stripe/Linear pattern) instead of
-     leaving an accidental void to the right of a narrow text column. ─────────── */
-  section.block { padding: 30px 0; }
-  .block-grid {
-    display: grid;
-    grid-template-columns: 230px minmax(0, 1fr);
-    gap: 40px;
-    align-items: start;
-  }
-  .block-head { position: sticky; top: 84px; }
-  .block-note {
-    margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);
-    font-family: var(--mono); font-size: 11px; color: var(--dim);
-    line-height: 1.9; letter-spacing: -0.045em;
-  }
-  .block-note b { color: var(--muted); font-weight: 600; }
-  .divider { border: 0; border-top: 1px solid var(--border); margin: 4px 0; }
-  /* Section registration mark: a numbered lab-report index, not a "// " eyebrow.
-     The number IS the identity; it ties each section to a forensic record. */
-  .eyebrow {
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--accent);
-    margin-bottom: 14px;
-    letter-spacing: 0;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .eyebrow .reg {
-    color: var(--accent);
-    border: 1px solid var(--border-2);
-    background: var(--accent-soft);
-    border-radius: 5px;
-    padding: 2px 7px;
-    font-variant-numeric: tabular-nums;
-  }
-  /* Lowercase, not all-caps: the engine flags wide-tracked uppercase labels as a
-     tell, and this tool must dogfood its own rules. Lowercase reads more bespoke. */
-  .eyebrow .reg-label { color: var(--muted); font-weight: 500; letter-spacing: -0.04em; }
-  h2 {
-    font-size: var(--t-h2);
-    font-weight: 700;
-    letter-spacing: -0.025em;
-    line-height: 1.12;
-    margin-bottom: 10px;
-  }
-  .block p.body { color: var(--text-2); max-width: 62ch; font-size: 16px; }
-  .block p.body + p.body { margin-top: 12px; }
-  @media (max-width: 760px) {
-    .block-grid { grid-template-columns: 1fr; gap: 18px; }
-    .block-head { position: static; }
-  }
+  /* ── stats strip ────────────────────────────────────────────────────────── */
+  .stats{border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg-2);padding:18px var(--pad-x);display:flex;justify-content:center;align-items:baseline;flex-wrap:wrap;gap:8px;font-family:var(--mono);font-size:13px;color:var(--text-3);text-align:center}
+  .stats-num{font-weight:500;color:var(--text)}
+  #hubStats[hidden]{display:none}
+  #hubStats:not([hidden]) ~ .stats-default{display:none}
 
-  /* What it checks — a clean two-column definition list, NOT an icon-card grid */
-  .checks {
-    margin-top: 22px;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1px;
-    background: var(--border);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    overflow: hidden;
-  }
-  .check {
-    background: var(--panel);
-    padding: 18px 20px;
-  }
-  .check h3 {
-    font-size: 15px;
-    font-weight: 600;
-    margin-bottom: 5px;
-    display: flex; align-items: baseline; gap: 8px;
-  }
-  .check h3 .n { font-family: var(--mono); font-size: 12px; color: var(--accent); }
-  .check p { font-size: 14px; color: var(--muted); line-height: 1.5; }
-  /* Collapse to one column once the section's content track narrows (the block
-     grid keeps its 230px rail until 760px, so 2-col cards choke in the 760-860
-     tablet band). One full-width column reads cleanly there. */
-  @media (max-width: 860px) { .checks { grid-template-columns: 1fr; } }
+  /* ── letter avatar + leaderboard row ────────────────────────────────────── */
+  .av{display:inline-flex;align-items:center;justify-content:center;flex:none;color:var(--panel);font-family:var(--mono);font-weight:700;border-radius:5px;width:20px;height:20px;font-size:10px}
+  .lr{display:grid;grid-template-columns:16px 1fr auto;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid var(--row)}
+  .lr:hover{background:var(--bg-2)}
+  .lr-rank{font-family:var(--mono);font-size:12px;color:var(--text-6);text-align:right}
+  .lr-name{display:flex;align-items:center;gap:9px;min-width:0}
+  .lr-dom{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+  .lr-score{font-family:var(--mono);font-size:13px;color:var(--text-3);white-space:nowrap}
+  .lr-grade{font-weight:700}
 
-  /* Pipeline — described as a flow, not numbered-circle slop steps */
-  .pipeline {
-    margin-top: 0;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-  }
-  .step {
-    display: flex; gap: 15px; padding: 18px 20px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    transition: border-color 0.15s;
-  }
-  .step:hover { border-color: var(--border-2); }
-  .step .marker {
-    flex-shrink: 0; align-self: flex-start;
-    font-family: var(--mono); font-size: 10.5px; font-weight: 600;
-  }
-  .step .marker b {
-    display: inline-block; color: var(--accent); font-weight: 600;
-    border: 1px solid var(--border-2); background: var(--accent-soft);
-    border-radius: 5px; padding: 3px 8px; letter-spacing: -0.03em;
-  }
-  .step .desc h3 { font-size: 15px; font-weight: 600; margin-bottom: 3px; }
-  .step .desc p { font-size: 14px; color: var(--muted); }
-  /* Same as .checks: collapse before the tablet band crushes the cards. */
-  @media (max-width: 860px) { .pipeline { grid-template-columns: 1fr; } }
-  .tiers-inline { display: inline-flex; gap: 14px; flex-wrap: wrap; }
-  .tiers-inline b { font-weight: 600; }
-  .t-clean { color: var(--green); } .t-mild { color: var(--yellow); } .t-heavy { color: var(--red); }
+  /* ── hero (the one allowed centered layout — serif) ─────────────────────── */
+  .hero{max-width:var(--maxw);margin:0 auto;padding:96px var(--pad-x) 56px;text-align:center}
+  .hero-eyebrow{margin-bottom:22px;color:var(--text-4)}
+  .hero-eyebrow b{color:var(--clean-text);font-weight:400}
+  .hero h1{max-width:14ch;margin:0 auto}
+  .hero h1 em{font-style:italic;color:var(--text-3)}
+  .hero-scan{max-width:560px;margin:30px auto 0}
+  #turnstile-host{margin-top:12px;display:flex;justify-content:center}
+  #turnstile-host:empty{margin:0}
+  .hero-reassure{margin-top:14px;font-family:var(--mono);font-size:13px;color:var(--text-4)}
+  .hero-chips{margin-top:20px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+  .hero-chips button{font:inherit;font-family:var(--mono);font-size:12.5px}
 
-  /* ── Result (preserves every class render() emits) ─────────────────────────── */
-  .result { margin-top: 28px; display: none; scroll-margin-top: 80px; }
-  .result.show { display: block; animation: rise 0.4s cubic-bezier(.2,.7,.2,1); }
-  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  /* status + result live where the scan happens */
+  .status{margin:26px auto 0;max-width:720px;color:var(--text-4);font-size:15px;display:none;font-family:var(--mono);text-align:left}
+  .status.show{display:block}
+  .status::before{content:"\203A  ";color:var(--clean-text)}
+  .status.error{color:var(--heavy-text)}
+  .status.error::before{content:""}
+  .result{margin:28px auto 0;max-width:720px;display:none;text-align:left;scroll-margin-top:80px}
+  .result.show{display:block;animation:rise 0.4s cubic-bezier(.2,.7,.2,1)}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
-  .result-head {
-    background: var(--panel);
-    border: 1px solid var(--border-2);
-    border-radius: 14px;
-    padding: 24px 26px;
-    margin-bottom: 16px;
-  }
-  .result-url {
-    font-size: 13px;
-    color: var(--muted);
-    margin-bottom: 6px;
-    word-break: break-all;
-    font-family: var(--mono);
-  }
-  .result-title { font-size: 19px; font-weight: 600; margin-bottom: 4px; letter-spacing: -0.01em; }
-  .result-h1 { font-size: 13px; color: var(--dim); }
+  /* ── result head + score ────────────────────────────────────────────────── */
+  .result-head{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:24px 26px;margin-bottom:16px}
+  .result-url{font-family:var(--mono);font-size:13px;color:var(--text-4);margin-bottom:6px;word-break:break-all}
+  .result-title{font-size:18px;font-weight:600;margin-bottom:4px;letter-spacing:-0.01em}
+  .result-h1{font-family:var(--mono);font-size:12.5px;color:var(--text-5)}
+  .score-row{display:flex;align-items:center;gap:22px;margin-top:20px;padding-top:20px;border-top:1px solid var(--border)}
+  .score-grade{font-family:var(--serif);font-weight:500;font-size:64px;letter-spacing:-0.03em;line-height:0.82}
+  .grade-Clean{color:var(--clean-text)} .grade-Mild{color:var(--mild-text)} .grade-Heavy{color:var(--heavy-text)}
+  .score-num{font-family:var(--serif);font-weight:500;font-size:44px;letter-spacing:-0.02em;line-height:1;color:var(--text)}
+  .score-num small{font-family:var(--mono);font-size:16px;color:var(--text-6);font-weight:400}
+  .scale-note{font-family:var(--mono);font-size:11px;color:var(--text-6);margin-top:4px}
+  .score-tier{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:0.02em;padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--panel)}
+  .tier-Clean{color:var(--clean-text)} .tier-Mild{color:var(--mild-text)} .tier-Heavy{color:var(--heavy-text)}
+  .score-meta{font-family:var(--mono);color:var(--text-3);font-size:13px;margin-left:auto;text-align:right}
+  .score-bar{margin-top:16px;height:7px;background:var(--track);border-radius:4px;overflow:hidden}
+  .score-bar-fill{height:100%;border-radius:4px;transition:width 0.7s cubic-bezier(.2,.7,.2,1)}
+  .fill-Clean{background:var(--clean)} .fill-Mild{background:var(--mild)} .fill-Heavy{background:var(--heavy)}
+  .score-verdict{margin-top:16px;font-family:var(--serif);font-style:italic;font-size:18px;line-height:1.4;color:var(--text-3)}
 
-  .score-row {
-    display: flex;
-    align-items: center;
-    gap: 22px;
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px solid var(--border);
-  }
-  .score-grade {
-    font-size: 68px;
-    font-weight: 800;
-    letter-spacing: -0.04em;
-    line-height: 0.82;
-    font-family: var(--mono);
-  }
-  .grade-Clean { color: var(--green); }
-  .grade-Mild  { color: var(--yellow); }
-  .grade-Heavy { color: var(--red); }
-  .score-num {
-    font-size: 40px;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    line-height: 1;
-    font-family: var(--mono);
-  }
-  .score-num small { font-size: 19px; color: var(--muted); font-weight: 500; }
-  .scale-note { font-size: 11px; color: var(--dim); margin-top: 3px; font-family: var(--mono); }
-  .score-verdict {
-    margin-top: 16px;
-    font-size: 16px;
-    color: var(--text-2);
-    line-height: 1.45;
-  }
-  .score-tier {
-    font-size: 15px;
-    font-weight: 600;
-    padding: 5px 14px;
-    border-radius: 999px;
-    border: 1px solid;
-  }
-  .tier-Clean { color: var(--green); border-color: var(--green); }
-  .tier-Mild  { color: var(--yellow); border-color: var(--yellow); }
-  .tier-Heavy { color: var(--red); border-color: var(--red); }
-  .score-meta { color: var(--muted); font-size: 14px; margin-left: auto; font-family: var(--mono); }
-  .score-bar {
-    margin-top: 16px;
-    height: 7px;
-    background: var(--panel-2);
-    border-radius: 4px;
-    overflow: hidden;
-  }
-  .score-bar-fill {
-    height: 100%;
-    border-radius: 4px;
-    transition: width 0.7s cubic-bezier(.2,.7,.2,1);
-  }
-  .fill-Clean { background: var(--green); }
-  .fill-Mild  { background: var(--yellow); }
-  .fill-Heavy { background: var(--red); }
+  /* fix CTA — flat tinted panel, ink->green button (never purple, never gradient) */
+  .fix-cta{margin-top:22px;padding:18px 20px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .fix-cta-text{flex:1;min-width:220px}
+  .fix-cta-title{font-weight:600;font-size:16px;margin-bottom:3px}
+  .fix-cta-sub{font-size:14px;color:var(--text-4)}
+  .fix-cta button{background:var(--text);color:var(--d-text);border:0;border-radius:3px;padding:12px 18px;font-family:var(--mono);font-size:13px;cursor:pointer;transition:var(--t)}
+  .fix-cta button:hover{background:var(--clean-text)}
+  .fix-cta button:disabled{cursor:wait}
 
-  .pat-section { margin-top: 24px; }
-  .pat-label {
-    font-size: 13px;
-    color: var(--muted);
-    letter-spacing: 0;
-    margin-bottom: 9px;
-    font-family: var(--mono);
-  }
-  .pat-list { display: flex; flex-direction: column; gap: 5px; }
-  .pat {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 9px;
-    padding: 13px 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 15px;
-    cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
-  }
-  .pat:hover { border-color: var(--border-2); background: var(--panel-2); }
-  .pat .dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-  .pat.triggered .dot { background: var(--red); }
-  .pat.clean .dot { background: var(--dim); }
-  .pat.clean { color: var(--muted); }
-  .pat .label { flex: 1; }
-  .pat .weight { color: var(--dim); font-size: 12px; font-family: var(--mono); }
-  .pat.triggered .weight { color: var(--red); }
-  .pat .evidence {
-    display: none;
-    width: 100%;
-    margin-top: 8px;
-    padding: 11px 13px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    font-family: var(--mono);
-    font-size: 11.5px;
-    color: var(--muted);
-    white-space: pre-wrap;
-    word-break: break-all;
-  }
-  .pat.open { flex-wrap: wrap; }
-  .pat.open .evidence { display: block; }
+  /* share + embed */
+  .share{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .share-box{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px 18px;min-width:0}
+  .share-box h4{font-family:var(--mono);font-size:12px;color:var(--text-4);margin-bottom:11px;font-weight:500}
+  .share-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .share-btn{background:transparent;color:var(--text);border:1px solid var(--border-btn);border-radius:3px;padding:8px 13px;font-family:var(--mono);font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:var(--t)}
+  .share-btn:hover{border-color:var(--text)}
+  .badge-preview{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+  .badge-preview img{height:20px}
+  .badge-preview span{font-family:var(--mono);font-size:11.5px;color:var(--text-5)}
+  .embed-tabs{display:flex;gap:4px;margin-bottom:9px}
+  .embed-tab{background:transparent;color:var(--text-5);border:0;border-radius:3px;padding:4px 9px;font-family:var(--mono);font-size:12px;cursor:pointer}
+  .embed-tab.active{background:var(--bg-2);color:var(--text)}
+  .embed-snippet{background:var(--ink-deep);border-radius:6px;padding:10px 12px;font-family:var(--mono);font-size:11.5px;color:var(--d-text-2);white-space:nowrap;overflow-x:auto;cursor:pointer}
+  .embed-snippet:hover{color:var(--d-text)}
 
-  /* Fix prompt CTA: flat tinted panel (no gradient; the engine flags gradients).
-     No side-stripe; the accent lives in the action button instead. */
-  .fix-cta {
-    margin-top: 22px;
-    padding: 18px 20px;
-    background: var(--accent-soft);
-    border: 1px solid var(--border-2);
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    flex-wrap: wrap;
-  }
-  .fix-cta-text { flex: 1; min-width: 220px; }
-  .fix-cta-title { font-weight: 600; font-size: 16px; margin-bottom: 3px; }
-  .fix-cta-sub { font-size: 14px; color: var(--muted); }
-  .fix-cta button {
-    background: var(--accent);
-    color: var(--accent-ink);
-    border: 0;
-    border-radius: 8px;
-    padding: 11px 18px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: inherit;
-  }
-  .fix-cta button:hover { opacity: 0.9; }
-  .fix-cta button:disabled { opacity: 0.5; cursor: wait; }
+  .monitor-nudge{margin-top:14px;font-family:var(--mono);font-size:13px;color:var(--text-4)}
+  .monitor-nudge a{color:var(--clean-text);cursor:pointer}
 
-  /* Share + embed */
-  .share {
-    margin-top: 16px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-  .share-box {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 11px;
-    padding: 16px 18px;
-    /* Grid tracks default to min-width:auto (min-content). A long unbreakable
-       embed snippet would blow the track out and crush the sibling box, so
-       force the track to be shrinkable and let the snippet scroll instead. */
-    min-width: 0;
-  }
-  .share-box h4 {
-    font-size: 12px;
-    letter-spacing: 0;
-    color: var(--muted);
-    margin-bottom: 11px;
-    font-weight: 600;
-    font-family: var(--mono);
-  }
-  .share-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-  .share-btn {
-    background: var(--panel-2);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    padding: 8px 13px;
-    font-size: 13px;
-    cursor: pointer;
-    font-family: inherit;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .share-btn:hover { border-color: var(--accent); }
-  .badge-preview {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 11px;
-  }
-  .badge-preview img { height: 20px; }
-  .badge-preview span { font-size: 12px; color: var(--dim); }
-  .embed-snippet {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    padding: 10px 12px;
-    font-family: var(--mono);
-    font-size: 11.5px;
-    color: var(--muted);
-    white-space: nowrap;
-    overflow-x: auto;
-    cursor: pointer;
-    /* Right-edge fade hints there's more to scroll (click copies the full string). */
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
-    mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
-  }
-  .embed-snippet:hover { border-color: var(--border-2); color: var(--text); }
-  .embed-tabs { display: flex; gap: 4px; margin-bottom: 9px; }
-  .embed-tab {
-    background: transparent;
-    color: var(--dim);
-    border: 0;
-    border-radius: 6px;
-    padding: 4px 9px;
-    font-size: 12px;
-    cursor: pointer;
-    font-family: var(--mono);
-  }
-  .embed-tab.active { background: var(--panel-2); color: var(--text); }
-  @media (max-width: 600px) { .share { grid-template-columns: 1fr; } }
+  /* pattern breakdown */
+  .pat-section{margin-top:24px}
+  .pat-label{font-family:var(--mono);font-size:13px;color:var(--text-4);margin-bottom:9px}
+  .pat-list{display:flex;flex-direction:column;gap:5px}
+  .pat{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:13px 16px;display:flex;align-items:center;gap:12px;font-size:15px;cursor:pointer;transition:var(--t)}
+  .pat:hover{background:var(--bg-2)}
+  .pat .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .pat.triggered .dot{background:var(--heavy)}
+  .pat.clean .dot{background:var(--neutral)}
+  .pat.clean{color:var(--text-4)}
+  .pat .label{flex:1}
+  .pat .weight{font-family:var(--mono);color:var(--text-5);font-size:12px}
+  .pat.triggered .weight{color:var(--heavy-text)}
+  .pat .evidence{display:none;width:100%;margin-top:8px;padding:11px 13px;background:var(--bg);border:1px solid var(--border);border-radius:6px;font-family:var(--mono);font-size:11.5px;color:var(--text-4);white-space:pre-wrap;word-break:break-all}
+  .pat.open{flex-wrap:wrap}
+  .pat.open .evidence{display:block}
 
-  /* Modal */
-  .modal-bg {
-    display: none;
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.74);
-    z-index: 100;
-    align-items: flex-start;
-    justify-content: center;
-    padding: 40px 20px;
-    overflow-y: auto;
-  }
-  .modal-bg.show { display: flex; }
-  .modal {
-    background: var(--panel);
-    border: 1px solid var(--border-2);
-    border-radius: 14px;
-    max-width: 820px;
-    width: 100%;
-    max-height: calc(100vh - 80px);
-    display: flex;
-    flex-direction: column;
-  }
-  .modal-head {
-    padding: 18px 22px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-  }
-  .modal-head-title { font-size: 16px; font-weight: 600; }
-  .modal-head-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
-  .modal-actions { display: flex; gap: 8px; }
-  .modal-actions button {
-    background: var(--panel-2);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    padding: 8px 15px;
-    font-size: 13px;
-    cursor: pointer;
-    font-family: inherit;
-  }
-  .modal-actions button.primary {
-    background: var(--accent);
-    color: var(--accent-ink);
-    border-color: var(--accent);
-    font-weight: 600;
-  }
-  .modal-actions button:hover { opacity: 0.88; }
-  .modal-body {
-    padding: 18px 22px;
-    overflow-y: auto;
-    flex: 1;
-  }
-  .modal-body pre {
-    font-family: var(--mono);
-    font-size: 12.5px;
-    line-height: 1.6;
-    color: var(--text);
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px 18px;
-    white-space: pre-wrap;
-    word-break: break-word;
-    margin: 0;
-  }
-  .copied-flash {
-    position: fixed;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--accent);
-    color: var(--accent-ink);
-    padding: 11px 20px;
-    border-radius: 9px;
-    font-weight: 600;
-    font-size: 14px;
-    z-index: 200;
-    opacity: 0;
-    transition: opacity 0.2s;
-    pointer-events: none;
-  }
-  .copied-flash.show { opacity: 1; }
+  /* ── section scaffolding ────────────────────────────────────────────────── */
+  .sec{max-width:var(--maxw);margin:0 auto;padding:64px var(--pad-x)}
+  .h2-section{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-b);line-height:1.02;letter-spacing:-0.02em;color:var(--text)}
+  .h2-measure{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-c);line-height:1.05;letter-spacing:-0.02em;color:var(--text)}
 
-  /* Rules disclosure */
-  .rules-block { padding: 22px 0 8px; }
-  #rulesDetails summary {
-    cursor: pointer; color: var(--text);
-    font-weight: 700; font-size: 17px; letter-spacing: -0.02em;
-    list-style: none; display: flex; align-items: center; gap: 11px;
-  }
-  #rulesDetails summary::-webkit-details-marker { display: none; }
-  /* Toggle glyph matches the registration-mark boxes (no play triangle). */
-  #rulesDetails summary::before {
-    content: "+"; color: var(--accent);
-    font-family: var(--mono); font-size: 13px; font-weight: 600;
-    border: 1px solid var(--border-2); background: var(--accent-soft);
-    border-radius: 5px; width: 22px; height: 22px;
-    display: inline-flex; align-items: center; justify-content: center;
-    line-height: 1; flex-shrink: 0;
-  }
-  #rulesDetails[open] summary::before { content: "\2212"; }
-  #rulesDetails summary .defs { color: var(--muted); font-weight: 400; font-size: 13px; font-family: var(--mono); letter-spacing: -0.045em; }
-  /* Catalogue grid: dense, scannable, two columns. Replaces the plain <ol>. */
-  #rulesList {
-    list-style: none; margin: 18px 0 0 !important; padding: 0;
-    display: grid; grid-template-columns: repeat(2, 1fr);
-    gap: 1px; background: var(--border);
-    border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
-    counter-reset: rule;
-  }
-  #rulesList li {
-    counter-increment: rule;
-    background: var(--panel); padding: 11px 14px;
-    font-size: 13.5px; color: var(--text-2); line-height: 1.4;
-    display: flex; align-items: baseline; gap: 9px;
-  }
-  #rulesList li::before {
-    content: counter(rule, decimal-leading-zero);
-    font-family: var(--mono); font-size: 10.5px; font-weight: 600;
-    color: var(--accent); letter-spacing: -0.04em;
-    flex-shrink: 0; padding-top: 1px;
-  }
-  #rulesList li strong { font-weight: 600; color: var(--text); }
-  #rulesList li em { color: var(--dim); font-style: normal; font-family: var(--mono); font-size: 11px; letter-spacing: -0.04em; margin-left: auto; padding-left: 8px; }
-  @media (max-width: 620px) { #rulesList { grid-template-columns: 1fr; } }
-  .rules-block .eyebrow { margin-bottom: 14px; }
-  /* Teaser sits under the collapsed summary to preview what's inside; once the
-     disclosure is open the full list is visible, so hide it then. */
-  .rules-teaser {
-    margin-top: 11px; font-size: 13.5px; color: var(--muted);
-    line-height: 1.6; max-width: 70ch;
-  }
-  .rules-teaser b { color: var(--text-2); font-weight: 500; }
-  #rulesDetails[open] + .rules-teaser { display: none; }
-  .rules-teaser:empty { display: none; }
+  /* leaderboard preview */
+  .lb-preview-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .lb-viewall{font-family:var(--mono);font-size:13px;color:var(--clean-text)}
+  .lb-viewall:hover{color:var(--text)}
+  .lb-intro{margin-top:14px;max-width:64ch}
+  .lb-disclaimer{margin-top:8px;font-family:var(--mono);font-size:12px;color:var(--text-5)}
+  .lb-board{margin-top:28px;display:grid;grid-template-columns:repeat(3,1fr);gap:36px 40px}
+  .lb-col-h{font-family:var(--mono);font-size:12px;color:var(--text-4);padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:4px}
+  .lb-empty{font-family:var(--mono);font-size:13px;color:var(--text-4);grid-column:1/-1}
+  .lb-empty a{color:var(--clean-text)}
 
-  /* §04 monitoring (the conversion bridge). Same forensic register: flat
-     panels, registration marks, no gradients, no glow. */
-  .watch-form {
-    margin-top: 20px;
-    background: var(--panel);
-    border: 1px solid var(--border-2);
-    border-radius: 12px;
-    padding: 16px;
-    max-width: 620px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .watch-form:focus-within { border-color: var(--accent); }
-  .watch-row { display: flex; gap: 8px; flex-wrap: wrap; }
-  .watch-row input {
-    flex: 1;
-    min-width: 180px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text);
-    font-size: 15px;
-    padding: 10px 12px;
-    outline: none;
-    font-family: var(--mono);
-  }
-  .watch-row input:focus { border-color: var(--border-2); }
-  .watch-row input::placeholder { color: var(--dim); }
-  .watch-row button {
-    background: var(--accent);
-    color: var(--accent-ink);
-    border: 0;
-    border-radius: 8px;
-    padding: 10px 20px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: inherit;
-  }
-  .watch-row button:hover { opacity: 0.9; }
-  .watch-row button:disabled { opacity: 0.5; cursor: wait; }
-  .watch-opts { display: flex; flex-direction: column; gap: 7px; }
-  .watch-opts label {
-    display: flex; align-items: baseline; gap: 9px;
-    font-size: 14px; color: var(--text-2); cursor: pointer; line-height: 1.45;
-  }
-  .watch-opts input { accent-color: var(--accent); flex-shrink: 0; transform: translateY(1px); }
-  .watch-opts .opt-note { color: var(--dim); font-size: 12.5px; font-family: var(--mono); }
-  .watch-msg {
-    display: none;
-    margin-top: 4px;
-    padding: 11px 13px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--bg);
-    font-size: 13.5px;
-    color: var(--text-2);
-    line-height: 1.5;
-  }
-  .watch-msg.show { display: block; }
-  .watch-msg.ok { border-color: var(--green); }
-  .watch-msg.err { border-color: var(--red); color: var(--red); }
-  .watch-fine { margin-top: 12px; font-size: 12.5px; color: var(--dim); line-height: 1.55; max-width: 62ch; }
-  .watch-fine a { color: var(--muted); }
-  .monitor-nudge {
-    margin-top: 14px;
-    font-size: 14px;
-    color: var(--muted);
-    font-family: var(--mono);
-  }
-  .monitor-nudge a { color: var(--accent); cursor: pointer; }
-  /* Inline CLI commands: tinted chips that wrap as units instead of overflowing. */
-  .cli-line code {
-    display: inline-block;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 2px 8px;
-    color: var(--accent);
-    font-size: 12.5px;
-    letter-spacing: -0.045em;
-    white-space: nowrap;
-  }
+  /* what the score measures — 0.8fr 1.2fr split + four-axis ledger */
+  .measure-grid{display:grid;grid-template-columns:0.8fr 1.2fr;gap:48px;align-items:start}
+  .measure-intro{margin-top:16px;max-width:46ch}
+  .axes{display:flex;flex-direction:column}
+  .axis{display:grid;grid-template-columns:auto 1fr;gap:14px;padding:18px 0;border-top:1px solid var(--border-2)}
+  .axis:first-child{border-top:0;padding-top:0}
+  .axis-mark{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;display:flex;align-items:center;gap:8px;padding-top:2px}
+  .axis-dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .axis-name{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);margin-bottom:5px}
+  .axis-desc{font-size:14px;line-height:1.55;color:var(--text-2)}
+  .axis-polarity{font-family:var(--mono);font-size:12px}
 
-  /* Footer */
-  footer {
-    margin-top: 8px;
-    padding: 36px 0 64px;
-    border-top: 1px solid var(--border);
-    font-size: 14px;
-    color: var(--muted);
-    line-height: 1.7;
-  }
-  .footer-grid {
-    display: grid;
-    grid-template-columns: 1.4fr 1fr 1fr 1fr;
-    gap: 32px;
-  }
-  .footer-brand { max-width: 38ch; }
-  .footer-brand .brand { margin-bottom: 10px; }
-  .footer-brand p { color: var(--muted); }
-  .footer-col h5 {
-    font-size: 12px; color: var(--muted); font-family: var(--mono);
-    margin-bottom: 10px; font-weight: 600; letter-spacing: 0.02em;
-  }
-  .footer-col a { display: block; color: var(--text-2); margin-bottom: 7px; }
-  .footer-col a:hover { color: var(--accent); text-decoration: none; }
-  @media (max-width: 700px) {
-    .footer-grid { grid-template-columns: 1fr 1fr; }
-    .footer-brand { grid-column: 1 / -1; }
-  }
-  .footer-fine { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--border); font-size: 13px; color: var(--dim); }
-  footer a { color: var(--text-2); }
+  /* ── teams / continuity dark band (holds the monitor form) ──────────────── */
+  .band{background:var(--ink-deep);color:var(--d-text-2)}
+  .band-inner{max-width:var(--maxw);margin:0 auto;padding:72px var(--pad-x)}
+  .band-split{display:grid;grid-template-columns:0.9fr 1.1fr;gap:56px;align-items:start}
+  .band-eyebrow{font-family:var(--mono);font-size:13px;color:var(--clean-dark);margin-bottom:14px}
+  .band-h{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-a);line-height:1.02;letter-spacing:-0.02em;color:var(--d-text)}
+  .band-p{margin-top:16px;color:var(--d-text-3);font-size:16px;line-height:1.6;max-width:50ch}
+  .continuity{display:flex;flex-direction:column}
+  .cont-item{display:grid;grid-template-columns:26px 1fr;gap:14px;padding:18px 0;border-top:1px solid var(--d-border)}
+  .cont-item:first-child{border-top:0;padding-top:0}
+  .cont-glyph{font-family:var(--mono);font-size:18px;color:var(--clean-dark);line-height:1.2}
+  .cont-title{font-weight:600;color:var(--d-text);font-size:15px;margin-bottom:3px}
+  .cont-desc{font-size:13.5px;line-height:1.5;color:var(--d-text-3)}
 
-  @media (max-width: 600px) {
-    .hero { padding: 44px 0 20px; }
-    h1 { max-width: 100%; }
-    .score-num { font-size: 34px; }
-    .score-grade { font-size: 54px; }
-    .score-row { flex-wrap: wrap; gap: 16px; }
-    .modal-bg { padding: 20px 12px; }
-    .modal-body pre { font-size: 11.5px; padding: 12px; }
+  /* monitor form (dark) */
+  .mon-wrap{margin-top:48px;padding-top:40px;border-top:1px solid var(--d-border);max-width:620px}
+  .mon-h{font-family:var(--serif);font-weight:500;font-size:32px;line-height:1.05;letter-spacing:-0.02em;color:var(--d-text);margin-bottom:10px}
+  .mon-lead{color:var(--d-text-3);font-size:15px;line-height:1.6;margin-bottom:18px;max-width:54ch}
+  .watch-form{display:flex;flex-direction:column;gap:12px}
+  .watch-row{display:flex;gap:10px;flex-wrap:wrap}
+  .watch-row input{flex:1;min-width:200px;background:var(--ink-deeper);border:1px solid var(--d-border-2);border-radius:4px;color:var(--d-text);font-family:var(--mono);font-size:14px;padding:12px 14px}
+  .watch-row input::placeholder{color:var(--d-text-4)}
+  .watch-row button{background:var(--clean);color:#0A2A18;border:0;border-radius:4px;padding:12px 22px;font-family:var(--mono);font-weight:700;font-size:13px;cursor:pointer;transition:var(--t)}
+  .watch-row button:hover{background:var(--clean-dark)}
+  .watch-row button:disabled{cursor:wait}
+  .watch-opts{display:flex;gap:18px;flex-wrap:wrap}
+  .watch-opts label{display:inline-flex;align-items:baseline;gap:8px;font-family:var(--mono);font-size:12.5px;color:var(--d-text-3);cursor:pointer;line-height:1.5}
+  .watch-opts input{accent-color:var(--clean);flex-shrink:0;transform:translateY(1px)}
+  .watch-opts code{font-family:var(--mono);color:var(--d-text-2)}
+  .watch-opts .opt-note{color:var(--d-text-4)}
+  .watch-msg{display:none;margin-top:4px;font-family:var(--mono);font-size:13px;line-height:1.5;color:var(--d-text-2)}
+  .watch-msg.show{display:block}
+  .watch-msg.ok{color:var(--clean-dark)}
+  .watch-msg.err{color:var(--heavy)}
+  .watch-msg a{color:var(--d-text);text-decoration:underline}
+  .watch-fine{margin-top:16px;font-family:var(--mono);font-size:11.5px;color:var(--d-text-4);line-height:1.6;max-width:60ch}
+  .watch-fine a{color:var(--d-text-3);text-decoration:underline}
+  .watch-fine code{color:var(--d-text-3)}
+
+  /* ── research / article cards ───────────────────────────────────────────── */
+  .research-grid{margin-top:28px;display:grid;grid-template-columns:1.3fr 1fr;gap:40px;align-items:start}
+  .feature-card{display:block;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:28px 30px;transition:var(--t)}
+  .feature-card:hover{border-color:var(--text)}
+  .feature-card h3{font-family:var(--serif);font-weight:500;font-size:var(--fs-h3);line-height:1.1;letter-spacing:-0.01em;color:var(--text)}
+  .feature-card p{margin-top:12px;font-size:15px;line-height:1.55;color:var(--text-2);max-width:46ch}
+  .feature-foot{margin-top:20px;font-family:var(--mono);font-size:12px;color:var(--text-4)}
+  .article-list{display:flex;flex-direction:column}
+  .article{display:block;padding:18px 0;border-top:1px solid var(--border);transition:opacity var(--t)}
+  .article:first-child{border-top:0;padding-top:0}
+  .article:hover{opacity:0.7}
+  .article-title{font-family:var(--serif);font-weight:500;font-size:19px;line-height:1.25;color:var(--text)}
+  .article-ref{margin-top:6px;font-family:var(--mono);font-size:12px;color:var(--text-4)}
+
+  /* ── CTA ────────────────────────────────────────────────────────────────── */
+  .cta{max-width:var(--maxw);margin:0 auto;padding:72px var(--pad-x) 80px;text-align:center}
+  .cta-h{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-a);line-height:1.02;letter-spacing:-0.02em;color:var(--text)}
+  .cta-body{margin:14px auto 24px;max-width:54ch}
+  .cta-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .cta-manifesto{font-family:var(--serif);font-style:italic;font-size:var(--fs-quote-lg);line-height:1.3;color:var(--text-3);margin-top:32px;max-width:30ch;margin-left:auto;margin-right:auto}
+
+  /* ── footer ─────────────────────────────────────────────────────────────── */
+  .ft{background:var(--ink-deep);color:var(--d-text-3);padding:46px var(--pad-x)}
+  .ft-inner{max-width:var(--maxw);margin:0 auto;display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:32px}
+  .ft-brand{max-width:34ch}
+  .ft-id{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .ft-word{font-family:var(--mono);font-weight:700;font-size:15px;letter-spacing:-0.01em;color:var(--d-text)}
+  .ft-brand p{font-size:13.5px;line-height:1.6;color:var(--d-text-3)}
+  .ft-col h5{font-family:var(--mono);font-size:11.5px;color:var(--d-text-4);margin-bottom:12px;font-weight:500}
+  .ft-col a{display:block;font-family:var(--mono);font-size:13px;color:var(--d-text-3);margin-bottom:8px}
+  .ft-col a:hover{color:var(--d-text)}
+  .ft-note{max-width:var(--maxw);margin:32px auto 0;padding-top:20px;border-top:1px solid var(--d-border);display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+  .ft-fp{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--d-text-3)}
+  .ft-repro{font-family:var(--mono);font-size:12px;color:var(--d-text-4)}
+
+  /* ── modal + toast ──────────────────────────────────────────────────────── */
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(15,15,11,0.6);z-index:100;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto}
+  .modal-bg.show{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--border);border-radius:10px;max-width:820px;width:100%;max-height:calc(100vh - 80px);display:flex;flex-direction:column}
+  .modal-head{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .modal-head-title{font-size:16px;font-weight:600}
+  .modal-head-sub{font-family:var(--mono);font-size:12px;color:var(--text-4);margin-top:2px}
+  .modal-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .modal-actions button{background:transparent;color:var(--text);border:1px solid var(--border-btn);border-radius:3px;padding:8px 14px;font-family:var(--mono);font-size:13px;cursor:pointer;transition:var(--t)}
+  .modal-actions button:hover{border-color:var(--text)}
+  .modal-actions button.primary{background:var(--text);color:var(--d-text);border-color:var(--text)}
+  .modal-actions button.primary:hover{background:var(--clean-text);border-color:var(--clean-text)}
+  .modal-body{padding:18px 22px;overflow-y:auto;flex:1}
+  .modal-body pre{font-family:var(--mono);font-size:12.5px;line-height:1.6;color:var(--d-text-2);background:var(--ink-deep);border-radius:6px;padding:16px 18px;white-space:pre-wrap;word-break:break-word;margin:0}
+  .copied-flash{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--d-text);padding:11px 20px;border-radius:6px;font-family:var(--mono);font-size:13px;z-index:200;opacity:0;transition:opacity 0.2s;pointer-events:none}
+  .copied-flash.show{opacity:1}
+
+  /* ── responsive ─────────────────────────────────────────────────────────── */
+  @media (max-width:900px){
+    .lb-board{grid-template-columns:1fr}
+    .measure-grid{grid-template-columns:1fr;gap:28px}
+    .band-split{grid-template-columns:1fr;gap:32px}
+    .research-grid{grid-template-columns:1fr;gap:28px}
+    .ft-inner{grid-template-columns:1fr 1fr}
+    .ft-brand{grid-column:1/-1}
+  }
+  @media (max-width:640px){
+    .nav-inner,.hero,.sec,.band-inner,.cta,.ft,.ft-note,.stats{padding-left:20px;padding-right:20px}
+    .hero{padding-top:64px}
+    .hero h1{max-width:100%}
+    .score-row{flex-wrap:wrap;gap:14px}
+    .score-grade{font-size:52px} .score-num{font-size:36px}
+    .share{grid-template-columns:1fr}
+    .ft-inner{grid-template-columns:1fr 1fr}
   }
 </style>
 </head>
 <body>
-  <div class="topbar">
-    <div class="topbar-inner">
-      <div class="brand"><span class="glyph">&#9143;</span> Slop Detector</div>
-      <nav class="topbar-links">
-        <a href="#fingerprint" class="hide-sm">The fingerprint</a>
-        <a href="#monitor" class="hide-sm">Monitoring</a>
-        <a href="/dashboard" class="hide-sm">Dashboard</a>
-        <a href="/leaderboard" class="hide-sm">Leaderboard</a>
-        <a href="/directory" class="hide-sm">Directory</a>
-        <a href="https://github.com/ravidsrk/slop-detect" target="_blank" rel="noopener">GitHub</a>
-      </nav>
+  <a id="top"></a>
+  <nav class="nav" aria-label="Primary">
+    <div class="nav-inner">
+      <a class="logo" href="/" aria-label="slop-detect home">
+        <span class="logo-mark"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M3 8 V3.5 H7.5" stroke="#181815" stroke-width="1.6" stroke-linecap="square"/><path d="M16.5 3.5 H21 V8" stroke="#181815" stroke-width="1.6" stroke-linecap="square"/><path d="M21 16 V20.5 H16.5" stroke="#181815" stroke-width="1.6" stroke-linecap="square"/><path d="M7.5 20.5 H3 V16" stroke="#181815" stroke-width="1.6" stroke-linecap="square"/><circle cx="12" cy="12" r="2.4" fill="#1FA85E"/></svg></span>
+        <span class="logo-word">slop-detect</span>
+      </a>
+      <div class="nav-links">
+        <a class="nav-link" href="/leaderboard">leaderboard</a>
+        <a class="nav-link" href="/docs">docs</a>
+        <a class="nav-link" href="/brand">brand</a>
+        <a class="nav-link" href="/dashboard">dashboard</a>
+        <a class="nav-gh" href="https://github.com/ravidsrk/slop-detect" target="_blank" rel="noopener noreferrer">github ↗</a>
+      </div>
     </div>
-  </div>
+  </nav>
 
-  <div class="wrap">
-    <!-- Hero -->
-    <section class="hero">
-      <div class="hero-grid">
-        <div class="hero-left">
-          <div class="kicker">
-            <span class="ki">deterministic <i class="sep">&middot;</i> <b id="ruleCountTag">&hellip;</b>&nbsp;patterns</span>
-            <i class="sep gsep">&middot;</i>
-            <span class="ki">real chromium <i class="sep">&middot;</i> ~5s</span>
-          </div>
-          <h1>How AI-generated does your <span class="accent">landing page</span> look?</h1>
-          <p class="lead">
-            Cursor, v0, Lovable and Bolt all collapsed onto the same CSS tells. Paste any
-            URL and get a deterministic 0&ndash;100 slop score: a weighted fingerprint based on
-            <a href="https://www.adriankrebs.ch/blog/design-slop/" target="_blank" rel="noopener">Adrian Krebs's April 2026 study</a>
-            plus <a href="https://x.com/MengTo/status/2058893181740359863" target="_blank" rel="noopener">Meng To's</a> gradient-avatar tell.
-          </p>
+  <main>
+    <!-- 2. Hero -->
+    <section class="hero" id="fingerprint">
+      <p class="mono-eyebrow hero-eyebrow">the ai-design-slop fingerprint <span id="rulesDefs">· definitions 2026.09</span></p>
+      <h1 class="display-hero">Does your landing page look <em>generated?</em></h1>
 
-          <form class="form" id="form">
-            <input id="url" type="text" placeholder="https://example.com" autocomplete="off" spellcheck="false" required>
-            <button type="submit" id="go">Scan</button>
-          </form>
-          <div id="turnstile-host" style="margin-top:12px"></div>
+      <form class="scan hero-scan" id="form">
+        <span class="scan-prefix" aria-hidden="true">https://</span>
+        <label class="sr-only" for="url">Domain or URL to scan</label>
+        <input id="url" class="scan-input" type="text" placeholder="yourdomain.com" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="url" required>
+        <button class="scan-go" type="submit" id="go">Scan</button>
+      </form>
+      <div id="turnstile-host"></div>
+      <p class="hero-reassure">deterministic · real Chromium · a scan takes ~8s</p>
 
-          <div class="examples">
-            <span>try</span>
-            <button data-url="https://news.ycombinator.com">news.ycombinator.com</button>
-            <button data-url="https://www.aura.build">aura.build</button>
-            <button data-url="https://lovable.dev">lovable.dev</button>
-            <button data-url="https://stripe.com">stripe.com</button>
-            <button data-url="https://linear.app">linear.app</button>
-          </div>
-
-          <div class="hubstats" id="hubStats" hidden style="margin-top:16px;font-family:var(--mono);font-size:12px;color:var(--dim);letter-spacing:-0.01em"></div>
-        </div>
-
-        <!-- Sample readout: shows the output shape before you scan. Static, decorative. -->
-        <aside class="hero-sample" aria-hidden="true">
-          <div class="sample-bar">
-            <span class="dots"><i></i><i></i><i></i></span>
-            <span class="tag">sample scan</span>
-          </div>
-          <div class="sample-body">
-            <div class="sample-dom">acme-ai-saas.com</div>
-            <div class="sample-score">
-              <span class="sample-grade">C</span>
-              <span class="sample-num">19<small>/100</small></span>
-              <span class="sample-pill">Mild</span>
-            </div>
-            <div class="sample-track"><i></i></div>
-            <div class="sample-rows">
-              <div class="sample-row bad"><span class="d"></span> Gradient hero text <span class="w">+6</span></div>
-              <div class="sample-row bad"><span class="d"></span> Eyebrow pill above hero <span class="w">+5</span></div>
-              <div class="sample-row bad"><span class="d"></span> Big-number stat banner <span class="w">+3</span></div>
-              <div class="sample-row ok"><span class="d"></span> Glassmorphism <span class="w">0</span></div>
-              <div class="sample-row ok"><span class="d"></span> Aurora blobs <span class="w">0</span></div>
-            </div>
-            <div class="sample-foot">3 of 27 patterns triggered &middot; 4.8s</div>
-          </div>
-        </aside>
+      <div class="examples hero-chips">
+        <button class="chip" data-url="https://news.ycombinator.com"><span class="chip-dot" style="background:var(--clean)" aria-hidden="true"></span>news.ycombinator.com</button>
+        <button class="chip" data-url="https://linear.app"><span class="chip-dot" style="background:var(--mild)" aria-hidden="true"></span>linear.app</button>
+        <button class="chip" data-url="https://bolt.new"><span class="chip-dot" style="background:var(--heavy)" aria-hidden="true"></span>bolt.new</button>
       </div>
 
       <div class="status" id="status"></div>
-      <section class="result" id="result"></section>
+      <section class="result" id="result" aria-live="polite"></section>
     </section>
 
-    <hr class="divider">
+    <!-- 3. Stats strip -->
+    <div class="stats" aria-label="Scan engine at a glance">
+      <span id="hubStats" hidden></span>
+      <span class="stats-default">deterministic scoring on real Chromium · <b class="stats-num" id="ruleCountTag2">27</b> weighted patterns · four axes: design · copy · system · aeo</span>
+    </div>
 
-    <!-- The fingerprint -->
-    <section class="block" id="fingerprint">
-      <div class="block-grid">
-        <div class="block-head">
-          <div class="eyebrow"><span class="reg">&sect;01</span><span class="reg-label">the fingerprint</span></div>
-          <h2>Slop is a fingerprint, not a verdict</h2>
-          <div class="block-note">
-            <b id="ruleCountTag2">27</b> weighted design patterns<br>
-            + copy, AEO &amp; system axes<br>
-            defs <span id="rulesDefs2">2026.09</span>
-          </div>
+    <!-- 4. Leaderboard preview -->
+    <section class="sec">
+      <div class="lb-preview-head">
+        <h2 class="h2-section">The cleanest pages, by category</h2>
+        <a class="lb-viewall" href="/leaderboard">view full leaderboard →</a>
+      </div>
+      <p class="lead lb-intro">A reproducible scan of well-known landing pages, cleanest first. Every name links to its score page, where the current run, history and live badge live.</p>
+      <p class="lb-disclaimer">a signal, not a verdict · premium sites score Mild too</p>
+      <div class="lb-board" id="lbBoard">
+        <p class="lb-empty">The board fills from the public leaderboard. <a href="/leaderboard">view it →</a></p>
+      </div>
+    </section>
+
+    <!-- 5. What the score measures -->
+    <section class="sec" style="padding-top:24px">
+      <div class="measure-grid">
+        <div>
+          <h2 class="h2-measure">What the score measures</h2>
+          <p class="lead measure-intro">Four axes, two polarities. Design and copy measure slop, so lower is better. System and AEO measure fit and reach, so higher is better.</p>
         </div>
-        <div class="block-main">
-          <p class="body">
-            Generated pages converge: the same fonts, the same gradient hero text, the same
-            glassmorphism, the same eyebrow pill and big-number stat banner. None of these is
-            wrong on its own. Linear and Stripe use Inter too, which is why they score
-            <span class="t-mild">Mild</span>. Slop is the <em>density</em> of converged tells,
-            scored deterministically so two runs of the same page always agree.
-          </p>
-
-          <div class="checks">
-            <div class="check"><h3><span class="n">type</span> Fonts &amp; tracking</h3><p>Geist / Inter defaults, crushed display tracking, wide body tracking, flat size hierarchy.</p></div>
-            <div class="check"><h3><span class="n">color</span> Gradients &amp; glow</h3><p>Gradient hero text, gradient-heavy backgrounds, aurora blobs, colored glows, vibe-purple.</p></div>
-            <div class="check"><h3><span class="n">layout</span> The convention stack</h3><p>Centered hero, eyebrow pill, glassmorphism, bento grids, nested cards, icon-card rows.</p></div>
-            <div class="check"><h3><span class="n">copy</span> AI phrasing</h3><p>An optional second axis scores the words: the hedge-y, em-dash-heavy register LLMs default to.</p></div>
-            <div class="check"><h3><span class="n">aeo</span> AI readability</h3><p>Can ChatGPT, Claude and Perplexity actually fetch, read and cite the page? Crawler access, robots.txt, llms.txt. Higher is better.</p></div>
-            <div class="check"><h3><span class="n">system</span> DESIGN.md compliance</h3><p>The relative axis: does the page honor its <em>own</em> declared design system? Drift, not slop — bespoke design checked against its own tokens can never false-positive.</p></div>
+        <div class="axes">
+          <div class="axis">
+            <div class="axis-mark"><span class="axis-dot" style="background:var(--heavy)"></span>design</div>
+            <div>
+              <div class="axis-name">design slop</div>
+              <p class="axis-desc"><span id="ruleCountTag">27</span> weighted CSS patterns: the fonts, gradient hero text, glassmorphism and convention stack generated pages converge on. Run on real Chromium, scored deterministically. <span class="axis-polarity" style="color:var(--heavy-text)">lower is better</span></p>
+            </div>
+          </div>
+          <div class="axis">
+            <div class="axis-mark"><span class="axis-dot" style="background:var(--mild)"></span>copy</div>
+            <div>
+              <div class="axis-name">copy slop</div>
+              <p class="axis-desc">An optional second axis on the words: the hedge-y, em-dash-heavy register LLMs default to, and the "not just X, it's Y" antithesis. <span class="axis-polarity" style="color:var(--mild-text)">lower is better</span></p>
+            </div>
+          </div>
+          <div class="axis">
+            <div class="axis-mark"><span class="axis-dot" style="background:var(--system-text)"></span>system</div>
+            <div>
+              <div class="axis-name">system · DESIGN.md</div>
+              <p class="axis-desc">Drift from a page's own declared design tokens. A bespoke site checked against its own <code class="mono">DESIGN.md</code> can never false-positive as slop. <span class="axis-polarity" style="color:var(--system-text)">higher is better</span></p>
+            </div>
+          </div>
+          <div class="axis">
+            <div class="axis-mark"><span class="axis-dot" style="background:var(--clean)"></span>aeo</div>
+            <div>
+              <div class="axis-name">aeo · agent-readable</div>
+              <p class="axis-desc">Whether ChatGPT, Claude and Perplexity can fetch, read and cite the page: crawler access, robots.txt, a markdown twin, llms.txt. <span class="axis-polarity" style="color:var(--clean-text)">higher is better</span></p>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <hr class="divider">
-
-    <!-- How it works -->
-    <section class="block" id="how">
-      <div class="block-grid">
-        <div class="block-head">
-          <div class="eyebrow"><span class="reg">&sect;02</span><span class="reg-label">how it works</span></div>
-          <h2>Real Chromium. Pure functions. One round-trip.</h2>
-          <div class="block-note">
-            no model<br>
-            no randomness<br>
-            same page, <b>same score</b>
+    <!-- 6. Teams / continuity (dark band, holds the monitor form) -->
+    <section class="band" id="monitor" aria-labelledby="band-h">
+      <div class="band-inner">
+        <div class="band-split">
+          <div>
+            <p class="band-eyebrow">continuity</p>
+            <h2 class="band-h" id="band-h">Slop is the hook. Staying on-system is the product.</h2>
+            <p class="band-p">Sites do not become slop in one commit. A teammate ships a section, an agent "improves" a hero, and six weeks later the page reads like everyone else's.</p>
+            <p class="band-p">Monitoring re-scans your domain daily and emails you when it slips. Publish a DESIGN.md and it also checks every scan against your own declared tokens, then names exactly what drifted.</p>
+          </div>
+          <div class="continuity">
+            <div class="cont-item">
+              <span class="cont-glyph" aria-hidden="true">↻</span>
+              <div><div class="cont-title">Daily re-scan</div><p class="cont-desc">Re-scans every monitored domain each day and emails you the moment the slop score regresses.</p></div>
+            </div>
+            <div class="cont-item">
+              <span class="cont-glyph" aria-hidden="true">◳</span>
+              <div><div class="cont-title">DESIGN.md drift</div><p class="cont-desc">Checks each scan against your declared tokens and names the drift: a font nobody approved, a CTA off the palette.</p></div>
+            </div>
+            <div class="cont-item">
+              <span class="cont-glyph" aria-hidden="true">⎙</span>
+              <div><div class="cont-title">Client report</div><p class="cont-desc">Every monitored domain gets a print-ready report at /report/&lt;domain&gt; to hand a client or a team.</p></div>
+            </div>
+            <div class="cont-item">
+              <span class="cont-glyph" aria-hidden="true">⊘</span>
+              <div><div class="cont-title">Double opt-in</div><p class="cont-desc">Nothing is emailed until you confirm. Your address is stored only to send the alerts you asked for; one request deletes it.</p></div>
+            </div>
+            <div class="cont-item">
+              <span class="cont-glyph" aria-hidden="true">↗</span>
+              <div><div class="cont-title">Dashboard & directory</div><p class="cont-desc">Every domain on your email in one dashboard; opt in to the public directory for a live badge and a dofollow backlink.</p></div>
+            </div>
           </div>
         </div>
-        <div class="block-main">
-      <div class="pipeline">
-        <div class="step">
-          <div class="marker"><b>load</b></div>
-          <div class="desc"><h3>Headless Chromium opens the page</h3><p>Cloudflare Browser Rendering loads it exactly as a browser would: JS, fonts, computed styles and all.</p></div>
-        </div>
-        <div class="step">
-          <div class="marker"><b>collect</b></div>
-          <div class="desc"><h3>Up to 4,000 visible DOM nodes</h3><p>Every pattern detector is a pure function that runs against the live computed styles in a single pass.</p></div>
-        </div>
-        <div class="step">
-          <div class="marker"><b>score</b></div>
-          <div class="desc"><h3>Weighted 0&ndash;100, deterministic</h3><p>Each triggered pattern adds its weight. Same page in, same score out. No model, no randomness.</p></div>
-        </div>
-        <div class="step">
-          <div class="marker"><b>tier</b></div>
-          <div class="desc"><h3>Clean / Mild / Heavy</h3><p class="tiers-inline"><b class="t-clean">Clean 0&ndash;9</b><b class="t-mild">Mild 10&ndash;27</b><b class="t-heavy">Heavy 28+</b></p></div>
-        </div>
-      </div>
-        </div>
-      </div>
-    </section>
 
-    <hr class="divider">
-
-    <!-- Rules disclosure (live catalogue) -->
-    <section class="rules-block">
-      <div class="eyebrow"><span class="reg">&sect;03</span><span class="reg-label">the catalogue</span></div>
-      <details id="rulesDetails">
-        <summary>The <span id="rulesSummaryCount">&hellip;</span> patterns <span class="defs" id="rulesDefs"></span></summary>
-        <ol id="rulesList">
-          <li>Loading the live pattern catalogue&hellip;</li>
-        </ol>
-      </details>
-      <p class="rules-teaser" id="rulesTeaser"></p>
-      <p class="body cli-line" style="margin-top:16px; font-size:14px;">
-        Prefer the terminal? <a id="aboutLink" href="#rulesDetails">Browse every rule</a>, or run it locally:
-        <code>npx slop-detect &lt;url&gt;</code> &middot; gate CI with <code>--fail-on heavy</code>.
-      </p>
-    </section>
-
-    <hr class="divider">
-
-    <!-- Monitoring: the conversion bridge (a score is a snapshot; drift is the disease) -->
-    <section class="block" id="monitor">
-      <div class="block-grid">
-        <div class="block-head">
-          <div class="eyebrow"><span class="reg">&sect;04</span><span class="reg-label">keep it clean</span></div>
-          <h2>A score is a snapshot. Drift is the disease.</h2>
-          <div class="block-note">
-            re-scanned daily<br>
-            alert on regression<br>
-            free during the trial
-          </div>
-        </div>
-        <div class="block-main">
-          <p class="body">
-            Sites do not become slop in one commit. A teammate ships a section, an agent
-            "improves" a hero, and six weeks later the page reads like everyone else's.
-            Monitoring re-scans your domain daily and emails you when the score regresses.
-            Publish a <a href="https://github.com/google-labs-code/design.md" target="_blank" rel="noopener">DESIGN.md</a>
-            and it also checks every scan against <em>your own</em> declared tokens, then
-            names exactly what drifted: a font nobody approved, a CTA off the palette.
-          </p>
-
-          <form class="watch-form" id="watchForm">
+        <div class="mon-wrap">
+          <h3 class="mon-h">Monitor a domain</h3>
+          <p class="mon-lead">A daily re-scan and a drift alert the moment a redesign slips back into slop. Scanning stays free; this remembers a domain over time.</p>
+          <form class="watch-form" id="watchForm" novalidate>
             <div class="watch-row">
+              <label class="sr-only" for="watchDomain">Domain to monitor</label>
               <input id="watchDomain" type="text" placeholder="your-site.com" autocomplete="off" spellcheck="false" required>
+              <label class="sr-only" for="watchEmail">Email for alerts</label>
               <input id="watchEmail" type="email" placeholder="you@company.com" autocomplete="email" required>
               <button type="submit" id="watchGo">Monitor</button>
             </div>
             <div class="watch-opts">
               <label>
                 <input type="checkbox" id="watchSystem" checked>
-                <span>Check it against its <code>DESIGN.md</code> and alert on design drift
-                  <span class="opt-note">&middot; the system axis</span></span>
+                <span>check it against its <code>DESIGN.md</code> <span class="opt-note">· the system axis</span></span>
               </label>
               <label>
                 <input type="checkbox" id="watchList">
-                <span>List it in the public <a href="/directory">directory</a>
-                  <span class="opt-note">&middot; live badge + dofollow backlink</span></span>
+                <span>list it in the public <a href="/directory">directory</a> <span class="opt-note">· live badge + backlink</span></span>
               </label>
             </div>
-            <div class="watch-msg" id="watchMsg"></div>
+            <div class="watch-msg" id="watchMsg" role="status" aria-live="polite"></div>
           </form>
-
           <p class="watch-fine">
-            Double opt-in: nothing is emailed until you confirm. Your address is stored only
-            to send the alerts you asked for, never shared, and one request deletes it
-            (<a href="/privacy.md">privacy</a>). Every monitored domain gets a print-ready
-            client report at <code>/report/&lt;domain&gt;</code>. The engine stays MIT and
-            free forever; monitoring is the continuity layer.
+            Double opt-in: nothing is emailed until you confirm. Stored only to send the alerts you asked for, never shared, and one request deletes it (<a href="/privacy.md">privacy</a>). Every monitored domain gets a print-ready client report at <code>/report/&lt;domain&gt;</code>. The engine stays MIT and free forever; monitoring is the continuity layer.
           </p>
         </div>
       </div>
     </section>
 
-    <!-- Footer -->
-    <footer>
-      <div class="footer-grid">
-        <div class="footer-brand">
-          <div class="brand"><span class="glyph">&#9143;</span> Slop Detector</div>
-          <p>Deterministic design- and copy-slop scoring for landing pages. Open source, runs on real Chromium, ships as a web app, a CLI, and an MCP server.</p>
-        </div>
-        <div class="footer-col">
-          <h5>product</h5>
-          <a href="#how">How it works</a>
-          <a href="#fingerprint">The fingerprint</a>
-          <a href="#monitor">Monitor a domain</a>
-          <a href="/dashboard">Dashboard</a>
-          <a href="/leaderboard">Leaderboard</a>
-          <a href="/directory">Directory</a>
-          <a href="/blog">Blog</a>
-        </div>
-        <div class="footer-col">
-          <h5>install</h5>
-          <a href="https://www.npmjs.com/package/slop-detect" target="_blank" rel="noopener">CLI (npm)</a>
-          <a href="https://www.npmjs.com/package/slop-detect-mcp" target="_blank" rel="noopener">MCP server</a>
-          <a href="https://www.npmjs.com/package/slop-detect-core" target="_blank" rel="noopener">Core engine</a>
-        </div>
-        <div class="footer-col">
-          <h5>source</h5>
-          <a href="https://github.com/ravidsrk/slop-detect" target="_blank" rel="noopener">GitHub</a>
-          <a href="https://www.adriankrebs.ch/blog/design-slop/" target="_blank" rel="noopener">The study</a>
-          <a href="/privacy.md">Privacy</a>
+    <!-- 7. Research / article cards -->
+    <section class="sec">
+      <div class="section-ledger"><span class="ledger-label">research</span></div>
+      <div class="research-grid">
+        <a class="feature-card" href="/docs">
+          <h3>How the scan works</h3>
+          <p>The 27-pattern fingerprint, the four axes, and why the same page always returns the same score. No model, no randomness.</p>
+          <div class="feature-foot">methodology · 8 min read →</div>
+        </a>
+        <div class="article-list">
+          <a class="article" href="https://www.adriankrebs.ch/blog/design-slop/" target="_blank" rel="noopener noreferrer">
+            <div class="article-title">The design-slop study</div>
+            <div class="article-ref">adriankrebs.ch · the weighted-pattern basis →</div>
+          </a>
+          <a class="article" href="https://x.com/MengTo/status/2058893181740359863" target="_blank" rel="noopener noreferrer">
+            <div class="article-title">The gradient-avatar tell</div>
+            <div class="article-ref">x.com/MengTo · one more converged pattern →</div>
+          </a>
+          <a class="article" href="/brand">
+            <div class="article-title">Why this page scores Clean</div>
+            <div class="article-ref">/brand · a detector that refuses to look like the thing it detects →</div>
+          </a>
         </div>
       </div>
-      <div class="footer-fine">
-        Slop is a fingerprint, not a verdict. Premium sites score Mild too. This page is scored by its own engine and built to stay Clean.
+    </section>
+
+    <!-- 8. CTA -->
+    <section class="cta">
+      <h2 class="cta-h">Not where you want to be?</h2>
+      <p class="cta-body lead">Run a scan, read the flagged patterns, and copy a fix prompt straight into the agent that built the page.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#top">Scan your page</a>
+        <a class="btn btn-outline" href="/docs">How scoring works</a>
       </div>
-    </footer>
-  </div>
+      <blockquote class="cta-manifesto">Empty is better than fake. Show the product, don't decorate around it.</blockquote>
+    </section>
+  </main>
+
+  <!-- 9. Footer -->
+  <footer class="ft">
+    <div class="ft-inner">
+      <div class="ft-brand">
+        <div class="ft-id">
+          <span class="logo-mark"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M3 8 V3.5 H7.5" stroke="#F4F5F2" stroke-width="1.6" stroke-linecap="square"/><path d="M16.5 3.5 H21 V8" stroke="#F4F5F2" stroke-width="1.6" stroke-linecap="square"/><path d="M21 16 V20.5 H16.5" stroke="#F4F5F2" stroke-width="1.6" stroke-linecap="square"/><path d="M7.5 20.5 H3 V16" stroke="#F4F5F2" stroke-width="1.6" stroke-linecap="square"/><circle cx="12" cy="12" r="2.4" fill="#3FBE7A"/></svg></span>
+          <span class="ft-word">slop-detect</span>
+        </div>
+        <p>Deterministic design- and copy-slop scoring for landing pages. Open source, runs on real Chromium, ships as a web app, a CLI, and an MCP server.</p>
+      </div>
+      <div class="ft-col">
+        <h5>product</h5>
+        <a href="#monitor">Monitor a domain</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/leaderboard">Leaderboard</a>
+        <a href="/directory">Directory</a>
+        <a href="/blog">Blog</a>
+      </div>
+      <div class="ft-col">
+        <h5>install</h5>
+        <a href="https://www.npmjs.com/package/slop-detect" target="_blank" rel="noopener noreferrer">CLI (npm)</a>
+        <a href="https://www.npmjs.com/package/slop-detect-mcp" target="_blank" rel="noopener noreferrer">MCP server</a>
+        <a href="https://www.npmjs.com/package/slop-detect-core" target="_blank" rel="noopener noreferrer">Core engine</a>
+        <a href="/docs">Docs</a>
+      </div>
+      <div class="ft-col">
+        <h5>source</h5>
+        <a href="https://github.com/ravidsrk/slop-detect" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="https://www.adriankrebs.ch/blog/design-slop/" target="_blank" rel="noopener noreferrer">The study</a>
+        <a href="/brand">Brand</a>
+        <a href="/privacy.md">Privacy</a>
+      </div>
+    </div>
+    <div class="ft-note">
+      <span class="ft-fp">A fingerprint, not a verdict. Premium sites score Mild too.</span>
+      <span class="ft-repro">© 2026 · MIT · reproduce: npx slop-detect &lt;domain&gt;</span>
+    </div>
+  </footer>
 
   <!-- Fix prompt modal -->
   <div class="modal-bg" id="modalBg">
@@ -1359,7 +803,7 @@
     </div>
   </div>
 
-  <div class="copied-flash" id="flash">&#10003; Copied to clipboard</div>
+  <div class="copied-flash" id="flash">Copied to clipboard</div>
 
 <script>
 const $ = (id) => document.getElementById(id);
@@ -1378,58 +822,83 @@ const form = $('form'), urlInput = $('url'), goBtn = $('go'),
     const el = $('hubStats');
     if (!el) return;
     const gradeFor = (n) => n<=2?'A+':n<=5?'A':n<=9?'A-':n<=14?'B+':n<=19?'B':n<=23?'B-':n<=27?'C':n<=33?'D+':n<=39?'D':'F';
-    el.textContent = s.count.toLocaleString('en-US') + ' scans scored · avg ' +
+    el.textContent = s.count.toLocaleString('en-US') + ' pages scanned · median grade ' +
       gradeFor(Math.round(s.avgScore)) + ' (' + s.avgScore + '/100) · ' + s.slopShare + '% carry slop';
     el.hidden = false;
   } catch (_) {}
 })();
 
-// ── Live rule catalogue ──────────────────────────────────────────────────────
-// Pull the pattern list + count from /api/patterns so the "N rules" labels and
-// the rules <ol> never drift from what core actually ships. No hardcoded counts.
+// ── Live rule catalogue count ────────────────────────────────────────────────
+// Pull the pattern count + defs version from /api/patterns so the "N patterns"
+// labels never drift from what core actually ships. No hardcoded counts.
 (async () => {
   try {
     const res = await fetch('/api/patterns');
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    const { count, version, patterns } = await res.json();
+    const { count, version } = await res.json();
 
     const tag = $('ruleCountTag'); if (tag) tag.textContent = count;
     const tag2 = $('ruleCountTag2'); if (tag2) tag2.textContent = count;
-    const sum = $('rulesSummaryCount'); if (sum) sum.textContent = count;
     const defs = $('rulesDefs'); if (defs && version) defs.textContent = '· defs ' + version;
-    const defs2 = $('rulesDefs2'); if (defs2 && version) defs2.textContent = version;
-
-    const list = $('rulesList');
-    if (list && Array.isArray(patterns)) {
-      list.innerHTML = patterns.map(p => {
-        const label = (p.short || p.id);
-        const detail = (p.label && p.label !== label) ? ': ' + p.label : '';
-        const txt = (label + detail).replace(/&/g, '&amp;').replace(/</g, '&lt;');
-        return `<li><strong>${label.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</strong>${detail.replace(/&/g,'&amp;').replace(/</g,'&lt;')} <em>(${p.weight})</em></li>`;
-      }).join('');
-    }
-
-    // Teaser: preview a few of the heaviest-weighted tells so the collapsed
-    // catalogue previews its payoff instead of reading as an empty afterthought.
-    const teaser = $('rulesTeaser');
-    if (teaser && Array.isArray(patterns) && patterns.length) {
-      const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
-      const top = [...patterns].sort((a, b) => b.weight - a.weight).slice(0, 4)
-        .map(p => `<b>${esc(p.short || p.id)}</b>`);
-      const axes = new Set(patterns.map(p => p.category).filter(Boolean)).size;
-      teaser.innerHTML = `Includes ${top.join(', ')} and ${count - top.length} more` +
-        (axes ? `, weighted across ${axes} axes` : '') + '. Expand to read every rule.';
-    }
   } catch (_) {
-    // Network/endpoint hiccup — leave the placeholder. Non-fatal for scanning.
-    const tag = $('ruleCountTag'); if (tag) tag.textContent = '27';
-    const sum = $('rulesSummaryCount'); if (sum) sum.textContent = '27';
+    // Network/endpoint hiccup — leave the static fallback. Non-fatal for scanning.
+  }
+})();
+
+// ── Leaderboard preview ──────────────────────────────────────────────────────
+// Render the 3-column "cleanest by category" board from the live public dataset
+// (public/leaderboard.json). No fabricated rows ship in the HTML: if the dataset
+// is absent the static fallback message stands. Every row backlinks to its score
+// page, closing the loop instead of dead-ending on the external site.
+(async () => {
+  const CATEGORY_NAMES = {
+    'ai-builder': 'AI builders', saas: 'SaaS & dev tools',
+    bigtech: 'Big tech', classic: 'Classic & plain',
+  };
+  const CATEGORY_ORDER = ['classic', 'saas', 'bigtech', 'ai-builder'];
+  const CHIPS = ['#C9402E','#9A6B12','#15824A','#46473F','#2C6E8F','#7A4D9A'];
+  const tierTextFor = (t) => t === 'Clean' ? '#15824A' : t === 'Mild' ? '#9A6B12' : t === 'Heavy' ? '#B23A2A' : '#6E6F63';
+  const avatarColor = (name) => {
+    let h = 2166136261;
+    for (let i = 0; i < name.length; i++) { h ^= name.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return CHIPS[Math.abs(h) % CHIPS.length];
+  };
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  try {
+    const res = await fetch('/leaderboard.json', { cache: 'no-cache' });
+    if (!res.ok) return;
+    const data = await res.json();
+    const sites = (data && Array.isArray(data.sites) ? data.sites : []).filter((s) => s && s.scored && s.domain);
+    if (!sites.length) return;
+    const groups = {};
+    for (const s of sites) (groups[s.category || 'other'] = groups[s.category || 'other'] || []).push(s);
+    const keys = [
+      ...CATEGORY_ORDER.filter((k) => groups[k] && groups[k].length),
+      ...Object.keys(groups).filter((k) => !CATEGORY_ORDER.includes(k)),
+    ].slice(0, 3);
+    if (!keys.length) return;
+    const board = $('lbBoard');
+    if (!board) return;
+    board.innerHTML = keys.map((k) => {
+      const rows = groups[k].slice().sort((a, b) => a.score - b.score).slice(0, 4).map((s, i) => {
+        const dom = esc(s.domain);
+        return '<a class="lr" href="/score/' + encodeURIComponent(s.domain) + '">' +
+          '<span class="lr-rank">' + (i + 1) + '</span>' +
+          '<span class="lr-name"><span class="av" style="background:' + avatarColor(s.domain) + '" aria-hidden="true">' +
+            esc(s.domain.charAt(0).toUpperCase()) + '</span><span class="lr-dom">' + dom + '</span></span>' +
+          '<span class="lr-score">' + (s.score != null ? s.score : '') + ' <span class="lr-grade" style="color:' +
+            tierTextFor(s.tier) + '">' + esc(s.grade || '') + '</span></span></a>';
+      }).join('');
+      return '<div class="lb-col"><h3 class="lb-col-h">' + esc(CATEGORY_NAMES[k] || k) + '</h3>' + rows + '</div>';
+    }).join('');
+  } catch (_) {
+    // Dataset unavailable — leave the static "view the leaderboard" fallback.
   }
 })();
 
 // ── Turnstile bootstrap ──────────────────────────────────────────────────────
-// Sitekey is injected at deploy time via a meta tag or window.__TURNSTILE_SITEKEY.
-// Falls back to the production widget if unspecified (safe to commit; secret is server-side).
+// Sitekey is injected at deploy time via window.__TURNSTILE_SITEKEY. Falls back to
+// the production widget if unspecified (safe to commit; the secret is server-side).
 const TURNSTILE_SITEKEY = window.__TURNSTILE_SITEKEY || '0x4AAAAAADWirXpm1gXBhB5E';
 let turnstileToken = null;
 let turnstileWidgetId = null;
@@ -1438,7 +907,7 @@ window.onloadTurnstileCallback = function () {
   if (!window.turnstile) return;
   turnstileWidgetId = window.turnstile.render('#turnstile-host', {
     sitekey: TURNSTILE_SITEKEY,
-    theme: 'dark',
+    theme: 'light',
     appearance: 'interaction-only',  // invisible unless a challenge is needed
     callback: (token) => { turnstileToken = token; },
     'error-callback': () => { turnstileToken = null; },
@@ -1537,7 +1006,7 @@ function escapeHtml(s) {
   }[c]));
 }
 
-// ── Monitor form (§04) — POST /api/watch, render the API's honest response ───
+// ── Monitor form — POST /api/watch, render the API's honest response ─────────
 const watchForm = $('watchForm');
 if (watchForm) watchForm.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -1602,7 +1071,7 @@ function render(d, totalMs) {
   const fixCta = triggered.length ? `
     <div class="fix-cta">
       <div class="fix-cta-text">
-        <div class="fix-cta-title">🛠 Generate a fix prompt</div>
+        <div class="fix-cta-title">Generate a fix prompt</div>
         <div class="fix-cta-sub">A copy-pasteable instruction for Claude / Cursor / v0 that addresses these ${triggered.length} ${triggered.length === 1 ? 'issue' : 'issues'} specifically.</div>
       </div>
       <button id="fixPromptBtn">Generate fix prompt →</button>
@@ -1684,9 +1153,9 @@ function sharePanel(d) {
       <div class="share-box">
         <h4>Share this result</h4>
         <div class="share-actions">
-          <button class="share-btn" id="copyLinkBtn">🔗 Copy link</button>
-          <button class="share-btn" id="shareXBtn">𝕏 Share</button>
-          <button class="share-btn" id="shareLiBtn">in Share</button>
+          <button class="share-btn" id="copyLinkBtn">Copy link</button>
+          <button class="share-btn" id="shareXBtn">Post on X</button>
+          <button class="share-btn" id="shareLiBtn">LinkedIn</button>
         </div>
       </div>
       <div class="share-box">
@@ -1868,36 +1337,20 @@ copyBtn.addEventListener('click', async () => {
 </script>
 <script>
   // Supplementary wiring (kept separate from the verbatim core script).
-  // 1) "Browse every rule" opens the disclosure and scrolls to it.
-  (function () {
-    var about = document.getElementById('aboutLink');
-    var det = document.getElementById('rulesDetails');
-    if (about && det) about.addEventListener('click', function (e) {
-      e.preventDefault(); det.open = true;
-      det.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  })();
-  // 2) Keep the left-gutter mirror labels in sync with the live /api/patterns
-  //    values (the core script updates #ruleCountTag / #rulesDefs). Observe them
-  //    so the count is never hardcoded — the static text is only a fallback.
+  // Keep the stats-strip pattern count in sync with the live /api/patterns value
+  // (the core script updates #ruleCountTag). Observe it so the count is never
+  // hardcoded — the static text is only a fallback.
   (function () {
     var src = document.getElementById('ruleCountTag');
     var mirror = document.getElementById('ruleCountTag2');
-    var defsSrc = document.getElementById('rulesDefs');
-    var defsMirror = document.getElementById('rulesDefs2');
-    if (!src || !window.MutationObserver) return;
+    if (!src || !mirror || !window.MutationObserver) return;
     var sync = function () {
       var n = (src.textContent || '').trim();
-      if (mirror && /^\d+$/.test(n)) mirror.textContent = n;
-      if (defsSrc && defsMirror) {
-        var m = (defsSrc.textContent || '').match(/([0-9]{4}\.[0-9]{2})/);
-        if (m) defsMirror.textContent = m[1];
-      }
+      if (/^\d+$/.test(n)) mirror.textContent = n;
     };
     new MutationObserver(sync).observe(src, { childList: true, characterData: true, subtree: true });
-    if (defsSrc) new MutationObserver(sync).observe(defsSrc, { childList: true, characterData: true, subtree: true });
   })();
-  // 3) Count-up animation on the score number after a scan renders.
+  // Count-up animation on the score number after a scan renders.
   (function () {
     var resultEl = document.getElementById('result');
     if (!resultEl || !window.MutationObserver) return;
