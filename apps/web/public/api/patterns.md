@@ -1,6 +1,6 @@
 # Slop Detector — Pattern Catalogue
 
-> The deterministic patterns the engine checks. Version 2026.08, 27 patterns. Live JSON: https://slop-detect.com/api/patterns
+> The deterministic patterns the engine checks. Version 2026.09, 27 patterns. Live JSON: https://slop-detect.com/api/patterns
 
 ## fonts
 

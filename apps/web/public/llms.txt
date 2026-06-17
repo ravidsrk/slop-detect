@@ -14,6 +14,10 @@ page looks machine-generated, not that it is bad.
 
 - [Homepage (markdown twin)](https://slop-detect.com/index.md): What Slop
   Detector measures and how the scan works.
+- [Methodology](https://slop-detect.com/docs): How each axis is scored, the
+  DESIGN.md system axis, and the REST/CLI/MCP surface in one reference.
+- [Brand & identity](https://slop-detect.com/brand): The design system, and the
+  dogfood proof that this site passes its own detector.
 - [Pattern catalogue (JSON)](https://slop-detect.com/api/patterns): Every design
   and copy pattern, with weights and the current definitions version.
 - [Blog](https://slop-detect.com/blog): how the score works and why a fixed
