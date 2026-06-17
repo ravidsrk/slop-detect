@@ -156,11 +156,11 @@
         </thead>
         <tbody>
           <tr><td>Output</td><td class="col-us">Deterministic 0–100 weighted fingerprint</td><td>Probabilistic % confidence</td><td>Perf / a11y / SEO scores</td></tr>
-          <tr><td>Reproducible</td><td class="col-us">Yes — same page, same score</td><td>No — drifts with retraining</td><td>Mostly</td></tr>
+          <tr><td>Reproducible</td><td class="col-us">Yes, same page, same score</td><td>No, drifts with retraining</td><td>Mostly</td></tr>
           <tr><td>What it measures</td><td class="col-us">AI-<em>design</em> + copy slop tells</td><td>Generated-vs-human likelihood</td><td>Technical quality, not aesthetics</td></tr>
           <tr><td>Engine</td><td class="col-us">Real Chromium, computed styles</td><td>Text / pixel models</td><td>Real Chromium</td></tr>
-          <tr><td>Auditable rules</td><td class="col-us">Yes — open catalogue at <a class="link" href="/api/patterns">/api/patterns</a></td><td>Opaque weights</td><td>Documented audits</td></tr>
-          <tr><td>AEO axis (AI-readability)</td><td class="col-us">Yes — built in</td><td>No</td><td>Partial (SEO only)</td></tr>
+          <tr><td>Auditable rules</td><td class="col-us">Yes, open catalogue at <a class="link" href="/api/patterns">/api/patterns</a></td><td>Opaque weights</td><td>Documented audits</td></tr>
+          <tr><td>AEO axis (AI-readability)</td><td class="col-us">Yes, built in</td><td>No</td><td>Partial (SEO only)</td></tr>
           <tr><td>License</td><td class="col-us">Open source (MIT)</td><td>Usually closed</td><td>Mixed</td></tr>
           <tr><td>Agent interfaces</td><td class="col-us">API + CLI + MCP</td><td>Rare</td><td>Rare</td></tr>
         </tbody>
@@ -194,9 +194,9 @@
     <div class="sec-h"><span class="tag">05</span><span class="lbl">when to use which</span></div>
     <h2>Pick by the question you're asking</h2>
     <ul>
-      <li><strong>Slop Detector</strong> — a reproducible, explainable read on how templated or AI-generated a landing page looks, or to gate design regressions in CI.</li>
-      <li><strong>An ML AI-detector</strong> — a probabilistic "was this generated?" verdict on arbitrary text or images.</li>
-      <li><strong>Lighthouse / axe</strong> — performance, accessibility, and technical SEO. Orthogonal to slop.</li>
+      <li><strong>Slop Detector</strong>: a reproducible, explainable read on how templated or AI-generated a landing page looks, or to gate design regressions in CI.</li>
+      <li><strong>An ML AI-detector</strong>: a probabilistic "was this generated?" verdict on arbitrary text or images.</li>
+      <li><strong>Lighthouse / axe</strong>: performance, accessibility, and technical SEO. Orthogonal to slop.</li>
     </ul>
   </section>
 
