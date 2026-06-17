@@ -41,6 +41,11 @@ export async function onRequestGet({ params, env, request }) {
     const page = await browser.newPage();
     await page.setViewport({ width: 1200, height: 630, deviceScaleFactor: 1 });
     await page.setContent(cardHtml(slim), { waitUntil: 'networkidle0', timeout: 15000 });
+    // The card now uses web fonts (Newsreader + JetBrains Mono); wait for them to
+    // finish loading so the shot doesn't capture a fallback-font flash.
+    try {
+      await page.evaluate(() => document.fonts && document.fonts.ready);
+    } catch (_) {}
     const buf = await page.screenshot({
       type: 'png',
       clip: { x: 0, y: 0, width: 1200, height: 630 },
