@@ -6,7 +6,8 @@
 // worse than a generic one).
 
 import puppeteer from '@cloudflare/puppeteer';
-import { getResult, cardHtml } from '../_shared.js';
+import { getResult } from '../_shared.js';
+import { cardHtml } from '../_card.js';
 
 const OG_TTL = 60 * 60 * 24 * 30; // 30 days
 
