@@ -1,86 +1,116 @@
 /** @jsxRuntime automatic @jsxImportSource hono/jsx */
-// GET /dashboard — the agency multi-domain view (Roadmap v2 P2b).
+// GET /dashboard — the agency multi-domain view (Roadmap v2 P2b), re-skinned to
+// the light editorial-instrument system (parity-spec build task 08, GAP-FILL).
 //
 // One email, many client domains: every watch owned by the signed-in address,
-// with slop grade, design-system tier, drift status, and a per-domain client
+// with slop grade, design-system drift, status flags, and a per-domain client
 // report link. Auth is the magic-link flow: /api/dashboard/link emails a
 // single-use token; landing here with ?token= exchanges it for an HMAC-signed
-// HttpOnly cookie (_session.js). No cookie → a login form. ?logout=1 → cookie
-// cleared. Configured-off without SESSION_SECRET.
+// HttpOnly cookie (_session). No cookie → a login form. ?logout=1 → cookie
+// cleared. No SESSION_SECRET → a 503 "not configured" page.
+//
+// Re-skin only: it reuses the shared foundation (Nav, Footer, SectionLedger,
+// LetterAvatar from _ui; the tier resolver from _theme; the light tokens from
+// _brand) — no net-new visual patterns. The login form rides the ScanInput
+// `.scan` row + ink→green `.scan-go` button vocabulary; the domain list rides
+// the LeaderboardRow vocabulary (avatar chip + mono + tier-colored grade). The
+// data/auth seam (listWatchesByEmail, consumeDashboardToken, the _session
+// helpers) is reused unchanged (MNR-17).
 //
 // Privacy: the page shows only the signed-in owner's own email and domains —
-// never anyone else's. noindex.
+// never anyone else's. noindex, no-store.
 
 import { raw } from 'hono/html';
-import { listWatchesByEmail, consumeDashboardToken, tierColors } from './_shared.js';
+import { listWatchesByEmail, consumeDashboardToken } from './_shared.js';
 import { signSession, sessionEmail, sessionCookie, clearSessionCookie } from './_session.js';
 import { BRAND_FONTS_HEAD, BRAND_CSS } from './_brand.js';
+import { UI_CSS, Nav, Footer, SectionLedger, LetterAvatar } from './_ui.js';
+import { tierText } from './_theme.js';
 
-const PAGE_CSS = `
-  body{padding:48px 20px 80px}
-  .wrap{max-width:860px;margin:0 auto}
-  h1{font-size:28px;font-weight:700;letter-spacing:-0.02em;margin:2px 0 6px}
-  .sub{color:var(--muted);font-size:15px;max-width:62ch;margin-bottom:22px}
-  .bar{display:flex;justify-content:space-between;align-items:center;gap:10px;
-       font-family:var(--mono);font-size:12px;color:var(--dim);margin-bottom:10px}
-  .bar a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--border-2)}
-  .bar a:hover{color:var(--text)}
-  table{border-collapse:collapse;width:100%}
-  th,td{text-align:left;padding:11px 14px 11px 0;border-bottom:1px solid var(--bg-2);font-size:14px}
-  th{color:var(--dim);font-weight:500;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
-  td.mono{font-family:var(--mono);font-size:13px}
-  .dom{font-weight:600;text-decoration:none;border-bottom:1px solid var(--border-2);padding-bottom:1px}
-  .dom:hover{border-color:var(--text)}
-  .g{font-family:var(--mono);font-weight:700;font-size:13px;border:1px solid;border-radius:5px;padding:1px 8px}
-  .pill{font-family:var(--mono);font-size:11.5px;border:1px solid;border-radius:999px;padding:2px 10px;white-space:nowrap}
-  .flag{font-family:var(--mono);font-size:11px;color:var(--dim)}
-  .flag.bad{color:var(--red)}
-  .rep{font-family:var(--mono);font-size:11.5px;color:var(--dim);text-decoration:none;white-space:nowrap}
-  .rep:hover{color:var(--text)}
-  .empty{padding:26px 0;color:var(--muted)}
-  .empty a{color:var(--text)}
-  .login{max-width:440px;background:var(--panel);border:1px solid var(--border-2);border-radius:12px;padding:18px;margin-top:8px}
-  .login:focus-within{border-color:var(--accent)}
-  .login .row{display:flex;gap:8px}
-  .login input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;
-    color:var(--text);font-size:15px;padding:10px 12px;outline:none;font-family:var(--mono)}
-  .login input::placeholder{color:var(--dim)}
-  .login button{background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;
-    padding:10px 20px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit}
-  .login button:disabled{opacity:.5;cursor:wait}
-  .msg{display:none;margin-top:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);
-    background:var(--bg);font-size:13.5px;color:var(--text-2);line-height:1.5}
-  .msg.show{display:block}
-  .msg.err{border-color:var(--red);color:var(--red)}
-  .fine{margin-top:14px;font-size:12.5px;color:var(--dim);line-height:1.55;max-width:60ch}
-  .fine a{color:var(--muted)}
-  footer{margin-top:34px;font-family:var(--mono);font-size:11.5px;color:var(--dim)}
-  footer a{color:var(--muted)}
-  @media(max-width:640px){.hide-sm{display:none}}
+// Page-local layout only (the foundation gate forbids editing _ui/_theme/_brand,
+// and this screen is design-silent GAP-FILL). Every value references a brand
+// token; the login row and the domain rows reuse the shared `.scan`/avatar atoms.
+const DASH_CSS = `
+  .dash-wrap{max-width:960px;margin:0 auto;padding:56px var(--pad-x) 80px}
+  .dash-head{margin-bottom:24px}
+  .dash-h{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-c);line-height:1.05;letter-spacing:-0.02em;color:var(--text);margin-top:14px}
+  .dash-sub{margin-top:12px;max-width:62ch}
+
+  /* signed-in: the meta bar */
+  .dash-bar{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px 18px;
+    font-family:var(--mono);font-size:13px;color:var(--text-4);margin:18px 0 2px}
+  .dash-bar b{color:var(--text);font-weight:500}
+  .dash-bar .att{color:var(--heavy-text)}
+  .dash-signout{color:var(--text-4);border-bottom:1px solid var(--border-btn);padding-bottom:1px}
+  .dash-signout:hover{color:var(--text);border-color:var(--text)}
+
+  /* login: the ScanInput row, email variant (no https:// prefix) */
+  .scan-login{max-width:440px;margin-top:6px}
+  .scan-login:focus-within{border-color:var(--clean-text)}
+  .scan-login .scan-input{font-size:14px}
+  .scan-login .scan-go{font-size:13px}
+  .dash-msg{display:none;margin-top:14px;font-size:13px;color:var(--text-3);line-height:1.55;max-width:52ch}
+  .dash-msg.show{display:block}
+  .dash-msg.ok{color:var(--clean-text)}
+  .dash-msg.err{color:var(--heavy-text)}
+  .dash-note{display:block;margin-top:20px;font-family:var(--mono);font-size:12px;color:var(--text-4);line-height:1.7;max-width:58ch}
+  .dash-note a{color:var(--text-3);border-bottom:1px solid var(--border-btn)}
+  .dash-note a:hover{color:var(--text)}
+
+  /* signed-in: the domain list — LeaderboardRow-like rows */
+  .dlist{list-style:none;margin-top:8px;border-top:1px solid var(--row)}
+  .drow{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;padding:14px 2px;border-bottom:1px solid var(--row)}
+  .drow:hover{background:var(--bg-2)}
+  .drow-id{display:flex;align-items:center;gap:9px;min-width:0;flex:1 1 220px}
+  .drow-dom{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .drow-id:hover .drow-dom{color:var(--clean-text)}
+  .drow-metric{font-family:var(--mono);font-size:13px;color:var(--text-3);white-space:nowrap}
+  .drow-grade{font-weight:700}
+  .drow-sys{font-family:var(--mono);font-size:12px;white-space:nowrap}
+  .drow-flags{display:flex;gap:9px;flex-wrap:wrap;font-family:var(--mono);font-size:11.5px;color:var(--text-4)}
+  .drow-flags .bad{color:var(--heavy-text)}
+  .drow-check{font-family:var(--mono);font-size:11.5px;color:var(--text-6);white-space:nowrap}
+  .drow-rep{font-family:var(--mono);font-size:12px;color:var(--text-4);white-space:nowrap;margin-left:auto}
+  .drow-rep:hover{color:var(--text)}
+  .dash-empty{padding:26px 2px;color:var(--text-3);border-top:1px solid var(--row)}
+  .dash-empty a{color:var(--text);border-bottom:1px solid var(--border-btn)}
+  .dash-fine{margin-top:24px;font-family:var(--mono);font-size:11.5px;color:var(--text-4);line-height:1.7;max-width:66ch}
+
+  @media (max-width:640px){
+    .dash-wrap{padding-left:20px;padding-right:20px;padding-top:40px}
+    .drow-check{display:none}
+    .drow-rep{margin-left:0}
+  }
 `;
 
 // Inline progressive-enhancement script for the login form. Kept as a raw string
-// (its `=>` arrows and `+` concatenation must not be HTML-escaped).
+// (its `=>` arrows and `+` concatenation must not be HTML-escaped). Posts the
+// email to /api/dashboard/link, which is anti-enumeration: the response is
+// identical whether or not the address owns any watches. Guarded for syntactic
+// validity by inline-scripts.test.js (Cursor Bugbot, PR #26).
 const LOGIN_SCRIPT = `
   const f=document.getElementById('loginForm'),b=document.getElementById('loginGo'),m=document.getElementById('loginMsg');
   f.addEventListener('submit',async(e)=>{e.preventDefault();
-    b.disabled=true;b.textContent='Sending…';m.className='msg show';m.textContent='Requesting link…';
+    b.disabled=true;b.textContent='Sending…';m.className='dash-msg mono show';m.textContent='Requesting link…';
     try{
       const r=await fetch('/api/dashboard/link',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({email:document.getElementById('loginEmail').value.trim()})});
       const d=await r.json();
       if(!r.ok)throw new Error(d.message||d.error||('HTTP '+r.status));
-      m.className='msg show';m.textContent=d.message;
-    }catch(err){m.className='msg show err';m.textContent='✗ '+err.message;}
+      m.className='dash-msg mono show ok';m.textContent=d.message;
+    }catch(err){m.className='dash-msg mono show err';m.textContent='✗ '+err.message;}
     finally{b.disabled=false;b.textContent='Email me a link';}
   });
 `;
 
-function sysColors(tier) {
-  if (tier === 'Aligned') return '#4ade80';
-  if (tier === 'Drifting') return '#fbbf24';
-  if (tier === 'Off-system') return '#f87171';
-  return '#6f7689';
+// System (DESIGN.md) axis tier → a brand text hue. The watch stores a tier label
+// (Aligned / Drifting / Off-system), not a numeric score, so this maps the label
+// onto the existing verdict tokens rather than re-deriving a color.
+function systemTierColor(tier) {
+  if (tier === 'Aligned') return 'var(--clean-text)';
+  if (tier === 'Drifting') return 'var(--mild-text)';
+  if (tier === 'Off-system') return 'var(--heavy-text)';
+  return 'var(--text-4)';
 }
 
 function Layout({ origin, title, children }) {
@@ -90,30 +120,20 @@ function Layout({ origin, title, children }) {
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>{`${title} · slop-detect`}</title>
-        <meta name="robots" content="noindex" />
+        <meta name="robots" content="noindex, nofollow" />
         {raw(BRAND_FONTS_HEAD)}
-        <style>{raw(BRAND_CSS + PAGE_CSS)}</style>
+        <style>{raw(BRAND_CSS + UI_CSS + DASH_CSS)}</style>
       </head>
       <body>
-        <div class="wrap">
-          <div class="eyebrow">
-            <span class="reg">{raw('&sect;dash')}</span>
-            <span class="reg-label">the dashboard</span>
-          </div>
-          {children}
-          <footer>
-            <a href={`${origin}/`}>scan</a> {raw('&middot;')}{' '}
-            <a href={`${origin}/#monitor`}>add a domain</a> {raw('&middot;')}{' '}
-            <a href={`${origin}/directory`}>directory</a> {raw('&middot;')}{' '}
-            <a href={`${origin}/privacy.md`}>privacy</a>
-          </footer>
-        </div>
+        <Nav origin={origin} />
+        {children}
+        <Footer origin={origin} />
       </body>
     </html>
   );
 }
 
-function page(origin, title, inner, extraHeaders = {}) {
+function page(origin, title, inner, { status = 200, headers = {} } = {}) {
   const html =
     '<!doctype html>' +
     (
@@ -122,151 +142,154 @@ function page(origin, title, inner, extraHeaders = {}) {
       </Layout>
     ).toString();
   return new Response(html, {
+    status,
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store',
-      ...extraHeaders,
+      ...headers,
     },
   });
 }
 
+function NotConfiguredView() {
+  return (
+    <main class="dash-wrap" id="main">
+      <div class="dash-head">
+        <SectionLedger label="dashboard" />
+        <h1 class="dash-h">Dashboard not configured</h1>
+      </div>
+      <p class="dash-sub lead">
+        Sign-in needs SESSION_SECRET and an email provider set in the environment (see
+        PRODUCTION.md). Monitoring itself works without it.
+      </p>
+    </main>
+  );
+}
+
 function LoginView({ origin, note }) {
   return (
-    <>
-      <h1>Sign in to your dashboard</h1>
-      <p class="sub">
+    <main class="dash-wrap" id="main">
+      <div class="dash-head">
+        <SectionLedger label="dashboard" />
+        <h1 class="dash-h">Sign in to your dashboard</h1>
+      </div>
+      <p class="dash-sub lead">
         One view across every domain you monitor: slop grade, design-system drift, and client
-        reports. We email you a single-use link — no password.
+        reports. We email a single-use link, no password.
       </p>
       {note ? (
-        <div class="msg show err" style="max-width:440px">
+        <p class="dash-msg show err" style="max-width:440px">
           {note}
-        </div>
+        </p>
       ) : null}
-      <form class="login" id="loginForm">
-        <div class="row">
-          <input
-            id="loginEmail"
-            type="email"
-            placeholder="you@company.com"
-            autocomplete="email"
-            required
-          />
-          <button type="submit" id="loginGo">
-            Email me a link
-          </button>
-        </div>
-        <div class="msg" id="loginMsg"></div>
+      {/* ScanInput `.scan` row, email variant: ink-bordered field + ink→green submit. */}
+      <form class="scan scan-login" id="loginForm">
+        <label class="sr-only" for="loginEmail">
+          Email address
+        </label>
+        <input
+          id="loginEmail"
+          class="scan-input"
+          type="email"
+          placeholder="you@company.com"
+          autocomplete="email"
+          inputmode="email"
+          spellcheck="false"
+          required
+        />
+        <button class="scan-go" type="submit" id="loginGo">
+          Email me a link
+        </button>
       </form>
-      <p class="fine">
-        Not monitoring anything yet? <a href={`${origin}/#monitor`}>Start with one domain</a> — it
+      <p class="dash-msg mono" id="loginMsg" role="status" aria-live="polite" />
+      <p class="dash-note">
+        Not monitoring anything yet? <a href={`${origin}/#monitor`}>Start with one domain</a>. It
         takes an email and a domain name.
       </p>
       <script>{raw(LOGIN_SCRIPT)}</script>
-    </>
+    </main>
   );
 }
 
 function Row({ w, origin }) {
-  const c = tierColors(w.lastTier);
-  const sc = sysColors(w.lastSystemTier);
-  const flags = [
-    w.regressed ? <span class="flag bad">regressed</span> : null,
-    w.systemRegressed ? <span class="flag bad">drifted</span> : null,
-    !w.verified ? <span class="flag">unconfirmed</span> : null,
-    w.listed ? <span class="flag">listed</span> : null,
-  ].filter(Boolean);
   const checked = w.lastCheckedAt ? String(w.lastCheckedAt).slice(0, 10) : '—';
+  const flags = [
+    w.regressed ? <span class="bad">regressed</span> : null,
+    w.systemRegressed ? <span class="bad">drifted</span> : null,
+    !w.verified ? <span>unconfirmed</span> : null,
+    w.listed ? <span>listed</span> : null,
+  ].filter(Boolean);
   return (
-    <tr>
-      <td>
-        <a class="dom" href={`https://${w.domain}`}>
-          {w.domain}
-        </a>
-      </td>
-      <td>
-        {w.lastScore == null ? (
-          <span class="flag">no scan yet</span>
-        ) : (
-          <>
-            <span class="g" style={`color:${c.fg};border-color:${c.fg}`}>
-              {w.lastGrade || '—'}
-            </span>
-            <span class="mono" style={`color:${c.fg}`}>
-              {' '}
-              {w.lastScore}/100
-            </span>
-          </>
-        )}
-      </td>
-      <td>
-        {w.lastSystemTier ? (
-          <span class="pill" style={`color:${sc};border-color:${sc}`}>
-            {w.lastSystemTier}
-          </span>
-        ) : (
-          <span class="flag">{w.system ? 'awaiting sweep' : 'off'}</span>
-        )}
-      </td>
-      <td>
-        {flags.length ? (
-          // Separate the spans with spaces, as the original .join(' ') did.
-          flags.flatMap((f, i) => (i ? [' ', f] : f))
-        ) : (
-          <span class="flag">ok</span>
-        )}
-      </td>
-      <td class="mono hide-sm">{checked}</td>
-      <td>
-        <a class="rep" href={`${origin}/report/${encodeURIComponent(w.domain)}`}>
-          {raw('report&nbsp;&rarr;')}
-        </a>
-      </td>
-    </tr>
+    <li class="drow">
+      <a class="drow-id" href={`${origin}/score/${encodeURIComponent(w.domain)}`}>
+        <LetterAvatar name={w.domain} size={20} />
+        <span class="drow-dom">{w.domain}</span>
+      </a>
+      {w.lastScore == null ? (
+        <span class="drow-metric" style="color:var(--text-6)">
+          no scan yet
+        </span>
+      ) : (
+        <span class="drow-metric">
+          <span class="drow-grade" style={`color:${tierText(w.lastTier)}`}>
+            {w.lastGrade || '—'}
+          </span>{' '}
+          {w.lastScore}/100
+        </span>
+      )}
+      <span class="drow-sys" style={`color:${systemTierColor(w.lastSystemTier)}`}>
+        {w.lastSystemTier ? w.lastSystemTier : w.system ? 'awaiting sweep' : 'off'}
+      </span>
+      <span class="drow-flags">{flags.length ? flags : <span>ok</span>}</span>
+      <span class="drow-check">{checked}</span>
+      <a class="drow-rep" href={`${origin}/report/${encodeURIComponent(w.domain)}`}>
+        report →
+      </a>
+    </li>
   );
 }
 
 function DashboardView({ origin, email, watches }) {
   const drifted = watches.filter((w) => w.regressed || w.systemRegressed).length;
   return (
-    <>
-      <h1>Your domains</h1>
-      <div class="bar">
+    <main class="dash-wrap" id="main">
+      <div class="dash-head">
+        <SectionLedger label="dashboard" />
+        <h1 class="dash-h">Your domains</h1>
+      </div>
+      <div class="dash-bar">
         <span>
-          {email} {raw('&middot;')} {watches.length} domain{watches.length === 1 ? '' : 's'}
-          {drifted ? `${' · '}${drifted} needing attention` : ''}
+          <b>{email}</b> · {watches.length} domain{watches.length === 1 ? '' : 's'}
+          {drifted ? (
+            <>
+              {' · '}
+              <span class="att">
+                {drifted} need{drifted === 1 ? 's' : ''} attention
+              </span>
+            </>
+          ) : null}
         </span>
-        <a href={`${origin}/dashboard?logout=1`}>sign out</a>
+        <a class="dash-signout" href={`${origin}/dashboard?logout=1`}>
+          sign out
+        </a>
       </div>
       {watches.length ? (
-        <table>
-          <thead>
-            <tr>
-              <th>domain</th>
-              <th>slop</th>
-              <th>system</th>
-              <th>status</th>
-              <th class="hide-sm">last check</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {watches.map((w) => (
-              <Row w={w} origin={origin} />
-            ))}
-          </tbody>
-        </table>
+        <ul class="dlist" role="list">
+          {watches.map((w) => (
+            <Row w={w} origin={origin} />
+          ))}
+        </ul>
       ) : (
-        <p class="empty">
+        <p class="dash-empty">
           No monitored domains on this address yet.{' '}
           <a href={`${origin}/#monitor`}>Add the first one</a>.
         </p>
       )}
-      <p class="fine">
+      <p class="dash-fine">
         Daily sweeps re-scan each verified domain; drift and regression email you once per event.
-        Print any client report straight from its page.
+        Print any client report from its page.
       </p>
-    </>
+    </main>
   );
 }
 
@@ -274,24 +297,16 @@ export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   const origin = url.origin;
 
+  // Configured-off: no session secret ⇒ the dashboard can't mint sessions. 503,
+  // same safe-off contract as /api/dashboard/link (MNR-17, floor states).
   if (!env.SESSION_SECRET) {
-    return page(
-      origin,
-      'Dashboard',
-      <>
-        <h1>Dashboard not configured</h1>
-        <p class="sub">
-          Sign-in requires SESSION_SECRET (and the email provider) to be set — see PRODUCTION.md.
-          Monitoring itself works without it.
-        </p>
-      </>
-    );
+    return page(origin, 'Dashboard', <NotConfiguredView />, { status: 503 });
   }
 
   // Sign out.
   if (url.searchParams.get('logout') === '1') {
     return page(origin, 'Signed out', <LoginView origin={origin} note="" />, {
-      'Set-Cookie': clearSessionCookie(),
+      headers: { 'Set-Cookie': clearSessionCookie() },
     });
   }
 
@@ -313,7 +328,11 @@ export async function onRequestGet({ request, env }) {
     const session = await signSession(email, env.SESSION_SECRET);
     return new Response(null, {
       status: 302,
-      headers: { Location: `${origin}/dashboard`, 'Set-Cookie': sessionCookie(session) },
+      headers: {
+        Location: `${origin}/dashboard`,
+        'Set-Cookie': sessionCookie(session),
+        'Cache-Control': 'no-store',
+      },
     });
   }
 
@@ -321,6 +340,7 @@ export async function onRequestGet({ request, env }) {
   const email = await sessionEmail(request, env.SESSION_SECRET);
   if (!email) return page(origin, 'Sign in', <LoginView origin={origin} note="" />);
 
+  // Strict ownership isolation: only the domains owned by this email.
   const watches = env.RESULTS ? await listWatchesByEmail(env.RESULTS, email) : [];
   watches.sort((a, b) => String(a.domain).localeCompare(String(b.domain)));
   return page(
