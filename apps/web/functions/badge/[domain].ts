@@ -8,7 +8,8 @@
 // Embed:
 //   [![slop](https://slop-detect.com/badge/example.com.svg)](https://slop-detect.com)
 
-import { getLatestForDomain, badgeSvg, BADGE_TTL } from '../_shared.js';
+import { getLatestForDomain, BADGE_TTL } from '../_shared.js';
+import { badgeSvg } from '../_badge.js';
 
 export async function onRequestGet({ params, env }) {
   let domain = String(params.domain || '')
