@@ -12,21 +12,91 @@
 <meta property="og:description" content="Deterministic AI-design-slop scoring vs ML-based alternatives. Methodology, differentiators, and when to use which.">
 <meta property="og:url" content="https://slop-detect.com/compare">
 <meta property="og:image" content="https://slop-detect.com/og.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=Libre+Franklin:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#0a0b0e; --panel:#131620; --fg:#f5f5f7; --muted:#9aa1b1; --border:#262b38; --accent:#5b9dff; --red:#f87171; }
-  * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.65 'Hanken Grotesk',system-ui,sans-serif; }
-  main { max-width:820px; margin:0 auto; padding:48px 20px 80px; }
-  a { color:var(--accent); }
-  h1 { font-size:2rem; line-height:1.2; margin:0 0 8px; }
-  h2 { font-size:1.3rem; margin:40px 0 12px; }
-  .lede { color:var(--muted); font-size:1.1rem; margin:0 0 8px; }
-  table { width:100%; border-collapse:collapse; margin:16px 0; font-size:.95rem; }
-  th,td { text-align:left; padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:top; }
-  th { color:var(--muted); font-weight:600; }
-  code { background:var(--panel); padding:2px 6px; border-radius:5px; font-family:'Martian Mono',ui-monospace,monospace; font-size:.85em; }
-  .nav { font-size:.9rem; margin-bottom:24px; }
-  ul { padding-left:20px; }
+  :root{
+    color-scheme:light;
+    --bg:#F4F5F2; --bg-2:#EEF0EB; --panel:#FBFBF9; --ink-deep:#16170F;
+    --border:#DBDDD6; --border-2:#E4E6DF; --border-btn:#C9CBC3;
+    --text:#181815; --text-2:#3A3B33; --text-3:#46473F; --text-4:#6E6F63; --text-6:#9A9B8E;
+    --clean:#1FA85E; --clean-text:#15824A;
+    --d-text:#F4F5F2; --d-text-3:#B6B7AC; --d-text-4:#8A8B7E;
+    --serif:'Newsreader',Georgia,'Times New Roman',serif;
+    --sans:'Libre Franklin',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  body{background:var(--bg);color:var(--text-2);font-family:var(--sans);line-height:1.6}
+  a{color:inherit;text-decoration:none}
+  ::selection{background:#1FA85E;color:#fff}
+  :focus-visible{outline:2px solid #1FA85E;outline-offset:2px;border-radius:2px}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+  /* nav — the shared sticky translucent-paper bar */
+  .nav{position:sticky;top:0;z-index:50;background:rgba(244,245,242,0.92);border-bottom:1px solid var(--border)}
+  .nav-inner{max-width:1080px;margin:0 auto;padding:13px 32px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .logo{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+  .logo-mark{display:inline-flex;line-height:0}
+  .logo-word{font-family:var(--mono);font-weight:700;font-size:15px;letter-spacing:-0.01em;color:var(--text)}
+  .nav-links{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+  .nav-link{font-family:var(--mono);font-size:13px;color:var(--text-3)}
+  .nav-link:hover{color:var(--text)}
+  .nav-link-active{color:var(--text)}
+  .nav-gh{font-family:var(--mono);font-size:13px;color:var(--text);border:1px solid var(--border-btn);padding:6px 12px;border-radius:2px}
+  .nav-gh:hover{border-color:var(--text)}
+
+  /* content column */
+  main{max-width:780px;margin:0 auto;padding:56px 32px 72px}
+  .eyebrow{font-family:var(--mono);font-size:13px;color:var(--clean-text);margin-bottom:14px}
+  h1{font-family:var(--serif);font-weight:500;font-size:clamp(38px,5vw,60px);line-height:1.0;letter-spacing:-0.02em;color:var(--text)}
+  h1 em{font-style:italic;color:var(--text-3)}
+  .lead{font-size:19px;line-height:1.6;color:var(--text-2);max-width:60ch;margin-top:16px}
+
+  /* section: the signature 1.5px ink ledger rule + a mono eyebrow over a serif H2 */
+  .sec{margin-top:46px}
+  .sec-h{border-top:1.5px solid #181815;padding-top:14px}
+  .sec-h .tag{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--clean-text);margin-right:10px}
+  .sec-h .lbl{font-family:var(--mono);font-size:12px;color:var(--text-4)}
+  h2{font-family:var(--serif);font-weight:500;font-size:28px;line-height:1.1;letter-spacing:-0.01em;color:var(--text);margin-top:10px}
+  p{margin-top:14px;max-width:66ch}
+  p strong{color:var(--text)}
+  p em{font-style:italic}
+  ul{margin-top:12px;padding-left:20px}
+  li{margin-top:8px;max-width:66ch}
+  li strong{color:var(--text)}
+  a.link{color:var(--clean-text);border-bottom:1px solid var(--border-2);padding-bottom:1px}
+  a.link:hover{border-color:var(--clean-text)}
+  code{font-family:var(--mono);font-size:0.85em;background:var(--bg-2);border:1px solid var(--border);border-radius:3px;padding:1px 6px;color:var(--text-3)}
+
+  /* reference table — header under the ink rule, rows divided #E4E6DF, our column inked green */
+  .tbl-wrap{overflow-x:auto;margin-top:18px}
+  table{width:100%;border-collapse:collapse;font-size:14px;min-width:580px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--border-2);vertical-align:top}
+  thead th{font-family:var(--mono);font-size:11.5px;font-weight:500;color:var(--text-4);border-bottom:1.5px solid #181815}
+  tbody td:first-child{font-family:var(--mono);font-size:13px;color:var(--text-3)}
+  .col-us{color:var(--clean-text);font-weight:500}
+  td em{font-style:italic;color:var(--text-3)}
+
+  /* footer — the shared dark band with the two framing lines */
+  .ft{background:var(--ink-deep);color:var(--d-text-3);padding:44px 32px;margin-top:64px}
+  .ft-inner{max-width:1080px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap}
+  .ft-id{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .ft-word{font-family:var(--mono);font-weight:700;font-size:15px;letter-spacing:-0.01em;color:var(--d-text)}
+  .ft-meta{font-family:var(--mono);font-size:12px;color:var(--d-text-4)}
+  .ft-links{display:flex;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:12px}
+  .ft-links a{color:var(--d-text-3)}
+  .ft-links a:hover{color:var(--d-text)}
+  .ft-note{max-width:1080px;margin:16px auto 0;display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+  .ft-fp{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--d-text-3)}
+  .ft-repro{font-family:var(--mono);font-size:12px;color:var(--d-text-4)}
+
+  @media(max-width:640px){
+    .nav-inner,main,.ft{padding-left:20px;padding-right:20px}
+    .ft-inner,.ft-note{flex-direction:column;align-items:flex-start}
+  }
 </style>
 <script type="application/ld+json">
 {
@@ -42,71 +112,126 @@
 </script>
 </head>
 <body>
+<nav class="nav" aria-label="Primary">
+  <div class="nav-inner">
+    <a class="logo" href="/" aria-label="slop-detect home">
+      <span class="logo-mark"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M3 8 V3.5 H7.5" stroke="#181815" stroke-width="1.6" stroke-linecap="square"/><path d="M16.5 3.5 H21 V8" stroke="#181815" stroke-width="1.6" stroke-linecap="square"/><path d="M21 16 V20.5 H16.5" stroke="#181815" stroke-width="1.6" stroke-linecap="square"/><path d="M7.5 20.5 H3 V16" stroke="#181815" stroke-width="1.6" stroke-linecap="square"/><circle cx="12" cy="12" r="2.4" fill="#1FA85E"/></svg></span>
+      <span class="logo-word">slop-detect</span>
+    </a>
+    <div class="nav-links">
+      <a class="nav-link" href="/leaderboard">leaderboard</a>
+      <a class="nav-link" href="/docs">docs</a>
+      <a class="nav-link" href="/brand">brand</a>
+      <a class="nav-gh" href="https://github.com/ravidsrk/slop-detect" target="_blank" rel="noopener noreferrer">github ↗</a>
+    </div>
+  </div>
+</nav>
+
 <main>
-  <div class="nav"><a href="/">&larr; Slop Detector</a></div>
+  <p class="eyebrow">/compare · positioning</p>
+  <h1>How Slop Detector <em>compares</em></h1>
+  <p class="lead">Where Slop Detector sits among design-quality and AI-detection tools, and why its methodology is different.</p>
 
-  <h1>How Slop Detector compares</h1>
-  <p class="lede">Where Slop Detector sits among design-quality and AI-detection tools — and why its methodology is different.</p>
+  <section class="sec">
+    <div class="sec-h"><span class="tag">01</span><span class="lbl">the short version</span></div>
+    <h2>One fixed yardstick, not a moving model</h2>
+    <p>
+      Most "is this AI?" tools are <strong>probabilistic ML classifiers</strong>: they output a
+      confidence that something was machine-generated, and that confidence shifts as the model is
+      retrained. Slop Detector works the other way. It is a <strong>deterministic fingerprint</strong>:
+      a fixed catalogue of CSS and copy tells, each with a fixed weight, evaluated against a page's
+      <em>live computed styles</em> in real headless Chromium. The same page always yields the same
+      score. No model, no randomness, so the output is auditable, reproducible, and safe to gate CI on.
+    </p>
+  </section>
 
-  <h2>The short version</h2>
-  <p>
-    Most "is this AI?" tools are <strong>probabilistic ML classifiers</strong>: they output a
-    confidence that something was machine-generated, and that confidence shifts as the model is
-    retrained. Slop Detector takes the opposite approach. It is a <strong>deterministic fingerprint</strong>:
-    a fixed catalogue of CSS and copy tells, each with a fixed weight, evaluated against a page's
-    <em>live computed styles</em> in real headless Chromium. The same page always yields the same
-    score. There is no model and no randomness — so the output is auditable, reproducible, and
-    safe to gate CI on.
-  </p>
+  <section class="sec">
+    <div class="sec-h"><span class="tag">02</span><span class="lbl">methodology comparison</span></div>
+    <h2>How the approaches differ</h2>
+    <div class="tbl-wrap">
+      <table>
+        <caption class="sr-only">Methodology comparison across Slop Detector, ML AI-detectors, and Lighthouse/a11y tools</caption>
+        <thead>
+          <tr><th scope="col">Dimension</th><th scope="col">Slop Detector</th><th scope="col">Typical ML AI-detectors</th><th scope="col">Generic Lighthouse / a11y</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Output</td><td class="col-us">Deterministic 0–100 weighted fingerprint</td><td>Probabilistic % confidence</td><td>Perf / a11y / SEO scores</td></tr>
+          <tr><td>Reproducible</td><td class="col-us">Yes — same page, same score</td><td>No — drifts with retraining</td><td>Mostly</td></tr>
+          <tr><td>What it measures</td><td class="col-us">AI-<em>design</em> + copy slop tells</td><td>Generated-vs-human likelihood</td><td>Technical quality, not aesthetics</td></tr>
+          <tr><td>Engine</td><td class="col-us">Real Chromium, computed styles</td><td>Text / pixel models</td><td>Real Chromium</td></tr>
+          <tr><td>Auditable rules</td><td class="col-us">Yes — open catalogue at <a class="link" href="/api/patterns">/api/patterns</a></td><td>Opaque weights</td><td>Documented audits</td></tr>
+          <tr><td>AEO axis (AI-readability)</td><td class="col-us">Yes — built in</td><td>No</td><td>Partial (SEO only)</td></tr>
+          <tr><td>License</td><td class="col-us">Open source (MIT)</td><td>Usually closed</td><td>Mixed</td></tr>
+          <tr><td>Agent interfaces</td><td class="col-us">API + CLI + MCP</td><td>Rare</td><td>Rare</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 
-  <h2>Methodology comparison</h2>
-  <table>
-    <thead>
-      <tr><th>Dimension</th><th>Slop Detector</th><th>Typical ML AI-detectors</th><th>Generic Lighthouse / a11y tools</th></tr>
-    </thead>
-    <tbody>
-      <tr><td>Output</td><td>Deterministic 0–100 weighted fingerprint</td><td>Probabilistic % confidence</td><td>Perf / a11y / SEO scores</td></tr>
-      <tr><td>Reproducible</td><td>Yes — same page, same score</td><td>No — drifts with retraining</td><td>Mostly</td></tr>
-      <tr><td>What it measures</td><td>AI-<em>design</em> + copy slop tells</td><td>Generated-vs-human likelihood</td><td>Technical quality, not aesthetics</td></tr>
-      <tr><td>Engine</td><td>Real Chromium, computed styles</td><td>Text / pixel models</td><td>Real Chromium</td></tr>
-      <tr><td>Auditable rules</td><td>Yes — open catalogue at <a href="/api/patterns">/api/patterns</a></td><td>Opaque weights</td><td>Documented audits</td></tr>
-      <tr><td>AEO axis (AI-readability)</td><td>Yes — built in</td><td>No</td><td>Partial (SEO only)</td></tr>
-      <tr><td>License</td><td>Open source (MIT)</td><td>Usually closed</td><td>Mixed</td></tr>
-      <tr><td>Agent interfaces</td><td>API + CLI + MCP</td><td>Rare</td><td>Rare</td></tr>
-    </tbody>
-  </table>
+  <section class="sec">
+    <div class="sec-h"><span class="tag">03</span><span class="lbl">why deterministic matters</span></div>
+    <h2>What a fixed score buys you</h2>
+    <ul>
+      <li><strong>CI gating.</strong> Fail a build at <code>--fail-on heavy</code> and trust the threshold won't move under you.</li>
+      <li><strong>Auditability.</strong> Every point in a score traces to a named pattern with a documented weight.</li>
+      <li><strong>Comparability.</strong> Two designs measured on the same fixed yardstick, today and next year.</li>
+      <li><strong>No false confidence.</strong> A high score says "this looks machine-made," not "an AI wrote this." A fingerprint, not a verdict.</li>
+    </ul>
+  </section>
 
-  <h2>Why deterministic matters</h2>
-  <ul>
-    <li><strong>CI gating.</strong> You can fail a build at <code>--fail-on heavy</code> and trust the threshold won't move under you.</li>
-    <li><strong>Auditability.</strong> Every point in a score traces to a named pattern with a documented weight.</li>
-    <li><strong>Comparability.</strong> Two designs can be compared on the same fixed yardstick, today and next year.</li>
-    <li><strong>No false-confidence.</strong> A high score says "this looks machine-made," not "an AI wrote this" — it's a fingerprint, not a verdict.</li>
-  </ul>
+  <section class="sec">
+    <div class="sec-h"><span class="tag">04</span><span class="lbl">the research behind it</span></div>
+    <h2>Where the weights come from</h2>
+    <p>
+      The pattern weights derive from <a class="link" href="https://www.adriankrebs.ch/blog/design-slop/" rel="noopener">Adrian Krebs's April 2026 study</a>
+      of 1,400 Show HN submissions, plus <a class="link" href="https://x.com/MengTo/status/2058893181740359863" rel="noopener">Meng To's</a>
+      gradient-avatar tell. The catalogue is versioned (<code>DEFINITIONS_VERSION</code>) and served
+      live at <a class="link" href="/api/patterns">/api/patterns</a>.
+    </p>
+  </section>
 
-  <h2>The research behind it</h2>
-  <p>
-    The pattern weights derive from <a href="https://www.adriankrebs.ch/blog/design-slop/" rel="noopener">Adrian Krebs's April 2026 study</a>
-    of 1,400 Show HN submissions, plus <a href="https://x.com/MengTo/status/2058893181740359863" rel="noopener">Meng To's</a>
-    gradient-avatar tell. The catalogue is versioned (<code>DEFINITIONS_VERSION</code>) and served
-    live at <a href="/api/patterns">/api/patterns</a>.
-  </p>
+  <section class="sec">
+    <div class="sec-h"><span class="tag">05</span><span class="lbl">when to use which</span></div>
+    <h2>Pick by the question you're asking</h2>
+    <ul>
+      <li><strong>Slop Detector</strong> — a reproducible, explainable read on how templated or AI-generated a landing page looks, or to gate design regressions in CI.</li>
+      <li><strong>An ML AI-detector</strong> — a probabilistic "was this generated?" verdict on arbitrary text or images.</li>
+      <li><strong>Lighthouse / axe</strong> — performance, accessibility, and technical SEO. Orthogonal to slop.</li>
+    </ul>
+  </section>
 
-  <h2>When to use which</h2>
-  <ul>
-    <li><strong>Use Slop Detector</strong> when you want a reproducible, explainable read on how templated/AI-generated a landing page looks, or to gate design regressions in CI.</li>
-    <li><strong>Use an ML AI-detector</strong> when you need a probabilistic "was this generated?" verdict on arbitrary text/images.</li>
-    <li><strong>Use Lighthouse/axe</strong> for performance, accessibility, and technical SEO — orthogonal to slop.</li>
-  </ul>
-
-  <h2>Try it</h2>
-  <p>
-    Web: <a href="https://slop-detect.com">slop-detect.com</a> ·
-    CLI: <code>npx slop-detect &lt;url&gt;</code> ·
-    MCP: <code>slop-detect-mcp</code> ·
-    API: <a href="/openapi.json">/openapi.json</a> ·
-    Source: <a href="https://github.com/ravidsrk/slop-detect" rel="noopener">GitHub</a>
-  </p>
+  <section class="sec">
+    <div class="sec-h"><span class="tag">06</span><span class="lbl">try it</span></div>
+    <h2>Run a scan</h2>
+    <p>
+      Web: <a class="link" href="https://slop-detect.com">slop-detect.com</a> ·
+      CLI: <code>npx slop-detect &lt;url&gt;</code> ·
+      MCP: <code>slop-detect-mcp</code> ·
+      API: <a class="link" href="/openapi.json">/openapi.json</a> ·
+      Source: <a class="link" href="https://github.com/ravidsrk/slop-detect" rel="noopener">GitHub</a>
+    </p>
+  </section>
 </main>
+
+<footer class="ft">
+  <div class="ft-inner">
+    <div class="ft-id">
+      <span class="logo-mark"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M3 8 V3.5 H7.5" stroke="#F4F5F2" stroke-width="1.6" stroke-linecap="square"/><path d="M16.5 3.5 H21 V8" stroke="#F4F5F2" stroke-width="1.6" stroke-linecap="square"/><path d="M21 16 V20.5 H16.5" stroke="#F4F5F2" stroke-width="1.6" stroke-linecap="square"/><path d="M7.5 20.5 H3 V16" stroke="#F4F5F2" stroke-width="1.6" stroke-linecap="square"/><circle cx="12" cy="12" r="2.4" fill="#3FBE7A"/></svg></span>
+      <span class="ft-word">slop-detect</span>
+      <span class="ft-meta">© 2026 · MIT</span>
+    </div>
+    <div class="ft-links">
+      <a href="/leaderboard">leaderboard</a>
+      <a href="/docs">docs</a>
+      <a href="/directory">directory</a>
+      <a href="/privacy.md">privacy</a>
+      <a href="https://github.com/ravidsrk/slop-detect" target="_blank" rel="noopener noreferrer">github ↗</a>
+    </div>
+  </div>
+  <div class="ft-note">
+    <span class="ft-fp">A fingerprint, not a verdict.</span>
+    <span class="ft-repro">Reproduce: npx slop-detect &lt;url&gt;</span>
+  </div>
+</footer>
 </body>
 </html>
