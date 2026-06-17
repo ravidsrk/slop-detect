@@ -91,8 +91,10 @@ test('/leaderboard renders the headline, category rankings, and by-builder', asy
       expect(html, 'builder breakdown present').toMatch(/v0/);
       // Names link into the score hub (closing the loop), not dead-ending elsewhere.
       expect(html).toMatch(/href="https:\/\/slop-detect\.com\/score\/stripe\.com"/);
-      // Anti-slop self-check + framing caveat.
-      expect(html).not.toMatch(/Inter|Geist|Space Grotesk/i);
+      // Anti-slop self-check + framing caveat. The font names are matched
+      // case-sensitively (as in ui.test.js) so the shared UI_CSS `cursor:pointer`
+      // — which contains the substring "inter" — is not a false positive.
+      expect(html).not.toMatch(/Inter|Geist|Space Grotesk/);
       expect(html).not.toMatch(/background-clip:\s*text/i);
       expect(html).toMatch(/fingerprint, not a verdict/i);
     }
