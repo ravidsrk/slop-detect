@@ -1,19 +1,19 @@
 # Slop Detector
 
-> Score any landing page against the AI-design fingerprint. Paste a URL, get a
-> deterministic 0–100 slop score in about five seconds: a weighted fingerprint
-> of the CSS and copy tells that Cursor, v0, Lovable and Bolt all converged on.
+> Does your landing page look generated? Paste a URL, get a deterministic 0–100
+> slop score in about eight seconds: a weighted fingerprint of the CSS and copy
+> tells that Cursor, v0, Lovable and Bolt all converged on.
 
 Slop Detector is open source and runs on real Chromium. It ships as a web app, a
 command-line tool, and an MCP server, so humans and coding agents can both use it.
 
-## How AI-generated does your landing page look?
+## Does your landing page look generated?
 
 Generated pages converge. They reach for the same fonts, the same gradient hero
 text, the same glassmorphism, the same eyebrow pill and big-number stat band.
 Slop Detector measures how far a page sits along that fingerprint. Slop is a
 fingerprint, not a verdict: a high score means "this looks machine-made," not
-"this is bad."
+"this is bad." Premium sites score Mild too.
 
 ## The fingerprint: what it measures
 
