@@ -1,56 +1,65 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" font-family="'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif">
-  <!-- Source for /landing/og.png. Rasterize at 1200x630 with the brand fonts
-       installed (or screenshot in a browser) so Hanken Grotesk + Martian Mono
-       render. Cool calibrated-paper theme, signature = the grade card. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <!-- Source for /landing/og.png. New light editorial-instrument theme (build task
+       13): cool paper, Newsreader serif display, JetBrains Mono data voice, the
+       verdict scale carrying the score. No gradient, no old Hanken/Martian faces.
+       Rasterize at 1200x630 with the brand fonts available — the @import below lets
+       a browser (or headless Chrome) load them, so a screenshot renders them. -->
   <defs>
     <style>
-      .mono { font-family: 'Martian Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace; }
+      @import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,500;1,6..72,500&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap');
+      .serif { font-family: 'Newsreader', Georgia, serif; font-weight: 500; }
+      .mono  { font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace; }
     </style>
   </defs>
 
   <!-- paper -->
-  <rect width="1200" height="630" fill="#f4f5f7"/>
-  <!-- top accent rule -->
-  <rect x="0" y="0" width="1200" height="6" fill="#2848d6"/>
+  <rect width="1200" height="630" fill="#F4F5F2"/>
 
-  <!-- masthead -->
-  <text x="72" y="92" class="mono" font-size="26" font-weight="600" letter-spacing="-1" fill="#15171e"><tspan fill="#2848d6">&#9631;</tspan>  slop-detect</text>
-  <text x="1128" y="92" text-anchor="end" class="mono" font-size="19" fill="#646a78">§ deterministic design-slop scoring</text>
+  <!-- masthead: the logo lockup + a mono stamp -->
+  <g transform="translate(72,54) scale(1.5)" fill="none">
+    <path d="M3 8 V3.5 H7.5" stroke="#181815" stroke-width="1.6" stroke-linecap="square"/>
+    <path d="M16.5 3.5 H21 V8" stroke="#181815" stroke-width="1.6" stroke-linecap="square"/>
+    <path d="M21 16 V20.5 H16.5" stroke="#181815" stroke-width="1.6" stroke-linecap="square"/>
+    <path d="M7.5 20.5 H3 V16" stroke="#181815" stroke-width="1.6" stroke-linecap="square"/>
+    <circle cx="12" cy="12" r="2.4" fill="#1FA85E"/>
+  </g>
+  <text x="120" y="83" class="mono" font-size="27" font-weight="700" letter-spacing="-0.3" fill="#181815">slop-detect</text>
+  <text x="1128" y="83" text-anchor="end" class="mono" font-size="16" fill="#6E6F63">deterministic design-slop scoring</text>
 
-  <!-- headline (kept left of the grade card so nothing collides) -->
-  <text x="72" y="206" font-size="60" font-weight="800" letter-spacing="-2" fill="#15171e">Grade any landing page</text>
-  <text x="72" y="276" font-size="60" font-weight="800" letter-spacing="-2" fill="#15171e">on how <tspan fill="#2848d6">AI-generated</tspan></text>
-  <text x="72" y="346" font-size="60" font-weight="800" letter-spacing="-2" fill="#15171e">it looks.</text>
+  <!-- headline (Newsreader display, kept left of the grade card) -->
+  <text x="72" y="244" class="serif" font-size="62" letter-spacing="-1" fill="#181815">Grade any landing</text>
+  <text x="72" y="312" class="serif" font-size="62" letter-spacing="-1" fill="#181815">page on how it</text>
+  <text x="72" y="380" class="serif" font-size="62" letter-spacing="-1" fill="#181815">reads as AI slop.</text>
 
-  <!-- subline -->
-  <text x="74" y="408" font-size="28" fill="#454a57">27 deterministic checks · a 0&#8211;100 score,</text>
-  <text x="74" y="446" font-size="28" fill="#454a57">a letter grade, and the exact tells.</text>
-  <text x="74" y="484" font-size="28" fill="#454a57">Free and open source.</text>
+  <!-- subline (mono data voice) -->
+  <text x="74" y="448" class="mono" font-size="21" fill="#46473F">27 deterministic checks · a 0–100 score,</text>
+  <text x="74" y="482" class="mono" font-size="21" fill="#46473F">a letter grade, and the exact tells.</text>
 
-  <!-- url -->
-  <text x="74" y="556" class="mono" font-size="24" font-weight="600" fill="#2848d6">slop-detect.com</text>
-  <text x="74" y="556" class="mono" font-size="24" font-weight="600" fill="#2848d6" dx="250" opacity="0"> </text>
-  <text x="330" y="556" class="mono" font-size="22" fill="#646a78">npx slop-detect &lt;url&gt;</text>
+  <!-- url + command -->
+  <text x="74" y="558" class="mono" font-size="23" font-weight="500" fill="#15824A">slop-detect.com</text>
+  <text x="330" y="558" class="mono" font-size="20" fill="#6E6F63">npx slop-detect &lt;url&gt;</text>
 
   <!-- signature: the grade card (a real measured reading) -->
   <g transform="translate(770,150)">
-    <rect x="0" y="0" width="358" height="330" rx="16" fill="#ffffff" stroke="#c7cad3" stroke-width="1.5"/>
+    <rect x="0" y="0" width="358" height="330" rx="6" fill="#FBFBF9" stroke="#DBDDD6" stroke-width="1"/>
     <!-- card cap -->
-    <text x="24" y="40" class="mono" font-size="18" font-weight="600" fill="#15171e">bolt.new</text>
-    <text x="334" y="40" text-anchor="end" class="mono" font-size="15" fill="#646a78">live scan</text>
-    <line x1="0" y1="60" x2="358" y2="60" stroke="#dcdee4" stroke-width="1"/>
-    <!-- grade -->
-    <text x="24" y="158" class="mono" font-size="96" font-weight="600" letter-spacing="-5" fill="#b42318">D+</text>
-    <text x="180" y="128" class="mono" font-size="34" font-weight="600" fill="#15171e">33<tspan font-size="20" fill="#646a78"> / 100</tspan></text>
-    <rect x="180" y="146" width="92" height="32" rx="16" fill="#fbeceb" stroke="#b42318" stroke-width="1.2"/>
-    <text x="226" y="168" text-anchor="middle" class="mono" font-size="16" font-weight="600" fill="#b42318">Heavy</text>
-    <!-- named tells -->
-    <line x1="24" y1="206" x2="334" y2="206" stroke="#c7cad3" stroke-width="1" stroke-dasharray="3 3"/>
-    <text x="24" y="238" font-size="17" fill="#454a57">AI-default font stack (Inter / Geist)</text>
-    <text x="334" y="238" text-anchor="end" class="mono" font-size="16" fill="#b42318">+8</text>
-    <text x="24" y="268" font-size="17" fill="#454a57">Aurora / mesh gradient blobs</text>
-    <text x="334" y="268" text-anchor="end" class="mono" font-size="16" fill="#b42318">+5</text>
-    <text x="24" y="298" font-size="17" fill="#454a57">Centered hero in generic sans</text>
-    <text x="334" y="298" text-anchor="end" class="mono" font-size="16" fill="#b42318">+4</text>
+    <text x="26" y="42" class="mono" font-size="18" font-weight="700" fill="#181815">bolt.new</text>
+    <text x="332" y="42" text-anchor="end" class="mono" font-size="14" fill="#6E6F63">live scan</text>
+    <line x1="0" y1="62" x2="358" y2="62" stroke="#E7E8E2" stroke-width="1"/>
+    <!-- grade + score -->
+    <text x="26" y="172" class="serif" font-size="104" letter-spacing="-3" fill="#B23A2A">D+</text>
+    <text x="188" y="132" class="mono" font-size="34" font-weight="700" fill="#181815">33<tspan font-size="19" font-weight="400" fill="#9A9B8E"> /100</tspan></text>
+    <!-- tier pill -->
+    <rect x="188" y="150" width="120" height="34" rx="6" fill="#FBFBF9" stroke="#DBDDD6" stroke-width="1"/>
+    <circle cx="206" cy="167" r="6" fill="#C9402E"/>
+    <text x="222" y="173" class="mono" font-size="15" font-weight="700" letter-spacing="0.3" fill="#B23A2A">HEAVY</text>
+    <!-- the named tells -->
+    <line x1="26" y1="212" x2="332" y2="212" stroke="#DBDDD6" stroke-width="1" stroke-dasharray="3 4"/>
+    <text x="26" y="246" class="mono" font-size="15" fill="#46473F">AI-default font stack</text>
+    <text x="332" y="246" text-anchor="end" class="mono" font-size="15" font-weight="700" fill="#B23A2A">+8</text>
+    <text x="26" y="278" class="mono" font-size="15" fill="#46473F">Aurora / mesh gradient</text>
+    <text x="332" y="278" text-anchor="end" class="mono" font-size="15" font-weight="700" fill="#B23A2A">+5</text>
+    <text x="26" y="310" class="mono" font-size="15" fill="#46473F">Centered hero, generic sans</text>
+    <text x="332" y="310" text-anchor="end" class="mono" font-size="15" font-weight="700" fill="#B23A2A">+4</text>
   </g>
 </svg>
