@@ -88,7 +88,8 @@ async function ensureChromium() {
     }
     process.stderr.write('slop-detect: first run — downloading Chromium (~150 MB, one-time)…\n');
     const r = spawnSync('npx', ['--yes', 'playwright', 'install', 'chromium'], {
-      stdio: 'inherit',
+      // Pipe stdout so a `--json` redirect never captures download progress.
+      stdio: ['ignore', 'pipe', 'inherit'],
       shell: process.platform === 'win32',
     });
     if (r.status !== 0) {

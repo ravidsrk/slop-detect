@@ -56,6 +56,10 @@ jobs:
       - name: Install Playwright Chromium
         run: bunx playwright install --with-deps chromium
       - name: Scan a known-clean page (HN)
+        env:
+          # Chromium was installed above — skip the CLI's lazy installer so its
+          # download progress can't pollute stdout (which is redirected to JSON).
+          SKIP_PLAYWRIGHT_DOWNLOAD: 1
         run: |
           cd packages/cli
           node dist/bin/slop.js https://news.ycombinator.com --json > result.json
