@@ -139,6 +139,23 @@ test('global daily cap returns 503 daily_capacity_reached for scans', async () =
   expect((await res.json()).error).toBe('daily_capacity_reached');
 });
 
+test('global daily cap fails closed when KV read errors', async () => {
+  const flakyKv = {
+    get: async (k) => {
+      if (k.startsWith('rl:global:scan:')) throw new Error('KV down');
+      return '0';
+    },
+    put: async () => {},
+  };
+  const req = makeRequest({
+    headers: { 'CF-Connecting-IP': '203.0.113.55' },
+    body: { url: 'https://x.com' },
+  });
+  const res = await onRequest(makeContext(req, { RATE_LIMIT: flakyKv, SCAN_DAILY_CAP: '10000' }));
+  expect(res.status).toBe(503);
+  expect((await res.json()).error).toBe('scanning_paused');
+});
+
 test('SCAN_DISABLED kill switch returns 503 scanning_paused', async () => {
   const okKv = { get: async () => '0', put: async () => {} };
   const req = makeRequest({

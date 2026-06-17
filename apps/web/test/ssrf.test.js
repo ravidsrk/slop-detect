@@ -3,8 +3,13 @@
 // page content — these tests lock in that private/loopback/metadata hosts and
 // non-http(s) schemes are rejected, while legitimate public URLs pass.
 
-import { test, expect } from 'vitest';
-import { validateScanUrl } from '../functions/_shared.ts';
+import { test, expect, afterEach } from 'vitest';
+import { validateScanUrl, fetchAllowedUrl } from '../functions/_shared.ts';
+
+const realFetch = globalThis.fetch;
+afterEach(() => {
+  globalThis.fetch = realFetch;
+});
 
 const BLOCKED = [
   'http://169.254.169.254/latest/meta-data/', // AWS/GCP metadata
@@ -74,4 +79,15 @@ test('SSRF guard rejects empty / non-string input', () => {
     expect(r.error).toBeTruthy();
     expect(r.status).toBe(400);
   }
+});
+
+test('fetchAllowedUrl blocks redirect chains to private hosts', async () => {
+  globalThis.fetch = async (url) => {
+    if (String(url).includes('public.example.com')) {
+      return new Response('', { status: 302, headers: { location: 'http://127.0.0.1/secret' } });
+    }
+    return new Response('leaked', { status: 200 });
+  };
+  const res = await fetchAllowedUrl('https://public.example.com/DESIGN.md');
+  expect(res).toBeNull();
 });

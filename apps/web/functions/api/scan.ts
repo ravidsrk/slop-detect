@@ -30,6 +30,7 @@ import {
   recordScan,
   validateScanUrl,
   isAllowedUrl,
+  fetchAllowedUrl,
   recordScanForWatch,
 } from '../_shared.js';
 import { report } from '../_report.js';
@@ -210,18 +211,12 @@ export async function onRequestPost({ request, env }) {
           : new URL('/DESIGN.md', data.url || url).toString();
       let mdText = null;
       if (isAllowedUrl(mdUrl)) {
-        try {
-          const ctl = new AbortController();
-          const t = setTimeout(() => ctl.abort(), 8000);
-          const res = await fetch(mdUrl, {
-            signal: ctl.signal,
-            headers: { Accept: 'text/markdown,text/plain,*/*' },
-          });
-          clearTimeout(t);
-          if (res.ok) mdText = (await res.text()).slice(0, 200_000);
-        } catch (_) {
-          /* unreachable DESIGN.md → reported as "no system" below */
-        }
+        const res = await fetchAllowedUrl(
+          mdUrl,
+          { headers: { Accept: 'text/markdown,text/plain,*/*' } },
+          { timeoutMs: 8000 }
+        );
+        if (res?.ok) mdText = (await res.text()).slice(0, 200_000);
       }
       result.system = scoreSystemCompliance(
         mdText ? parseDesignMd(mdText) : null,
