@@ -104,6 +104,58 @@ test('shared result (/r/:id) inline script is syntactically valid', async () => 
   assertScriptsParse(await res.text(), 'r/:id');
 });
 
+// REDESIGN/GAP-FILL (task 04): a missing or expired permalink returns the friendly
+// 90-day 404 with a new-scan CTA, noindex, and no canonical (there's no domain to
+// point at). A resolved permalink carries rel=canonical to the /score hub so a
+// domain's many /r snapshots don't dilute it (the floor's SEO gap).
+test('expired / missing /r/:id returns the friendly 90-day 404', async () => {
+  const kv = makeKv();
+  const res = await rGet({
+    params: { id: 'nope0000' },
+    request: { url: 'https://slop-detect.com/r/nope0000' },
+    env: { RESULTS: kv },
+  });
+  expect(res.status).toBe(404);
+  const html = await res.text();
+  expect(html).toMatch(/kept for 90 days/i);
+  expect(html).toMatch(/Run a new scan/i);
+  expect(html).toMatch(/<meta name="robots" content="noindex"/);
+  expect(html.includes('rel="canonical"')).toBeFalsy();
+});
+
+test('resolved /r/:id canonicalizes to the /score hub', async () => {
+  const kv = makeKv();
+  const s = {
+    id: 'c4non001',
+    url: 'https://ex.com',
+    finalUrl: 'https://ex.com/',
+    domain: 'ex.com',
+    title: 'Ex',
+    score: 30,
+    tier: 'Heavy',
+    grade: 'D',
+    verdict: 'Heavy slop.',
+    patternsFlagged: 7,
+    patternsTotal: 27,
+    definitionsVersion: '2026.09',
+    triggered: [{ label: 'AI-default font stack', weight: 8 }],
+    createdAt: '2026-06-10T12:00:00.000Z',
+  };
+  await saveResult(kv, s);
+  const res = await rGet({
+    params: { id: 'c4non001' },
+    request: { url: 'https://slop-detect.com/r/c4non001' },
+    env: { RESULTS: kv },
+  });
+  expect(res.status).toBe(200);
+  const html = await res.text();
+  expect(html).toContain('<link rel="canonical" href="https://slop-detect.com/score/ex.com"');
+  // OG/Twitter unfurl to the per-id PNG card (MNR-8).
+  expect(html).toContain('og/c4non001.png');
+  // the redesigned share surface must not reintroduce a gradient background.
+  expect(html.includes('radial-gradient')).toBeFalsy();
+});
+
 // Regression: values embedded in inline scripts (and JSON-LD) via jsonForScript
 // must not be able to break out of the <script> element. Even though verdict is a
 // fixed pool and domain is hostname-shaped today, a hostile value containing
