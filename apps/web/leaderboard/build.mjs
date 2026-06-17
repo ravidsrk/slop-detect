@@ -12,6 +12,7 @@
 //                 byBuilder, byCategory, sites:[{domain,score,grade,tier,...}] }
 
 import { readFileSync, writeFileSync } from 'node:fs';
+import { DEFINITIONS_VERSION } from '@slop-detect/core';
 
 const API = process.env.SLOP_API || 'https://slop-detect.com';
 const KEY = process.env.SLOP_API_KEY || null;
@@ -114,7 +115,7 @@ function buildReport(sites, corpus) {
 
   return {
     generatedAt: new Date().toISOString(),
-    definitionsVersion: scored[0]?.score != null ? '2026.08' : '2026.08',
+    definitionsVersion: DEFINITIONS_VERSION,
     count: sites.length,
     scored: scored.length,
     stats: {
