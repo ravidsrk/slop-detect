@@ -4,7 +4,7 @@
   "description": "Score any landing page against the AI-design-slop fingerprint. Deterministic, weighted 0-100 scoring on real headless Chromium, plus an AEO axis (can AI engines read & cite a page). Open source, MIT.",
   "url": "https://slop-detect.com",
   "preferredTransport": "JSONRPC",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "documentationUrl": "https://slop-detect.com/llms.txt",
   "provider": {
     "organization": "Slop Detector",

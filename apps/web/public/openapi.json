@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Slop Detector API",
-    "version": "0.7.0",
+    "version": "0.8.0",
     "summary": "Deterministic AI-design-slop scoring for landing pages, plus an AEO axis.",
     "description": "Score any landing page against the AI-design fingerprint. The API runs the same deterministic, weighted 0-100 engine as the web app and CLI, on real headless Chromium (Cloudflare Browser Rendering). No API key is required for normal use; requests are rate-limited per IP and the browser-driving routes (/api/scan, /api/aeo) are protected by a Turnstile challenge for browser origins. Foreign browser origins must present an API key. CLI / server-to-server callers (no Origin header) are allowed but rate-limited harder.",
     "license": {

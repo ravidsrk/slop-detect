@@ -3,7 +3,7 @@
   "name": "slop-detect-mcp",
   "displayName": "Slop Detector",
   "description": "MCP server that scores any landing page against the AI-design-slop fingerprint (deterministic 0-100, real Chromium) and an AEO axis, and builds fix prompts.",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "vendor": {
     "name": "Slop Detector",
     "url": "https://slop-detect.com"
