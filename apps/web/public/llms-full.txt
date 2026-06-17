@@ -133,8 +133,8 @@ npm package: `slop-detect`.
 npx -y slop-detect-mcp
 ```
 
-Exposes `scan_page`, `check_aeo`, `fix_prompt` to any MCP client (Claude Code,
-Cursor, Windsurf). Server card:
+Exposes `scan_page`, `check_aeo`, `check_design_system`, `fix_prompt` to any MCP
+client (Claude Code, Cursor, Windsurf). Server card:
 https://slop-detect.com/.well-known/mcp/server-card.json
 
 ## Monitoring, system axis & dashboard
@@ -180,6 +180,8 @@ Free and open source (MIT). No paid tiers. See https://slop-detect.com/pricing.m
 ## Discovery & links
 
 - llms.txt: https://slop-detect.com/llms.txt
+- Methodology: https://slop-detect.com/docs
+- Brand & identity: https://slop-detect.com/brand
 - OpenAPI: https://slop-detect.com/openapi.json
 - Auth: https://slop-detect.com/auth.md
 - Pricing: https://slop-detect.com/pricing.md

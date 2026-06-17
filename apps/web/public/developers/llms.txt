@@ -20,8 +20,8 @@ npm: `slop-detect`. Source: https://github.com/ravidsrk/slop-detect
 npx -y slop-detect-mcp
 ```
 
-Exposes three tools to any MCP client (Claude Code, Cursor, Windsurf):
-`scan_page`, `check_aeo`, `fix_prompt`. Server card:
+Exposes four tools to any MCP client (Claude Code, Cursor, Windsurf):
+`scan_page`, `check_aeo`, `check_design_system`, `fix_prompt`. Server card:
 https://slop-detect.com/.well-known/mcp/server-card.json
 
 ## HTTP API
