@@ -143,7 +143,17 @@ function makeKv(seed = {}) {
   };
 }
 
-const BRAND_MARKS = [/Hanken\+Grotesk/, /Martian\+Mono/, /--accent:#5b9dff/, /class="eyebrow"/];
+// The shared light editorial-instrument identity: the three new faces (loaded by
+// BRAND_FONTS_HEAD), the green verdict accent token, and the signature 1.5px ink
+// section-ledger rule (both in BRAND_CSS). Every server-rendered page embeds these,
+// so /directory, /leaderboard, /report must all carry them.
+const BRAND_MARKS = [
+  /Newsreader/,
+  /Libre\+Franklin/,
+  /JetBrains\+Mono/,
+  /--clean:\s*#1FA85E/,
+  /border-top:1\.5px solid #181815/,
+];
 
 test('/directory wears the landing brand (fonts, accent, registration mark)', async () => {
   const res = await directoryGet({
