@@ -17,6 +17,7 @@
 // surfaces. This page must itself score Clean on the detector it reports.
 
 import { raw } from 'hono/html';
+import { DEFINITIONS_VERSION } from '@slop-detect/core';
 import { getStats } from './_data.js';
 import { tierFor, tierFill, tierText } from './_theme.js';
 import { BRAND_FONTS_HEAD, BRAND_CSS } from './_brand.js';
@@ -277,7 +278,7 @@ export async function onRequestGet({ request, env }: { request: { url: string };
   const stats = data?.stats || {};
   const sites = (data?.sites || []).filter((s: any) => s.scored);
   const scored = data?.scored || sites.length;
-  const def = data?.definitionsVersion || '2026.08';
+  const def = data?.definitionsVersion || DEFINITIONS_VERSION;
   const when = data?.generatedAt ? new Date(data.generatedAt).toISOString().slice(0, 10) : '—';
 
   // The all-time live counter (every scan slop-detect has ever run, not just the

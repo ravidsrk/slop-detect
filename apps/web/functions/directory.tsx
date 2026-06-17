@@ -126,7 +126,7 @@ function jsonLd(sites) {
   return jsonForScript({
     '@context': 'https://schema.org',
     '@type': 'ItemList',
-    name: 'slop-detect — directory of scanned sites',
+    name: 'Slop Detector — directory of scanned sites',
     description: 'Opt-in catalogue of sites scored against the AI-design-slop fingerprint.',
     numberOfItems: sites.length,
     itemListElement: sites.slice(0, 200).map((s, i) => ({

@@ -7,7 +7,7 @@ import { onRequestGet } from '../functions/leaderboard.tsx';
 
 const SAMPLE = {
   generatedAt: '2026-06-05T00:00:00.000Z',
-  definitionsVersion: '2026.08',
+  definitionsVersion: '2026.09',
   count: 3,
   scored: 3,
   stats: { avgScore: 17, slopShare: 33, cleanCount: 2, mildCount: 1, heavyCount: 0 },
