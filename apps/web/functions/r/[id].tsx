@@ -1,225 +1,228 @@
 /** @jsxRuntime automatic @jsxImportSource hono/jsx */
-// GET /r/:id — server-rendered shareable result permalink.
+// GET /r/:id — the shareable scan permalink (one frozen scan snapshot).
 //
-// Crawler-friendly (full HTML, no JS needed): OG/Twitter meta point at the
-// PNG card (/og/:id.png) so the link unfurls with a big grade image. The page
-// also works for humans — full result + a "scan your own site" CTA that closes
-// the viral loop (see UX.md, Flow D).
+// A link people paste into Slack/X: it unfurls with the /og/:id.png card (MNR-8)
+// and, for humans who click through, renders the full Result in the shared design
+// language by COMPOSING _result.tsx — the same components the /score hub and the
+// /report deliverable use, so the three surfaces are one Result, not three skins.
+//
+// Two redesign/gap-fill moves over the old page:
+//  - The old card sat on a radial-gradient tinted by tier. That is exactly the kind
+//    of background the engine flags, so the share surface failed its own detector.
+//    The composed components use flat 1px panels (BRAND/UI/RESULT_CSS), no gradient.
+//  - The permalink carried no rel=canonical, so a domain's many /r/:id snapshots
+//    diluted SEO against its single /score hub. We now canonicalize each permalink
+//    to /score/:domain. The live embed badge + its markdown also point at the hub
+//    (the badge is "live · re-scans periodically"; a frozen /r is the wrong target),
+//    while the human Share/Copy-link actions share this permalink with its snapshot
+//    card. Reuses getResult unchanged; missing/expired id → friendly 90-day 404.
 
 import { raw } from 'hono/html';
-import { getResult, tierColors, jsonForScript } from '../_shared.js';
+import { getResult } from '../_shared.js';
+import { BRAND_FONTS_HEAD, BRAND_CSS } from '../_brand.js';
+import { Nav, Footer, SectionLedger, UI_CSS } from '../_ui.js';
+import {
+  RESULT_CSS,
+  buildResultView,
+  assembleFixPrompt,
+  resultScript,
+  DomainHeader,
+  BigScore,
+  CategoryBars,
+  Breakdown,
+  AxisStrip,
+  FixesPanel,
+  ShareEmbed,
+} from '../_result.js';
+
+const ORIGIN = 'https://slop-detect.com';
+const CSS = BRAND_CSS + UI_CSS + RESULT_CSS;
+
+// Shared document shell — same nav/footer chrome as the score hub. `head` is the
+// per-state <head>; `script` is the optional inline progressive-enhancement JS.
+function Doc({
+  head,
+  origin = '',
+  domain = '',
+  rescan = false,
+  children,
+  script = null,
+}: {
+  head?: any;
+  origin?: string;
+  domain?: string;
+  rescan?: boolean;
+  children?: any;
+  script?: any;
+}) {
+  return (
+    <html lang="en">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        {head}
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        {raw(BRAND_FONTS_HEAD)}
+        <style>{raw(CSS)}</style>
+      </head>
+      <body>
+        <Nav origin={origin} current="" rescan={rescan} />
+        <main>{children}</main>
+        <Footer origin={origin} domain={domain} meta="a fingerprint, not a verdict · MIT" />
+        <div class="flash" id="flash" role="status" aria-live="polite" />
+        {script ? <script>{raw(script)}</script> : null}
+      </body>
+    </html>
+  );
+}
+
+function htmlResponse(node: any, { status = 200, cache = 'public, max-age=300' } = {}) {
+  return new Response('<!doctype html>' + node.toString(), {
+    status,
+    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': cache },
+  });
+}
 
 export async function onRequestGet({ params, env, request }) {
+  const origin = new URL(request.url).origin;
   const id = String(params.id || '')
     .replace(/[^a-z0-9]/gi, '')
     .slice(0, 16);
-  const slim = await getResult(env.RESULTS, id);
-  const origin = new URL(request.url).origin;
+  const slim = id ? await getResult(env.RESULTS, id) : null;
 
+  // ── missing / expired permalink (MNR-7: 90-day retention, friendly state) ─────
+  // A bad id or a snapshot past its 90-day TTL. No canonical here — we have no
+  // domain to point at — and noindex so dead permalinks never enter the index.
   if (!slim) {
-    return new Response('<!doctype html>' + notFoundDoc(origin).toString(), {
-      status: 404,
-      headers: { 'Content-Type': 'text/html; charset=utf-8' },
-    });
+    const node = (
+      <Doc
+        head={
+          <>
+            <title>Result expired or not found · slop-detect</title>
+            <meta name="robots" content="noindex" />
+          </>
+        }
+        origin={origin}
+        rescan
+      >
+        <div class="result">
+          <div class="result-section re">
+            <SectionLedger tag="" label="shared result" />
+            <h1 class="re-h" style="margin-top:14px">
+              Result expired or not found
+            </h1>
+            <p class="re-body">
+              Shared scan results are kept for 90 days. This one has expired, or the link is wrong.
+              Run a fresh scan to get a new permalink and share card.
+            </p>
+            <div class="re-row">
+              <a class="btn btn-primary" href={`${origin}/`}>
+                Run a new scan →
+              </a>
+              <a class="btn btn-outline" href={`${origin}/leaderboard`}>
+                See the leaderboard →
+              </a>
+            </div>
+          </div>
+        </div>
+      </Doc>
+    );
+    return htmlResponse(node, { status: 404, cache: 'public, max-age=300' });
   }
 
-  return new Response('<!doctype html>' + resultDoc(slim, origin).toString(), {
-    headers: {
-      'Content-Type': 'text/html; charset=utf-8',
-      'Cache-Control': 'public, max-age=300',
-    },
-  });
-}
-
-function resultDoc(s, origin) {
-  const c = tierColors(s.tier);
-  const ogImg = `${origin}/og/${s.id}.png`;
-  const pageUrl = `${origin}/r/${s.id}`;
-  const title = `${s.domain} scored ${s.grade} (${s.score}/100) on the AI-slop detector`;
+  // ── resolved snapshot ─────────────────────────────────────────────────────────
+  const view = buildResultView(slim);
+  const domain = slim.domain;
+  const pageUrl = `${origin}/r/${slim.id}`; // this permalink — the human share artifact
+  const hubUrl = `${ORIGIN}/score/${domain}`; // canonical hub — SEO + the live badge target
+  const ogImg = `${origin}/og/${slim.id}.png`;
+  const title = `${domain} scored ${slim.grade} (${slim.score}/100) on the AI-slop detector`;
   const desc =
-    s.verdict || `${s.patternsFlagged}/${s.patternsTotal} AI-design-slop patterns triggered.`;
-  const badgeMd = `[![slop](${origin}/badge/${s.domain}.svg)](${pageUrl})`;
+    slim.verdict ||
+    `${slim.patternsFlagged}/${slim.patternsTotal} AI-design-slop patterns triggered.`;
 
-  const STYLE = `
-  :root{--bg:#0a0a0b;--panel:#121214;--border:#232327;--text:#f5f5f7;--muted:#8a8a92;--dim:#5a5a62;--accent:#d4d4d8;--fg:${c.fg}}
-  *{box-sizing:border-box;margin:0;padding:0}
-  html,body{background:var(--bg);color:var(--text)}
-  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh}
-  a{color:#60a5fa;text-decoration:none}a:hover{text-decoration:underline}
-  code,.mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
-  .wrap{max-width:680px;margin:0 auto;padding:40px 24px 80px}
-  .brand{font-size:15px;font-weight:600;letter-spacing:-0.01em;margin-bottom:28px}
-  .brand .slash{color:var(--dim);font-weight:400}
-  .card{background:radial-gradient(700px 400px at 85% 0%, ${c.bg} 0%, var(--panel) 70%);border:1px solid var(--border);border-radius:14px;padding:30px 30px 26px}
-  .domain{font-size:15px;color:var(--muted);word-break:break-all;margin-bottom:4px}
-  .ttl{font-size:18px;font-weight:500;margin-bottom:22px}
-  .row{display:flex;align-items:center;gap:24px}
-  .grade{font-size:96px;font-weight:800;line-height:.85;letter-spacing:-0.04em;color:var(--fg)}
-  .col{display:flex;flex-direction:column;gap:8px}
-  .score{font-size:34px;font-weight:700;letter-spacing:-0.02em}
-  .score small{font-size:18px;color:var(--muted);font-weight:500}
-  .scale-note{font-size:11px;color:var(--dim);margin-top:-2px}
-  .tier{align-self:flex-start;font-size:14px;font-weight:700;padding:3px 13px;border-radius:999px;border:1.5px solid var(--fg);color:var(--fg)}
-  .flagged{font-size:13px;color:var(--muted)}
-  .verdict{margin-top:22px;font-size:18px;color:var(--accent);line-height:1.4}
-  .tells{margin-top:22px}
-  .tells h3{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin-bottom:10px}
-  .tells ul{list-style:none;display:flex;flex-direction:column;gap:6px}
-  .tells li{font-size:14px;display:flex;align-items:center;gap:10px}
-  .tells .x{color:#f87171}.tells .w{margin-left:auto;color:#f87171;font-size:12px}
-  .cta{margin-top:26px;display:flex;gap:10px;flex-wrap:wrap}
-  .btn{display:inline-block;background:var(--text);color:#000;border:0;border-radius:8px;padding:11px 20px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
-  .btn.ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
-  .btn:hover{opacity:.85}
-  .embed{margin-top:30px}
-  .embed h3{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin-bottom:10px}
-  .embed-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-  .badge-prev{height:20px}
-  .snippet-wrap{position:relative;margin-top:10px}
-  .embed pre{margin:0;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 64px 12px 14px;font-family:ui-monospace,monospace;font-size:12px;color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere;cursor:pointer}
-  .embed pre:hover{border-color:var(--dim)}
-  .copy-snip{position:absolute;top:8px;right:8px;background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
-  .copy-snip:hover{border-color:var(--accent)}
-  .meta{margin-top:30px;font-size:12px;color:var(--dim);line-height:1.7}
-  .flash{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:#4ade80;color:#003314;padding:9px 18px;border-radius:8px;font-weight:600;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
-  .flash.show{opacity:1}
-  @media(max-width:520px){.grade{font-size:72px}.row{gap:16px}}
-`;
-
-  const shareText = `${s.domain} scored ${s.grade} (${s.score}/100) on the AI-design-slop detector. ${s.verdict || ''}`;
-  const SCRIPT = `
-  const flash=(m)=>{const f=document.getElementById('flash');f.textContent='✓ '+m;f.classList.add('show');setTimeout(()=>f.classList.remove('show'),1500)};
-  const copy=async(t,m)=>{try{await navigator.clipboard.writeText(t);flash(m)}catch(e){}};
-  const badgeText=document.getElementById('badgeMd').textContent;
-  document.getElementById('badgeMd').addEventListener('click',()=>copy(badgeText,'Badge copied'));
-  document.getElementById('copyBadge').addEventListener('click',()=>copy(badgeText,'Badge copied'));
-  document.getElementById('shareX').addEventListener('click',()=>{
-    const text=${jsonForScript(shareText)};
-    const u='https://twitter.com/intent/tweet?text='+encodeURIComponent(text)+'&url='+encodeURIComponent(${jsonForScript(pageUrl)});
-    window.open(u,'_blank','noopener');
+  // The displayed badge markdown (ShareEmbed builds the same string from hubUrl) and
+  // the copy-button payload must match, so both consolidate backlinks on the hub.
+  const badgeMd = `[![slop](${origin}/badge/${domain}.svg)](${hubUrl})`;
+  const shareText = `${domain} scored ${slim.grade} (${slim.score}/100) on the AI-design-slop detector. ${slim.verdict || ''}`;
+  const script = resultScript({
+    shareText,
+    shareUrl: pageUrl,
+    fixPrompt: assembleFixPrompt(slim, view),
+    badgeMd,
+    domain,
   });
-`;
 
-  return (
-    <html lang="en">
-      <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width,initial-scale=1" />
-        <title>{title}</title>
-        <meta name="description" content={desc} />
-        <meta property="og:type" content="website" />
-        <meta property="og:title" content={title} />
-        <meta property="og:description" content={desc} />
-        <meta property="og:image" content={ogImg} />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta property="og:url" content={pageUrl} />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={title} />
-        <meta name="twitter:description" content={desc} />
-        <meta name="twitter:image" content={ogImg} />
-        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-        <style>{raw(STYLE)}</style>
-      </head>
-      <body>
-        <div class="wrap">
-          <div class="brand">
-            <a href="/" style="color:inherit">
-              {raw('slop&#8209;detect')}
-            </a>{' '}
-            <span class="slash">/ shared result</span>
-          </div>
-          <div class="card">
-            <div class="domain">{s.finalUrl || s.url}</div>
-            <div class="ttl">{s.title || ''}</div>
-            <div class="row">
-              <div class="grade">{s.grade}</div>
-              <div class="col">
-                <div class="score">
-                  {s.score}
-                  <small>/100</small>
-                </div>
-                <div class="scale-note">slop score · lower is better</div>
-                <div class="tier">{s.tier}</div>
-                <div class="flagged">
-                  {s.patternsFlagged}/{s.patternsTotal} patterns triggered
-                </div>
-              </div>
-            </div>
-            <div class="verdict">{s.verdict || ''}</div>
-            {(s.triggered || []).length ? (
-              <div class="tells">
-                <h3>Triggered patterns</h3>
-                <ul>
-                  {(s.triggered || []).map((t) => (
-                    <li>
-                      <span class="x">✗</span> {t.label} <span class="w">+{t.weight}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-          </div>
+  const head = (
+    <>
+      <title>{title}</title>
+      <meta name="description" content={desc} />
+      {/* canonical → the per-domain hub, so snapshots don't dilute it (floor SEO gap) */}
+      <link rel="canonical" href={hubUrl} />
+      <meta property="og:type" content="website" />
+      <meta property="og:title" content={title} />
+      <meta property="og:description" content={desc} />
+      <meta property="og:image" content={ogImg} />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
+      <meta property="og:url" content={pageUrl} />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content={title} />
+      <meta name="twitter:description" content={desc} />
+      <meta name="twitter:image" content={ogImg} />
+    </>
+  );
 
-          <div class="cta">
-            <a class="btn" href="/">
+  const node = (
+    <Doc head={head} origin={origin} domain={domain} rescan script={script}>
+      <div class="result">
+        <section class="result-section">
+          <DomainHeader slim={slim} />
+          <BigScore slim={slim} rank={null} origin={origin} />
+          {/* the MNR-7 permalink CTAs BigScore doesn't carry (share-on-X is in the
+              hero action column + the share card below) */}
+          <div class="re-row" style="margin-top:26px">
+            <a class="btn btn-primary" href={`${origin}/`}>
               Scan your own site →
             </a>
-            <a class="btn ghost" href={`/score/${encodeURIComponent(s.domain)}`}>
-              {s.domain} history →
+            <a class="btn btn-outline" href={`${origin}/score/${domain}`}>
+              {domain} history →
             </a>
-            <button class="btn ghost" id="shareX">
-              Share on X
-            </button>
           </div>
+        </section>
 
-          <div class="embed">
-            <h3>Embed this badge</h3>
-            <div class="embed-row">
-              <img class="badge-prev" src={`/badge/${s.domain}.svg`} alt="slop badge" />
-              <span style="font-size:13px;color:var(--muted)">live · re-scans periodically</span>
-            </div>
-            <div class="snippet-wrap">
-              <pre id="badgeMd">{badgeMd}</pre>
-              <button class="copy-snip" id="copyBadge">
-                Copy
-              </button>
-            </div>
+        <section class="result-section">
+          <div class="rs-ledger">
+            <SectionLedger tag="" label="category overview" />
           </div>
+          <CategoryBars categories={view.categories} />
+        </section>
 
-          <div class="meta">
-            Scanned {(s.createdAt || '').replace('T', ' ').slice(0, 16)} UTC · definitions{' '}
-            {s.definitionsVersion || 'n/a'} · <a href="/">slop-detect.com</a>
+        <section class="result-section">
+          <Breakdown
+            categories={view.categories}
+            flaggedTotal={view.flaggedTotal}
+            patternsTotal={view.patternsTotal}
+          />
+        </section>
+
+        <section class="result-section">
+          <div class="rs-ledger">
+            <SectionLedger tag="" label="the four axes" />
           </div>
-        </div>
-        <div class="flash" id="flash">
-          ✓ Copied
-        </div>
-        <script>{raw(SCRIPT)}</script>
-      </body>
-    </html>
+          <AxisStrip slim={slim} />
+        </section>
+
+        <section class="result-section">
+          <FixesPanel fixes={view.fixes} domain={domain} />
+        </section>
+
+        <section class="result-section">
+          <ShareEmbed slim={slim} origin={origin} pageUrl={hubUrl} />
+        </section>
+      </div>
+    </Doc>
   );
-}
 
-function notFoundDoc(origin) {
-  const STYLE = `body{background:#0a0a0b;color:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center}a{color:#60a5fa}.b{max-width:420px;padding:24px}h1{font-size:22px;margin-bottom:10px}p{color:#8a8a92;margin-bottom:18px}.btn{display:inline-block;background:#f5f5f7;color:#000;border-radius:8px;padding:11px 20px;font-weight:600;text-decoration:none}`;
-  return (
-    <html lang="en">
-      <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width,initial-scale=1" />
-        <title>Result not found — slop-detect</title>
-        <style>{raw(STYLE)}</style>
-      </head>
-      <body>
-        <div class="b">
-          <h1>Result expired or not found</h1>
-          <p>Shared results are kept for 90 days. This one may have expired.</p>
-          <a class="btn" href={`${origin}/`}>
-            Run a new scan →
-          </a>
-        </div>
-      </body>
-    </html>
-  );
+  return htmlResponse(node, { status: 200, cache: 'public, max-age=300' });
 }
