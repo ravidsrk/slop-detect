@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" role="img" aria-label="slop-detect">
+  <!-- Scan reticle: four viewfinder brackets framing the Clean-green verdict dot.
+       For light surfaces (paper #F4F5F2). Ink brackets #181815, dot #1FA85E.
+       Deliberately not gradient, not purple, not an icon-font glyph. -->
+  <path d="M3 8 V3.5 H7.5" stroke="#181815" stroke-width="1.6" stroke-linecap="square"/>
+  <path d="M16.5 3.5 H21 V8" stroke="#181815" stroke-width="1.6" stroke-linecap="square"/>
+  <path d="M21 16 V20.5 H16.5" stroke="#181815" stroke-width="1.6" stroke-linecap="square"/>
+  <path d="M7.5 20.5 H3 V16" stroke="#181815" stroke-width="1.6" stroke-linecap="square"/>
+  <circle cx="12" cy="12" r="2.4" fill="#1FA85E"/>
+</svg>
