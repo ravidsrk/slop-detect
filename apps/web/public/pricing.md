@@ -20,7 +20,7 @@
 ## Monitored domains: the continuity layer
 
 A one-off scan tells you the score today. **Monitoring remembers it.** Register a
-domain (`POST /api/watch`) and slop-detect keeps a score history and flags a
+domain (`POST /api/watch`) and Slop Detector keeps a score history and flags a
 **regression** (the score gets meaningfully worse, or the tier drops a band:
 Clean → Mild → Heavy) so a redesign or an agent-written page can't quietly
 drag your site back into slop without anyone noticing. Add `system: true` and the
