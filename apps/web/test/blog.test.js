@@ -60,3 +60,59 @@ test('mdToHtml renders blocks and escapes HTML in inline code', () => {
   expect(html).toMatch(/<strong>bold<\/strong>/);
   expect(html).toMatch(/<a href="https:\/\/x\.com">link<\/a>/);
 });
+
+// ── re-skin: design fidelity (Research / article-card vocabulary) ────────────
+test('/blog uses the article-card vocabulary on the shared shell, newest-first', async () => {
+  const res = await indexGet({ request: req('/blog') });
+  const html = await res.text();
+  // shared shell from _ui (Nav + Footer), not a one-off header
+  expect(html, 'shared nav').toMatch(/class="nav"/);
+  expect(html, 'shared footer').toMatch(/class="ft"/);
+  // a feature card beside a stack of article links
+  expect(html).toMatch(/bl-research/);
+  expect(html).toMatch(/bl-feature/);
+  expect(html).toMatch(/bl-link/);
+  // Newsreader (serif) titles + a mono date·read-time reference tag
+  expect(html).toMatch(/bl-feature-title\{font-family:var\(--serif\)/);
+  expect(html).toMatch(/\d+ min read/);
+  // newest-first: posts render in non-increasing date order (first occurrence)
+  const firstSeen = [];
+  for (const m of html.matchAll(/\/blog\/([a-z0-9-]+)(?=["<.])/g))
+    if (!firstSeen.includes(m[1])) firstSeen.push(m[1]);
+  expect(firstSeen.length).toBe(POSTS.length);
+  const dates = firstSeen.map((slug) => POSTS.find((p) => p.slug === slug).date);
+  for (let i = 1; i < dates.length; i++) expect(dates[i] <= dates[i - 1]).toBe(true);
+});
+
+test('/blog/<slug> renders Libre Franklin prose, Newsreader headings, and the design code block', async () => {
+  const res = await postGet({
+    params: { slug: 'how-the-slop-score-works' },
+    request: req('/blog/how-the-slop-score-works'),
+  });
+  const html = await res.text();
+  expect(html, 'shared shell').toMatch(/class="nav"/);
+  expect(html, 'prose column').toMatch(/class="prose"/);
+  expect(html, 'Libre Franklin body (--sans)').toMatch(/\.prose\{font-family:var\(--sans\)/);
+  expect(html, 'Newsreader headings (--serif)').toMatch(/\.prose h2\{font-family:var\(--serif\)/);
+  expect(html, 'dark design code block for fenced code').toMatch(/\.prose pre\{background:#16170F/);
+});
+
+// ── dogfood: both surfaces must score Clean ──────────────────────────────────
+test('the blog dogfoods its own detector (no slop fonts, no gradient text, no purple CTA)', async () => {
+  const index = await (await indexGet({ request: req('/blog') })).text();
+  const post = await (
+    await postGet({
+      params: { slug: 'why-detectors-decay' },
+      request: req('/blog/why-detectors-decay'),
+    })
+  ).text();
+  for (const [label, html] of [
+    ['index', index],
+    ['post', post],
+  ]) {
+    expect(html, `${label}: no AI-default faces`).not.toMatch(/Inter,|Geist|Space Grotesk/i);
+    expect(html, `${label}: no gradient text`).not.toMatch(/background-clip:\s*text/i);
+    // the lone purple lives only in the data-avatar palette (_theme); never on the blog
+    expect(html, `${label}: no purple accent`).not.toMatch(/#7A4D9A/i);
+  }
+});
