@@ -109,3 +109,35 @@ export function validateScanUrl(raw) {
 export function isAllowedUrl(raw) {
   return !validateScanUrl(raw).error;
 }
+
+// Worker-side fetch with manual redirect following and per-hop SSRF re-checks.
+// Mirrors packages/core/src/aeo.ts fetchWithTimeout so a public DESIGN.md URL
+// cannot 302 to cloud metadata or RFC-1918. Returns null when blocked, timed
+// out, or too many hops — callers treat that as "unreachable".
+export async function fetchAllowedUrl(url, init = {}, { timeoutMs = 8000, maxHops = 6 } = {}) {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    let current = String(url);
+    for (let hop = 0; hop < maxHops; hop++) {
+      if (!isAllowedUrl(current)) return null;
+      const res = await fetch(current, {
+        ...init,
+        signal: controller.signal,
+        redirect: 'manual',
+      });
+      if (res.status >= 300 && res.status < 400) {
+        const loc = res.headers.get('location');
+        if (!loc) return res;
+        current = new URL(loc, current).toString();
+        continue;
+      }
+      return res;
+    }
+    return null;
+  } catch (_) {
+    return null;
+  } finally {
+    clearTimeout(t);
+  }
+}

@@ -427,10 +427,23 @@ export async function onRequest(context) {
       const day = new Date().toISOString().slice(0, 10);
       const gkey = `rl:global:scan:${day}`;
       let used = 0;
+      let kvReadOk = false;
       try {
         used = parseInt(await env.RATE_LIMIT.get(gkey), 10) || 0;
+        kvReadOk = true;
       } catch (_) {
-        /* fail open on read */
+        /* handled below */
+      }
+      if (!kvReadOk) {
+        return jsonResponse(
+          {
+            error: 'scanning_paused',
+            message:
+              'Scanning is temporarily unavailable while capacity limits are checked. Try again shortly or self-host.',
+          },
+          503,
+          origin
+        );
       }
       if (used >= cap) {
         return jsonResponse(
