@@ -43,13 +43,24 @@ function slim(over = {}) {
   };
 }
 
-async function render(kv, domainParam) {
+async function render(kv, domainParam, opts = {}) {
+  const query = opts.query || '';
+  const env = 'env' in opts ? opts.env : { RESULTS: kv };
   const res = await onRequestGet({
     params: { domain: domainParam },
-    request: { url: `https://slop-detect.com/score/${domainParam}` },
-    env: { RESULTS: kv },
+    request: { url: `https://slop-detect.com/score/${domainParam}${query}` },
+    env,
   });
   return { status: res.status, html: await res.text(), res };
+}
+
+// The page's OWN CSS must stay dogfood-clean, but the Fixes panel legitimately
+// QUOTES slop tells in its remediation copy ("replace Inter…", "no background-clip:
+// text on H1"). So the anti-slop guardrail is checked against the <style> block, not
+// the body prose.
+function styleOf(html) {
+  const m = html.match(/<style>([\s\S]*?)<\/style>/);
+  return m ? m[1] : '';
 }
 
 test('invalid domain returns 400', async () => {
@@ -126,4 +137,68 @@ test('the page links to this scan, the printable report, and a re-scan', async (
   expect(html).toMatch(/href="https:\/\/slop-detect\.com\/r\/sc0re001"/);
   expect(html).toMatch(/href="https:\/\/slop-detect\.com\/report\/ex\.com"/);
   expect(html).toMatch(/\/\?url=ex\.com/);
+});
+
+test('the densest sections render: 120px numeral, category bars, breakdown, axes', async () => {
+  const kv = makeKv();
+  const s = slim();
+  await saveResult(kv, s);
+  await recordScan(kv, s);
+  const { html } = await render(kv, 'ex.com');
+  // the big serif numeral (120px token) and the score/100 readout
+  expect(styleOf(html)).toMatch(/--fs-score:\s*120px/);
+  expect(html).toMatch(/class="bs-num"/);
+  // five-up category bars, the expandable breakdown (keyboard-operable), the strip
+  expect(html).toMatch(/class="cbar-fill"/);
+  expect(html).toMatch(/data-toggle/);
+  expect(html).toMatch(/aria-expanded/);
+  expect(html).toMatch(/lower is better/); // four-axis polarity note
+  expect(html).toMatch(/competitive analytics/);
+  expect(html).toMatch(/Copy the full fix prompt/);
+});
+
+test('the first dirty breakdown category is open by default', async () => {
+  const kv = makeKv();
+  const s = slim(); // slop_fonts triggered → the Type category is dirty
+  await saveResult(kv, s);
+  await recordScan(kv, s);
+  const { html } = await render(kv, 'ex.com');
+  expect(html).toMatch(/data-open="1"/); // at least one category opens
+  expect(html).toMatch(/aria-expanded="true"/);
+});
+
+test('loading placeholder renders a scanning skeleton (?preview=loading)', async () => {
+  const { status, html } = await render(makeKv(), 'ex.com', { query: '?preview=loading' });
+  expect(status).toBe(200);
+  expect(html).toMatch(/scanning…/);
+  expect(html).toMatch(/aria-busy="true"/);
+  expect(html).toMatch(/name="robots" content="noindex"/);
+});
+
+test('error/retry state renders when the scoring store is unavailable', async () => {
+  // No RESULTS binding is a misconfiguration, not "never scanned": surface an
+  // honest 503 retry state, never a misleading clean/empty page.
+  const { status, html } = await render(makeKv(), 'ex.com', { env: {} });
+  expect(status).toBe(503);
+  expect(html).toMatch(/Score unavailable/);
+  expect(html).toMatch(/Retry/);
+  expect(html).toMatch(/\/\?url=ex\.com/); // a rescan escape hatch
+  expect(html).toMatch(/name="robots" content="noindex"/);
+});
+
+test('the page is dogfood-clean: its own CSS uses no slop fonts, gradients, or clip-text', async () => {
+  const kv = makeKv();
+  const s = slim(); // slop_fonts triggered → fix copy QUOTES "Inter" in the body
+  await saveResult(kv, s);
+  await recordScan(kv, s);
+  const { html } = await render(kv, 'ex.com');
+  const css = styleOf(html);
+  expect(css, 'no slop font-family').not.toMatch(/font-family:[^;}]*(Inter|Geist|Space Grotesk)/i);
+  expect(css, 'no gradient text').not.toMatch(/background-clip:\s*text/i);
+  expect(css, 'no gradient surfaces').not.toMatch(/(linear|radial)-gradient/i);
+  // the light editorial-instrument families are the ones actually loaded
+  expect(css).toMatch(/Newsreader/);
+  expect(css).toMatch(/JetBrains Mono/);
+  // the remediation copy legitimately names the banned font — proof we scoped right
+  expect(html).toMatch(/Inter/);
 });
