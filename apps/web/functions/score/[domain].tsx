@@ -26,6 +26,7 @@ import {
   getListing,
   publicWatch,
   getScoreDistribution,
+  getCategoryCleanAverages,
   percentileFromDistribution,
   jsonForScript,
 } from '../_shared.js';
@@ -52,6 +53,49 @@ import {
 
 const ORIGIN = 'https://slop-detect.com';
 const CSS = BRAND_CSS + UI_CSS + RESULT_CSS;
+
+const CATEGORY_NAMES: Record<string, string> = {
+  'ai-builder': 'AI builders',
+  saas: 'SaaS & dev tools',
+  bigtech: 'Big tech',
+  classic: 'Classic, deliberately plain',
+};
+
+async function loadLeaderboard(request: { url: string }) {
+  try {
+    const res = await fetch(new URL('/leaderboard.json', request.url), {
+      cf: { cacheTtl: 300 },
+    } as any);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (_) {
+    return null;
+  }
+}
+
+function buildNeighbors(lbData: any, domain: string) {
+  const sites = lbData?.sites;
+  if (!Array.isArray(sites)) return null;
+  const me = sites.find((s: any) => s.domain === domain && s.scored);
+  if (!me) return null;
+  const siblings = sites.filter((s: any) => s.category === me.category && s.scored);
+  if (siblings.length < 2) return null;
+  const sorted = siblings.slice().sort((a: any, b: any) => a.score - b.score);
+  const capped = sorted.slice(0, 6);
+  const categoryLabel = CATEGORY_NAMES[me.category] || me.category;
+  return {
+    categoryLabel,
+    rows: capped.map((s: any) => ({
+      rank: sorted.findIndex((x: any) => x.domain === s.domain) + 1,
+      name: s.title || s.domain,
+      domain: s.domain,
+      score: s.score,
+      grade: s.grade,
+      tier: s.tier,
+      you: s.domain === domain,
+    })),
+  };
+}
 
 // Shared document shell. `head` is the per-state <head> content; `script` is the
 // optional inline progressive-enhancement JS.
@@ -165,12 +209,14 @@ export async function onRequestGet({ params, request, env }) {
     return htmlResponse(node, { status: 503, cache: 'no-store' });
   }
 
-  const [latest, watch, history, listing, dist] = await Promise.all([
+  const [latest, watch, history, listing, dist, catClean, lbData] = await Promise.all([
     getLatestForDomain(env.RESULTS, domain).catch(() => null),
     getWatch(env.RESULTS, domain).catch(() => null),
     getHistory(env.RESULTS, domain).catch(() => []),
     getListing(env.RESULTS, domain).catch(() => null),
     getScoreDistribution(env.RESULTS).catch(() => null),
+    getCategoryCleanAverages(env.RESULTS).catch(() => ({ averages: {}, count: 0 })),
+    loadLeaderboard(request).catch(() => null),
   ]);
   const pub = watch ? publicWatch(watch, history) : null;
   const claimed = !!listing;
@@ -213,6 +259,12 @@ export async function onRequestGet({ params, request, env }) {
 
   // ── full result ──────────────────────────────────────────────────────────────
   const view = buildResultView(latest);
+  const neighbors = buildNeighbors(lbData, domain);
+  let catAvg: number[] | null = null;
+  if (catClean.count >= 5) {
+    const mapped = view.categories.map((c) => catClean.averages[c.key]);
+    if (mapped.every((v) => typeof v === 'number' && Number.isFinite(v))) catAvg = mapped;
+  }
   const pageUrl = `${ORIGIN}/score/${domain}`;
   const ogImg = `${origin}/og/${latest.id}.png`;
   const title = `${domain} scored ${latest.grade} (${latest.score}/100) on the AI-slop detector`;
@@ -319,7 +371,16 @@ export async function onRequestGet({ params, request, env }) {
           <div class="rs-ledger">
             <SectionLedger tag="" label="competitive analytics" />
           </div>
-          <Analytics history={history} dist={dist} slim={latest} categories={view.categories} />
+          <Analytics
+            history={history}
+            dist={dist}
+            slim={latest}
+            categories={view.categories}
+            catAvg={catAvg}
+            catAvgCount={catClean.count}
+            neighbors={neighbors}
+            origin={origin}
+          />
         </section>
 
         <section class="result-section">
