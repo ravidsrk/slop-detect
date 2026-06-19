@@ -12,6 +12,34 @@ Heavy `28+`), surfaced as a letter grade (`A+ … F`).
 
 ---
 
+## Security (`pull_request_target` and `url`)
+
+This action works on `pull_request` and `pull_request_target`. It does **not**
+check out or run PR code — it forwards `url` to the public slop-detect API via
+`fetch` and may post a sticky PR comment.
+
+`pull_request_target` is different: GitHub supplies a **write-scoped token even
+for fork PRs**. That is safe here only when `url` is a **trusted, workflow-derived
+deploy-preview URL** (resolved from your Vercel/Netlify/Cloudflare API or a
+deployment status your workflow controls). **Never** pass a URL taken from PR
+body, title, branch name, or other PR-controlled fields — especially on fork PRs.
+
+Treat the `url` input as **untrusted**. The action already limits it to a single
+`fetch` against the scan API; the risk is workflow misconfiguration, not code
+execution inside the action.
+
+Grant **least privilege** in your workflow:
+
+```yaml
+permissions:
+  contents: read          # omit if you do not checkout
+  pull-requests: write    # required for the sticky comment
+```
+
+Prefer `pull_request` when your preview URL does not require `pull_request_target`.
+
+---
+
 ## Usage
 
 ```yaml

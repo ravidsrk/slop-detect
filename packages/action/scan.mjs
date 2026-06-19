@@ -10,6 +10,7 @@
 // exit non-zero if the page is too sloppy.
 
 import { appendFileSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 // ---------------------------------------------------------------------------
 // Tiny helpers
@@ -20,6 +21,18 @@ import { appendFileSync, readFileSync } from 'node:fs';
 const log = (msg) => process.stdout.write(`${msg}\n`);
 const ghError = (msg) => log(`::error::${msg}`);
 const ghNotice = (msg) => log(`::notice::${msg}`);
+
+// SEC-4: surface misconfiguration risk when running on pull_request_target.
+export const PULL_REQUEST_TARGET_NOTICE =
+  'pull_request_target runs with a write-scoped token even for fork PRs. ' +
+  'Pass only a trusted, workflow-derived deploy-preview URL in `url` — never a value from PR-controlled content. ' +
+  'Grant least privilege: permissions: pull-requests: write only.';
+
+export function noticeIfPullRequestTarget(eventName = process.env.GITHUB_EVENT_NAME || '') {
+  if (eventName !== 'pull_request_target') return false;
+  ghNotice(PULL_REQUEST_TARGET_NOTICE);
+  return true;
+}
 
 // Fail fast with a clear annotation. Used for any unrecoverable problem so we
 // never post a misleading comment off a broken/empty scan.
@@ -289,6 +302,8 @@ async function main() {
 
   if (!url) die('Input "url" is required.');
 
+  noticeIfPullRequestTarget();
+
   log(`Scanning ${url} via ${apiBase} …`);
   const result = await scan(apiBase, url);
   const resultUrl = result.resultUrl || `${apiBase.replace(/\/+$/, '')}/r/${result.id}`;
@@ -334,4 +349,6 @@ async function main() {
   }
 }
 
-main().catch((err) => die(`Unexpected error: ${err?.stack || err?.message || err}`));
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main().catch((err) => die(`Unexpected error: ${err?.stack || err?.message || err}`));
+}
