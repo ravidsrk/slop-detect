@@ -130,11 +130,11 @@ async function verifyTurnstile(token, secret, ip) {
   }
 }
 
-// In-memory, per-isolate fallback counter. Used ONLY when KV is unavailable so
-// the expensive scan route can still enforce a hard ceiling (fail-closed)
-// instead of letting an attacker drive unlimited headless-browser scans during
-// a KV outage. Coarse — each Worker isolate keeps its own map and Cloudflare may
-// run several — but it caps the blast radius. Entries self-expire after 60s.
+// In-memory, per-isolate counter. Ticks on every scan-route gate (happy path and
+// KV-degraded) so a single isolate cannot burst past the per-IP limit or daily
+// cap even when KV reads are stale — KV remains the eventually-consistent
+// cross-isolate backstop. A true hard cross-isolate cap needs a Durable Object
+// (future OPS; see functions/_data.ts). Entries self-expire after windowMs.
 const memCounters = new Map(); // key -> { count, resetAt }
 
 // Hard ceiling for the scan route when KV is down. Deliberately tighter than the
@@ -196,6 +196,13 @@ async function checkRateLimit(kv, bucket, route, limit) {
   }
 
   if (n >= limit) return { ok: false, used: n, limit, degraded: false };
+
+  // Per-isolate ceiling on the happy path: KV get→put is not atomic, so
+  // concurrent requests in one isolate can all read the same stale count.
+  if (isScan) {
+    const memN = memIncrement(key);
+    if (memN > limit) return { ok: false, used: memN, limit, degraded: false };
+  }
 
   // Increment with 60s TTL (effectively a rolling 60s window).
   let kvWriteOk = false;
@@ -408,8 +415,9 @@ export async function onRequest(context) {
   // Per-IP/per-key limits don't stop a distributed flood from running up the
   // Cloudflare Browser Rendering bill. Enforce an ACCOUNT-LEVEL daily ceiling and
   // a kill switch on the scan route so cost can't run away. `unlimited`-tier keys
-  // (our own/partners) bypass it. KV is eventually consistent, so this is an
-  // approximate budget guard, not an exact counter — that's fine for cost safety.
+  // (our own/partners) bypass it. KV get→put is not atomic; memIncrement above
+  // caps burst overshoot within one isolate. Cross-isolate exactness needs a
+  // Durable Object (future OPS).
   if (effectiveRoute === 'scan' && tierLabel !== 'unlimited') {
     if (env.SCAN_DISABLED === '1' || env.SCAN_DISABLED === 'true') {
       return jsonResponse(
@@ -446,6 +454,20 @@ export async function onRequest(context) {
         );
       }
       if (used >= cap) {
+        return jsonResponse(
+          {
+            error: 'daily_capacity_reached',
+            message:
+              'Free scan capacity for today is used up — this protects the project from runaway costs. Try again tomorrow, use an API key, or self-host (it is MIT).',
+            retryAfter: 3600,
+          },
+          503,
+          origin
+        );
+      }
+      // Per-isolate ceiling on the happy path (key includes the day; 24h window).
+      const memUsed = memIncrement(gkey, 86400000);
+      if (memUsed > cap) {
         return jsonResponse(
           {
             error: 'daily_capacity_reached',
