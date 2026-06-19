@@ -13,7 +13,7 @@ import { buildFixPrompt } from '@slop-detect/core';
 import { onRequestPost as scanHandler } from './scan.js';
 
 // CORS + rate-limit handled by functions/api/_middleware.js.
-export async function onRequestPost({ request, env }) {
+export async function onRequestPost({ request, env, waitUntil }) {
   let body;
   try {
     body = await request.json();
@@ -31,7 +31,7 @@ export async function onRequestPost({ request, env }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: body.url, axes: body.axes, preset: body.preset, share: false }),
     });
-    const scanRes = await scanHandler({ request: scanReq, env });
+    const scanRes = await scanHandler({ request: scanReq, env, waitUntil });
     result = await scanRes.json();
     if (result.error) return text(`Scan failed: ${result.error}`, 502);
   }
