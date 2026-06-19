@@ -208,8 +208,8 @@ function pickCheck(id) {
 // Read a response body with a hard byte cap so a hostile/huge target page can't
 // exhaust memory (AEO only inspects <head>/meta/robots-ish prefixes). Streams and
 // stops at the cap rather than buffering the whole body via res.text().
-const MAX_HTML_BYTES = 2 * 1024 * 1024; // 2 MB
-async function readCapped(res, maxBytes = MAX_HTML_BYTES) {
+export const MAX_HTML_BYTES = 2 * 1024 * 1024; // 2 MB
+export async function readCapped(res, maxBytes = MAX_HTML_BYTES) {
   if (!res.body || typeof res.body.getReader !== 'function') {
     const t = await res.text();
     return t.length > maxBytes ? t.slice(0, maxBytes) : t;
@@ -238,6 +238,16 @@ async function readCapped(res, maxBytes = MAX_HTML_BYTES) {
     off += c.byteLength;
   }
   return new TextDecoder('utf-8', { fatal: false }).decode(merged.subarray(0, maxBytes));
+}
+
+// Optional fast-path: skip streaming when Content-Length already exceeds the cap.
+function readBodyCapped(res, maxBytes = MAX_HTML_BYTES) {
+  const cl = res.headers.get('content-length');
+  if (cl) {
+    const n = Number(cl);
+    if (Number.isFinite(n) && n > maxBytes) return Promise.resolve('');
+  }
+  return readCapped(res, maxBytes);
 }
 
 async function fetchWithTimeout(url, init, timeoutMs, fetchImpl, isUrlAllowed) {
@@ -410,7 +420,7 @@ export async function runAeoChecks(
       fetchImpl,
       isUrlAllowed
     );
-    htmlBody = await readCapped(html);
+    htmlBody = await readBodyCapped(html);
   } catch (e) {
     htmlErr = e instanceof Error ? e.message : String(e);
   }
@@ -437,7 +447,7 @@ export async function runAeoChecks(
       fetchImpl,
       isUrlAllowed
     );
-    await bot.text();
+    await readBodyCapped(bot);
   } catch (e) {
     botErr = e instanceof Error ? e.message : String(e);
   }
@@ -466,7 +476,7 @@ export async function runAeoChecks(
       isUrlAllowed
     );
     if (r.ok) {
-      robotsTxt = await r.text();
+      robotsTxt = await readBodyCapped(r);
       robotsFetched = true;
     }
   } catch {
@@ -512,7 +522,7 @@ export async function runAeoChecks(
       fetchImpl,
       isUrlAllowed
     );
-    await md.text();
+    await readBodyCapped(md);
   } catch {
     /* no twin */
   }
@@ -556,7 +566,7 @@ export async function runAeoChecks(
       fetchImpl,
       isUrlAllowed
     );
-    await llms.text();
+    await readBodyCapped(llms);
   } catch {
     /* none */
   }

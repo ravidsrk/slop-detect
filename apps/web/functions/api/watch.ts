@@ -27,6 +27,8 @@ import {
   setListing,
   deleteListing,
   issueWatchToken,
+  addToEmailIndex,
+  removeFromEmailIndex,
 } from '../_shared.js';
 import { emailConfigured, sendEmail } from '../_email.js';
 import { buildVerificationEmail } from '../_alerts.js';
@@ -84,6 +86,7 @@ export async function onRequestPost({ request, env }) {
     // retryable rather than orphaning a public row with no owner. Always attempt
     // cleanup even if the watch shows listed:false, to recover from failed deletes.
     await deleteListing(env.RESULTS, domain);
+    await removeFromEmailIndex(env.RESULTS, email, domain);
     await deleteWatch(env.RESULTS, domain);
     return json({ domain, monitoring: false, unsubscribed: true });
   }
@@ -177,6 +180,7 @@ export async function onRequestPost({ request, env }) {
   // strands a row. List from the best score we have; a never-scanned domain
   // lists as "pending", filled in on its next scan.
   await putWatch(env.RESULTS, watch);
+  await addToEmailIndex(env.RESULTS, email, domain);
   try {
     if (listed) {
       const seed = latest || {

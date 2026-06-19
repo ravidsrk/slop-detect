@@ -60,6 +60,8 @@ export function slimResult(data, id) {
     patternsFlagged: data.patternsFlagged,
     patternsTotal: data.patternsTotal,
     definitionsVersion: data.definitionsVersion || null,
+    browserVersion: data.browserVersion || null,
+    patternsErrored: data.patternsErrored || 0,
     triggered,
     createdAt: new Date().toISOString(),
   };
@@ -203,13 +205,90 @@ export async function consumeDashboardToken(kv, token) {
   return email;
 }
 
+// ── Email → domains index (COST-2) ───────────────────────────────────────────
+// One KV key per owner email maps to the domains they monitor, so magic-link
+// lookup is a single get instead of enumerating every watch. Written on
+// subscribe, pruned on unsubscribe; listWatchesByEmail self-heals stale rows.
+const EMAIL_INDEX_PREFIX = 'e:';
+
+async function emailHash(email: string): Promise<string> {
+  const want = String(email).trim().toLowerCase();
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(want));
+  return Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+export async function emailIndexKey(email: string): Promise<string> {
+  return `${EMAIL_INDEX_PREFIX}${await emailHash(email)}`;
+}
+
+// Domains monitored by one email — one kv.get. Used by the magic-link endpoint
+// where we only need a count, not full watch records.
+export async function getEmailDomains(kv, email) {
+  if (!kv || !email) return [];
+  const key = await emailIndexKey(email);
+  const raw = await kv.get(key);
+  if (!raw) return [];
+  try {
+    const a = JSON.parse(raw);
+    return Array.isArray(a) ? a.filter((d) => typeof d === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function addToEmailIndex(kv, email, domain) {
+  if (!kv || !email || !domain) return;
+  const key = await emailIndexKey(email);
+  const want = String(email).trim().toLowerCase();
+  const domains = await getEmailDomains(kv, want);
+  if (domains.includes(domain)) return;
+  domains.push(domain);
+  await kv.put(key, JSON.stringify(domains));
+}
+
+export async function removeFromEmailIndex(kv, email, domain) {
+  if (!kv || !email || !domain) return;
+  const key = await emailIndexKey(email);
+  const want = String(email).trim().toLowerCase();
+  const domains = (await getEmailDomains(kv, want)).filter((d) => d !== domain);
+  if (domains.length) await kv.put(key, JSON.stringify(domains));
+  else await kv.delete(key);
+}
+
 // All watches owned by one email — the agency dashboard's data. Case-normalized
 // the same way the watch API stores emails (trimmed, lowercased).
 export async function listWatchesByEmail(kv, email) {
   if (!kv || !email) return [];
   const want = String(email).trim().toLowerCase();
-  const all = await listWatches(kv, { limit: 1000 });
-  return all.filter((w) => w && w.email === want);
+  const key = await emailIndexKey(want);
+  const raw = await kv.get(key);
+
+  // Index missing: fall back to a full scan once and rebuild the index so
+  // pre-index watches self-heal without changing the one-get link lookup path.
+  if (!raw) {
+    const all = await listWatches(kv, { limit: 1000 });
+    const mine = all.filter((w) => w && w.email === want);
+    if (mine.length) {
+      await kv.put(key, JSON.stringify(mine.map((w) => w.domain).filter(Boolean)));
+    }
+    return mine;
+  }
+
+  let domains: string[] = [];
+  try {
+    const a = JSON.parse(raw);
+    domains = Array.isArray(a) ? a.filter((d) => typeof d === 'string') : [];
+  } catch {
+    domains = [];
+  }
+
+  const out = [];
+  for (const domain of domains) {
+    const w = await getWatch(kv, domain);
+    if (w && w.email === want) out.push(w);
+    else await removeFromEmailIndex(kv, want, domain);
+  }
+  return out;
 }
 
 // Enumerate watches for the monitoring sweep. Returns parsed watch records.

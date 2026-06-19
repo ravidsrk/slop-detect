@@ -15,41 +15,56 @@
 
 import { test, expect, vi, beforeEach } from 'vitest';
 import { onRequestPost } from '../functions/api/scan.ts';
+import * as shared from '../functions/_shared.ts';
 
 // Shared, mutable mock state. vi.hoisted runs before the vi.mock factory and the
 // scan.ts import, so the factory can close over it and each test can drive the
 // fake browser by mutating these fields in beforeEach / inline.
 const mock = vi.hoisted(() => ({
   pageData: null, // resolved value of page.evaluate(pageScript)
+  gotoResponseUrl: 'https://acme.example.com/', // navigation response URL (SSRF boundary)
   launchError: null, // if set, puppeteer.launch throws (binding/runtime failure)
   gotoError: null, // if set, page.goto throws (navigation failure)
   evalError: null, // if set, page.evaluate throws (page crashed)
   screenshotError: null, // if set, page.screenshot throws (handled, non-fatal)
+  idleSessionId: null, // when set, acquireBrowser should connect instead of launch
 }));
+
+function makeMockBrowser() {
+  return {
+    version: async () => 'HeadlessChrome/131.0.0.0',
+    newPage: async () => ({
+      setViewport: async () => {},
+      setUserAgent: async () => {},
+      goto: async () => {
+        if (mock.gotoError) throw mock.gotoError;
+        return { url: () => mock.gotoResponseUrl };
+      },
+      waitForNetworkIdle: async () => {},
+      evaluate: async () => {
+        if (mock.evalError) throw mock.evalError;
+        return mock.pageData;
+      },
+      screenshot: async () => {
+        if (mock.screenshotError) throw mock.screenshotError;
+        return Buffer.from('fake-jpeg-bytes');
+      },
+    }),
+    disconnect: async () => {},
+    close: async () => {},
+  };
+}
 
 vi.mock('@cloudflare/puppeteer', () => ({
   default: {
+    sessions: async () => {
+      if (!mock.idleSessionId) return [];
+      return [{ sessionId: mock.idleSessionId, startTime: Date.now() }];
+    },
+    connect: async () => makeMockBrowser(),
     launch: async () => {
       if (mock.launchError) throw mock.launchError;
-      return {
-        newPage: async () => ({
-          setViewport: async () => {},
-          setUserAgent: async () => {},
-          goto: async () => {
-            if (mock.gotoError) throw mock.gotoError;
-          },
-          waitForNetworkIdle: async () => {},
-          evaluate: async () => {
-            if (mock.evalError) throw mock.evalError;
-            return mock.pageData;
-          },
-          screenshot: async () => {
-            if (mock.screenshotError) throw mock.screenshotError;
-            return Buffer.from('fake-jpeg-bytes');
-          },
-        }),
-        close: async () => {},
-      };
+      return makeMockBrowser();
     },
   },
 }));
@@ -131,10 +146,12 @@ function postReq(body, { url = 'https://slop-detect.com/api/scan' } = {}) {
 
 beforeEach(() => {
   mock.pageData = healthyPageData();
+  mock.gotoResponseUrl = 'https://acme.example.com/';
   mock.launchError = null;
   mock.gotoError = null;
   mock.evalError = null;
   mock.screenshotError = null;
+  mock.idleSessionId = null;
 });
 
 // ── Success contract (MNR-1) ────────────────────────────────────────────────
@@ -165,6 +182,8 @@ test('a healthy scan returns the design-axis scoring contract', async () => {
   expect(typeof r.verdict).toBe('string');
   expect(r.verdict.length).toBeGreaterThan(0);
   expect(r.definitionsVersion).toBeTruthy();
+  expect(r.browserVersion).toBe('HeadlessChrome/131.0.0.0');
+  expect(r.patternsErrored).toBe(0);
 
   // Preset defaults to "full"; navMs is reported; no screenshot unless requested.
   expect(r.preset).toBe('full');
@@ -220,6 +239,22 @@ test('axes:[design,copy] adds the multi-axis shape + unified headline', async ()
   expect(TIERS).toContain(r.unifiedTier);
   expect(typeof r.unifiedGrade).toBe('string');
   expect(r.axesScored).toEqual(['design', 'copy']);
+});
+
+test('patternsErrored surfaces extractor failures in the API response', async () => {
+  mock.pageData = healthyPageData({
+    signals: {
+      ...healthyPageData().signals,
+      purple_accent: { triggered: false, error: 'ctx.isPurple is not a function' },
+    },
+  });
+  const res = await onRequestPost({
+    request: postReq({ url: 'https://acme.example.com' }),
+    env: { BROWSER: {} },
+  });
+  expect(res.status).toBe(200);
+  const r = await res.json();
+  expect(r.patternsErrored).toBe(1);
 });
 
 test('the design axis is the default when no axes are requested', async () => {
@@ -324,10 +359,11 @@ test('400 on a non-http(s) scheme (SSRF surface)', async () => {
   expect(r.error).toMatch(/http\(s\)/);
 });
 
-test('400 blocked_redirect when the page lands on a private host', async () => {
-  // The pre-flight host check passes (public host requested), but the page
-  // reports a final location on the cloud-metadata IP → refuse to hand back content.
-  mock.pageData = healthyPageData({ url: 'http://169.254.169.254/' });
+test('400 blocked_redirect when navigation response lands on a private host', async () => {
+  // Pre-flight passes (public host requested), but the navigation response URL
+  // is cloud metadata — refuse before handing back title/h1/text/screenshot.
+  mock.gotoResponseUrl = 'http://169.254.169.254/';
+  mock.pageData = healthyPageData({ url: 'https://acme.example.com/' });
   const res = await onRequestPost({
     request: postReq({ url: 'https://acme.example.com' }),
     env: { BROWSER: {} },
@@ -336,6 +372,21 @@ test('400 blocked_redirect when the page lands on a private host', async () => {
   const r = await res.json();
   expect(r.code).toBe('blocked_redirect');
   expect(r.finalUrl).toBe('http://169.254.169.254/');
+});
+
+test('pushState-spoofed location.href does not affect the SSRF boundary', async () => {
+  // Navigation stayed on the allowed host; in-page location.href was spoofed to
+  // a private address via history.pushState — must still score normally.
+  mock.gotoResponseUrl = 'https://acme.example.com/';
+  mock.pageData = healthyPageData({ url: 'http://169.254.169.254/' });
+  const res = await onRequestPost({
+    request: postReq({ url: 'https://acme.example.com' }),
+    env: { BROWSER: {} },
+  });
+  expect(res.status).toBe(200);
+  const r = await res.json();
+  expect(r.finalUrl).toBe('https://acme.example.com/');
+  expect(typeof r.score).toBe('number');
 });
 
 test('422 cloudflare_challenge carries a code + hint, not a fake Clean 0', async () => {
@@ -402,4 +453,50 @@ test('502 when puppeteer.launch fails', async () => {
   expect(res.status).toBe(502);
   const r = await res.json();
   expect(r.error).toMatch(/Browser binding unavailable/);
+});
+
+test('DESIGN.md fetch stream-caps oversized bodies without buffering past 200KB', async () => {
+  const DESIGN_MD_CAP = 200_000;
+  const oversized = DESIGN_MD_CAP + 400_000;
+  let sent = 0;
+  const stream = new ReadableStream({
+    pull(controller) {
+      if (sent >= oversized) {
+        controller.close();
+        return;
+      }
+      const chunk = new Uint8Array(64 * 1024).fill(97);
+      controller.enqueue(chunk);
+      sent += chunk.byteLength;
+    },
+  });
+  const fetchSpy = vi.spyOn(shared, 'fetchAllowedUrl').mockResolvedValue(
+    new Response(stream, {
+      status: 200,
+      headers: { 'content-type': 'text/markdown; charset=utf-8' },
+    })
+  );
+
+  mock.pageData = healthyPageData({
+    systemContext: {
+      fontFamilies: ['Inter'],
+      colors: ['#111111'],
+      borderRadius: ['8px'],
+    },
+  });
+
+  const res = await onRequestPost({
+    request: postReq({
+      url: 'https://acme.example.com',
+      designMd: 'https://acme.example.com/DESIGN.md',
+    }),
+    env: { BROWSER: {} },
+  });
+  expect(res.status).toBe(200);
+  const r = await res.json();
+  expect(r.system).toBeTruthy();
+  expect(r.system.source).toBe('https://acme.example.com/DESIGN.md');
+  expect(sent).toBeLessThan(oversized);
+
+  fetchSpy.mockRestore();
 });
