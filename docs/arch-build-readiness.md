@@ -1,9 +1,9 @@
 # arch-build-readiness — adversarial-fresh integration branch
 
 Final gate verification for the adversarial-fresh fix run. Branch `ravidsrk/fix-final`
-(off BASE `ravidsrk/adversarial-fresh` @ `8f79b67`). Verified 2026-06-19 by T_FINAL
-independent worker. Source ledger: `docs/arch-build-progress.md`. Frozen findings:
-`docs/adversarial-review-fresh.md`.
+(off BASE `ravidsrk/adversarial-fresh` @ `647e848`). Verified 2026-06-19 by T_FINAL
+independent worker; finalized after completion fix PR #79. Source ledger:
+`docs/arch-build-progress.md`. Frozen findings: `docs/adversarial-review-fresh.md`.
 
 **MERGE ≠ DEPLOY.** Nothing in this run promoted BASE to `main`, deployed to Cloudflare,
 or published npm packages. All merges landed on the integration branch only.
@@ -19,32 +19,26 @@ do-not-fix (stats-only KV RMW; approximate percentiles by design).
 
 | Gate | Command | Exit | Result |
 |------|---------|------|--------|
-| Install | `bun install` | 0 | clean — 1751 packages installed |
 | Build | `bun run build` | 0 | **6 tasks successful**, 6 cached |
 | Lint | `bun run lint` | 0 | **3 tasks successful**, no warnings |
-| Typecheck | `bun run typecheck` | **2** | **FAILED** — `slop-detect-web#typecheck` (see below) |
+| Typecheck | `bun run typecheck` | 0 | **7 tasks successful**, 0 errors |
 | Test | `bun run test` | 0 | **7 tasks successful** (browser-free; golden gated) |
-| Golden | `RUN_GOLDEN=1` in `packages/cli` | 0 | **16/16 passed** (7 golden + 2 fonts-ready + rest) |
+| Golden | `RUN_GOLDEN=1 bun run --filter slop-detect test` | 0 | **16/16 passed** (7 golden + 2 fonts-ready + rest) |
 
-### Typecheck failure (verbatim)
+### Typecheck note (completion fix PR #79)
 
-`bun run typecheck` exited 2. Only `slop-detect-web` failed; all other workspaces passed.
+Initial T_FINAL verification caught 5 TS errors in `slop-detect-web`: OPS-1 (#78) threaded
+`waitUntil` into `report()` but left the parameter **required**, breaking four sibling
+callers (`_email.ts` ×3, `cron/sweep.ts`) and `fix-prompt.ts` (missing `waitUntil` on the
+middleware context object). **PR #79** (`bec839f`) made `waitUntil` optional again and
+forwarded `context.waitUntil` in `fix-prompt.ts`. Re-run after merge:
 
 ```
-slop-detect-web:typecheck: functions/_email.ts(29,5): error TS2554: Expected 5 arguments, but got 4.
-slop-detect-web:typecheck: functions/_email.ts(49,7): error TS2554: Expected 5 arguments, but got 4.
-slop-detect-web:typecheck: functions/_email.ts(55,5): error TS2554: Expected 5 arguments, but got 4.
-slop-detect-web:typecheck: functions/api/cron/sweep.ts(111,3): error TS2554: Expected 5 arguments, but got 4.
-slop-detect-web:typecheck: functions/api/fix-prompt.ts(34,39): error TS2345: Argument of type '{ request: Request; env: any; }' is not assignable to parameter of type '{ request: any; env: any; waitUntil: any; }'.
-slop-detect-web:typecheck:   Property 'waitUntil' is missing in type '{ request: Request; env: any; }' but required in type '{ request: any; env: any; waitUntil: any; }'.
-
- Tasks:    6 successful, 7 total
-Failed:    slop-detect-web#typecheck
+$ bun run typecheck
+ Tasks:    7 successful, 7 total
 ```
 
-Root cause: OPS-1 (#78) extended `report()` with an optional `waitUntil` parameter; callers
-in `_email.ts`, `cron/sweep.ts`, and `fix-prompt.ts` were not updated. **The integration
-branch is NOT fully green on typecheck** until those call sites are fixed.
+**All gates green.**
 
 ### Test pass counts (verbatim)
 
@@ -62,13 +56,13 @@ branch is NOT fully green on typecheck** until those call sites are fixed.
 Skipped CLI tests (10): `golden.test.js` (7) and `fonts-ready.test.js` (2) gated on
 `RUN_GOLDEN=1`; `engine-pin.test.js` (1) gated on `RUN_GOLDEN=1`.
 
-**`RUN_GOLDEN=1` CLI suite** (`packages/cli`, direct vitest — turbo cache bypassed):
+**`RUN_GOLDEN=1` CLI suite** (`RUN_GOLDEN=1 bun run --filter slop-detect test`):
 
 | Workspace | Test files | Tests |
 |-----------|------------|-------|
-| `slop-detect` (cli) | 4 passed | **16 passed** (includes 7 golden, 2 fonts-ready) |
+| `slop-detect` (cli) | 4 passed | **16 passed** (includes 7 golden, 2 fonts-ready, engine-pin) |
 
-**Grand total with golden:** 385 tests passed (375 browser-free + 10 additional golden/fonts-ready/engine-pin that were skipped in the default run).
+**Grand total with golden:** 385 tests passed, 0 failed (375 browser-free + 10 golden/fonts-ready/engine-pin that are skipped in the default run).
 
 ---
 
@@ -139,7 +133,7 @@ Explicitly **human-owned** and **not executed** in this run:
 
 **MERGE ≠ DEPLOY.** All fix PRs merged into the integration branch. Nothing was deployed or promoted to production.
 
-**Typecheck gate:** §1 documents a pre-existing gap surfaced by OPS-1 — five `report()` call sites need `waitUntil` threading before BASE is promotion-ready on the typecheck axis.
+**Build gates:** All verification gates (build, lint, typecheck, test, golden) pass on BASE after PR #79.
 
 ---
 
@@ -149,7 +143,7 @@ Explicitly **human-owned** and **not executed** in this run:
 
 ---
 
-## 7. ALL MERGED PRs (#69–#78)
+## 7. ALL MERGED PRs (#69–#79)
 
 | PR# | Title area | Findings closed | Merge commit (short) |
 |-----|------------|-----------------|----------------------|
@@ -163,5 +157,6 @@ Explicitly **human-owned** and **not executed** in this run:
 | #76 | Runner wait + result assembly + engine pin | REL-3, DM-1, DM-2 | 1f0fdd0 |
 | #77 | Body caps on AEO + DESIGN.md fetch | SEC-2 | 8f93e93 |
 | #78 | report() waitUntil + scan observability | OPS-1 | 1a19dcf |
+| #79 | report() waitUntil optional + fix-prompt context | OPS-1 completion | bec839f |
 
-BASE HEAD after all merges: `8f79b67` (orchestration ledger commit marking PHASE=VERIFY).
+BASE HEAD after all merges: `647e848` (ledger commit: all gates green, finalizing readiness).
