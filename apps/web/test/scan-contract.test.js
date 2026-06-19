@@ -26,32 +26,43 @@ const mock = vi.hoisted(() => ({
   gotoError: null, // if set, page.goto throws (navigation failure)
   evalError: null, // if set, page.evaluate throws (page crashed)
   screenshotError: null, // if set, page.screenshot throws (handled, non-fatal)
+  idleSessionId: null, // when set, acquireBrowser should connect instead of launch
 }));
+
+function makeMockBrowser() {
+  return {
+    newPage: async () => ({
+      setViewport: async () => {},
+      setUserAgent: async () => {},
+      goto: async () => {
+        if (mock.gotoError) throw mock.gotoError;
+        return { url: () => mock.gotoResponseUrl };
+      },
+      waitForNetworkIdle: async () => {},
+      evaluate: async () => {
+        if (mock.evalError) throw mock.evalError;
+        return mock.pageData;
+      },
+      screenshot: async () => {
+        if (mock.screenshotError) throw mock.screenshotError;
+        return Buffer.from('fake-jpeg-bytes');
+      },
+    }),
+    disconnect: async () => {},
+    close: async () => {},
+  };
+}
 
 vi.mock('@cloudflare/puppeteer', () => ({
   default: {
+    sessions: async () => {
+      if (!mock.idleSessionId) return [];
+      return [{ sessionId: mock.idleSessionId, startTime: Date.now() }];
+    },
+    connect: async () => makeMockBrowser(),
     launch: async () => {
       if (mock.launchError) throw mock.launchError;
-      return {
-        newPage: async () => ({
-          setViewport: async () => {},
-          setUserAgent: async () => {},
-          goto: async () => {
-            if (mock.gotoError) throw mock.gotoError;
-            return { url: () => mock.gotoResponseUrl };
-          },
-          waitForNetworkIdle: async () => {},
-          evaluate: async () => {
-            if (mock.evalError) throw mock.evalError;
-            return mock.pageData;
-          },
-          screenshot: async () => {
-            if (mock.screenshotError) throw mock.screenshotError;
-            return Buffer.from('fake-jpeg-bytes');
-          },
-        }),
-        close: async () => {},
-      };
+      return makeMockBrowser();
     },
   },
 }));
@@ -138,6 +149,7 @@ beforeEach(() => {
   mock.gotoError = null;
   mock.evalError = null;
   mock.screenshotError = null;
+  mock.idleSessionId = null;
 });
 
 // ── Success contract (MNR-1) ────────────────────────────────────────────────
