@@ -5,7 +5,7 @@ it alone. Source of truth for phase, finding close-index, task rows, PRs, OPS/ve
 
 ## PHASE
 
-PHASE=FIXING
+PHASE=VERIFY
 
 (REVIEW → REVIEW_FROZEN → FIXING → VERIFY)
 
@@ -33,11 +33,12 @@ PHASE=FIXING
   Both merged into BASE @ce4409e. adv-review worktree + skeptic terminal: to retire.
 
 PHASE 1 LIVE STATE (grok --inject WORKS; codex needs direct terminal-send of the spec file):
-CLOSED so far (14/15): SEC-1,COST-1,SEC-3,OPS-2,DEP-1,SEC-4,COST-2,REL-1,REL-2,COU-1,REL-3,DM-1,DM-2,SEC-2. BASE @8f93e93.
-IN-FLIGHT (LAST finding):
-- ops1-report-waituntil [OPS-1]: PR#78 | grok term_92448f17 FIXING round1 — codex caught (1) scan_failed omits navMs/patternsErrored on nav failure, (2) report.test weak (waitUntil not tied to fetch promise). Fix both.
-After OPS-1 merges → T_FINAL writes docs/arch-build-readiness.md (final PR into BASE) → DONE.
-DO-NOT-FIX: CONC-1 (stats-only, accepted).
+ALL 15/15 CONFIRMED FINDINGS CLOSED. BASE @1a19dcf.
+PRs merged: #70 SEC-1 | #71 COST-1+SEC-3 | #69 OPS-2+DEP-1 | #73 SEC-4 | #72 COST-2 | #74 REL-1+REL-2 |
+#75 COU-1 | #76 REL-3+DM-1+DM-2 | #77 SEC-2 | #78 OPS-1.
+PHASE=VERIFY → T_FINAL: independent full build/lint/test on BASE + write docs/arch-build-readiness.md → final PR.
+DO-NOT-FIX: CONC-1 (stats-only, accepted). Pre-existing (out of frozen scope, noted): dashboard.test.js makes
+a Resend attempt with a fake key (logs 401) — not introduced by this run.
 NOTE: gh self-review blocked → verdict via worker_done + PR comment (see DECISIONS). Merge: gh pr merge --merge
 after worker_done verdict=approve; conflict-check via git merge-tree first; retire worktree after merge.
 PR-open + merge done by me (integrator). Codex reviewer lives in the coder's worktree (node_modules + branch there).
@@ -51,7 +52,7 @@ Serial chain on hot file scan.ts (one in-flight at a time, dependency order):
 - WAVE 1 (P1, highest stakes): SEC-1 CLOSED via PR#70 | REL-1 CLOSED via PR#74
 - WAVE 2 (FOUNDATION): COU-1 CLOSED via PR#75
 - WAVE 3 (P2 on slimmed runner, after COU-1): REL-3 CLOSED via PR#76 | DM-1 CLOSED via PR#76 | DM-2 CLOSED via PR#76
-- WAVE 4 (P2 remaining scan.ts/coupled): SEC-2 CLOSED via PR#77 | OPS-1 IN-FLIGHT (fix-ops1) | REL-2 CLOSED via PR#74
+- WAVE 4 (P2 remaining scan.ts/coupled): SEC-2 CLOSED via PR#77 | OPS-1 CLOSED via PR#78 | REL-2 CLOSED via PR#74
 
 Parallel independent lanes (run concurrently from t0, no scan.ts collision):
 - LANE-MW: COST-1 CLOSED via PR#71 | SEC-3 CLOSED via PR#71
@@ -71,7 +72,7 @@ Schema: TASK <slug> | WAVE | FILE | LANE | CLOSES=[ids] | CODED PR_OPEN REVIEWED
 - TASK cou1-core-runner | WAVE=2 | FILE=scan.ts(HOT)+detector.ts | LANE=CODE | CLOSES=[COU-1] | CODED=t PR_OPEN=t REVIEWED=t MERGED=t ACCEPT=t | OPS=none | PR#75 | WT=retired | WORKER=grok | NOTE=MERGED 0bab0ed; COU-1 CLOSED; page-script.ts in core, -285 dup lines, snapshot+golden pass; core stays pure
 - TASK rel3-dm1-dm2-runner | WAVE=3 | FILE=core+scan.ts(HOT)+detector.ts | LANE=CODE | CLOSES=[REL-3,DM-1,DM-2] | CODED=t PR_OPEN=t REVIEWED=t MERGED=t ACCEPT=t | OPS=dm2-engine-pin | PR#76 | WT=retired | WORKER=grok | NOTE=MERGED 1f0fdd0; REL-3+DM-1+DM-2 CLOSED; runner-wait.ts+result-assembly.ts; playwright 1.60.0 pinned (real); golden+typecheck pass
 - TASK sec2-body-caps | WAVE=4 | FILE=aeo.ts+scan.ts(HOT) | LANE=CODE | CLOSES=[SEC-2] | CODED=t PR_OPEN=t REVIEWED=t MERGED=t ACCEPT=t | OPS=none | PR#77 | WT=retired | WORKER=grok | NOTE=MERGED 8f93e93; SEC-2 CLOSED; readBodyCapped on all aeo bodies + scan DESIGN.md readCapped
-- TASK ops1-report-waituntil | WAVE=4 | FILE=_report.ts+scan.ts(HOT) | LANE=CODE | CLOSES=[OPS-1] | CODED=t PR_OPEN=t REVIEWED=f MERGED=f ACCEPT=f | OPS=none | PR#78 | WT=fix-ops1 | WORKER=grok term_92448f17 | NOTE=82a0881; ctx.waitUntil threaded into report() (scan_failed/persist_failed/pattern_errors); navMs+patternsErrored; codex review task_1b59efb8fbe5/ctx_fd9f67e40b6b term_3f374339
+- TASK ops1-report-waituntil | WAVE=4 | FILE=_report.ts+scan.ts(HOT) | LANE=CODE | CLOSES=[OPS-1] | CODED=t PR_OPEN=t REVIEWED=t MERGED=t ACCEPT=t | OPS=none | PR#78 | WT=retired | WORKER=grok | NOTE=MERGED 1a19dcf; OPS-1 CLOSED; ctx.waitUntil into report(); round1 fix=always emit navMs+patternsErrored on failure + harden waitUntil test
 - TASK mw-cost1-sec3 | WAVE=P | FILE=_middleware.ts | LANE=CODE+OPS | CLOSES=[COST-1,SEC-3] | CODED=t PR_OPEN=t REVIEWED=t MERGED=t ACCEPT=t | OPS=durable-object-hard-cap(record) | PR#71 | WT=retired | WORKER=grok | NOTE=MERGED 8827957; COST-1+SEC-3 CLOSED; ACCEPT=middleware tests pass (codex re-demonstrated burst case)
 - TASK wf-ops2-dep1 | WAVE=P | FILE=ci.yml+deploy.yml | LANE=CODE+OPS | CLOSES=[OPS-2,DEP-1] | CODED=t PR_OPEN=t REVIEWED=t MERGED=t ACCEPT=t | OPS=canary-schedule+dependabot(record) | PR#69 | WT=retired | WORKER=grok | NOTE=MERGED 81e8c9e; OPS-2+DEP-1 CLOSED; round1 fix removed schedule->prod-deploy path; SHAs verified real
 - TASK watch-cost2-index | WAVE=P | FILE=watch.ts+_data.ts | LANE=CODE | CLOSES=[COST-2] | CODED=t PR_OPEN=t REVIEWED=t MERGED=t ACCEPT=t | OPS=none | PR#72 | WT=retired | WORKER=grok | NOTE=MERGED e5aa33e; COST-2 CLOSED; round1 fix moved rate-limit/send into waitUntil (timing oracle gone, re-demonstrated)
