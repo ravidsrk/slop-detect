@@ -21,6 +21,7 @@ import { onRequestPost } from '../functions/api/scan.ts';
 // fake browser by mutating these fields in beforeEach / inline.
 const mock = vi.hoisted(() => ({
   pageData: null, // resolved value of page.evaluate(pageScript)
+  gotoResponseUrl: 'https://acme.example.com/', // navigation response URL (SSRF boundary)
   launchError: null, // if set, puppeteer.launch throws (binding/runtime failure)
   gotoError: null, // if set, page.goto throws (navigation failure)
   evalError: null, // if set, page.evaluate throws (page crashed)
@@ -37,6 +38,7 @@ vi.mock('@cloudflare/puppeteer', () => ({
           setUserAgent: async () => {},
           goto: async () => {
             if (mock.gotoError) throw mock.gotoError;
+            return { url: () => mock.gotoResponseUrl };
           },
           waitForNetworkIdle: async () => {},
           evaluate: async () => {
@@ -131,6 +133,7 @@ function postReq(body, { url = 'https://slop-detect.com/api/scan' } = {}) {
 
 beforeEach(() => {
   mock.pageData = healthyPageData();
+  mock.gotoResponseUrl = 'https://acme.example.com/';
   mock.launchError = null;
   mock.gotoError = null;
   mock.evalError = null;
@@ -324,10 +327,11 @@ test('400 on a non-http(s) scheme (SSRF surface)', async () => {
   expect(r.error).toMatch(/http\(s\)/);
 });
 
-test('400 blocked_redirect when the page lands on a private host', async () => {
-  // The pre-flight host check passes (public host requested), but the page
-  // reports a final location on the cloud-metadata IP → refuse to hand back content.
-  mock.pageData = healthyPageData({ url: 'http://169.254.169.254/' });
+test('400 blocked_redirect when navigation response lands on a private host', async () => {
+  // Pre-flight passes (public host requested), but the navigation response URL
+  // is cloud metadata — refuse before handing back title/h1/text/screenshot.
+  mock.gotoResponseUrl = 'http://169.254.169.254/';
+  mock.pageData = healthyPageData({ url: 'https://acme.example.com/' });
   const res = await onRequestPost({
     request: postReq({ url: 'https://acme.example.com' }),
     env: { BROWSER: {} },
@@ -336,6 +340,21 @@ test('400 blocked_redirect when the page lands on a private host', async () => {
   const r = await res.json();
   expect(r.code).toBe('blocked_redirect');
   expect(r.finalUrl).toBe('http://169.254.169.254/');
+});
+
+test('pushState-spoofed location.href does not affect the SSRF boundary', async () => {
+  // Navigation stayed on the allowed host; in-page location.href was spoofed to
+  // a private address via history.pushState — must still score normally.
+  mock.gotoResponseUrl = 'https://acme.example.com/';
+  mock.pageData = healthyPageData({ url: 'http://169.254.169.254/' });
+  const res = await onRequestPost({
+    request: postReq({ url: 'https://acme.example.com' }),
+    env: { BROWSER: {} },
+  });
+  expect(res.status).toBe(200);
+  const r = await res.json();
+  expect(r.finalUrl).toBe('https://acme.example.com/');
+  expect(typeof r.score).toBe('number');
 });
 
 test('422 cloudflare_challenge carries a code + hint, not a fake Clean 0', async () => {
