@@ -41,7 +41,7 @@
     },
     "apps/web": {
       "name": "slop-detect-web",
-      "version": "0.7.0",
+      "version": "0.8.0",
       "dependencies": {
         "@cloudflare/puppeteer": "^1.1.0",
         "@slop-detect/core": "workspace:*",
@@ -73,6 +73,9 @@
         "slop-detect": "workspace:*",
         "typescript": "^5.0.0",
       },
+    },
+    "packages/action": {
+      "name": "@slop-detect/action",
     },
     "packages/cli": {
       "name": "slop-detect",
@@ -455,6 +458,8 @@
     "@shikijs/vscode-textmate": ["@shikijs/vscode-textmate@10.0.2", "", {}, "sha512-83yeghZ2xxin3Nj8z1NMd/NCuca+gsYXswywDy5bHvwlWL8tpTQmzGeUuHd9FC3E/SBEMvzJRwWEOz5gGes9Qg=="],
 
     "@sindresorhus/is": ["@sindresorhus/is@7.2.0", "", {}, "sha512-P1Cz1dWaFfR4IR+U13mqqiGsLFf1KbayybWwdd2vfctdV6hDpUkgCY0nKOLLTMSoRd/jJNjtbqzf13K8DCCXQw=="],
+
+    "@slop-detect/action": ["@slop-detect/action@workspace:packages/action"],
 
     "@slop-detect/core": ["@slop-detect/core@workspace:packages/core"],
 
