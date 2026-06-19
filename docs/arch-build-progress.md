@@ -37,10 +37,11 @@ CLOSED so far (3/15): SEC-1 (#70), COST-1 (#71), SEC-3 (#71). BASE @8827957.
 IN-FLIGHT:
 - rel1-browser-reuse [REL-1,REL-2]: grok term_40669fad task_5cfa387a0926 | WT fix-rel1 | CODING (CRITICAL PATH;
   verifying @cloudflare/puppeteer session API; on merge unblocks cou1 → rest of scan.ts chain)
-- action-sec4-doc [SEC-4]: grok term_d2371277 task_da8de07e5d0c | WT fix-action | CODING
-- watch-cost2-index [COST-2]: PR#72 | codex review term_001ff625 task_7116c1318fde/ctx_1a72888428e0 | REVIEWING
-- wf-ops2-dep1 [OPS-2,DEP-1]: PR#69 | grok term_3ad5de70 FIXING round1 (codex caught schedule->prod-deploy);
-  SHAs+hermetic smoke already validated.
+- action-sec4-doc [SEC-4]: PR#73 | codex review term_8a4a7676 task_8d17347b4ad0/ctx_d5770ef9f250 | REVIEWING
+  (reviewer scrutinizing the package.json/bun.lock dep add)
+- watch-cost2-index [COST-2]: PR#72 | grok term_7278cb4c FIXING round1 — codex caught an email-existence
+  TIMING ORACLE (validated-strength #5 latency leak); fix = move rate-limit/send into waitUntil.
+- wf-ops2-dep1 [OPS-2,DEP-1]: PR#69 | codex term_6e2ef925 RE-REVIEW round2 (grok added 8990443 keep-canary-off-deploy).
 QUEUED (scan.ts chain, serial, after rel1 merges): cou1 → rel3-dm1-dm2 → sec2 → ops1.
 NOTE: gh self-review blocked → verdict via worker_done + PR comment (see DECISIONS). Merge: gh pr merge --merge
 after worker_done verdict=approve; conflict-check via git merge-tree first; retire worktree after merge.
