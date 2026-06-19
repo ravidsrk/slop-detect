@@ -35,8 +35,9 @@ PHASE=FIXING
 PHASE 1 LIVE STATE (grok --inject WORKS; codex needs direct terminal-send of the spec file):
 CLOSED so far (6/15): SEC-1 (#70), COST-1 (#71), SEC-3 (#71), OPS-2 (#69), DEP-1 (#69), SEC-4 (#73). BASE @c103e95.
 IN-FLIGHT:
-- rel1-browser-reuse [REL-1,REL-2]: PR#74 | codex review term_06b9e894 task_09d8720a7010/ctx_9a4e605488ef
-  | REVIEWING (CRITICAL PATH; on MERGE unblocks cou1 → rest of scan.ts chain)
+- rel1-browser-reuse [REL-1,REL-2]: PR#74 | grok term_40669fad FIXING round1 — codex confirmed REL-1 +
+  session API + all tests, but caught REL-2 gap (SCAN_DISABLED checked AFTER /og cache lookup → disabled
+  cache-hit serves rendered image). Fix = move kill-switch above cache lookup. (CRITICAL PATH → cou1.)
 - watch-cost2-index [COST-2]: PR#72 | codex term_001ff625 RE-REVIEW round2 (grok moved rate-limit/send into
   waitUntil to equalize latency; reviewer re-checking timing oracle is gone).
 QUEUED (scan.ts chain, serial, after rel1 #74 merges): cou1 (foundation) → rel3-dm1-dm2 → sec2 → ops1.
