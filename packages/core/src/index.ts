@@ -37,6 +37,14 @@ export {
   parseCssColor,
   SYSTEM_CHECKS,
 } from './system.js';
+export {
+  buildPageScript,
+  detectBlocked,
+  type PageScriptData,
+  type BlockedResult,
+  type BuildPageScriptOptions,
+  type DetectBlockedContext,
+} from './page-script.js';
 
 import { gradeForScore, verdictFor } from './verdict.js';
 import { COPY_PATTERNS } from './copyPatterns.js';
