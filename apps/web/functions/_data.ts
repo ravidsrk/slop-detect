@@ -7,7 +7,33 @@
 //
 // Framework-agnostic: this is the layer the route handlers (and a future Hono
 // app) call into, so it imports only the leaf utils, never anything presentational.
+import { PATTERNS } from '@slop-detect/core';
 import { domainOf, newId, tierRank } from './_util.js';
+
+// ── pattern-category clean fractions (shared record + render) ────────────────
+// The five overview bars / radar axes map engine pattern categories to display
+// names. Order is stable — bumpCategoryStats and buildResultView both key off it.
+export const PATTERN_CATEGORY_ORDER = ['fonts', 'colors', 'layout', 'css', 'images'] as const;
+
+const CAT_MAX: Record<string, number> = {};
+for (const p of PATTERNS as any[]) CAT_MAX[p.category] = (CAT_MAX[p.category] || 0) + p.weight;
+const PATTERN_BY_ID = new Map((PATTERNS as any[]).map((p) => [p.id, p]));
+const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
+
+// Per-category clean fraction (0..1) for a slim record. Same formula as
+// buildResultView's categories[].cleanFraction — one source of truth.
+export function categoryCleanFractions(slim: any): Record<string, number> {
+  const triggered = (slim?.triggered || []).filter(Boolean);
+  const out: Record<string, number> = {};
+  for (const key of PATTERN_CATEGORY_ORDER) {
+    const hits = triggered.filter((t: any) => PATTERN_BY_ID.get(t.id)?.category === key);
+    const weight = hits.reduce((s: number, t: any) => s + (t.weight || 0), 0);
+    const max = CAT_MAX[key] || 0;
+    const ratio = max > 0 ? clamp01(weight / max) : 0;
+    out[key] = 1 - ratio;
+  }
+  return out;
+}
 
 const RESULT_TTL = 60 * 60 * 24 * 90; // 90 days
 const DOMAIN_TTL = 60 * 60 * 24 * 90;
@@ -253,6 +279,46 @@ function historyPoint(slim) {
 // enumerating per-domain keys. Read-modify-write is not atomic in KV, so counts
 // are approximate under heavy concurrency, which is fine for a percentile.
 const STATS_DIST_KEY = 'stats:dist';
+const STATS_CATCLEAN_KEY = 'stats:catclean';
+
+type CatCleanStore = { cats: Record<string, { sum: number; n: number }>; count: number };
+
+async function getCategoryCleanStore(kv: any): Promise<CatCleanStore> {
+  if (!kv) return { cats: {}, count: 0 };
+  const raw = await kv.get(STATS_CATCLEAN_KEY);
+  if (!raw) return { cats: {}, count: 0 };
+  try {
+    const o = JSON.parse(raw);
+    return {
+      cats: o.cats && typeof o.cats === 'object' ? o.cats : {},
+      count: Number(o.count) || 0,
+    };
+  } catch {
+    return { cats: {}, count: 0 };
+  }
+}
+
+export async function getCategoryCleanAverages(kv: any) {
+  const store = await getCategoryCleanStore(kv);
+  const averages: Record<string, number> = {};
+  for (const [k, { sum, n }] of Object.entries(store.cats)) {
+    if (n > 0) averages[k] = sum / n;
+  }
+  return { averages, count: store.count };
+}
+
+async function bumpCategoryStats(kv: any, slim: any) {
+  if (!kv || !slim) return;
+  const fracs = categoryCleanFractions(slim);
+  const store = await getCategoryCleanStore(kv);
+  for (const key of PATTERN_CATEGORY_ORDER) {
+    if (!store.cats[key]) store.cats[key] = { sum: 0, n: 0 };
+    store.cats[key].sum += fracs[key];
+    store.cats[key].n += 1;
+  }
+  store.count += 1;
+  await kv.put(STATS_CATCLEAN_KEY, JSON.stringify(store)); // durable: no TTL
+}
 
 export async function getScoreDistribution(kv) {
   const empty = () => new Array(101).fill(0);
@@ -334,6 +400,7 @@ export async function recordScan(kv, slim) {
   await Promise.all([
     appendHistory(kv, slim.domain, historyPoint(slim)),
     bumpScoreStats(kv, slim.score),
+    bumpCategoryStats(kv, slim),
   ]);
 }
 
