@@ -7,11 +7,11 @@
 //
 // Usage:
 //   import { report } from '../_report.js';
-//   report(env, 'error', 'scan_failed', { url, message: err.message });
+//   report(env, 'error', 'scan_failed', { url, message: err.message }, waitUntil);
 //
 // Keep payloads PII-free — never log emails or full page content.
 
-export function report(env, level, event, data = {}) {
+export function report(env, level, event, data = {}, waitUntil) {
   const line = { ts: new Date().toISOString(), level, event, ...data };
   // Structured log line (picked up by `wrangler tail` / Logpush).
   try {
@@ -28,13 +28,18 @@ export function report(env, level, event, data = {}) {
       const body = JSON.stringify({
         text: `slop-detect ${level}: ${event} ${JSON.stringify(data).slice(0, 800)}`,
       });
-      // ctx.waitUntil would be ideal, but report() is called from places without
-      // ctx; a detached promise still flushes on Workers within the request budget.
-      void fetch(hook, {
+      const promise = fetch(hook, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body,
       }).catch(() => {});
+      if (typeof waitUntil === 'function') {
+        waitUntil(promise);
+      } else {
+        // Callers without request context (e.g. _email.ts) fall back to a
+        // detached promise; not guaranteed to complete after the response.
+        void promise;
+      }
     } catch (_) {
       /* swallow — observability must never break the request */
     }
