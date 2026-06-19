@@ -4,24 +4,21 @@
 // Rendering Chromium. Requires a BROWSER binding on the Pages project. Opt into
 // the copy-slop axis with { axes: ['design','copy'] } (or 'all').
 
-import puppeteer from '@cloudflare/puppeteer';
+import { acquireBrowser, releaseBrowser } from '../_browser.js';
 import {
-  PATTERNS,
-  createColorHelpers,
-  createVisibilityHelpers,
-  isSlopFont,
-  isAccentSerif,
-  SLOP_FONT_PREFIXES,
-  ACCENT_SERIF_PREFIXES,
+  buildPageScript,
+  detectBlocked,
+  assemblePatternResults,
   scorePatterns,
   applyPreset,
   isPreset,
-  extractTextContext,
-  extractSystemContext,
   parseDesignMd,
   scoreSystemCompliance,
   scoreCopy,
   combineAxes,
+  SCAN_PAGE_WAIT,
+  waitFontsReadyInPage,
+  readCapped,
 } from '@slop-detect/core';
 import {
   newId,
@@ -54,7 +51,7 @@ function json(data, status = 200) {
   });
 }
 
-export async function onRequestPost({ request, env }) {
+export async function onRequestPost({ request, env, waitUntil }) {
   if (!env.BROWSER) {
     return json({ error: 'BROWSER binding missing — check wrangler.toml' }, 500);
   }
@@ -70,6 +67,7 @@ export async function onRequestPost({ request, env }) {
   const checked = validateScanUrl(body?.url);
   if (checked.error) return json({ error: checked.error }, checked.status);
   const url = checked.url;
+  const requestedHost = new URL(url).hostname.toLowerCase();
 
   // System axis (DESIGN.md compliance) — opt in via { designMd: true } (looks
   // for <origin>/DESIGN.md next to the scanned page) or { designMd: "<url>" }.
@@ -83,38 +81,62 @@ export async function onRequestPost({ request, env }) {
   const pageScript = buildPageScript({ includeSystem: wantsSystem });
 
   let browser;
+  let navMs;
+  let patternsErrored = 0;
+  const scanStart = Date.now();
   try {
-    browser = await puppeteer.launch(env.BROWSER);
+    ({ browser } = await acquireBrowser(env.BROWSER));
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 800 });
     await page.setUserAgent('Mozilla/5.0 SlopDetector/1.0 (+slop-detector.pages.dev)');
 
     const navStart = Date.now();
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25000 });
-    // Soft wait for fonts/CSS/above-fold images. Don't fail if it stays busy.
+    const navResponse = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25000 });
+    const finalNavUrl = navResponse?.url() ?? url;
+    // Soft wait for CSS/above-fold images — shared budget with the CLI runner.
     await Promise.race([
-      page.waitForNetworkIdle({ idleTime: 500, timeout: 6000 }).catch(() => {}),
-      new Promise((r) => setTimeout(r, 7000)),
+      page
+        .waitForNetworkIdle({
+          idleTime: SCAN_PAGE_WAIT.networkIdleMs,
+          timeout: SCAN_PAGE_WAIT.networkIdleTimeoutMs,
+        })
+        .catch(() => {}),
+      new Promise((r) => setTimeout(r, SCAN_PAGE_WAIT.totalWaitCapMs)),
     ]);
-    await new Promise((r) => setTimeout(r, 400));
-    const navMs = Date.now() - navStart;
+    await new Promise((r) => setTimeout(r, SCAN_PAGE_WAIT.postNetworkSettleMs));
+    // REL-3: wait for web fonts before scoring (mirrors og/[id].ts).
+    await page.evaluate(waitFontsReadyInPage, SCAN_PAGE_WAIT.fontsReadyTimeoutMs);
+    navMs = Date.now() - navStart;
 
+    const browserVersion = await browser.version();
     const data = await page.evaluate(pageScript);
 
-    // SSRF (defense-in-depth): the navigation may have followed redirects to a
-    // different host, so re-validate the final url before handing back its
-    // title/h1/text/screenshot. CAVEAT: data.url is the page-reported
-    // location.href, which a hostile page can spoof via history.pushState — this
-    // is NOT a hard boundary. The real guards are the pre-flight validateScanUrl
-    // on the requested host and Cloudflare Browser Rendering's own egress; a
-    // resolve-and-pin check would be needed to fully close DNS-rebinding/spoofing.
-    if (data.url && !isAllowedUrl(data.url)) {
+    // SSRF (defense-in-depth): re-validate on the navigation response URL, not
+    // page-reported location.href (spoofable via history.pushState). DNS-rebind
+    // cannot be fully closed inside Workers — that leg relies on Cloudflare
+    // Browser Rendering egress blocking RFC-1918/metadata; this closes the
+    // code/boundary part only.
+    let finalNavHost = '';
+    try {
+      finalNavHost = new URL(finalNavUrl).hostname.toLowerCase();
+    } catch {
+      return json(
+        {
+          error: 'Scan refused: navigation ended on an invalid URL.',
+          code: 'blocked_redirect',
+          url,
+          finalUrl: finalNavUrl,
+        },
+        400
+      );
+    }
+    if (!isAllowedUrl(finalNavUrl) || finalNavHost !== requestedHost) {
       return json(
         {
           error: 'Scan refused: the URL redirected to a disallowed (private/internal) host.',
           code: 'blocked_redirect',
           url,
-          finalUrl: data.url,
+          finalUrl: finalNavUrl,
         },
         400
       );
@@ -122,14 +144,14 @@ export async function onRequestPost({ request, env }) {
 
     // Anti-bot challenge / dead-page detection — refuse to score these so we
     // don't silently return a fake "Clean 0".
-    const blocked = detectBlocked(data, { url, finalUrl: data.url });
+    const blocked = detectBlocked(data, { url, finalUrl: finalNavUrl });
     if (blocked) {
       return json(
         {
           error: blocked.reason,
           code: blocked.code,
           url,
-          finalUrl: data.url,
+          finalUrl: finalNavUrl,
           title: data.title,
           hint: blocked.hint,
         },
@@ -146,18 +168,12 @@ export async function onRequestPost({ request, env }) {
     }
 
     // Score on the Worker side (patterns metadata lives here, not on the page).
-    const patterns = PATTERNS.map((p) => {
-      const sig = data.signals[p.id] || { triggered: false };
-      return {
-        id: p.id,
-        label: p.label,
-        short: p.short,
-        category: p.category,
-        weight: p.weight,
-        triggered: !!sig.triggered,
-        evidence: sig,
-      };
-    });
+    const assembled = assemblePatternResults(data.signals);
+    const { patterns } = assembled;
+    patternsErrored = assembled.patternsErrored;
+    if (patternsErrored > 0) {
+      report(env, 'warn', 'pattern_errors', { url, navMs, patternsErrored }, waitUntil);
+    }
 
     // Optional scoring preset (full|strict|marketing|minimal). All patterns are
     // always extracted (one page eval); the preset only narrows what's scored
@@ -168,13 +184,15 @@ export async function onRequestPost({ request, env }) {
 
     const result: any = {
       url,
-      finalUrl: data.url,
+      finalUrl: finalNavUrl,
       title: data.title,
       h1: data.h1Text,
       h1Font: data.h1Font,
       preset,
       ...scoring, // top-level = DESIGN axis (backward-compatible)
       patterns: scored,
+      patternsErrored,
+      browserVersion,
       screenshot,
       navMs,
     };
@@ -208,7 +226,7 @@ export async function onRequestPost({ request, env }) {
       const mdUrl =
         typeof body.designMd === 'string'
           ? body.designMd
-          : new URL('/DESIGN.md', data.url || url).toString();
+          : new URL('/DESIGN.md', finalNavUrl).toString();
       let mdText = null;
       if (isAllowedUrl(mdUrl)) {
         const res = await fetchAllowedUrl(
@@ -216,7 +234,7 @@ export async function onRequestPost({ request, env }) {
           { headers: { Accept: 'text/markdown,text/plain,*/*' } },
           { timeoutMs: 8000 }
         );
-        if (res?.ok) mdText = (await res.text()).slice(0, 200_000);
+        if (res?.ok) mdText = await readCapped(res, 200_000);
       }
       result.system = scoreSystemCompliance(
         mdText ? parseDesignMd(mdText) : null,
@@ -245,160 +263,33 @@ export async function onRequestPost({ request, env }) {
       } catch (e) {
         // Sharing/monitoring is best-effort; never fail a scan over it — but do
         // surface the KV error so a silent storage outage is visible.
-        report(env, 'warn', 'persist_failed', { message: e && e.message ? e.message : String(e) });
+        report(
+          env,
+          'warn',
+          'persist_failed',
+          { url, navMs, patternsErrored, message: e && e.message ? e.message : String(e) },
+          waitUntil
+        );
       }
     }
 
     return json(result);
   } catch (err) {
     // Surface scan failures instead of swallowing them (no PII: url only).
-    report(env, 'error', 'scan_failed', {
-      url,
-      message: err && err.message ? err.message : String(err),
-    });
+    report(
+      env,
+      'error',
+      'scan_failed',
+      {
+        url,
+        message: err && err.message ? err.message : String(err),
+        navMs: navMs ?? Date.now() - scanStart,
+        patternsErrored,
+      },
+      waitUntil
+    );
     return json({ error: err.message || String(err) }, 502);
   } finally {
-    try {
-      await browser?.close();
-    } catch (_) {}
+    await releaseBrowser(browser);
   }
-}
-
-// ── Anti-bot / dead-page heuristics ─────────────────────────────────────────
-function detectBlocked(data, _ctx) {
-  const title = (data?.title || '').trim();
-  const h1 = (data?.h1Text || '').trim();
-  const visibleCount = data?.visibleCount || 0;
-  const signals = data?.signals || {};
-  // Count how many patterns returned ANY non-empty evidence — proxy
-  // for "did the page actually render meaningful DOM?".
-  const patternsWithEvidence = Object.values(signals).filter((s) => {
-    if (!s || typeof s !== 'object') return false;
-    const keys = Object.keys(s).filter((k) => k !== 'triggered' && k !== 'error');
-    return keys.length > 0;
-  }).length;
-
-  // Cloudflare's interstitial keeps an empty <title> long enough that we
-  // sometimes capture it, but more commonly the title is "Just a moment...".
-  const cfMarkers = [
-    'Just a moment...',
-    'Attention Required! | Cloudflare',
-    'Please Wait... | Cloudflare',
-    'Access denied | Cloudflare',
-    'Sorry, you have been blocked',
-  ];
-  if (cfMarkers.some((m) => title.includes(m))) {
-    return {
-      code: 'cloudflare_challenge',
-      reason: 'Site is behind a Cloudflare bot challenge — cannot score automatically.',
-      hint: 'Try a different URL, or use the `slop-detect` CLI locally with a real browser session.',
-    };
-  }
-
-  // Other anti-bot vendors
-  if (/access denied|forbidden|akamai/i.test(title) && visibleCount < 20) {
-    return {
-      code: 'access_blocked',
-      reason: `Site refused the scan (title: "${title.slice(0, 80)}")`,
-      hint: 'The target is blocking automated requests. Try the CLI from your machine.',
-    };
-  }
-
-  // Empty / dead page (no title, no h1, no visible content) — usually means
-  // the page never finished rendering inside the headless runtime, OR the site
-  // is gating content behind a JS auth wall. ChatGPT/Cursor/etc do this.
-  const noContent = !title && !h1;
-  const sparseDom = visibleCount < 10 || patternsWithEvidence < 4;
-  if (noContent || sparseDom) {
-    return {
-      code: 'empty_page',
-      reason: 'Target page rendered no scannable content (no title, no H1, or empty DOM).',
-      hint: 'The site likely requires sign-in, uses heavy client-side hydration, or blocks headless browsers. Try a public marketing URL instead.',
-    };
-  }
-
-  return null;
-}
-
-// ── Page-side script assembler ──────────────────────────────────────────────
-function buildPageScript(opts: any = {}) {
-  const patternCalls = PATTERNS.map(
-    (p) => `
-    try {
-      signals[${JSON.stringify(p.id)}] = (${p.extract.toString()})(ctx);
-    } catch (e) {
-      signals[${JSON.stringify(p.id)}] = { triggered: false, error: e.message };
-    }`
-  ).join('\n');
-
-  return `(() => {
-    // Polyfill esbuild's __name helper (wrangler bundles named fns wrapped with it).
-    const __name = (fn) => fn;
-    ${createColorHelpers.toString()}
-    ${createVisibilityHelpers.toString()}
-    ${isSlopFont.toString()}
-    ${isAccentSerif.toString()}
-    const SLOP_FONT_PREFIXES = ${JSON.stringify(SLOP_FONT_PREFIXES)};
-    const ACCENT_SERIF_PREFIXES = ${JSON.stringify(ACCENT_SERIF_PREFIXES)};
-
-    const colorHelpers = createColorHelpers();
-    const visHelpers = createVisibilityHelpers();
-    const visible = visHelpers.getVisible(document.body, 4000);
-
-    let h1 = null;
-    for (const el of document.querySelectorAll('h1')) {
-      if (visHelpers.isVisible(el)) { h1 = el; break; }
-    }
-
-    const ctx = {
-      visible, h1,
-      parseColor: colorHelpers.parseColor,
-      rgbToHsl: colorHelpers.rgbToHsl,
-      isPurple: colorHelpers.isPurple,
-      isDark: colorHelpers.isDark,
-      isMidGrey: colorHelpers.isMidGrey,
-      relativeLuminance: colorHelpers.relativeLuminance,
-      contrastRatio: colorHelpers.contrastRatio,
-      channelSpread: colorHelpers.channelSpread,
-      effectiveBackground: colorHelpers.effectiveBackground,
-      isSlopFont, isAccentSerif,
-      SLOP_FONT_PREFIXES, ACCENT_SERIF_PREFIXES,
-      // inHero is consumed by the declarative rules engine for heroOnly specs.
-      // isVisible / inViewport / isNeutral were never consumed by any pattern,
-      // so they are omitted (the visible array is already pre-filtered).
-      inHero: visHelpers.inHero
-    };
-
-    const signals = {};
-    ${patternCalls}
-
-    // Copy axis: extract page text in-DOM (scored Worker-side by scoreCopy).
-    const extractTextContext = ${extractTextContext.toString()};
-    let textContext = null;
-    try { textContext = extractTextContext(); } catch (e) { textContext = { error: e.message }; }
-
-    // System axis: observe fonts/colors/radii (scored Worker-side).
-    let systemContext = null;
-    ${
-      opts.includeSystem
-        ? `
-    const extractSystemContext = ${extractSystemContext.toString()};
-    try { systemContext = extractSystemContext(); } catch (e) { systemContext = { error: e.message }; }
-    `
-        : ''
-    }
-
-    return {
-      title: document.title,
-      url: location.href,
-      viewport: { w: window.innerWidth, h: window.innerHeight },
-      docHeight: document.documentElement.scrollHeight,
-      h1Text: h1 ? h1.textContent.trim().slice(0, 120) : null,
-      h1Font: h1 ? getComputedStyle(h1).fontFamily : null,
-      visibleCount: visible.length,
-      signals,
-      textContext,
-      systemContext
-    };
-  })();`;
 }

@@ -26,6 +26,8 @@ export {
   aiBotsBlockedByRobots,
   toMarkdownUrl,
   runAeoChecks,
+  readCapped,
+  MAX_HTML_BYTES,
 } from './aeo.js';
 export {
   parseDesignMd,
@@ -37,6 +39,20 @@ export {
   parseCssColor,
   SYSTEM_CHECKS,
 } from './system.js';
+export {
+  buildPageScript,
+  detectBlocked,
+  type PageScriptData,
+  type BlockedResult,
+  type BuildPageScriptOptions,
+  type DetectBlockedContext,
+} from './page-script.js';
+export { SCAN_PAGE_WAIT, waitFontsReadyInPage } from './runner-wait.js';
+export {
+  assemblePatternResults,
+  type PatternSignal,
+  type AssembledPatternResults,
+} from './result-assembly.js';
 
 import { gradeForScore, verdictFor } from './verdict.js';
 import { COPY_PATTERNS } from './copyPatterns.js';

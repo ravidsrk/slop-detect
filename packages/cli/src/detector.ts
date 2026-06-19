@@ -5,20 +5,17 @@
 import { spawnSync } from 'node:child_process';
 import {
   PATTERNS,
-  createColorHelpers,
-  createVisibilityHelpers,
-  isSlopFont,
-  isAccentSerif,
-  SLOP_FONT_PREFIXES,
-  ACCENT_SERIF_PREFIXES,
+  buildPageScript,
+  detectBlocked,
+  assemblePatternResults,
   scorePatterns,
   applyPreset,
-  extractTextContext,
-  extractSystemContext,
   parseDesignMd,
   scoreSystemCompliance,
   scoreCopy,
   combineAxes,
+  SCAN_PAGE_WAIT,
+  waitFontsReadyInPage,
 } from '@slop-detect/core';
 
 // Options accepted by the scan entry points. All optional — the CLI fills in
@@ -102,51 +99,6 @@ async function ensureChromium() {
   }
 }
 
-// ── Anti-bot / dead-page heuristics (mirrored from packages/web/functions/api/scan.js) ──
-function detectBlocked(data) {
-  const title = (data?.title || '').trim();
-  const h1 = (data?.h1Text || '').trim();
-  const visibleCount = data?.visibleCount || 0;
-
-  const cfMarkers = [
-    'Just a moment...',
-    'Attention Required! | Cloudflare',
-    'Please Wait... | Cloudflare',
-    'Access denied | Cloudflare',
-    'Sorry, you have been blocked',
-  ];
-  if (cfMarkers.some((m) => title.includes(m))) {
-    return {
-      code: 'cloudflare_challenge',
-      reason: 'Site is behind a Cloudflare bot challenge — cannot score automatically.',
-      hint: 'Try a different URL, or run the CLI with a fresh non-headless browser session.',
-    };
-  }
-  if (/access denied|forbidden|akamai/i.test(title) && visibleCount < 20) {
-    return {
-      code: 'access_blocked',
-      reason: `Site refused the scan (title: "${title.slice(0, 80)}")`,
-      hint: 'The target is blocking automated requests.',
-    };
-  }
-  const signals = data?.signals || {};
-  const patternsWithEvidence = Object.values(signals).filter((s) => {
-    if (!s || typeof s !== 'object') return false;
-    const keys = Object.keys(s).filter((k) => k !== 'triggered' && k !== 'error');
-    return keys.length > 0;
-  }).length;
-  const noContent = !title && !h1;
-  const sparseDom = visibleCount < 10 || patternsWithEvidence < 4;
-  if (noContent || sparseDom) {
-    return {
-      code: 'empty_page',
-      reason: 'Target page rendered no scannable content (no title, no H1, or empty DOM).',
-      hint: 'The site likely requires sign-in, uses heavy client-side hydration, or blocks headless browsers.',
-    };
-  }
-  return null;
-}
-
 // Normalize the requested axes into a deduped, valid list. Default: design only.
 // Accepts an array (['design','copy']), 'all', or undefined.
 function normalizeAxes(axes) {
@@ -156,91 +108,6 @@ function normalizeAxes(axes) {
   const out = axes.filter((a) => VALID.includes(a));
   if (!out.includes('design')) out.unshift('design'); // design always present
   return [...new Set(out)];
-}
-
-function buildPageScript(opts: ScanOptions = {}) {
-  const patternCalls = PATTERNS.map(
-    (p) => `
-    try {
-      signals[${JSON.stringify(p.id)}] = (${p.extract.toString()})(ctx);
-    } catch (e) {
-      signals[${JSON.stringify(p.id)}] = { triggered: false, error: e.message };
-    }`
-  ).join('\n');
-
-  return `(() => {
-    ${createColorHelpers.toString()}
-    ${createVisibilityHelpers.toString()}
-    ${isSlopFont.toString()}
-    ${isAccentSerif.toString()}
-    const SLOP_FONT_PREFIXES = ${JSON.stringify(SLOP_FONT_PREFIXES)};
-    const ACCENT_SERIF_PREFIXES = ${JSON.stringify(ACCENT_SERIF_PREFIXES)};
-
-    const colorHelpers = createColorHelpers();
-    const visHelpers = createVisibilityHelpers();
-    const visible = visHelpers.getVisible(document.body, 4000);
-
-    // Find the dominant H1 — first visible H1 in document order.
-    let h1 = null;
-    for (const el of document.querySelectorAll('h1')) {
-      if (visHelpers.isVisible(el)) { h1 = el; break; }
-    }
-
-    const ctx = {
-      visible,
-      h1,
-      parseColor: colorHelpers.parseColor,
-      rgbToHsl: colorHelpers.rgbToHsl,
-      isPurple: colorHelpers.isPurple,
-      isDark: colorHelpers.isDark,
-      isMidGrey: colorHelpers.isMidGrey,
-      relativeLuminance: colorHelpers.relativeLuminance,
-      contrastRatio: colorHelpers.contrastRatio,
-      channelSpread: colorHelpers.channelSpread,
-      effectiveBackground: colorHelpers.effectiveBackground,
-      isSlopFont,
-      isAccentSerif,
-      SLOP_FONT_PREFIXES,
-      ACCENT_SERIF_PREFIXES,
-      // inHero is consumed by the declarative rules engine for heroOnly specs.
-      // isVisible / inViewport / isNeutral were never consumed by any pattern,
-      // so they are omitted (the visible array is already pre-filtered).
-      inHero: visHelpers.inHero
-    };
-
-    const signals = {};
-    ${patternCalls}
-
-    // Copy axis: extract page text in-DOM (scored Node-side by scoreCopy).
-    const extractTextContext = ${extractTextContext.toString()};
-    let textContext = null;
-    try { textContext = extractTextContext(); } catch (e) { textContext = { error: e.message }; }
-
-    // System axis (DESIGN.md compliance): observe fonts/colors/radii in use.
-    // Only injected when a DESIGN.md was supplied — scoring is Node-side.
-    let systemContext = null;
-    ${
-      opts.includeSystem
-        ? `
-    const extractSystemContext = ${extractSystemContext.toString()};
-    try { systemContext = extractSystemContext(); } catch (e) { systemContext = { error: e.message }; }
-    `
-        : ''
-    }
-
-    return {
-      title: document.title,
-      url: location.href,
-      viewport: { w: window.innerWidth, h: window.innerHeight },
-      docHeight: document.documentElement.scrollHeight,
-      h1Text: h1 ? h1.textContent.trim().slice(0, 120) : null,
-      h1Font: h1 ? getComputedStyle(h1).fontFamily : null,
-      visibleCount: visible.length,
-      signals,
-      textContext,
-      systemContext
-    };
-  })();`;
 }
 
 // ── DESIGN.md loading (system axis) ──────────────────────────────────────────
@@ -333,12 +200,19 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
     deviceScaleFactor: 1,
   });
   const page = await context.newPage();
+  const browserVersion = browser.version();
   let result;
   try {
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: opts.timeout || 30000 });
-    // Give CSS / fonts / above-fold images a moment to settle
-    await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
-    await page.waitForTimeout(500);
+    // Shared settle budget with the web runner (SCAN_PAGE_WAIT).
+    await Promise.race([
+      page
+        .waitForLoadState('networkidle', { timeout: SCAN_PAGE_WAIT.networkIdleTimeoutMs })
+        .catch(() => {}),
+      new Promise((r) => setTimeout(r, SCAN_PAGE_WAIT.totalWaitCapMs)),
+    ]);
+    await page.waitForTimeout(SCAN_PAGE_WAIT.postNetworkSettleMs);
+    await page.evaluate(waitFontsReadyInPage, SCAN_PAGE_WAIT.fontsReadyTimeoutMs);
 
     const data = await page.evaluate(buildPageScript({ includeSystem: !!opts.designMd }));
 
@@ -364,18 +238,10 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
     }
 
     // Build the structured result on the Node side.
-    const patterns = PATTERNS.map((p) => {
-      const sig = data.signals[p.id] || { triggered: false };
-      return {
-        id: p.id,
-        label: p.label,
-        short: p.short,
-        category: p.category,
-        weight: p.weight,
-        triggered: !!sig.triggered,
-        evidence: sig,
-      };
-    });
+    const { patterns, patternsErrored } = assemblePatternResults(data.signals);
+    if (patternsErrored > 0) {
+      console.warn(`slop-detect: ${patternsErrored} pattern extractor(s) failed`);
+    }
 
     // Always extract every pattern (one cheap page eval), but score against the
     // selected preset's subset so the number — and the displayed pattern list —
@@ -398,6 +264,8 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
       preset,
       ...scoring, // top-level = DESIGN axis (backward-compatible)
       patterns: scored,
+      patternsErrored,
+      browserVersion,
     };
 
     // Multi-axis: attach per-axis summaries + a unified score when >1 axis asked.

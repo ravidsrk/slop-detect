@@ -4,6 +4,17 @@
 # with zero external deps (built-in fetch), so there's nothing to bundle and no
 # node_modules to commit. The runner already ships Node 20, so `node scan.mjs`
 # just works. See scan.mjs for the actual logic.
+#
+# Security — pull_request_target and the url input:
+#   This action accepts pull_request and pull_request_target events (see scan.mjs).
+#   pull_request_target runs with a write-scoped GITHUB_TOKEN even for fork PRs.
+#   The action does not check out or execute PR code — it only POSTs `url` to the
+#   public slop-detect API and may post a sticky PR comment — but a misconfigured
+#   workflow that passes a PR-controlled URL while using pull_request_target is a
+#   footgun. Use pull_request_target ONLY when `url` is a trusted, workflow-derived
+#   deploy-preview URL (from your host's API or deployment status), never from PR
+#   body/title/branch content. Treat `url` as untrusted user input. Grant least
+#   privilege: `permissions: pull-requests: write` (plus `contents: read` if needed).
 name: 'Slop Detect'
 description: 'Score a landing page against the 16-rule AI-design-slop fingerprint and gate PRs.'
 author: 'Ravindra Kumar'
@@ -14,7 +25,7 @@ branding:
 
 inputs:
   url:
-    description: 'The page (URL) to scan — typically a deploy-preview URL.'
+    description: 'The page (URL) to scan — typically a trusted, workflow-derived deploy-preview URL. Treat as untrusted input: pass only URLs your workflow resolves from your host, never PR-controlled content (especially on pull_request_target).'
     required: true
   fail-under:
     # NOTE on semantics: the slop score is 0–100 where LOWER is better. So
