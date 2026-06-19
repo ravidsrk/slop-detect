@@ -252,3 +252,18 @@ test('programmatic scan-field values are stripped of their scheme', () => {
   // The helper strips only a leading scheme (anchored, case-insensitive), nothing else.
   expect(/replace\(\/\^https\?:\\\/\\\/\/i, ''\)/.test(html), 'anchored scheme strip').toBeTruthy();
 });
+
+// ── scan lands on the full Result page (design flow: Landing -> Result) ───────
+// A completed scan navigates to its permalink /r/<id> (the rich Result page),
+// rather than only rendering a compact card inline on the landing page.
+test('a completed scan navigates to the full /r/<id> result page', () => {
+  expect(
+    /window\.location\.href = '\/r\/' \+ encodeURIComponent\(data\.id\)/.test(html),
+    'scan success navigates to the permalink result page'
+  ).toBeTruthy();
+  // the inline render stays as the fallback when there is no shareable id
+  expect(
+    /render\(data, Date\.now\(\) - t0\)/.test(html),
+    'inline render fallback kept'
+  ).toBeTruthy();
+});
