@@ -129,11 +129,30 @@ const PAGE_CSS = `
   .close-docs a:hover{border-color:var(--clean-text)}
   .manifesto{font-family:var(--serif);font-style:italic;font-size:var(--fs-quote-lg);line-height:1.3;color:var(--text-3);margin-top:34px;max-width:30ch;margin-left:auto;margin-right:auto}
 
+  /* 08 downloads */
+  .dl-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-top:24px}
+  .dl-card{border:1px solid var(--border);border-radius:8px;background:var(--panel);overflow:hidden;display:block}
+  .dl-card:hover{border-color:var(--text)}
+  .dl-prev{padding:20px;display:flex;align-items:center;justify-content:center;background:#EEF0EB;border-bottom:1px solid var(--border);min-height:96px}
+  .dl-prev img{display:block}
+  .dl-meta{padding:10px 12px;font-family:var(--mono);font-size:11px}
+  .dl-name{display:block;color:var(--text);font-weight:700}
+  .dl-sub{display:block;color:var(--text-4);margin-top:2px}
+  .dl-social{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--panel);margin-top:14px}
+  .dl-social-prev{padding:24px;display:flex;align-items:center;justify-content:center}
+  .dl-social-prev img{width:100%;max-width:720px;display:block;border:1px solid var(--border);border-radius:4px}
+  .dl-social-foot{display:flex;border-top:1px solid var(--border);font-family:var(--mono);font-size:12px}
+  .dl-social-foot span{flex:1;padding:11px 16px;color:var(--text-3)}
+  .dl-social-foot a{padding:11px 16px;border-left:1px solid var(--border);color:var(--clean-text)}
+  .dl-social-foot a:hover{color:var(--text)}
+  .dl-snip-cap{font-family:var(--mono);font-size:11px;color:var(--text-4);margin:24px 0 10px}
+
   @media(max-width:760px){
     .marks{grid-template-columns:1fr}
     .swatches{grid-template-columns:1fr 1fr}
     .spec{grid-template-columns:1fr;gap:10px}
     .cards{grid-template-columns:1fr}
+    .dl-grid{grid-template-columns:repeat(3,1fr)}
     .brand{padding-left:20px;padding-right:20px}
   }
 `;
@@ -196,6 +215,63 @@ const EMBED_MD =
   '<span class="t-cmt">&lt;!-- paste into any README or page --&gt;</span>\n' +
   '[![slop-detect](<span class="t-str">https://slop-detect.com/badge/yourdomain.com</span>)]' +
   '(<span class="t-str">https://slop-detect.com/score/yourdomain.com</span>)';
+
+// The drop-in <head> snippet rendered in section 08, wiring the asset kit into
+// any page. Tokenized for the dark CodeBlock (escaped angle brackets).
+const HEAD_SNIPPET =
+  '&lt;link rel="icon" href="<span class="t-str">/brand/favicon.svg</span>" type="image/svg+xml"&gt;\n' +
+  '&lt;link rel="icon" href="<span class="t-str">/brand/favicon-32.png</span>" sizes="32x32" type="image/png"&gt;\n' +
+  '&lt;link rel="apple-touch-icon" href="<span class="t-str">/brand/apple-touch-icon.png</span>"&gt;\n' +
+  '&lt;link rel="manifest" href="<span class="t-str">/brand/site.webmanifest</span>"&gt;\n' +
+  '&lt;meta name="theme-color" content="<span class="t-str">#16170F</span>"&gt;\n' +
+  '&lt;meta property="og:image" content="<span class="t-str">/brand/og-card.png</span>"&gt;\n' +
+  '&lt;meta name="twitter:card" content="<span class="t-str">summary_large_image</span>"&gt;';
+
+// The downloadable asset kit (section 08), mirroring public/brand/.
+const ASSET_KIT = [
+  {
+    href: '/brand/favicon.svg',
+    img: '/brand/favicon.svg',
+    w: 48,
+    name: 'favicon.svg',
+    sub: 'SVG · primary ↓',
+  },
+  {
+    href: '/brand/favicon-16.png',
+    img: '/brand/favicon-16.png',
+    w: 16,
+    name: '16×16',
+    sub: 'PNG ↓',
+  },
+  {
+    href: '/brand/favicon-32.png',
+    img: '/brand/favicon-32.png',
+    w: 32,
+    name: '32×32',
+    sub: 'PNG ↓',
+  },
+  {
+    href: '/brand/apple-touch-icon.png',
+    img: '/brand/apple-touch-icon.png',
+    w: 64,
+    name: 'apple · 180',
+    sub: 'PNG ↓',
+  },
+  {
+    href: '/brand/icon-192.png',
+    img: '/brand/icon-192.png',
+    w: 64,
+    name: 'icon · 192',
+    sub: 'PWA ↓',
+  },
+  {
+    href: '/brand/icon-512.png',
+    img: '/brand/icon-512.png',
+    w: 64,
+    name: 'icon · 512',
+    sub: 'PWA ↓',
+  },
+];
 
 function Swatch({ name, hex, role }) {
   return (
@@ -280,7 +356,7 @@ export async function onRequestGet({ request }) {
             <div class="marks">
               <div class="mark-card mark-light">
                 <img
-                  src="/landing/design/mark.svg"
+                  src="/brand/mark.svg"
                   width="64"
                   height="64"
                   alt="The slop-detect reticle mark on paper"
@@ -289,7 +365,7 @@ export async function onRequestGet({ request }) {
               </div>
               <div class="mark-card mark-dark">
                 <img
-                  src="/landing/design/mark-dark.svg"
+                  src="/brand/mark-dark.svg"
                   width="64"
                   height="64"
                   alt="The slop-detect reticle mark on ink"
@@ -318,7 +394,7 @@ export async function onRequestGet({ request }) {
             </p>
             <div class="wm-specimen">
               <span class="wm-mark">
-                <img src="/landing/design/mark.svg" width="46" height="46" alt="" />
+                <img src="/brand/mark.svg" width="46" height="46" alt="" />
               </span>
               <span class="wm-word">slop-detect</span>
             </div>
@@ -507,6 +583,49 @@ export async function onRequestGet({ request }) {
                 </ul>
               </div>
             </div>
+          </section>
+
+          {/* 08 downloads */}
+          <section class="sec" id="downloads" aria-labelledby="s08">
+            <SectionLedger tag="08" label="downloads" />
+            <h2 id="s08" class="sec-h">
+              Take the kit.
+            </h2>
+            <p class="sec-body body">
+              Favicon, app icons and the social card, ready to drop in. The favicon keeps the
+              reticle legible at 16px in a browser tab; the app icons cover home-screen and PWA
+              installs.
+            </p>
+            <div class="dl-grid">
+              {ASSET_KIT.map((a) => (
+                <a class="dl-card" href={a.href} download>
+                  <div class="dl-prev">
+                    <img src={a.img} width={a.w} height={a.w} alt={a.name} />
+                  </div>
+                  <div class="dl-meta">
+                    <span class="dl-name">{a.name}</span>
+                    <span class="dl-sub">{a.sub}</span>
+                  </div>
+                </a>
+              ))}
+            </div>
+            <div class="dl-social">
+              <div class="dl-social-prev">
+                <img src="/brand/og-card.png" alt="The slop-detect social card" />
+              </div>
+              <div class="dl-social-foot">
+                <span>og-card · 1200×630 · unfurls on X / LinkedIn / Slack</span>
+                <a href="/brand/og-card.png" download>
+                  PNG ↓
+                </a>
+              </div>
+            </div>
+            <p class="dl-snip-cap">drop-in &lt;head&gt;</p>
+            <CodeBlock
+              html={HEAD_SNIPPET}
+              label="The slop-detect brand assets, wired into a page head"
+              wrap={true}
+            />
           </section>
 
           {/* closer: the scan flow + the manifesto */}

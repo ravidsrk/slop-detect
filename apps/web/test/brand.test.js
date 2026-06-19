@@ -55,10 +55,12 @@ test('the page builds the seven numbered ledger sections', async () => {
 });
 
 // ── 01 the mark: the committed reticle assets, light + dark ──────────────────
+// Served from /brand/ — NOT /landing/design/, which the _redirects `/landing/* /`
+// rule 301-redirects (it broke the mark images before this fix).
 test('section 01 references the committed reticle marks (light + dark)', async () => {
   const { html } = await render();
-  expect(html).toContain('/landing/design/mark.svg');
-  expect(html).toContain('/landing/design/mark-dark.svg');
+  expect(html).toContain('/brand/mark.svg');
+  expect(html).toContain('/brand/mark-dark.svg');
 });
 
 // ── 03 color: the five core swatches, hexes exposed as text (not color-only) ──
@@ -200,7 +202,7 @@ test('a11y: a single h1, semantic landmarks, and labelled sections', async () =>
   expect((html.match(/<h1/g) || []).length, 'exactly one h1').toBe(1);
   expect(html).toContain('<main');
   expect(html).toMatch(/<nav[^>]*aria-label="Primary"/);
-  for (const id of ['s01', 's02', 's03', 's04', 's05', 's06', 's07']) {
+  for (const id of ['s01', 's02', 's03', 's04', 's05', 's06', 's07', 's08']) {
     expect(html, `${id} labelled`).toContain(`aria-labelledby="${id}"`);
     expect(html, `${id} heading`).toContain(`id="${id}"`);
   }
@@ -219,6 +221,33 @@ test('copy axis stays 0: no buzzwords, no em dash, no sparkle glyph (prose only)
   ).toBe(false);
   expect(prose.includes('—'), 'no em dashes in copy').toBe(false);
   expect(prose.includes('✨'), 'no AI sparkle glyph').toBe(false);
+});
+
+// ── section 08: the downloadable asset kit (design parity) ───────────────────
+test('the downloads section ships the asset kit + drop-in head snippet', async () => {
+  const { html } = await render();
+  expect(html, 'section 08 downloads present').toContain('id="downloads"');
+  // every asset-kit file the section advertises is referenced
+  for (const a of [
+    '/brand/favicon.svg',
+    '/brand/favicon-16.png',
+    '/brand/favicon-32.png',
+    '/brand/apple-touch-icon.png',
+    '/brand/icon-192.png',
+    '/brand/icon-512.png',
+    '/brand/og-card.png',
+  ]) {
+    expect(html, `${a} referenced`).toContain(a);
+  }
+  // the drop-in <head> snippet wires the manifest
+  expect(html, 'manifest in head snippet').toContain('/brand/site.webmanifest');
+});
+
+// ── regression: the mark must not use the redirected /landing/* path ──────────
+test('brand marks load from /brand/, not the redirected /landing/design path', async () => {
+  const { html } = await render();
+  expect(html, 'no stale /landing/design mark path').not.toContain('/landing/design/mark');
+  expect(html, 'mark served from /brand/').toContain('/brand/mark.svg');
 });
 
 // ── guard: the bounded palette really is the engine's six-color set ──────────
