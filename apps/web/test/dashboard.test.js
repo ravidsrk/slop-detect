@@ -205,10 +205,7 @@ test('link endpoint defers rate-limit work to waitUntil (latency-safe anti-enume
   await linkPost({ request: postReq({ email: 'unknown@x.io' }), env, waitUntil });
   const unknownMs = performance.now() - t1;
 
-  expect(
-    rateLimitGetsAtWaitUntil,
-    'RATE_LIMIT not touched when waitUntil is registered'
-  ).toBe(0);
+  expect(rateLimitGetsAtWaitUntil, 'RATE_LIMIT not touched when waitUntil is registered').toBe(0);
   expect(Math.abs(knownMs - unknownMs), 'known vs unknown response timing').toBeLessThan(30);
   expect(deferred.length).toBe(1);
 

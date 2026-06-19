@@ -241,9 +241,7 @@ test('SEC-3 no-origin scan allowed only up to anon limit (Turnstile bypass floor
       headers: { 'CF-Connecting-IP': ip },
       body: { url: 'https://x.com' },
     });
-    const res = await onRequest(
-      makeContext(req, { RATE_LIMIT: okKv, TURNSTILE_SECRET: 'secret' })
-    );
+    const res = await onRequest(makeContext(req, { RATE_LIMIT: okKv, TURNSTILE_SECRET: 'secret' }));
     if (res.status === 200) allowed++;
     if (res.status === 429) {
       got429 = true;
@@ -253,5 +251,3 @@ test('SEC-3 no-origin scan allowed only up to anon limit (Turnstile bypass floor
   expect(got429, 'expected no-origin scans to hit the per-IP floor').toBeTruthy();
   expect(allowed).toBeLessThanOrEqual(anonNoOriginLimit);
 });
-
-

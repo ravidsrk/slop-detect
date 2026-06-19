@@ -85,7 +85,11 @@ export async function onRequestPost({ request, env, waitUntil }) {
       if (typeof waitUntil === 'function') {
         // Microtask-defer so the async body does not start (and touch RATE_LIMIT)
         // until after this handler returns the generic response.
-        waitUntil(Promise.resolve().then(send).catch(() => {}));
+        waitUntil(
+          Promise.resolve()
+            .then(send)
+            .catch(() => {})
+        );
       } else {
         await send().catch(() => {});
       }
