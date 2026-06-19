@@ -35,8 +35,9 @@ PHASE=FIXING
 PHASE 1 LIVE STATE (grok --inject WORKS; codex needs direct terminal-send of the spec file):
 CLOSED so far (3/15): SEC-1 (#70), COST-1 (#71), SEC-3 (#71). BASE @8827957.
 IN-FLIGHT:
-- rel1-browser-reuse [REL-1,REL-2]: grok term_40669fad task_5cfa387a0926 | WT fix-rel1 | CODING (CRITICAL PATH;
-  verifying @cloudflare/puppeteer session API; on merge unblocks cou1 → rest of scan.ts chain)
+- rel1-browser-reuse [REL-1,REL-2]: PR#74 | codex review term_06b9e894 task_09d8720a7010/ctx_9a4e605488ef
+  | REVIEWING (CRITICAL PATH; grok verified @cloudflare/puppeteer@1.1.0 sessions()/connect() exists, new
+  _browser.ts connect-before-launch + disconnect-keep-warm + SCAN_DISABLED on /og; on MERGE unblocks cou1)
 - action-sec4-doc [SEC-4]: PR#73 | codex review term_8a4a7676 task_8d17347b4ad0/ctx_d5770ef9f250 | REVIEWING
   (reviewer scrutinizing the package.json/bun.lock dep add)
 - watch-cost2-index [COST-2]: PR#72 | grok term_7278cb4c FIXING round1 — codex caught an email-existence
