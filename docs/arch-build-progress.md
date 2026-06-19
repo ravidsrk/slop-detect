@@ -32,13 +32,17 @@ PHASE=FIXING
 - P0-REVIEW task_f334ea4f48fe (@claude) DONE → f0eaed4. P0-SKEPTIC task_7fb0f46ea2bc (@codex) DONE → d308509.
   Both merged into BASE @ce4409e. adv-review worktree + skeptic terminal: to retire.
 
-PHASE 1 BATCH 1 (in-flight, grok coders, concurrency=3):
-- sec1-ssrf-boundary: task_90b68553098c / ctx_b5860a0535fa → grok term_983afb42 | WT fix-sec1 / ravidsrk/fix-sec1 | CODING
-- mw-cost1-sec3: task_67e9436b37e3 / ctx_5f4d3e704d50 → grok term_1d62134e | WT fix-mw / ravidsrk/fix-mw | CODING
-- wf-ops2-dep1: task_2245f9241a09 / ctx_ddedae7f401e → grok term_3ad5de70 | WT fix-wf / ravidsrk/fix-wf | CODING
-Grok --inject WORKS (submits into TUI). Pipeline per task: grok code → I open PR → codex review → grok fix → I merge.
-NOT YET STARTED (feed as slots free / chain unblocks): scan.ts chain T2 rel1 (after sec1 merges), T3 cou1, T4
-rel3-dm1-dm2, sec2, ops1; parallel lanes watch-cost2, action-sec4.
+PHASE 1 LIVE STATE (grok --inject WORKS; codex needs direct terminal-send of the spec file):
+- sec1-ssrf-boundary: task_90b68553098c → grok term_983afb42 | WT fix-sec1 / ravidsrk/fix-sec1 | CODING
+- mw-cost1-sec3: task_67e9436b37e3 → grok term_1d62134e | WT fix-mw / ravidsrk/fix-mw | CODING
+- wf-ops2-dep1: task_2245f9241a09 → DONE coding. PR#69 OPEN. REVIEW task_fa05ab4d8812 / ctx_965f90f43a97
+  → codex term_6e2ef925 (in fix-wf WT) | REVIEWING.
+- watch-cost2-index: task_e13a3f1341be / ctx_245a346c2391 → grok term_7278cb4c | WT fix-watch / ravidsrk/fix-watch | CODING
+Active coders: sec1, mw, watch (3). In review: wf.
+PR-open + merge done by me (integrator). Codex reviewer lives in the coder's worktree (node_modules + branch there).
+NOT STARTED: scan.ts chain T2 rel1 (after sec1 MERGES — collides on scan.ts), T3 cou1, T4 rel3-dm1-dm2,
+sec2, ops1; parallel lane action-sec4 (spec ready /tmp/spec-action.txt).
+Review spec files: /tmp/spec-review-wf-final.txt (template /tmp/spec-review-wf.txt has __REVIEW_TASK__/__DISPATCH__).
 
 ## FINDING CLOSE-INDEX (15 confirmed; CONC-1 = do-not-fix)
 
@@ -67,7 +71,7 @@ Schema: TASK <slug> | WAVE | FILE | LANE | CLOSES=[ids] | CODED PR_OPEN REVIEWED
 - TASK sec2-body-caps | WAVE=4 | FILE=aeo.ts+scan.ts(HOT) | LANE=CODE | CLOSES=[SEC-2] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=none | PR#- | WT=- | WORKER=- | NOTE=readCapped on all aeo bodies + scan DESIGN.md stream-cap; depends rel3-dm1-dm2 merged (scan.ts)
 - TASK ops1-report-waituntil | WAVE=4 | FILE=_report.ts+scan.ts(HOT) | LANE=CODE | CLOSES=[OPS-1] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=none | PR#- | WT=- | WORKER=- | NOTE=thread ctx.waitUntil into report(); emit navMs+patternsErrored; depends sec2 merged (scan.ts)
 - TASK mw-cost1-sec3 | WAVE=P | FILE=_middleware.ts | LANE=CODE+OPS | CLOSES=[COST-1,SEC-3] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=durable-object-hard-cap(record) | PR#- | WT=- | WORKER=- | NOTE=memIncrement on happy path (burst mitigation); document no-origin floor; PARALLEL
-- TASK wf-ops2-dep1 | WAVE=P | FILE=ci.yml+deploy.yml | LANE=CODE+OPS | CLOSES=[OPS-2,DEP-1] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=canary-schedule+dependabot(record) | PR#- | WT=- | WORKER=- | NOTE=de-gate deploy from live HN scan (hermetic fixture); SHA-pin actions; PARALLEL
+- TASK wf-ops2-dep1 | WAVE=P | FILE=ci.yml+deploy.yml | LANE=CODE+OPS | CLOSES=[OPS-2,DEP-1] | CODED=t PR_OPEN=t REVIEWED=f MERGED=f ACCEPT=f | OPS=canary-schedule+dependabot(record) | PR#69 | WT=fix-wf | WORKER=grok term_3ad5de70 | NOTE=2 commits, 40-char SHA pins+hermetic smoke; codex reviewing
 - TASK watch-cost2-index | WAVE=P | FILE=watch.ts+_data.ts | LANE=CODE | CLOSES=[COST-2] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=none | PR#- | WT=- | WORKER=- | NOTE=email->domains index key written on subscribe; one get on lookup; PARALLEL
 - TASK action-sec4-doc | WAVE=P | FILE=packages/action | LANE=CODE+OPS | CLOSES=[SEC-4] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=none | PR#- | WT=- | WORKER=- | NOTE=pull_request_target least-trust warning in action.yml/README; optional notice log; PARALLEL
 
