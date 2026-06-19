@@ -32,6 +32,14 @@ PHASE=FIXING
 - P0-REVIEW task_f334ea4f48fe (@claude) DONE → f0eaed4. P0-SKEPTIC task_7fb0f46ea2bc (@codex) DONE → d308509.
   Both merged into BASE @ce4409e. adv-review worktree + skeptic terminal: to retire.
 
+PHASE 1 BATCH 1 (in-flight, grok coders, concurrency=3):
+- sec1-ssrf-boundary: task_90b68553098c / ctx_b5860a0535fa → grok term_983afb42 | WT fix-sec1 / ravidsrk/fix-sec1 | CODING
+- mw-cost1-sec3: task_67e9436b37e3 / ctx_5f4d3e704d50 → grok term_1d62134e | WT fix-mw / ravidsrk/fix-mw | CODING
+- wf-ops2-dep1: task_2245f9241a09 / ctx_ddedae7f401e → grok term_3ad5de70 | WT fix-wf / ravidsrk/fix-wf | CODING
+Grok --inject WORKS (submits into TUI). Pipeline per task: grok code → I open PR → codex review → grok fix → I merge.
+NOT YET STARTED (feed as slots free / chain unblocks): scan.ts chain T2 rel1 (after sec1 merges), T3 cou1, T4
+rel3-dm1-dm2, sec2, ops1; parallel lanes watch-cost2, action-sec4.
+
 ## FINDING CLOSE-INDEX (15 confirmed; CONC-1 = do-not-fix)
 
 Serial chain on hot file scan.ts (one in-flight at a time, dependency order):
