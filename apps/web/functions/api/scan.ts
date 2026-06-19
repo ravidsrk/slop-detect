@@ -70,6 +70,7 @@ export async function onRequestPost({ request, env }) {
   const checked = validateScanUrl(body?.url);
   if (checked.error) return json({ error: checked.error }, checked.status);
   const url = checked.url;
+  const requestedHost = new URL(url).hostname.toLowerCase();
 
   // System axis (DESIGN.md compliance) — opt in via { designMd: true } (looks
   // for <origin>/DESIGN.md next to the scanned page) or { designMd: "<url>" }.
@@ -90,7 +91,8 @@ export async function onRequestPost({ request, env }) {
     await page.setUserAgent('Mozilla/5.0 SlopDetector/1.0 (+slop-detector.pages.dev)');
 
     const navStart = Date.now();
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25000 });
+    const navResponse = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25000 });
+    const finalNavUrl = navResponse?.url() ?? url;
     // Soft wait for fonts/CSS/above-fold images. Don't fail if it stays busy.
     await Promise.race([
       page.waitForNetworkIdle({ idleTime: 500, timeout: 6000 }).catch(() => {}),
@@ -101,20 +103,32 @@ export async function onRequestPost({ request, env }) {
 
     const data = await page.evaluate(pageScript);
 
-    // SSRF (defense-in-depth): the navigation may have followed redirects to a
-    // different host, so re-validate the final url before handing back its
-    // title/h1/text/screenshot. CAVEAT: data.url is the page-reported
-    // location.href, which a hostile page can spoof via history.pushState — this
-    // is NOT a hard boundary. The real guards are the pre-flight validateScanUrl
-    // on the requested host and Cloudflare Browser Rendering's own egress; a
-    // resolve-and-pin check would be needed to fully close DNS-rebinding/spoofing.
-    if (data.url && !isAllowedUrl(data.url)) {
+    // SSRF (defense-in-depth): re-validate on the navigation response URL, not
+    // page-reported location.href (spoofable via history.pushState). DNS-rebind
+    // cannot be fully closed inside Workers — that leg relies on Cloudflare
+    // Browser Rendering egress blocking RFC-1918/metadata; this closes the
+    // code/boundary part only.
+    let finalNavHost = '';
+    try {
+      finalNavHost = new URL(finalNavUrl).hostname.toLowerCase();
+    } catch {
+      return json(
+        {
+          error: 'Scan refused: navigation ended on an invalid URL.',
+          code: 'blocked_redirect',
+          url,
+          finalUrl: finalNavUrl,
+        },
+        400
+      );
+    }
+    if (!isAllowedUrl(finalNavUrl) || finalNavHost !== requestedHost) {
       return json(
         {
           error: 'Scan refused: the URL redirected to a disallowed (private/internal) host.',
           code: 'blocked_redirect',
           url,
-          finalUrl: data.url,
+          finalUrl: finalNavUrl,
         },
         400
       );
@@ -122,14 +136,14 @@ export async function onRequestPost({ request, env }) {
 
     // Anti-bot challenge / dead-page detection — refuse to score these so we
     // don't silently return a fake "Clean 0".
-    const blocked = detectBlocked(data, { url, finalUrl: data.url });
+    const blocked = detectBlocked(data, { url, finalUrl: finalNavUrl });
     if (blocked) {
       return json(
         {
           error: blocked.reason,
           code: blocked.code,
           url,
-          finalUrl: data.url,
+          finalUrl: finalNavUrl,
           title: data.title,
           hint: blocked.hint,
         },
@@ -168,7 +182,7 @@ export async function onRequestPost({ request, env }) {
 
     const result: any = {
       url,
-      finalUrl: data.url,
+      finalUrl: finalNavUrl,
       title: data.title,
       h1: data.h1Text,
       h1Font: data.h1Font,
@@ -208,7 +222,7 @@ export async function onRequestPost({ request, env }) {
       const mdUrl =
         typeof body.designMd === 'string'
           ? body.designMd
-          : new URL('/DESIGN.md', data.url || url).toString();
+          : new URL('/DESIGN.md', finalNavUrl).toString();
       let mdText = null;
       if (isAllowedUrl(mdUrl)) {
         const res = await fetchAllowedUrl(
