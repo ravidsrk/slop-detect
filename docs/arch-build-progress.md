@@ -36,8 +36,9 @@ PHASE 1 LIVE STATE (grok --inject WORKS; codex needs direct terminal-send of the
 CLOSED so far (9/15): SEC-1(#70), COST-1(#71), SEC-3(#71), OPS-2(#69), DEP-1(#69), SEC-4(#73), COST-2(#72),
 REL-1(#74), REL-2(#74). BASE @efc77b7.
 IN-FLIGHT:
-- cou1-core-runner [COU-1]: grok term_2bea4ae6 task_f61775c6cc65 | WT fix-cou1 | CODING (FOUNDATION; hoist
-  buildPageScript+ctx+detectBlocked to @slop-detect/core; on MERGE the rel3-dm1-dm2 edits become single-edits in core).
+- cou1-core-runner [COU-1]: PR#75 | codex review term_5fe378aa task_d0f86737b893/ctx_4e9f6b51465c | REVIEWING
+  (FOUNDATION; page-script.ts in core, both runners import it, -285 dup lines, snapshot test; core stays pure;
+  on MERGE the rel3-dm1-dm2 edits become single-edits in core).
 QUEUED (scan.ts chain, serial, after cou1 merges): rel3-dm1-dm2 → sec2 → ops1.
 Remaining 6 findings = COU-1 (coding) + REL-3,DM-1,DM-2 (bundled) + SEC-2 + OPS-1. Concurrency now ~1 (serial chain).
 NOTE: gh self-review blocked → verdict via worker_done + PR comment (see DECISIONS). Merge: gh pr merge --merge
