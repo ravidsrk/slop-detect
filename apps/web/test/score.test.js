@@ -251,6 +251,48 @@ test('peer analytics renders rank-average overlay and neighbors when data is pre
   );
 });
 
+test('neighbors tile always includes the you row at true rank when domain ranks below top 6', async () => {
+  const kv = makeKv();
+  const s = slim({ domain: 'slow.com', score: 90, tier: 'Heavy', grade: 'F' });
+  await saveResult(kv, s);
+  await recordScan(kv, s);
+  const lbLarge = {
+    sites: [
+      { domain: 'a.com', category: 'saas', scored: true, score: 1, grade: 'A+', tier: 'Clean' },
+      { domain: 'b.com', category: 'saas', scored: true, score: 2, grade: 'A', tier: 'Clean' },
+      { domain: 'c.com', category: 'saas', scored: true, score: 3, grade: 'A', tier: 'Clean' },
+      { domain: 'd.com', category: 'saas', scored: true, score: 4, grade: 'A-', tier: 'Clean' },
+      { domain: 'e.com', category: 'saas', scored: true, score: 5, grade: 'B+', tier: 'Clean' },
+      { domain: 'f.com', category: 'saas', scored: true, score: 6, grade: 'B', tier: 'Clean' },
+      { domain: 'g.com', category: 'saas', scored: true, score: 7, grade: 'B-', tier: 'Clean' },
+      {
+        domain: 'slow.com',
+        category: 'saas',
+        scored: true,
+        score: 90,
+        grade: 'F',
+        tier: 'Heavy',
+        title: 'Slow',
+      },
+    ],
+  };
+  await withFetch(
+    async (url) => {
+      if (String(url).endsWith('/leaderboard.json')) {
+        return new Response(JSON.stringify(lbLarge), { status: 200 });
+      }
+      throw new Error('unexpected fetch: ' + url);
+    },
+    async () => {
+      const { html } = await render(kv, 'slow.com');
+      expect(html).toMatch(/SaaS &amp; dev tools neighbors/);
+      expect(html).toMatch(/nb-you/);
+      expect(html).toMatch(/#8/);
+      expect(html).toMatch(/href="https:\/\/slop-detect\.com\/score\/slow\.com"/);
+    }
+  );
+});
+
 test('peer analytics omits overlay and neighbors when data is insufficient', async () => {
   const kv = makeKv();
   const s = slim({ domain: 'orphan.com' });
