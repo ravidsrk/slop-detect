@@ -5,7 +5,7 @@ it alone. Source of truth for phase, finding close-index, task rows, PRs, OPS/ve
 
 ## PHASE
 
-PHASE=VERIFY
+PHASE=DONE
 
 (REVIEW → REVIEW_FROZEN → FIXING → VERIFY)
 
@@ -38,9 +38,10 @@ PRs merged: #70 SEC-1 | #71 COST-1+SEC-3 | #69 OPS-2+DEP-1 | #73 SEC-4 | #72 COS
 #75 COU-1 | #76 REL-3+DM-1+DM-2 | #77 SEC-2 | #78 OPS-1.
 PHASE=VERIFY. T_FINAL caught a typecheck CI-gate FAILURE: OPS-1 #78 left report()'s waitUntil REQUIRED, breaking
 4 sibling callers (_email.ts x3, cron/sweep.ts) + fix-prompt.ts ctx object (5 TS errors). build/lint/test/golden PASS.
-TYPECHECK FIX MERGED (PR #79, BASE @7352c9c) — typecheck now 0 errors; build/lint/test/golden all green.
-ALL CI GATES GREEN. fix-final worker finalizing docs/arch-build-readiness.md (typecheck→PASS, add #79, verbatim
-gate output) → then I merge fix-final as the final PR → run complete (engineering landed on BASE; human gates outstanding).
+RUN COMPLETE. All 15/15 findings CLOSED on BASE @0bb4e33. Readiness doc shipped (PR #80). All CI gates GREEN
+(build 6/6, lint no-warn, typecheck 0 errors, test 375 passed/10 skipped, golden 16/16). 12 PRs merged: #69-#80.
+All fix-* worktrees retired. Terminal state = engineering landed on BASE; downstream human gates (BASE->main
+promotion, prod deploy, OPS/verify-at-scale applies) outstanding and human-owned. MERGE != DEPLOY.
 DO-NOT-FIX: CONC-1 (stats-only, accepted). Pre-existing (out of frozen scope, noted): dashboard.test.js makes
 a Resend attempt with a fake key (logs 401) — not introduced by this run.
 NOTE: gh self-review blocked → verdict via worker_done + PR comment (see DECISIONS). Merge: gh pr merge --merge
