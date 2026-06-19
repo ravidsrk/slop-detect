@@ -60,6 +60,8 @@ export function slimResult(data, id) {
     patternsFlagged: data.patternsFlagged,
     patternsTotal: data.patternsTotal,
     definitionsVersion: data.definitionsVersion || null,
+    browserVersion: data.browserVersion || null,
+    patternsErrored: data.patternsErrored || 0,
     triggered,
     createdAt: new Date().toISOString(),
   };
@@ -267,10 +269,7 @@ export async function listWatchesByEmail(kv, email) {
     const all = await listWatches(kv, { limit: 1000 });
     const mine = all.filter((w) => w && w.email === want);
     if (mine.length) {
-      await kv.put(
-        key,
-        JSON.stringify(mine.map((w) => w.domain).filter(Boolean))
-      );
+      await kv.put(key, JSON.stringify(mine.map((w) => w.domain).filter(Boolean)));
     }
     return mine;
   }

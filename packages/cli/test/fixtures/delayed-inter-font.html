@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Delayed Inter font fixture</title>
+    <style>
+      body {
+        margin: 2rem;
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 16px;
+        line-height: 1.5;
+        color: #111;
+      }
+      h1 {
+        font-family: Georgia, serif;
+        font-size: 48px;
+        letter-spacing: -0.02em;
+      }
+      p {
+        max-width: 40rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 id="hero">Delayed web font fixture</h1>
+    <p>
+      Starts on Georgia, then swaps to Inter once a deferred FontFace finishes loading — the
+      race REL-3 fixes.
+    </p>
+    <p>Extra visible copy so detectBlocked sees a healthy DOM.</p>
+    <p>More body text for the copy axis and visible-element sampling.</p>
+    <p>Another paragraph to keep the visible set comfortably above thresholds.</p>
+    <p>Final filler paragraph for layout stability during headless scoring.</p>
+    <script defer>
+      (async () => {
+        const font = new FontFace('Inter', 'url(/inter.woff2)');
+        await font.load();
+        document.fonts.add(font);
+        document.getElementById('hero').style.fontFamily = 'Inter, Georgia, serif';
+        document.body.style.fontFamily = 'Inter, Georgia, serif';
+      })();
+    </script>
+  </body>
+</html>
