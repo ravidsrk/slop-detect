@@ -11,7 +11,7 @@
 //
 // Keep payloads PII-free — never log emails or full page content.
 
-export function report(env, level, event, data = {}, waitUntil) {
+export function report(env, level, event, data = {}, waitUntil = undefined) {
   const line = { ts: new Date().toISOString(), level, event, ...data };
   // Structured log line (picked up by `wrangler tail` / Logpush).
   try {
