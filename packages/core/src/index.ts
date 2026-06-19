@@ -45,6 +45,12 @@ export {
   type BuildPageScriptOptions,
   type DetectBlockedContext,
 } from './page-script.js';
+export { SCAN_PAGE_WAIT, waitFontsReadyInPage } from './runner-wait.js';
+export {
+  assemblePatternResults,
+  type PatternSignal,
+  type AssembledPatternResults,
+} from './result-assembly.js';
 
 import { gradeForScore, verdictFor } from './verdict.js';
 import { COPY_PATTERNS } from './copyPatterns.js';
