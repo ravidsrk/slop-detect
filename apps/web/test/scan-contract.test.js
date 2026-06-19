@@ -15,6 +15,7 @@
 
 import { test, expect, vi, beforeEach } from 'vitest';
 import { onRequestPost } from '../functions/api/scan.ts';
+import * as shared from '../functions/_shared.ts';
 
 // Shared, mutable mock state. vi.hoisted runs before the vi.mock factory and the
 // scan.ts import, so the factory can close over it and each test can drive the
@@ -452,4 +453,50 @@ test('502 when puppeteer.launch fails', async () => {
   expect(res.status).toBe(502);
   const r = await res.json();
   expect(r.error).toMatch(/Browser binding unavailable/);
+});
+
+test('DESIGN.md fetch stream-caps oversized bodies without buffering past 200KB', async () => {
+  const DESIGN_MD_CAP = 200_000;
+  const oversized = DESIGN_MD_CAP + 400_000;
+  let sent = 0;
+  const stream = new ReadableStream({
+    pull(controller) {
+      if (sent >= oversized) {
+        controller.close();
+        return;
+      }
+      const chunk = new Uint8Array(64 * 1024).fill(97);
+      controller.enqueue(chunk);
+      sent += chunk.byteLength;
+    },
+  });
+  const fetchSpy = vi.spyOn(shared, 'fetchAllowedUrl').mockResolvedValue(
+    new Response(stream, {
+      status: 200,
+      headers: { 'content-type': 'text/markdown; charset=utf-8' },
+    })
+  );
+
+  mock.pageData = healthyPageData({
+    systemContext: {
+      fontFamilies: ['Inter'],
+      colors: ['#111111'],
+      borderRadius: ['8px'],
+    },
+  });
+
+  const res = await onRequestPost({
+    request: postReq({
+      url: 'https://acme.example.com',
+      designMd: 'https://acme.example.com/DESIGN.md',
+    }),
+    env: { BROWSER: {} },
+  });
+  expect(res.status).toBe(200);
+  const r = await res.json();
+  expect(r.system).toBeTruthy();
+  expect(r.system.source).toBe('https://acme.example.com/DESIGN.md');
+  expect(sent).toBeLessThan(oversized);
+
+  fetchSpy.mockRestore();
 });
