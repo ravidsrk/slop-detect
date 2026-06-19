@@ -69,20 +69,26 @@ export async function onRequestPost({ request, env, waitUntil }) {
 
   try {
     const domains = await getEmailDomains(env.RESULTS, email);
-    if (domains.length && (await dashLinkAllowed(env.RATE_LIMIT, email))) {
-      // Issue + send out-of-band so the response latency is IDENTICAL whether or
-      // not the address owns watches. Doing the KV write + email round-trip inline
-      // would make existence measurable (a timing oracle) despite the generic
-      // body. `waitUntil` runs it after the response is sent; we fall back to an
-      // inline await only when it's unavailable (e.g. unit tests).
-      const send = (async () => {
+    if (domains.length) {
+      // Rate-limit + send are deferred so the response latency is IDENTICAL
+      // whether or not the address owns watches. Awaiting RATE_LIMIT.get/put or
+      // the email round-trip inline would leak existence via timing despite the
+      // generic body. `waitUntil` runs after the response is sent; we fall back
+      // to an inline await only when it's unavailable (e.g. unit tests).
+      const send = async () => {
+        if (!(await dashLinkAllowed(env.RATE_LIMIT, email))) return;
         const token = await issueDashboardToken(env.RESULTS, email);
         const loginUrl = `${new URL(request.url).origin}/dashboard?token=${token}`;
         const msg = buildDashboardLinkEmail(loginUrl, domains.length);
         await sendEmail(env, { to: email, subject: msg.subject, text: msg.text });
-      })().catch(() => {});
-      if (typeof waitUntil === 'function') waitUntil(send);
-      else await send;
+      };
+      if (typeof waitUntil === 'function') {
+        // Microtask-defer so the async body does not start (and touch RATE_LIMIT)
+        // until after this handler returns the generic response.
+        waitUntil(Promise.resolve().then(send).catch(() => {}));
+      } else {
+        await send().catch(() => {});
+      }
     }
   } catch (_) {
     /* best-effort: still return the generic response */
