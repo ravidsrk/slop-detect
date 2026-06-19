@@ -9,10 +9,13 @@ import {
   getHistory,
   getStats,
   getScoreDistribution,
+  getCategoryCleanAverages,
+  categoryCleanFractions,
   summarizeStats,
   percentileFromDistribution,
   percentileForScore,
 } from '../functions/_shared.ts';
+import { buildResultView } from '../functions/_result.tsx';
 
 function makeKv(seed = {}) {
   const store = new Map(Object.entries(seed));
@@ -37,6 +40,7 @@ function slim(over = {}) {
     score: 8,
     grade: 'A-',
     tier: 'Clean',
+    triggered: [],
     createdAt: '2026-06-01T00:00:00.000Z',
     ...over,
   };
@@ -140,4 +144,35 @@ test('percentileForScore reads the live distribution from KV', async () => {
   await recordScan(kv, slim({ id: 'b', domain: 'b.com', score: 5 }));
   // scoring 5: one site (30) is worse -> cleaner than 50% of 2
   expect(await percentileForScore(kv, 5)).toEqual({ count: 2, cleanerThanPct: 50 });
+});
+
+// ── per-category clean-fraction corpus averages (stats:catclean) ───────────────
+test('recordScan bumps category clean stats; getCategoryCleanAverages aggregates', async () => {
+  const kv = makeKv();
+  const a = slim({
+    id: 'a',
+    triggered: [{ id: 'slop_fonts', label: 'x', short: 'x', weight: 8 }],
+  });
+  const b = slim({ id: 'b', domain: 'b.com', triggered: [] });
+  await recordScan(kv, a);
+  await recordScan(kv, b);
+  const { averages, count } = await getCategoryCleanAverages(kv);
+  expect(count).toBe(2);
+  expect(averages.fonts).toBeGreaterThan(0);
+  expect(averages.fonts).toBeLessThan(1);
+  expect(averages.colors).toBe(1);
+});
+
+test('record-time clean fractions match buildResultView categories', () => {
+  const s = slim({
+    triggered: [
+      { id: 'slop_fonts', label: 'AI-default font stack', short: 'Slop fonts', weight: 8 },
+      { id: 'purple_accent', label: 'Purple accent', short: 'Purple', weight: 6 },
+    ],
+  });
+  const fracs = categoryCleanFractions(s);
+  const view = buildResultView(s);
+  for (const c of view.categories) {
+    expect(fracs[c.key]).toBe(c.cleanFraction);
+  }
 });

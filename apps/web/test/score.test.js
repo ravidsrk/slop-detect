@@ -186,6 +186,133 @@ test('error/retry state renders when the scoring store is unavailable', async ()
   expect(html).toMatch(/name="robots" content="noindex"/);
 });
 
+const LB_SAMPLE = {
+  sites: [
+    {
+      domain: 'stripe.com',
+      category: 'saas',
+      scored: true,
+      score: 4,
+      grade: 'A',
+      tier: 'Clean',
+      title: 'Stripe',
+    },
+    {
+      domain: 'ex.com',
+      category: 'saas',
+      scored: true,
+      score: 30,
+      grade: 'D',
+      tier: 'Heavy',
+      title: 'Ex',
+    },
+    {
+      domain: 'news.ycombinator.com',
+      category: 'classic',
+      scored: true,
+      score: 6,
+      grade: 'A-',
+      tier: 'Clean',
+    },
+  ],
+};
+
+function withFetch(impl, fn) {
+  const orig = globalThis.fetch;
+  globalThis.fetch = impl;
+  return Promise.resolve(fn()).finally(() => {
+    globalThis.fetch = orig;
+  });
+}
+
+test('peer analytics renders rank-average overlay and neighbors when data is present', async () => {
+  const kv = makeKv();
+  const s = slim({ domain: 'ex.com' });
+  await saveResult(kv, s);
+  for (let i = 0; i < 5; i++) {
+    await recordScan(kv, slim({ id: 'seed' + i, domain: `d${i}.com`, score: 20 + i }));
+  }
+  await recordScan(kv, s);
+  await withFetch(
+    async (url) => {
+      if (String(url).endsWith('/leaderboard.json')) {
+        return new Response(JSON.stringify(LB_SAMPLE), { status: 200 });
+      }
+      throw new Error('unexpected fetch: ' + url);
+    },
+    async () => {
+      const { html } = await render(kv, 'ex.com');
+      expect(html).toMatch(/--- rank avg/);
+      expect(html).toMatch(/stroke-dasharray="3 3"/);
+      expect(html).toMatch(/SaaS &amp; dev tools neighbors/);
+      expect(html).toMatch(/href="https:\/\/slop-detect\.com\/score\/stripe\.com"/);
+      expect(html).toMatch(/nb-you/);
+    }
+  );
+});
+
+test('neighbors tile always includes the you row at true rank when domain ranks below top 6', async () => {
+  const kv = makeKv();
+  const s = slim({ domain: 'slow.com', score: 90, tier: 'Heavy', grade: 'F' });
+  await saveResult(kv, s);
+  await recordScan(kv, s);
+  const lbLarge = {
+    sites: [
+      { domain: 'a.com', category: 'saas', scored: true, score: 1, grade: 'A+', tier: 'Clean' },
+      { domain: 'b.com', category: 'saas', scored: true, score: 2, grade: 'A', tier: 'Clean' },
+      { domain: 'c.com', category: 'saas', scored: true, score: 3, grade: 'A', tier: 'Clean' },
+      { domain: 'd.com', category: 'saas', scored: true, score: 4, grade: 'A-', tier: 'Clean' },
+      { domain: 'e.com', category: 'saas', scored: true, score: 5, grade: 'B+', tier: 'Clean' },
+      { domain: 'f.com', category: 'saas', scored: true, score: 6, grade: 'B', tier: 'Clean' },
+      { domain: 'g.com', category: 'saas', scored: true, score: 7, grade: 'B-', tier: 'Clean' },
+      {
+        domain: 'slow.com',
+        category: 'saas',
+        scored: true,
+        score: 90,
+        grade: 'F',
+        tier: 'Heavy',
+        title: 'Slow',
+      },
+    ],
+  };
+  await withFetch(
+    async (url) => {
+      if (String(url).endsWith('/leaderboard.json')) {
+        return new Response(JSON.stringify(lbLarge), { status: 200 });
+      }
+      throw new Error('unexpected fetch: ' + url);
+    },
+    async () => {
+      const { html } = await render(kv, 'slow.com');
+      expect(html).toMatch(/SaaS &amp; dev tools neighbors/);
+      expect(html).toMatch(/nb-you/);
+      expect(html).toMatch(/#8/);
+      expect(html).toMatch(/href="https:\/\/slop-detect\.com\/score\/slow\.com"/);
+    }
+  );
+});
+
+test('peer analytics omits overlay and neighbors when data is insufficient', async () => {
+  const kv = makeKv();
+  const s = slim({ domain: 'orphan.com' });
+  await saveResult(kv, s);
+  await recordScan(kv, s);
+  await withFetch(
+    async (url) => {
+      if (String(url).endsWith('/leaderboard.json')) {
+        return new Response(JSON.stringify(LB_SAMPLE), { status: 200 });
+      }
+      throw new Error('unexpected fetch: ' + url);
+    },
+    async () => {
+      const { html } = await render(kv, 'orphan.com');
+      expect(html).not.toMatch(/--- rank avg/);
+      expect(html).not.toMatch(/class="nb-row/);
+    }
+  );
+});
+
 test('the page is dogfood-clean: its own CSS uses no slop fonts, gradients, or clip-text', async () => {
   const kv = makeKv();
   const s = slim(); // slop_fonts triggered → fix copy QUOTES "Inter" in the body
