@@ -81,11 +81,17 @@ function buildNeighbors(lbData: any, domain: string) {
   const siblings = sites.filter((s: any) => s.category === me.category && s.scored);
   if (siblings.length < 2) return null;
   const sorted = siblings.slice().sort((a: any, b: any) => a.score - b.score);
-  const capped = sorted.slice(0, 6);
+  const myIdx = sorted.findIndex((s: any) => s.domain === domain);
+  const myRank = myIdx + 1;
+  const WINDOW = 6;
+  // Always include the current domain. Top 6 when it ranks there; otherwise the
+  // five cleanest peers plus you at your true category rank.
+  const window =
+    myRank <= WINDOW ? sorted.slice(0, WINDOW) : [...sorted.slice(0, WINDOW - 1), sorted[myIdx]];
   const categoryLabel = CATEGORY_NAMES[me.category] || me.category;
   return {
     categoryLabel,
-    rows: capped.map((s: any) => ({
+    rows: window.map((s: any) => ({
       rank: sorted.findIndex((x: any) => x.domain === s.domain) + 1,
       name: s.title || s.domain,
       domain: s.domain,
