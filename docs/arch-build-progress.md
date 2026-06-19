@@ -33,12 +33,13 @@ PHASE=FIXING
   Both merged into BASE @ce4409e. adv-review worktree + skeptic terminal: to retire.
 
 PHASE 1 LIVE STATE (grok --inject WORKS; codex needs direct terminal-send of the spec file):
-CLOSED so far (7/15): SEC-1(#70), COST-1(#71), SEC-3(#71), OPS-2(#69), DEP-1(#69), SEC-4(#73), COST-2(#72). BASE @e5aa33e.
+CLOSED so far (9/15): SEC-1(#70), COST-1(#71), SEC-3(#71), OPS-2(#69), DEP-1(#69), SEC-4(#73), COST-2(#72),
+REL-1(#74), REL-2(#74). BASE @efc77b7.
 IN-FLIGHT:
-- rel1-browser-reuse [REL-1,REL-2]: PR#74 | codex term_06b9e894 RE-REVIEW round2 (fix moved SCAN_DISABLED
-  above /og cache lookup). CRITICAL PATH → on MERGE unblocks cou1.
-QUEUED (scan.ts chain, serial, after rel1 #74 merges): cou1 (foundation) → rel3-dm1-dm2 → sec2 → ops1.
-All 4 parallel lanes CLOSED. Remaining 8 findings = rel1 (in fix) + the serial scan.ts chain.
+- cou1-core-runner [COU-1]: grok term_2bea4ae6 task_f61775c6cc65 | WT fix-cou1 | CODING (FOUNDATION; hoist
+  buildPageScript+ctx+detectBlocked to @slop-detect/core; on MERGE the rel3-dm1-dm2 edits become single-edits in core).
+QUEUED (scan.ts chain, serial, after cou1 merges): rel3-dm1-dm2 → sec2 → ops1.
+Remaining 6 findings = COU-1 (coding) + REL-3,DM-1,DM-2 (bundled) + SEC-2 + OPS-1. Concurrency now ~1 (serial chain).
 NOTE: gh self-review blocked → verdict via worker_done + PR comment (see DECISIONS). Merge: gh pr merge --merge
 after worker_done verdict=approve; conflict-check via git merge-tree first; retire worktree after merge.
 PR-open + merge done by me (integrator). Codex reviewer lives in the coder's worktree (node_modules + branch there).
@@ -49,10 +50,10 @@ Review spec files: /tmp/spec-review-wf-final.txt (template /tmp/spec-review-wf.t
 ## FINDING CLOSE-INDEX (15 confirmed; CONC-1 = do-not-fix)
 
 Serial chain on hot file scan.ts (one in-flight at a time, dependency order):
-- WAVE 1 (P1, highest stakes): SEC-1 CLOSED via PR#70 | REL-1 IN-FLIGHT (bundled w/ REL-2, fix-rel1)
-- WAVE 2 (FOUNDATION): COU-1 OPEN (starts after rel1 merges — scan.ts collision)
+- WAVE 1 (P1, highest stakes): SEC-1 CLOSED via PR#70 | REL-1 CLOSED via PR#74
+- WAVE 2 (FOUNDATION): COU-1 IN-FLIGHT (fix-cou1, off BASE@efc77b7)
 - WAVE 3 (P2 on slimmed runner, after COU-1): REL-3 OPEN | DM-1 OPEN | DM-2 OPEN
-- WAVE 4 (P2 remaining scan.ts/coupled): SEC-2 OPEN | OPS-1 OPEN | REL-2 IN-FLIGHT (bundled into rel1)
+- WAVE 4 (P2 remaining scan.ts/coupled): SEC-2 OPEN | OPS-1 OPEN | REL-2 CLOSED via PR#74
 
 Parallel independent lanes (run concurrently from t0, no scan.ts collision):
 - LANE-MW: COST-1 CLOSED via PR#71 | SEC-3 CLOSED via PR#71
@@ -67,9 +68,9 @@ DO-NOT-FIX: CONC-1 (stats-only KV RMW; code treats stats as approximate; no scan
 Schema: TASK <slug> | WAVE | FILE | LANE | CLOSES=[ids] | CODED PR_OPEN REVIEWED MERGED ACCEPT | OPS | PR# | WT | WORKER | NOTE
 
 - TASK sec1-ssrf-boundary | WAVE=1 | FILE=scan.ts(HOT) | LANE=CODE | CLOSES=[SEC-1] | CODED=t PR_OPEN=t REVIEWED=t MERGED=t ACCEPT=t | OPS=dns-rebind-egress-note | PR#70 | WT=retired | WORKER=grok | NOTE=MERGED 6ca6efa; SEC-1 CLOSED; ACCEPT=scan-contract tests pass (codex re-demonstrated)
-- TASK rel1-browser-reuse | WAVE=1 | FILE=scan.ts(HOT)+og | LANE=CODE | CLOSES=[REL-1,REL-2] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=verify-at-scale(concurrency-cap) | PR#- | WT=fix-rel1 | WORKER=grok term_40669fad task_5cfa387a0926 | NOTE=CODING off BASE@8827957; verifying @cloudflare/puppeteer session API first
+- TASK rel1-browser-reuse | WAVE=1 | FILE=scan.ts(HOT)+og | LANE=CODE | CLOSES=[REL-1,REL-2] | CODED=t PR_OPEN=t REVIEWED=t MERGED=t ACCEPT=t | OPS=verify-at-scale(concurrency-cap) | PR#74 | WT=retired | WORKER=grok | NOTE=MERGED efc77b7; REL-1+REL-2 CLOSED; _browser.ts session reuse (v1.1.0 API verified); round1 fix=SCAN_DISABLED above /og cache; ACCEPT=browser-reuse+og-route+SEC-1 tests pass
 - TASK action-sec4-doc | WAVE=P | FILE=packages/action | LANE=CODE+OPS | CLOSES=[SEC-4] | CODED=t PR_OPEN=t REVIEWED=t MERGED=t ACCEPT=t | OPS=none | PR#73 | WT=retired | WORKER=grok | NOTE=MERGED c103e95; SEC-4 CLOSED; ACCEPT=notice-on-pr_target test passes; dep add reviewed OK
-- TASK cou1-core-runner | WAVE=2 | FILE=scan.ts(HOT)+detector.ts | LANE=CODE | CLOSES=[COU-1] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=none | PR#- | WT=- | WORKER=- | NOTE=hoist buildPageScript+ctx+detectBlocked to @slop-detect/core; snapshot parity test; depends rel1 merged
+- TASK cou1-core-runner | WAVE=2 | FILE=scan.ts(HOT)+detector.ts | LANE=CODE | CLOSES=[COU-1] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=none | PR#- | WT=fix-cou1 | WORKER=grok term_2bea4ae6 task_f61775c6cc65 | NOTE=CODING off BASE@efc77b7; hoist buildPageScript+ctx+detectBlocked to core; reconcile drift; snapshot parity test
 - TASK rel3-dm1-dm2-runner | WAVE=3 | FILE=scan.ts(HOT)+detector.ts+core | LANE=CODE | CLOSES=[REL-3,DM-1,DM-2] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=dm2-engine-pin | PR#- | WT=- | WORKER=- | NOTE=fonts.ready+unified wait; patternsErrored; engine/browserVersion in result; depends cou1 merged
 - TASK sec2-body-caps | WAVE=4 | FILE=aeo.ts+scan.ts(HOT) | LANE=CODE | CLOSES=[SEC-2] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=none | PR#- | WT=- | WORKER=- | NOTE=readCapped on all aeo bodies + scan DESIGN.md stream-cap; depends rel3-dm1-dm2 merged (scan.ts)
 - TASK ops1-report-waituntil | WAVE=4 | FILE=_report.ts+scan.ts(HOT) | LANE=CODE | CLOSES=[OPS-1] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=none | PR#- | WT=- | WORKER=- | NOTE=thread ctx.waitUntil into report(); emit navMs+patternsErrored; depends sec2 merged (scan.ts)
