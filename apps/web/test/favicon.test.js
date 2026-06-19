@@ -1,7 +1,8 @@
-// Favicon assets (T14): the new scan-reticle in a rounded paper tile replaces the
-// old dark scan-line mark. These assertions keep the three icon files resolvable
-// from the HTML <link rel="icon"> tags and stop the favicon from regressing to a
-// slop-tripping glyph (gradient, purple, icon font).
+// Favicon assets: the scan-reticle in a rounded dark tile (light brackets, clean
+// dot), matching the design source (claude.ai/design 644611bf, brand/favicon.svg)
+// so the mark stays legible on any browser tab. These assertions keep the icon
+// files resolvable from the HTML <link rel="icon"> tags and stop the favicon from
+// regressing to a slop-tripping glyph (gradient, purple, icon font).
 
 import { test, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
@@ -35,11 +36,11 @@ test('every <link rel="icon"> href resolves to a committed file', () => {
   }
 });
 
-test('favicon.svg is the new reticle in a paper tile (ink brackets, clean dot)', () => {
-  expect(svg, 'rounded tile').toMatch(/rx="12"/);
-  expect(svg, 'cool paper fill #F4F5F2').toMatch(/fill="#F4F5F2"/);
-  expect(svg, 'ink #181815 reticle brackets').toMatch(/stroke="#181815"/);
-  expect(svg, 'clean-green #1FA85E verdict dot').toMatch(/fill="#1FA85E"/);
+test('favicon.svg is the reticle in a dark tile (light brackets, clean dot)', () => {
+  expect(svg, 'rounded tile').toMatch(/rx="5"/);
+  expect(svg, 'dark ink tile #16170F').toMatch(/fill="#16170F"/);
+  expect(svg, 'light #F4F5F2 reticle brackets').toMatch(/stroke="#F4F5F2"/);
+  expect(svg, 'clean-green #3FBE7A verdict dot').toMatch(/fill="#3FBE7A"/);
 });
 
 test('the old dark scan-line mark is gone', () => {
