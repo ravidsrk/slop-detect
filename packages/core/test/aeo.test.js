@@ -9,6 +9,8 @@ import {
   aiBotsBlockedByRobots,
   toMarkdownUrl,
   runAeoChecks,
+  readCapped,
+  MAX_HTML_BYTES,
 } from '@slop-detect/core';
 
 // ── detectAIBot ──────────────────────────────────────────────────────────────
@@ -147,4 +149,96 @@ test('runAeoChecks: site that blocks GPTBot + has noindex fails the required che
 test('AEO_CHECKS weights total 100', () => {
   const total = AEO_CHECKS.reduce((s, c) => s + c.weight, 0);
   expect(total).toBe(100);
+});
+
+// ── readCapped / SEC-2 body caps ─────────────────────────────────────────────
+function makeOversizedStream(totalBytes, chunkSize = 64 * 1024) {
+  let sent = 0;
+  const stream = new ReadableStream({
+    pull(controller) {
+      if (sent >= totalBytes) {
+        controller.close();
+        return;
+      }
+      const size = Math.min(chunkSize, totalBytes - sent);
+      controller.enqueue(new Uint8Array(size).fill(97));
+      sent += size;
+    },
+  });
+  return {
+    stream,
+    get sent() {
+      return sent;
+    },
+  };
+}
+
+test('readCapped: oversized stream decodes <= cap and stops before the full body', async () => {
+  const cap = 50_000;
+  const oversized = cap + 200_000;
+  const handle = makeOversizedStream(oversized);
+  const res = new Response(handle.stream, { headers: { 'content-type': 'text/plain' } });
+  const text = await readCapped(res, cap);
+  expect(text.length).toBeLessThanOrEqual(cap);
+  expect(handle.sent).toBeLessThan(oversized);
+});
+
+test('runAeoChecks: oversized robots.txt and llms.txt are stream-capped', async () => {
+  const cap = MAX_HTML_BYTES;
+  const oversized = cap + 500_000;
+  const streams = {};
+
+  const fetchImpl = async (url) => {
+    const u = new URL(url);
+    if (u.pathname === '/') {
+      return new Response('<html><head></head><body>hi</body></html>', {
+        status: 200,
+        headers: { 'content-type': 'text/html' },
+      });
+    }
+    if (u.pathname === '/robots.txt' || u.pathname === '/llms.txt' || u.pathname === '/index.md') {
+      const handle = makeOversizedStream(oversized);
+      streams[u.pathname] = handle;
+      const ct =
+        u.pathname === '/index.md' ? 'text/markdown; charset=utf-8' : 'text/plain; charset=utf-8';
+      return new Response(handle.stream, { status: 200, headers: { 'content-type': ct } });
+    }
+    return new Response('not found', { status: 404 });
+  };
+
+  const r = await runAeoChecks('https://huge.example', { fetchImpl, timeoutMs: 5000 });
+  expect(r.axis).toBe('aeo');
+  for (const path of ['/robots.txt', '/llms.txt', '/index.md']) {
+    expect(streams[path]?.sent).toBeLessThan(oversized);
+  }
+});
+
+test('runAeoChecks: oversized Content-Length short-circuits without streaming', async () => {
+  const fetchImpl = async (url) => {
+    const u = new URL(url);
+    if (u.pathname === '/') {
+      return new Response('<html><head></head><body>hi</body></html>', {
+        status: 200,
+        headers: { 'content-type': 'text/html' },
+      });
+    }
+    if (u.pathname === '/robots.txt') {
+      const stream = new ReadableStream({
+        pull() {
+          throw new Error('must not stream-read robots.txt when Content-Length exceeds cap');
+        },
+      });
+      return new Response(stream, {
+        status: 200,
+        headers: {
+          'content-type': 'text/plain',
+          'content-length': String(MAX_HTML_BYTES + 1_000_000),
+        },
+      });
+    }
+    return new Response('not found', { status: 404 });
+  };
+
+  const r = await runAeoChecks('https://cl.example', { fetchImpl, timeoutMs: 2000 });
+  expect(r.axis).toBe('aeo');
 });

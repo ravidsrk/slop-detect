@@ -18,6 +18,7 @@ import {
   combineAxes,
   SCAN_PAGE_WAIT,
   waitFontsReadyInPage,
+  readCapped,
 } from '@slop-detect/core';
 import {
   newId,
@@ -228,7 +229,7 @@ export async function onRequestPost({ request, env }) {
           { headers: { Accept: 'text/markdown,text/plain,*/*' } },
           { timeoutMs: 8000 }
         );
-        if (res?.ok) mdText = (await res.text()).slice(0, 200_000);
+        if (res?.ok) mdText = await readCapped(res, 200_000);
       }
       result.system = scoreSystemCompliance(
         mdText ? parseDesignMd(mdText) : null,
