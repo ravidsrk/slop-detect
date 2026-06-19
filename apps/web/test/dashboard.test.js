@@ -13,6 +13,8 @@ import {
   issueDashboardToken,
   consumeDashboardToken,
   listWatchesByEmail,
+  emailIndexKey,
+  getEmailDomains,
 } from '../functions/_shared.ts';
 import { buildDashboardLinkEmail } from '../functions/_alerts.ts';
 import { onRequestPost as linkPost } from '../functions/api/dashboard/link.ts';
@@ -55,6 +57,20 @@ const watch = (domain, email, over = {}) =>
     lastTier: 'Clean',
     ...over,
   });
+
+async function seedWatches(kv, entries) {
+  const byEmail = {};
+  for (const { domain, email, over = {} } of entries) {
+    const normalized = String(email).trim().toLowerCase();
+    kv.store.set(`w:${domain}`, { value: watch(domain, normalized, over) });
+    byEmail[normalized] = byEmail[normalized] || [];
+    byEmail[normalized].push(domain);
+  }
+  for (const [email, domains] of Object.entries(byEmail)) {
+    const key = await emailIndexKey(email);
+    kv.store.set(key, { value: JSON.stringify(domains) });
+  }
+}
 
 function getReq(url, cookie) {
   return { url, headers: { get: (k) => (k.toLowerCase() === 'cookie' ? cookie || null : null) } };
@@ -106,11 +122,12 @@ test('dashboard tokens are single-use', async () => {
 });
 
 test('listWatchesByEmail returns only that owner, case-normalized', async () => {
-  const kv = makeKv({
-    'w:a.com': watch('a.com', 'agency@x.io'),
-    'w:b.com': watch('b.com', 'agency@x.io'),
-    'w:c.com': watch('c.com', 'other@y.io'),
-  });
+  const kv = makeKv();
+  await seedWatches(kv, [
+    { domain: 'a.com', email: 'agency@x.io' },
+    { domain: 'b.com', email: 'agency@x.io' },
+    { domain: 'c.com', email: 'other@y.io' },
+  ]);
   const mine = await listWatchesByEmail(kv, '  Agency@X.io ');
   expect(mine.map((w) => w.domain).sort()).toEqual(['a.com', 'b.com']);
 });
@@ -129,19 +146,74 @@ test('link endpoint never reveals whether an email has watches (anti-enumeration
     sent.push(JSON.parse(opts.body));
     return new Response('{}', { status: 200 });
   };
-  const kv = makeKv({ 'w:a.com': watch('a.com', 'known@x.io') });
+  const kv = makeKv();
+  await seedWatches(kv, [{ domain: 'a.com', email: 'known@x.io' }]);
   const env = { RESULTS: kv, ...LIVE_ENV };
+  const deferred = [];
+  const waitUntil = (task) => deferred.push(task);
 
-  const r1 = await linkPost({ request: postReq({ email: 'known@x.io' }), env });
-  const r2 = await linkPost({ request: postReq({ email: 'unknown@x.io' }), env });
+  const r1 = await linkPost({
+    request: postReq({ email: 'known@x.io' }),
+    env,
+    waitUntil,
+  });
+  const r2 = await linkPost({
+    request: postReq({ email: 'unknown@x.io' }),
+    env,
+    waitUntil,
+  });
   const [b1, b2] = [await r1.json(), await r2.json()];
   expect(r1.status).toBe(r2.status);
   expect(b1, 'identical bodies for known and unknown emails').toEqual(b2);
+
+  expect(deferred.length).toBe(1);
+  await deferred[0];
 
   // …but only the known email actually got a message, with a token link in it.
   expect(sent.length).toBe(1);
   expect(sent[0].to[0]).toBe('known@x.io');
   expect(sent[0].text).toMatch(/\/dashboard\?token=/);
+});
+
+test('link endpoint defers rate-limit work to waitUntil (latency-safe anti-enumeration)', async () => {
+  const kv = makeKv();
+  await seedWatches(kv, [{ domain: 'a.com', email: 'known@x.io' }]);
+  let rateLimitGets = 0;
+  let rateLimitGetsAtWaitUntil = -1;
+  const rateLimitKv = {
+    async get(k) {
+      rateLimitGets += 1;
+      await new Promise((r) => setTimeout(r, 80));
+      return kv.get(k);
+    },
+    async put(k, v, o) {
+      return kv.put(k, v, o);
+    },
+  };
+  const deferred = [];
+  const waitUntil = (task) => {
+    rateLimitGetsAtWaitUntil = rateLimitGets;
+    deferred.push(task);
+  };
+  const env = { RESULTS: kv, RATE_LIMIT: rateLimitKv, ...LIVE_ENV };
+
+  const t0 = performance.now();
+  await linkPost({ request: postReq({ email: 'known@x.io' }), env, waitUntil });
+  const knownMs = performance.now() - t0;
+
+  const t1 = performance.now();
+  await linkPost({ request: postReq({ email: 'unknown@x.io' }), env, waitUntil });
+  const unknownMs = performance.now() - t1;
+
+  expect(
+    rateLimitGetsAtWaitUntil,
+    'RATE_LIMIT not touched when waitUntil is registered'
+  ).toBe(0);
+  expect(Math.abs(knownMs - unknownMs), 'known vs unknown response timing').toBeLessThan(30);
+  expect(deferred.length).toBe(1);
+
+  await deferred[0];
+  expect(rateLimitGets, 'RATE_LIMIT checked only inside deferred send').toBeGreaterThan(0);
 });
 
 test('link endpoint rate-limits magic-link sends per email (anti-bombing)', async () => {
@@ -150,7 +222,8 @@ test('link endpoint rate-limits magic-link sends per email (anti-bombing)', asyn
     sent.push(JSON.parse(opts.body));
     return new Response('{}', { status: 200 });
   };
-  const kv = makeKv({ 'w:a.com': watch('a.com', 'known@x.io') });
+  const kv = makeKv();
+  await seedWatches(kv, [{ domain: 'a.com', email: 'known@x.io' }]);
   const env = { RESULTS: kv, RATE_LIMIT: kv, ...LIVE_ENV };
 
   for (let i = 0; i < 4; i++) {
@@ -178,8 +251,28 @@ test('/dashboard is configured-off without SESSION_SECRET', async () => {
   expect(await res.text()).toMatch(/not configured/i);
 });
 
+test('link endpoint reads exactly one RESULTS index key per lookup [COST-2]', async () => {
+  const kv = makeKv();
+  await seedWatches(kv, [{ domain: 'a.com', email: 'known@x.io' }]);
+  let resultsGets = 0;
+  const resultsKv = {
+    ...kv,
+    async get(k) {
+      resultsGets += 1;
+      return kv.get(k);
+    },
+  };
+  const env = { RESULTS: resultsKv, ...LIVE_ENV };
+  globalThis.fetch = async () => new Response('{}', { status: 200 });
+
+  await linkPost({ request: postReq({ email: 'known@x.io' }), env });
+  expect(resultsGets, 'one index get for the email lookup').toBe(1);
+  expect(await getEmailDomains(kv, 'known@x.io')).toEqual(['a.com']);
+});
+
 test('/dashboard without a cookie shows the login form, no domains', async () => {
-  const kv = makeKv({ 'w:a.com': watch('a.com', 'agency@x.io') });
+  const kv = makeKv();
+  await seedWatches(kv, [{ domain: 'a.com', email: 'agency@x.io' }]);
   const res = await dashGet({
     request: getReq('https://slop-detect.com/dashboard'),
     env: { RESULTS: kv, SESSION_SECRET: SECRET },
@@ -190,7 +283,8 @@ test('/dashboard without a cookie shows the login form, no domains', async () =>
 });
 
 test('a valid magic-link token mints a session cookie and redirects clean', async () => {
-  const kv = makeKv({ 'w:a.com': watch('a.com', 'agency@x.io') });
+  const kv = makeKv();
+  await seedWatches(kv, [{ domain: 'a.com', email: 'agency@x.io' }]);
   const t = await issueDashboardToken(kv, 'agency@x.io');
   const res = await dashGet({
     request: getReq(`https://slop-detect.com/dashboard?token=${t}`),
@@ -216,11 +310,16 @@ test('a bad/expired token falls back to login with an expiry note', async () => 
 });
 
 test('a signed-in agency sees ONLY its own domains — never another owner’s', async () => {
-  const kv = makeKv({
-    'w:a.com': watch('a.com', 'agency@x.io', { systemRegressed: true, lastSystemTier: 'Drifting' }),
-    'w:b.com': watch('b.com', 'agency@x.io'),
-    'w:secret.com': watch('secret.com', 'other@y.io'),
-  });
+  const kv = makeKv();
+  await seedWatches(kv, [
+    {
+      domain: 'a.com',
+      email: 'agency@x.io',
+      over: { systemRegressed: true, lastSystemTier: 'Drifting' },
+    },
+    { domain: 'b.com', email: 'agency@x.io' },
+    { domain: 'secret.com', email: 'other@y.io' },
+  ]);
   const tok = await signSession('agency@x.io', SECRET);
   const res = await dashGet({
     request: getReq('https://slop-detect.com/dashboard', `sd_session=${tok}`),
