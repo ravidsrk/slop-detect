@@ -2,22 +2,28 @@ name: deploy
 
 # Deploys the web app (apps/web) to Cloudflare Pages.
 #
-# Two safe triggers — NEVER auto-deploys on every push to main by default:
+# Triggers:
+#   • workflow_run — auto-deploys after the `ci` workflow succeeds on main
+#                    (CI is the gate; a red build never ships). This is the
+#                    continuous-deploy path.
 #   • workflow_dispatch — deploy on demand from the Actions tab.
 #   • tags v*           — deploy when you cut a release tag (v0.6.0, …).
 #
 # Required repository secrets (Settings → Secrets and variables → Actions):
-#   CLOUDFLARE_API_TOKEN   — a scoped token with "Cloudflare Pages: Edit".
+#   CLOUDFLARE_API_TOKEN   — a scoped token with "Pages: Write".
 #   CLOUDFLARE_ACCOUNT_ID  — your Cloudflare account id.
 # Without them the job fails fast with a clear message (it does not silently
-# no-op). To enable continuous deploys on green main, add `push: branches:[main]`
-# below — but only once you trust CI as the gate.
+# no-op).
 
 on:
   workflow_dispatch:
   push:
     tags:
       - 'v*'
+  workflow_run:
+    workflows: ['ci']
+    types: [completed]
+    branches: [main]
 
 concurrency:
   group: deploy-production
@@ -28,8 +34,15 @@ jobs:
     name: Deploy to Cloudflare Pages
     runs-on: ubuntu-latest
     environment: production
+    # For the workflow_run trigger, only deploy when CI actually passed.
+    # workflow_dispatch and tag pushes always proceed (no upstream run to gate on).
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # On workflow_run, check out the exact commit that passed CI (defaults
+          # would grab the branch HEAD). Empty ref on other triggers = default.
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.5
