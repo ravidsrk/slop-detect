@@ -228,4 +228,30 @@ test('COST-1 parallel burst cannot overshoot per-IP limit via stale KV [COST-1]'
   ).toBeLessThanOrEqual(anonNoOriginLimit);
 });
 
+test('SEC-3 no-origin scan allowed only up to anon limit (Turnstile bypass floor) [SEC-3]', async () => {
+  // Turnstile is required only for trusted browser origins. No-origin callers
+  // (CLI/curl) bypass captcha by design; the per-IP limit is the real floor.
+  const anonNoOriginLimit = 3;
+  const okKv = { get: async () => '0', put: async () => {} };
+  const ip = '203.0.113.201';
+  let allowed = 0;
+  let got429 = false;
+  for (let i = 0; i < 8; i++) {
+    const req = makeRequest({
+      headers: { 'CF-Connecting-IP': ip },
+      body: { url: 'https://x.com' },
+    });
+    const res = await onRequest(
+      makeContext(req, { RATE_LIMIT: okKv, TURNSTILE_SECRET: 'secret' })
+    );
+    if (res.status === 200) allowed++;
+    if (res.status === 429) {
+      got429 = true;
+      break;
+    }
+  }
+  expect(got429, 'expected no-origin scans to hit the per-IP floor').toBeTruthy();
+  expect(allowed).toBeLessThanOrEqual(anonNoOriginLimit);
+});
+
 

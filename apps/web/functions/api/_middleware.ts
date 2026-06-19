@@ -389,8 +389,14 @@ export async function onRequest(context) {
   }
 
   // ── Turnstile ───────────────────────────────────────────────────────────────
-  // Required for /api/scan from browser origins WITHOUT a valid key. A valid key
-  // is proof-of-human enough, so any keyed caller (browser or CLI) skips it.
+  // Required for /api/scan from trusted browser origins WITHOUT a valid key. A
+  // valid key is proof-of-human enough, so any keyed caller skips it.
+  //
+  // No-origin callers (curl, CLI, MCP) intentionally bypass Turnstile — see the
+  // origin classification above. The real anti-abuse floor for those callers is
+  // the per-IP rate limit (tighter for no-origin) plus the global daily cap,
+  // strengthened by the per-isolate memIncrement ceiling in COST-1.
+  //
   // Verified BEFORE the cost guard below: a failed/absent captcha must not burn
   // the global daily-scan budget (else a spoofed trusted Origin could inflate the
   // cap and 503 real users without ever running a scan).
