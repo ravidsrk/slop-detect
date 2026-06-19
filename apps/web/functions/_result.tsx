@@ -946,12 +946,7 @@ export function Analytics({
   return (
     <div class="analytics">
       {showTime ? <ScoreOverTime points={points} /> : null}
-      <Radar
-        categories={categories}
-        tier={slim.tier}
-        catAvg={catAvg}
-        catAvgCount={catAvgCount}
-      />
+      <Radar categories={categories} tier={slim.tier} catAvg={catAvg} catAvgCount={catAvgCount} />
       {showNeighbors ? (
         <Neighbors
           categoryLabel={neighbors!.categoryLabel}
