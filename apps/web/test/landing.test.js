@@ -227,3 +227,28 @@ test('/report wears the landing brand and keeps its print stylesheet', async () 
   for (const re of BRAND_MARKS) expect(out).toMatch(re);
   expect(out).toMatch(/@media print/);
 });
+
+// ── scan field never doubles the static "https://" prefix ──────────────────────
+// The hero field renders a decorative "https://" prefix, so any value placed into
+// it must be a bare host. Regression for the chip + ?url= prefill double-scheme bug
+// ("https:// https://news.ycombinator.com"). The API re-adds https:// for bare hosts.
+test('programmatic scan-field values are stripped of their scheme', () => {
+  expect(/function stripScheme\(/.test(html), 'stripScheme helper present').toBeTruthy();
+  // Every programmatic set routes through stripScheme...
+  expect(
+    /urlInput\.value = stripScheme\(b\.dataset\.url\)/.test(html),
+    'chip click strips the scheme'
+  ).toBeTruthy();
+  expect(
+    /urlInput\.value = stripScheme\(q\)/.test(html),
+    'deep-link prefill strips the scheme'
+  ).toBeTruthy();
+  // ...and no raw scheme-bearing assignment survives.
+  expect(
+    /urlInput\.value\s*=\s*b\.dataset\.url\b/.test(html),
+    'no raw chip URL assignment'
+  ).toBeFalsy();
+  expect(/urlInput\.value\s*=\s*q\b/.test(html), 'no raw query-param assignment').toBeFalsy();
+  // The helper strips only a leading scheme (anchored, case-insensitive), nothing else.
+  expect(/replace\(\/\^https\?:\\\/\\\/\/i, ''\)/.test(html), 'anchored scheme strip').toBeTruthy();
+});

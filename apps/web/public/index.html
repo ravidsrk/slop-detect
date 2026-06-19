@@ -943,7 +943,7 @@ async function ensureTurnstileToken() {
 }
 
 document.querySelectorAll('.examples button').forEach(b => {
-  b.addEventListener('click', () => { urlInput.value = b.dataset.url; form.requestSubmit(); });
+  b.addEventListener('click', () => { urlInput.value = stripScheme(b.dataset.url); form.requestSubmit(); });
 });
 
 form.addEventListener('submit', async (e) => {
@@ -1143,6 +1143,13 @@ function domainOf(u) {
   try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; }
 }
 
+// Strip a leading http(s):// before putting a value in the scan field — the field
+// already shows a static "https://" prefix, so a scheme here renders "https://
+// https://…". Bare hosts scan fine: the API re-adds https:// (_ssrf validateScanUrl).
+function stripScheme(u) {
+  return String(u == null ? '' : u).trim().replace(/^https?:\/\//i, '');
+}
+
 function sharePanel(d) {
   if (!d.resultUrl) return '';  // sharing unavailable (KV off / opted out)
   const dom = domainOf(d.finalUrl || d.url);
@@ -1331,7 +1338,7 @@ copyBtn.addEventListener('click', async () => {
 (function prefillFromQuery() {
   try {
     const q = new URLSearchParams(location.search).get('url');
-    if (q) { urlInput.value = q; form.requestSubmit(); }
+    if (q) { urlInput.value = stripScheme(q); form.requestSubmit(); }
   } catch (_) {}
 })();
 </script>
