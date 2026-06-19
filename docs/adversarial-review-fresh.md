@@ -86,6 +86,8 @@ network: mock the `env.BROWSER` launch + `page.evaluate`.
 
 CODE+OPS.
 
+**SKEPTIC: CONFIRMED** — narrowed: `scan.ts:111` really gates on `if (data.url && !isAllowedUrl(data.url))` after `buildPageScript` returns `url: location.href`; `isAllowedUrl` exists in `_ssrf.ts:109`. P1 stands for the spoofable boundary, while the DNS-rebind impact remains contingent on Cloudflare Browser Rendering egress; the fix preserves the validated IPv6 SSRF guard.
+
 ### REL-1 — No browser session reuse; one `launch` per request (P1, CODE)
 
 Problem. Both browser entry points cold-launch a fresh browser per request and close
@@ -116,6 +118,8 @@ central reliability and cost bottleneck of the paid surface.
 
 CODE.
 
+**SKEPTIC: CONFIRMED** — narrowed: both browser paths do `puppeteer.launch(env.BROWSER)` and close the browser (`scan.ts:87,262`, `og/[id].ts:40,66`), so the P1 launch-per-request bottleneck is real. The dependency exists, but `rg` finds no in-tree `sessions()` / `connect()` source for `@cloudflare/puppeteer`; verify that API before implementing the proposed helper.
+
 ### SEC-2 — Unbounded fetched-body reads exhaust the isolate (P2, CODE)
 
 Problem. The AEO axis caps only the main HTML body with the streaming `readCapped`
@@ -145,6 +149,8 @@ body must not buffer beyond the cap.
 
 CODE.
 
+**SKEPTIC: CONFIRMED** — `readCapped` exists in `aeo.ts:212`, but the cited bodies still use unbounded `await bot.text()`, `await r.text()`, `await md.text()`, `await llms.text()`, and `res.text()).slice(...)`. P2 and the streaming-cap fix stand; this applies the existing primitive rather than changing it.
+
 ### REL-2 — `/og/:id.png` launches a browser outside the cost-guard middleware (P2, CODE+OPS)
 
 Problem. `functions/api/_middleware.ts` runs only on `/api/*` (Cloudflare Pages
@@ -171,6 +177,8 @@ serves the fallback/redirect and never calls `launch` on the mock `env.BROWSER`.
 second case with a valid id and a cache-miss asserts at most one launch.
 
 CODE+OPS.
+
+**SKEPTIC: CONFIRMED** — the only `_middleware.ts` is under `functions/api/`, while `/og/[id].ts` directly calls `puppeteer.launch(env.BROWSER)` and has no `SCAN_DISABLED` / `SCAN_DAILY_CAP` checks. P2 stands; honoring the existing kill switch on `/og` does not disturb the validated `/api` gating strengths.
 
 ### REL-3 — Render-timing race makes the score non-deterministic across runs and runners (P2, CODE)
 
@@ -199,6 +207,8 @@ without it. No third-party network: serve the fixture from the test.
 
 CODE.
 
+**SKEPTIC: CONFIRMED** — web scoring waits `page.waitForNetworkIdle(...)` plus 400 ms and CLI scoring waits Playwright `networkidle` plus 500 ms; neither scoring path waits `document.fonts.ready`, while OG does. P2 stands; a bounded fonts-ready wait is local to render timing and does not affect the do-not-touch guards.
+
 ### COST-1 — Daily cost cap and per-IP limit are non-atomic and overshoot on bursts (P2, CODE+OPS)
 
 Problem. The account-level daily browser budget is a KV read-modify-write:
@@ -225,6 +235,8 @@ mock. Add a mock whose `get` returns a fixed/stale count across K parallel `onRe
 calls; assert no more than `limit` return 200 (fails today).
 
 CODE+OPS.
+
+**SKEPTIC: CONFIRMED** — both gates are KV RMW (`get` then `put`, e.g. `_middleware.ts:181-203` and `432-461`), `memIncrement` exists at `_middleware.ts:144`, and `_data.ts:168-173` names Durable Objects as the hard-atomic option. P2 stands; same-isolate `memIncrement` narrows burst overshoot but a Durable Object is required for a hard cross-isolate cap.
 
 ### DM-1 — Per-pattern eval failures are swallowed; scores silently drift low (P2, CODE)
 
@@ -254,6 +266,8 @@ synthetic `data.signals` where one pattern carries `{ error: '...' }`; assert
 `patternsErrored === 1` is present in the assembled result.
 
 CODE.
+
+**SKEPTIC: CONFIRMED** — both page scripts catch extractor failures into `{ triggered: false, error: e.message }`, and result assembly scores only `triggered: !!sig.triggered`; the error is buried in evidence with no count or report. P2 stands; the `report` shim exists in `_report.ts:14`.
 
 ### DM-2 — Score determinism is not pinned to a rendering engine version (P2, CODE+OPS)
 
@@ -285,6 +299,8 @@ No live network.
 
 CODE+OPS.
 
+**SKEPTIC: CONFIRMED** — the result carries `definitionsVersion` but no engine/browser field (`slimResult` persists only `definitionsVersion`), the CLI declares `"playwright": "^1.49.0"`, and web uses the Cloudflare browser binding. P2 stands; recording browser identity is additive.
+
 ### COU-1 — Two hand-copied scan runners with no parity test (P2, CODE)
 
 Problem. `buildPageScript` and `detectBlocked` exist twice, copied verbatim, bound only
@@ -313,6 +329,8 @@ imported by both runners; if either runner's wiring drifts, the snapshot test fa
 
 CODE.
 
+**SKEPTIC: CONFIRMED** — narrowed: a function-level diff refutes "verbatim" (`scan.ts` has an esbuild `__name` polyfill and different hints/comments; CLI has its own signature), but the duplicated `detectBlocked` / `buildPageScript` implementations and lack of a shared parity test are real. P2 stands as a foundation fix.
+
 ### OPS-1 — Error-webhook alerts are lossy; the page-a-human path is the least reliable (P2, CODE+OPS)
 
 Problem. `report()` fires the out-of-band error webhook as a detached promise with an
@@ -339,6 +357,8 @@ assert `waitUntil` was invoked with the fetch promise (no real network: stub
 
 CODE+OPS.
 
+**SKEPTIC: CONFIRMED** — `_report.ts:33` uses `void fetch(hook, ...)` after a comment that `ctx.waitUntil would be ideal`, and scan failure paths call `report(...)` without threading context. P2 stands; adding an optional `waitUntil` parameter preserves current callers.
+
 ### OPS-2 — CI gates production deploys on a live third-party scan (P2, CODE+OPS)
 
 Problem. The `smoke-cli` job in `.github/workflows/ci.yml` runs the CLI against
@@ -362,6 +382,8 @@ outage.
 
 CODE+OPS.
 
+**SKEPTIC: CONFIRMED** — CI runs `node dist/bin/slop.js https://news.ycombinator.com --json` and exits when `score > 12`, while deploy has `workflow_run` on successful `ci` for `main`. P2 stands; in-tree fixtures (`packages/cli/test/fixtures/*`, `assets-raw/*`) exist for a hermetic replacement.
+
 ### SEC-3 — Turnstile is bypassed by omitting the Origin header (P3, CODE+OPS)
 
 Problem. Turnstile is enforced only for `trusted` browser origins:
@@ -384,6 +406,8 @@ is allowed only up to the anon no-origin limit.
 
 CODE+OPS.
 
+**SKEPTIC: CONFIRMED** — `_middleware.ts:311` explicitly says no-origin callers pass through, and Turnstile runs only when `effectiveRoute === 'scan' && trusted && env.TURNSTILE_SECRET`. P3 documentation scope stands and depends on COST-1 for the real cost ceiling.
+
 ### COST-2 — `/api/dashboard/link` does an O(all-watches) KV scan per anonymous POST (P3, CODE)
 
 Problem. The unauthenticated magic-link endpoint calls `listWatchesByEmail`
@@ -404,6 +428,8 @@ Acceptance. Unit test that subscribing writes the index key and that the dashboa
 path reads exactly one index key (spy on the KV mock's `get` call count).
 
 CODE.
+
+**SKEPTIC: CONFIRMED** — `dashboard/link.ts:71` calls `listWatchesByEmail`, which calls `listWatches(kv, { limit: 1000 })`; `listWatches` lists `w:` keys and then `kv.get`s each one. P3 stands; `newId` and the KV helper layer exist for an index without new infrastructure.
 
 ### CONC-1 — Non-atomic KV counters lose increments under concurrency (P3, CODE)
 
@@ -426,6 +452,8 @@ Acceptance. None required; documented as accepted.
 
 CODE.
 
+**SKEPTIC: CONFIRMED** — the cited history/stats paths all read then write KV, and `_data.ts:279-280` explicitly accepts approximate counts under heavy concurrency. P3 stands, but this is do-not-fix for Phase 1 because the code reason limits impact to stats/percentiles.
+
 ### DEP-1 — Deploy-path Actions pinned to mutable tags, not SHAs (P3, CODE+OPS)
 
 Problem. The workflows that hold `CLOUDFLARE_API_TOKEN` use third-party actions at
@@ -446,6 +474,8 @@ Acceptance. Workflows reference `@<40-char-sha>` for non-first-party actions; a 
 review check enforces it.
 
 CODE+OPS.
+
+**SKEPTIC: CONFIRMED** — deploy-path workflows use `actions/checkout@v4`, `oven-sh/setup-bun@v2`, and `cloudflare/wrangler-action@v3` while the deploy job receives `CLOUDFLARE_API_TOKEN`. P3 stands; SHA pinning does not affect the committed `bun.lock` strength.
 
 ### SEC-4 — Action accepts `pull_request_target` without a least-trust warning (P3, CODE+OPS)
 
@@ -470,6 +500,8 @@ Acceptance. Documentation change; optionally the action logs a notice when it de
 `GITHUB_EVENT_NAME=pull_request_target`.
 
 CODE+OPS.
+
+**SKEPTIC: CONFIRMED** — `scan.mjs:206` accepts both `pull_request` and `pull_request_target`, and the example workflow documents `workflow_dispatch` plus `pull-requests: write` but gives no `pull_request_target` trust warning. P3 documentation scope stands.
 
 ---
 
@@ -577,3 +609,15 @@ These are correct and load-bearing. Leave them as they are.
 12. No committed secrets. A scan of the source for live keys/tokens found none; secrets
     are read from env throughout (`wrangler.toml` documents them as Pages env vars, only
     the public Turnstile sitekey is committed, which is correct).
+
+## SKEPTIC — CONFIRMED SET
+
+Phase 1 fix set: SEC-1 (navigation-response URL boundary; DNS-rebind impact remains ops-contingent), REL-1 (launch-per-request real; verify `@cloudflare/puppeteer` session API before coding), SEC-2, REL-2, REL-3, COST-1 (same-isolate `memIncrement` is a mitigation; Durable Object is the hard cap), DM-1, DM-2, COU-1 (not verbatim, but duplicated and already drifted), OPS-1, OPS-2, SEC-3, COST-2, DEP-1, SEC-4.
+
+Confirmed but accepted/no Phase 1 code fix: CONC-1 — the KV RMW race is real, but the code explicitly treats stats/percentiles as approximate and no scan correctness path depends on exact increments.
+
+## SKEPTIC — REFUTED / DO-NOT-FIX
+
+No findings were refuted from code.
+
+DO-NOT-FIX in Phase 1: CONC-1, for the stats-only reason above.
