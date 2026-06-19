@@ -83,6 +83,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
   let browser;
   let navMs;
   let patternsErrored = 0;
+  const scanStart = Date.now();
   try {
     ({ browser } = await acquireBrowser(env.BROWSER));
     const page = await browser.newPage();
@@ -282,7 +283,8 @@ export async function onRequestPost({ request, env, waitUntil }) {
       {
         url,
         message: err && err.message ? err.message : String(err),
-        ...(navMs != null && { navMs, patternsErrored }),
+        navMs: navMs ?? Date.now() - scanStart,
+        patternsErrored,
       },
       waitUntil
     );
