@@ -1,12 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" role="img" aria-label="slop-detect">
-  <!-- Favicon: scan reticle in a rounded paper tile. New editorial-instrument
-       identity (replaces the dark scan-line favicon). Reads at 16px and up. -->
-  <rect width="64" height="64" rx="12" fill="#F4F5F2"/>
-  <g transform="translate(8 8) scale(2)" fill="none">
-    <path d="M3 8 V3.5 H7.5" stroke="#181815" stroke-width="1.8" stroke-linecap="square"/>
-    <path d="M16.5 3.5 H21 V8" stroke="#181815" stroke-width="1.8" stroke-linecap="square"/>
-    <path d="M21 16 V20.5 H16.5" stroke="#181815" stroke-width="1.8" stroke-linecap="square"/>
-    <path d="M7.5 20.5 H3 V16" stroke="#181815" stroke-width="1.8" stroke-linecap="square"/>
-    <circle cx="12" cy="12" r="2.6" fill="#1FA85E"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" role="img" aria-label="slop-detect">
+  <rect width="32" height="32" rx="5" fill="#16170F"/>
+  <g transform="translate(6 6) scale(0.8333)" fill="none" stroke="#F4F5F2" stroke-width="2.2">
+    <path d="M3 8 V3.5 H7.5"/>
+    <path d="M16.5 3.5 H21 V8"/>
+    <path d="M21 16 V20.5 H16.5"/>
+    <path d="M7.5 20.5 H3 V16"/>
   </g>
+  <circle cx="16" cy="16" r="2.4" fill="#3FBE7A"/>
 </svg>
