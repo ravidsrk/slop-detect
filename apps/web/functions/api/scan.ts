@@ -4,7 +4,7 @@
 // Rendering Chromium. Requires a BROWSER binding on the Pages project. Opt into
 // the copy-slop axis with { axes: ['design','copy'] } (or 'all').
 
-import puppeteer from '@cloudflare/puppeteer';
+import { acquireBrowser, releaseBrowser } from '../_browser.js';
 import {
   PATTERNS,
   createColorHelpers,
@@ -85,7 +85,7 @@ export async function onRequestPost({ request, env }) {
 
   let browser;
   try {
-    browser = await puppeteer.launch(env.BROWSER);
+    ({ browser } = await acquireBrowser(env.BROWSER));
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 800 });
     await page.setUserAgent('Mozilla/5.0 SlopDetector/1.0 (+slop-detector.pages.dev)');
@@ -272,9 +272,7 @@ export async function onRequestPost({ request, env }) {
     });
     return json({ error: err.message || String(err) }, 502);
   } finally {
-    try {
-      await browser?.close();
-    } catch (_) {}
+    await releaseBrowser(browser);
   }
 }
 

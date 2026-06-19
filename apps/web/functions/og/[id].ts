@@ -5,13 +5,17 @@
 // Falls back to the static /og.png if anything goes wrong (a broken unfurl is
 // worse than a generic one).
 
-import puppeteer from '@cloudflare/puppeteer';
+import { acquireBrowser, isScanDisabled, releaseBrowser } from '../_browser.js';
 import { getResult } from '../_shared.js';
 import { cardHtml } from '../_card.js';
 
 const OG_TTL = 60 * 60 * 24 * 30; // 30 days
 
 export async function onRequestGet({ params, env, request }) {
+  if (isScanDisabled(env)) {
+    return Response.redirect(new URL('/og.png', request.url).toString(), 302);
+  }
+
   const id = String(params.id || '')
     .replace(/\.png$/i, '')
     .replace(/[^a-z0-9]/gi, '')
@@ -37,7 +41,7 @@ export async function onRequestGet({ params, env, request }) {
 
   let browser;
   try {
-    browser = await puppeteer.launch(env.BROWSER);
+    ({ browser } = await acquireBrowser(env.BROWSER));
     const page = await browser.newPage();
     await page.setViewport({ width: 1200, height: 630, deviceScaleFactor: 1 });
     await page.setContent(cardHtml(slim), { waitUntil: 'networkidle0', timeout: 15000 });
@@ -62,8 +66,6 @@ export async function onRequestGet({ params, env, request }) {
   } catch (_) {
     return Response.redirect(new URL('/og.png', request.url).toString(), 302);
   } finally {
-    try {
-      await browser?.close();
-    } catch (_) {}
+    await releaseBrowser(browser);
   }
 }
