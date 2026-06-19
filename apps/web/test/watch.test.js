@@ -11,6 +11,8 @@ import {
   recordScanForWatch,
   getWatch,
   getHistory,
+  emailIndexKey,
+  getEmailDomains,
 } from '../functions/_shared.ts';
 import { onRequestPost, onRequestGet } from '../functions/api/watch.ts';
 
@@ -182,12 +184,18 @@ test('POST /api/watch subscribes, seeding baseline from the latest scan', async 
   const watch = await getWatch(kv, 'example.com');
   expect(watch.email, 'email is normalized lowercase').toBe('dev@startup.io');
   expect(watch.baselineScore).toBe(6);
+
+  const indexKey = await emailIndexKey('dev@startup.io');
+  expect(kv.store.has(indexKey), 'subscribe writes the email index key [COST-2]').toBe(true);
+  expect(await getEmailDomains(kv, 'dev@startup.io')).toEqual(['example.com']);
 });
 
 test('POST /api/watch unsubscribe requires a matching email', async () => {
   const kv = makeKv({
     'w:example.com': JSON.stringify({ domain: 'example.com', email: 'owner@x.io' }),
   });
+  const indexKey = await emailIndexKey('owner@x.io');
+  kv.store.set(indexKey, JSON.stringify(['example.com']));
   const env = { RESULTS: kv };
 
   // Wrong email → 403, watch survives.
@@ -205,6 +213,7 @@ test('POST /api/watch unsubscribe requires a matching email', async () => {
   });
   expect(res.status).toBe(200);
   expect(await getWatch(kv, 'example.com')).toBe(null);
+  expect(kv.store.has(indexKey), 'unsubscribe removes the email index entry').toBe(false);
 });
 
 // ── GET /api/watch ───────────────────────────────────────────────────────────
