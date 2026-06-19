@@ -33,11 +33,14 @@ PHASE=FIXING
   Both merged into BASE @ce4409e. adv-review worktree + skeptic terminal: to retire.
 
 PHASE 1 LIVE STATE (grok --inject WORKS; codex needs direct terminal-send of the spec file):
-- wf-ops2-dep1: PR#69 OPEN | codex review term_6e2ef925 | REVIEWING
-- sec1-ssrf-boundary: PR#70 OPEN | codex review term_46b9493d | REVIEWING (scan.ts chain head — rel1 unblocks on MERGE)
-- mw-cost1-sec3: PR#71 OPEN | codex review term_1e34b9aa | REVIEWING
-- watch-cost2-index: task_e13a3f1341be → grok term_7278cb4c | WT fix-watch | CODING
-In review: wf#69, sec1#70, mw#71. Coding: watch. Awaiting review verdicts (PASS→I merge; FAIL→same-worktree grok fix).
+- wf-ops2-dep1: PR#69 | review FAIL round1 (codex caught schedule->prod-deploy path). grok term_3ad5de70
+  FIXING round1 (task_2245f9241a09/ctx_ddedae7f401e). SHAs+hermetic smoke already validated.
+- sec1-ssrf-boundary: PR#70 | codex review term_46b9493d task_c0e46c3a613a/ctx_aa88d0ae6075 | REVIEWING
+  (CRITICAL PATH — rel1 + whole scan.ts chain unblocks on this MERGE)
+- mw-cost1-sec3: PR#71 | codex review term_1e34b9aa task_e3484a999d87/ctx_7312d0d726a7 | REVIEWING
+- watch-cost2-index: PR#72 | codex review term_001ff625 task_7116c1318fde/ctx_1a72888428e0 | REVIEWING
+Action lane (SEC-4) HELD until a slot frees + chain moving. NOTE: gh self-review blocked → verdict via
+worker_done + PR comment (see DECISIONS). Merge policy: gh pr merge --merge after worker_done verdict=approve.
 PR-open + merge done by me (integrator). Codex reviewer lives in the coder's worktree (node_modules + branch there).
 NOT STARTED: scan.ts chain T2 rel1 (after sec1 MERGES — collides on scan.ts), T3 cou1, T4 rel3-dm1-dm2,
 sec2, ops1; parallel lane action-sec4 (spec ready /tmp/spec-action.txt).
