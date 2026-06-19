@@ -36,7 +36,10 @@ PHASE 1 LIVE STATE (grok --inject WORKS; codex needs direct terminal-send of the
 ALL 15/15 CONFIRMED FINDINGS CLOSED. BASE @1a19dcf.
 PRs merged: #70 SEC-1 | #71 COST-1+SEC-3 | #69 OPS-2+DEP-1 | #73 SEC-4 | #72 COST-2 | #74 REL-1+REL-2 |
 #75 COU-1 | #76 REL-3+DM-1+DM-2 | #77 SEC-2 | #78 OPS-1.
-PHASE=VERIFY → T_FINAL: independent full build/lint/test on BASE + write docs/arch-build-readiness.md → final PR.
+PHASE=VERIFY. T_FINAL caught a typecheck CI-gate FAILURE: OPS-1 #78 left report()'s waitUntil REQUIRED, breaking
+4 sibling callers (_email.ts x3, cron/sweep.ts) + fix-prompt.ts ctx object (5 TS errors). build/lint/test/golden PASS.
+IN-FLIGHT: fix-typecheck [OPS-1 completion] grok term_94c61f56 task_02848ac30359 | WT fix-typecheck — make
+waitUntil optional + align fix-prompt call site; runtime unchanged. Then re-verify + finalize readiness doc.
 DO-NOT-FIX: CONC-1 (stats-only, accepted). Pre-existing (out of frozen scope, noted): dashboard.test.js makes
 a Resend attempt with a fake key (logs 401) — not introduced by this run.
 NOTE: gh self-review blocked → verdict via worker_done + PR comment (see DECISIONS). Merge: gh pr merge --merge
