@@ -51,7 +51,7 @@ function json(data, status = 200) {
   });
 }
 
-export async function onRequestPost({ request, env }) {
+export async function onRequestPost({ request, env, waitUntil }) {
   if (!env.BROWSER) {
     return json({ error: 'BROWSER binding missing — check wrangler.toml' }, 500);
   }
@@ -81,6 +81,8 @@ export async function onRequestPost({ request, env }) {
   const pageScript = buildPageScript({ includeSystem: wantsSystem });
 
   let browser;
+  let navMs;
+  let patternsErrored = 0;
   try {
     ({ browser } = await acquireBrowser(env.BROWSER));
     const page = await browser.newPage();
@@ -103,7 +105,7 @@ export async function onRequestPost({ request, env }) {
     await new Promise((r) => setTimeout(r, SCAN_PAGE_WAIT.postNetworkSettleMs));
     // REL-3: wait for web fonts before scoring (mirrors og/[id].ts).
     await page.evaluate(waitFontsReadyInPage, SCAN_PAGE_WAIT.fontsReadyTimeoutMs);
-    const navMs = Date.now() - navStart;
+    navMs = Date.now() - navStart;
 
     const browserVersion = await browser.version();
     const data = await page.evaluate(pageScript);
@@ -165,9 +167,11 @@ export async function onRequestPost({ request, env }) {
     }
 
     // Score on the Worker side (patterns metadata lives here, not on the page).
-    const { patterns, patternsErrored } = assemblePatternResults(data.signals);
+    const assembled = assemblePatternResults(data.signals);
+    const { patterns } = assembled;
+    patternsErrored = assembled.patternsErrored;
     if (patternsErrored > 0) {
-      report(env, 'warn', 'pattern_errors', { url, patternsErrored });
+      report(env, 'warn', 'pattern_errors', { url, navMs, patternsErrored }, waitUntil);
     }
 
     // Optional scoring preset (full|strict|marketing|minimal). All patterns are
@@ -258,17 +262,30 @@ export async function onRequestPost({ request, env }) {
       } catch (e) {
         // Sharing/monitoring is best-effort; never fail a scan over it — but do
         // surface the KV error so a silent storage outage is visible.
-        report(env, 'warn', 'persist_failed', { message: e && e.message ? e.message : String(e) });
+        report(
+          env,
+          'warn',
+          'persist_failed',
+          { url, navMs, patternsErrored, message: e && e.message ? e.message : String(e) },
+          waitUntil
+        );
       }
     }
 
     return json(result);
   } catch (err) {
     // Surface scan failures instead of swallowing them (no PII: url only).
-    report(env, 'error', 'scan_failed', {
-      url,
-      message: err && err.message ? err.message : String(err),
-    });
+    report(
+      env,
+      'error',
+      'scan_failed',
+      {
+        url,
+        message: err && err.message ? err.message : String(err),
+        ...(navMs != null && { navMs, patternsErrored }),
+      },
+      waitUntil
+    );
     return json({ error: err.message || String(err) }, 502);
   } finally {
     await releaseBrowser(browser);
