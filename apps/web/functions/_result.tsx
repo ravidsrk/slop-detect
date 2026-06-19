@@ -18,6 +18,7 @@
 // not edit it (foundation acceptance gate).
 
 import { PATTERNS, FIXES, AEO_CHECKS } from '@slop-detect/core';
+import { categoryCleanFractions } from './_data.js';
 import { jsonForScript } from './_render.js';
 import { tierFill, tierText, tierPillBg, systemAxisColor } from './_theme.js';
 import { LetterAvatar, ScoreTierBadge, LiveBadge, Button, SectionLedger } from './_ui.js';
@@ -52,6 +53,7 @@ const firstSentence = (s: string) => {
 // permalink/report pages (and tests) can build the same model.
 export function buildResultView(slim: any) {
   const triggered = (slim?.triggered || []).filter(Boolean);
+  const cleanFracs = categoryCleanFractions(slim);
 
   // Per-category rollup, in the fixed display order.
   const categories = CATS.map((c) => {
@@ -65,8 +67,8 @@ export function buildResultView(slim: any) {
       label: c.label,
       flagged: hits.length,
       weight,
-      cleanPct: Math.round((1 - ratio) * 100),
-      cleanFraction: 1 - ratio,
+      cleanPct: Math.round(cleanFracs[c.key] * 100),
+      cleanFraction: cleanFracs[c.key],
       tier,
       patterns: hits
         .slice()
@@ -230,6 +232,20 @@ export const RESULT_CSS = `
   .chart-delta{font-family:var(--mono);font-size:12px;margin-top:8px}
   .chart-cap{font-family:var(--mono);font-size:12px;color:var(--text-4);margin-top:8px}
   .chart-cap strong{color:var(--text-2)}
+  .chart-legend{display:flex;gap:16px;margin-top:8px;font-family:var(--mono);font-size:11.5px;color:var(--text-4)}
+  .chart-legend-you{font-weight:600}
+  .chart-legend-avg{color:#9A9B8E}
+
+  /* category neighbors tile */
+  .nb-row{display:grid;grid-template-columns:28px 20px 1fr auto;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--row);text-decoration:none;color:inherit}
+  .nb-row:hover{background:var(--bg-2)}
+  .nb-row:last-child{border-bottom:0}
+  .nb-you{background:rgba(31,168,94,0.08)}
+  .nb-rank{font-family:var(--mono);font-size:12px;color:var(--text-6);text-align:right}
+  .nb-name{font-size:14px;font-weight:600;color:var(--text);line-height:1.2}
+  .nb-dom{font-family:var(--mono);font-size:11px;color:var(--text-5);margin-top:1px}
+  .nb-score{font-family:var(--mono);font-size:13px;color:var(--text-3);white-space:nowrap}
+  .nb-grade{font-weight:700}
 
   /* fixes panel */
   .fixes{border:1px solid var(--border);border-radius:10px;background:var(--panel);padding:38px 36px}
@@ -708,9 +724,20 @@ function ScoreOverTime({ points }: { points: any[] }) {
 }
 
 // Cleanliness radar: a pentagon over the five categories. The "you" polygon is the
-// per-category clean fraction; two guide rings frame it. No rank-average polygon —
-// per-category corpus averages are not persisted, so it is omitted rather than faked.
-function Radar({ categories, tier }: { categories: any[]; tier: string }) {
+// per-category clean fraction; two guide rings frame it. When corpus per-category
+// averages exist (stats:catclean, count >= 5), a dashed rank-average overlay draws
+// on top — otherwise omitted rather than faked.
+function Radar({
+  categories,
+  tier,
+  catAvg = null,
+  catAvgCount = 0,
+}: {
+  categories: any[];
+  tier: string;
+  catAvg?: number[] | null;
+  catAvgCount?: number;
+}) {
   const W = 220,
     H = 150,
     cx = W / 2,
@@ -736,6 +763,20 @@ function Radar({ categories, tier }: { categories: any[]; tier: string }) {
         .join(',')
     )
     .join(' ');
+  const showAvg =
+    !!catAvg &&
+    catAvg.length === categories.length &&
+    catAvgCount >= 5 &&
+    catAvg.every((v) => typeof v === 'number' && Number.isFinite(v));
+  const avg = showAvg
+    ? catAvg!
+        .map((v, i) =>
+          ptAt(i, R * clamp01(v))
+            .map((n) => n.toFixed(1))
+            .join(',')
+        )
+        .join(' ')
+    : '';
   const stroke = tierText(tier);
   return (
     <div class="chart-card">
@@ -744,6 +785,15 @@ function Radar({ categories, tier }: { categories: any[]; tier: string }) {
         <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="per-category cleanliness radar">
           <polygon points={ring(R)} fill="none" stroke="#D7D9D2" stroke-width="1" />
           <polygon points={ring(R * 0.5)} fill="none" stroke="#E2E4DD" stroke-width="1" />
+          {showAvg ? (
+            <polygon
+              points={avg}
+              fill="none"
+              stroke="#9A9B8E"
+              stroke-width="1"
+              stroke-dasharray="3 3"
+            />
+          ) : null}
           <polygon
             class="chart-draw"
             points={you}
@@ -768,6 +818,51 @@ function Radar({ categories, tier }: { categories: any[]; tier: string }) {
           })}
         </svg>
       </div>
+      {showAvg ? (
+        <div class="chart-legend">
+          <span class="chart-legend-you" style={`color:${stroke}`}>
+            — you
+          </span>
+          <span class="chart-legend-avg">--- rank avg</span>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// Same-category peers from the curated leaderboard corpus. Omitted when the domain
+// is not in the corpus or its business category has fewer than two members.
+function Neighbors({
+  categoryLabel,
+  rows,
+  origin,
+}: {
+  categoryLabel: string;
+  rows: any[];
+  origin: string;
+}) {
+  return (
+    <div class="chart-card">
+      <div class="chart-h">{categoryLabel} neighbors</div>
+      {rows.map((r) => (
+        <a
+          class={`nb-row${r.you ? ' nb-you' : ''}`}
+          href={`${origin}/score/${encodeURIComponent(r.domain)}`}
+        >
+          <span class="nb-rank">#{r.rank}</span>
+          <LetterAvatar name={r.domain} size={20} />
+          <span>
+            <div class="nb-name">{r.name}</div>
+            <div class="nb-dom">{r.domain}</div>
+          </span>
+          <span class="nb-score">
+            {r.score}{' '}
+            <span class="nb-grade" style={`color:${tierText(r.tier)}`}>
+              {r.grade}
+            </span>
+          </span>
+        </a>
+      ))}
     </div>
   );
 }
@@ -828,20 +923,42 @@ export function Analytics({
   dist,
   slim,
   categories,
+  catAvg = null,
+  catAvgCount = 0,
+  neighbors = null,
+  origin = '',
 }: {
   history?: any[];
   dist?: number[] | null;
   slim: any;
   categories: any[];
+  catAvg?: number[] | null;
+  catAvgCount?: number;
+  neighbors?: { categoryLabel: string; rows: any[] } | null;
+  origin?: string;
 }) {
   const points = (history || []).filter((h) => typeof h.score === 'number').slice(-30);
   const totalScans = dist ? dist.reduce((s, n) => s + (n || 0), 0) : 0;
   const showTime = points.length >= 2;
   const showDist = !!dist && totalScans >= 5;
+  const showNeighbors = !!neighbors?.rows?.length;
+  if (!showTime && !showDist && !showNeighbors && !categories.length) return null;
   return (
     <div class="analytics">
       {showTime ? <ScoreOverTime points={points} /> : null}
-      <Radar categories={categories} tier={slim.tier} />
+      <Radar
+        categories={categories}
+        tier={slim.tier}
+        catAvg={catAvg}
+        catAvgCount={catAvgCount}
+      />
+      {showNeighbors ? (
+        <Neighbors
+          categoryLabel={neighbors!.categoryLabel}
+          rows={neighbors!.rows}
+          origin={origin}
+        />
+      ) : null}
       {showDist ? (
         <Distribution dist={dist as number[]} score={slim.score} tier={slim.tier} />
       ) : null}
