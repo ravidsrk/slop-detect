@@ -6,7 +6,7 @@
 // middleware (cheap rate limit, CORS, foreign-origin rejection; no Turnstile).
 // Configured-off without an email provider + SESSION_SECRET, like alerts.
 
-import { isValidEmail, listWatchesByEmail, issueDashboardToken } from '../../_shared.js';
+import { isValidEmail, getEmailDomains, issueDashboardToken } from '../../_shared.js';
 import { emailConfigured, sendEmail } from '../../_email.js';
 import { buildDashboardLinkEmail } from '../../_alerts.js';
 
@@ -68,8 +68,8 @@ export async function onRequestPost({ request, env, waitUntil }) {
   };
 
   try {
-    const watches = await listWatchesByEmail(env.RESULTS, email);
-    if (watches.length && (await dashLinkAllowed(env.RATE_LIMIT, email))) {
+    const domains = await getEmailDomains(env.RESULTS, email);
+    if (domains.length && (await dashLinkAllowed(env.RATE_LIMIT, email))) {
       // Issue + send out-of-band so the response latency is IDENTICAL whether or
       // not the address owns watches. Doing the KV write + email round-trip inline
       // would make existence measurable (a timing oracle) despite the generic
@@ -78,7 +78,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
       const send = (async () => {
         const token = await issueDashboardToken(env.RESULTS, email);
         const loginUrl = `${new URL(request.url).origin}/dashboard?token=${token}`;
-        const msg = buildDashboardLinkEmail(loginUrl, watches.length);
+        const msg = buildDashboardLinkEmail(loginUrl, domains.length);
         await sendEmail(env, { to: email, subject: msg.subject, text: msg.text });
       })().catch(() => {});
       if (typeof waitUntil === 'function') waitUntil(send);
