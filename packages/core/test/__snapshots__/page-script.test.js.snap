@@ -1,0 +1,2335 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`buildPageScript default (design + copy, no system axis) 1`] = `
+"(() => {
+    // Polyfill esbuild's __name helper (wrangler bundles named fns wrapped with it).
+    const __name = (fn) => fn;
+    function createColorHelpers() {
+  const _canvas = document.createElement("canvas");
+  _canvas.width = _canvas.height = 1;
+  const _ctx = _canvas.getContext("2d", { willReadFrequently: true });
+  function parseColor(str) {
+    if (!str) return null;
+    const s = String(str).trim();
+    if (!s || s === "transparent" || s === "none") return null;
+    if (/^rgba?\\(\\s*0\\s*,\\s*0\\s*,\\s*0\\s*,\\s*0\\s*\\)/.test(s)) return null;
+    try {
+      _ctx.clearRect(0, 0, 1, 1);
+      _ctx.fillStyle = "#000";
+      _ctx.fillStyle = s;
+      _ctx.fillRect(0, 0, 1, 1);
+      const d = _ctx.getImageData(0, 0, 1, 1).data;
+      return { r: d[0], g: d[1], b: d[2], a: d[3] / 255 };
+    } catch (e) {
+      return null;
+    }
+  }
+  function rgbToHsl(c) {
+    if (!c) return null;
+    const r = c.r / 255, g = c.g / 255, b = c.b / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0, s = 0;
+    const l = (max + min) / 2;
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r:
+          h = (g - b) / d + (g < b ? 6 : 0);
+          break;
+        case g:
+          h = (b - r) / d + 2;
+          break;
+        case b:
+          h = (r - g) / d + 4;
+          break;
+      }
+      h /= 6;
+    }
+    return { h: h * 360, s, l, a: c.a };
+  }
+  function isPurple(c) {
+    if (!c || c.a < 0.25) return false;
+    const hsl = rgbToHsl(c);
+    if (!hsl) return false;
+    return hsl.h >= 240 && hsl.h <= 295 && hsl.s >= 0.35 && hsl.l > 0.15 && hsl.l < 0.85;
+  }
+  function isDark(c) {
+    if (!c) return false;
+    const hsl = rgbToHsl(c);
+    return hsl ? hsl.l < 0.25 : false;
+  }
+  function isMidGrey(c) {
+    if (!c) return false;
+    const hsl = rgbToHsl(c);
+    if (!hsl) return false;
+    return hsl.s < 0.15 && hsl.l > 0.35 && hsl.l < 0.75;
+  }
+  function relativeLuminance(c) {
+    if (!c) return 0;
+    const lin = [c.r, c.g, c.b].map((v) => {
+      const s = v / 255;
+      return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
+  }
+  function contrastRatio(c1, c2) {
+    const l1 = relativeLuminance(c1);
+    const l2 = relativeLuminance(c2);
+    return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+  }
+  function channelSpread(c) {
+    if (!c) return 0;
+    return Math.max(c.r, c.g, c.b) - Math.min(c.r, c.g, c.b);
+  }
+  function isNeutral(c) {
+    if (!c || c.a < 0.05) return true;
+    return channelSpread(c) < 30;
+  }
+  function effectiveBackground(el) {
+    let node = el;
+    let guard = 0;
+    while (node && node.nodeType === 1 && guard++ < 40) {
+      const cs = getComputedStyle(node);
+      const bg = parseColor(cs.backgroundColor);
+      if (bg && bg.a >= 0.5) return bg;
+      const img = cs.backgroundImage || "";
+      if (img && img !== "none" && /gradient|url\\(/.test(img)) {
+        const stop = img.match(/rgba?\\([^)]+\\)|#[0-9a-fA-F]{3,8}/);
+        if (stop) {
+          const sc = parseColor(stop[0]);
+          if (sc && sc.a >= 0.5) return sc;
+        }
+        return { r: 255, g: 255, b: 255, a: 1, _approx: true };
+      }
+      node = node.parentElement;
+    }
+    return { r: 255, g: 255, b: 255, a: 1 };
+  }
+  return {
+    parseColor,
+    rgbToHsl,
+    isPurple,
+    isDark,
+    isMidGrey,
+    relativeLuminance,
+    contrastRatio,
+    channelSpread,
+    isNeutral,
+    effectiveBackground
+  };
+}
+    function createVisibilityHelpers() {
+  function isVisible(el) {
+    if (!el || !(el instanceof Element)) return false;
+    const cs = getComputedStyle(el);
+    if (cs.display === "none" || cs.visibility === "hidden") return false;
+    if (parseFloat(cs.opacity) === 0) return false;
+    const r = el.getBoundingClientRect();
+    if (r.width < 4 || r.height < 4) return false;
+    return true;
+  }
+  function getVisible(root, max) {
+    root = root || document.body;
+    max = max || 4e3;
+    const out = [];
+    const all = root.querySelectorAll("*");
+    for (let i = 0; i < all.length && out.length < max; i++) {
+      if (isVisible(all[i])) out.push(all[i]);
+    }
+    return out;
+  }
+  function inViewport(el) {
+    const r = el.getBoundingClientRect();
+    return r.top < window.innerHeight && r.bottom > 0 && r.left < window.innerWidth && r.right > 0;
+  }
+  function inHero(el) {
+    const r = el.getBoundingClientRect();
+    return r.top < 900 && r.top > -100;
+  }
+  return { isVisible, getVisible, inViewport, inHero };
+}
+    function isSlopFont(family) {
+  if (!family) return false;
+  const f = String(family).toLowerCase().replace(/['"]/g, "");
+  const first = f.split(",")[0].trim();
+  return SLOP_FONT_PREFIXES.some((p) => first.startsWith(p));
+}
+    function isAccentSerif(family) {
+  if (!family) return false;
+  const f = String(family).toLowerCase().replace(/['"]/g, "");
+  const first = f.split(",")[0].trim();
+  return ACCENT_SERIF_PREFIXES.some((p) => first.startsWith(p));
+}
+    const SLOP_FONT_PREFIXES = ["inter","geist","space grotesk","space-grotesk","instrument serif","instrument-serif","general sans","general-sans","satoshi","plus jakarta sans","plus-jakarta","plus jakarta","manrope","dm sans","dm-sans","cal sans","cal-sans","switzer","clash display","clash-display"];
+    const ACCENT_SERIF_PREFIXES = ["instrument serif","instrument-serif","fraunces","playfair","lora","ibm plex serif","spectral","tinos","cormorant"];
+
+    const colorHelpers = createColorHelpers();
+    const visHelpers = createVisibilityHelpers();
+    const visible = visHelpers.getVisible(document.body, 4000);
+
+    let h1 = null;
+    for (const el of document.querySelectorAll('h1')) {
+      if (visHelpers.isVisible(el)) { h1 = el; break; }
+    }
+
+    const ctx = {
+      visible, h1,
+      parseColor: colorHelpers.parseColor,
+      rgbToHsl: colorHelpers.rgbToHsl,
+      isPurple: colorHelpers.isPurple,
+      isDark: colorHelpers.isDark,
+      isMidGrey: colorHelpers.isMidGrey,
+      relativeLuminance: colorHelpers.relativeLuminance,
+      contrastRatio: colorHelpers.contrastRatio,
+      channelSpread: colorHelpers.channelSpread,
+      effectiveBackground: colorHelpers.effectiveBackground,
+      isSlopFont, isAccentSerif,
+      SLOP_FONT_PREFIXES, ACCENT_SERIF_PREFIXES,
+      // inHero is consumed by the declarative rules engine for heroOnly specs.
+      // isVisible / inViewport / isNeutral were never consumed by any pattern,
+      // so they are omitted (the visible array is already pre-filtered).
+      inHero: visHelpers.inHero
+    };
+
+    const signals = {};
+    
+    try {
+      signals["slop_fonts"] = ((ctx) => {
+      const { visible, isSlopFont: isSlopFont2, isAccentSerif: isAccentSerif2, h1 } = ctx;
+      let slopCount = 0, total = 0, accentSerifWords = 0;
+      const seen = /* @__PURE__ */ new Set();
+      for (const el of visible) {
+        if (!el.textContent || !el.textContent.trim()) continue;
+        const fam = getComputedStyle(el).fontFamily;
+        if (!fam || seen.has(el)) continue;
+        seen.add(el);
+        total++;
+        if (isSlopFont2(fam)) slopCount++;
+        if (isAccentSerif2(fam) && /italic|oblique/.test(getComputedStyle(el).fontStyle)) {
+          accentSerifWords++;
+        }
+      }
+      const heroFam = h1 ? getComputedStyle(h1).fontFamily : "";
+      const heroIsSlop = isSlopFont2(heroFam);
+      const ratio = total ? slopCount / total : 0;
+      return {
+        slopCount,
+        total,
+        ratio: +ratio.toFixed(3),
+        heroIsSlop,
+        heroFam,
+        accentSerifItalicCount: accentSerifWords,
+        triggered: heroIsSlop || ratio >= 0.6 || accentSerifWords > 0
+      };
+    })(ctx);
+    } catch (e) {
+      signals["slop_fonts"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["purple_accent"] = ((ctx) => {
+      const { visible, parseColor, isPurple } = ctx;
+      let purpleEls = 0, filledCtas = 0;
+      const samples = [];
+      for (const el of visible) {
+        const cs = getComputedStyle(el);
+        const bg = parseColor(cs.backgroundColor);
+        const bgImg = cs.backgroundImage || "";
+        const border = parseColor(cs.borderColor);
+        let purp = false, gradPurp = false;
+        if (isPurple(bg)) purp = true;
+        if (isPurple(border) && parseFloat(cs.borderWidth) > 0) purp = true;
+        if (bgImg.includes("gradient")) {
+          const m = bgImg.match(/rgba?\\([^)]+\\)|#[0-9a-f]{3,8}/gi) || [];
+          for (const c of m) {
+            if (isPurple(parseColor(c))) {
+              gradPurp = true;
+              break;
+            }
+          }
+          if (gradPurp) purp = true;
+        }
+        if (!purp) continue;
+        purpleEls++;
+        const cls = (el.className || "") + "";
+        const isCta = /^(A|BUTTON)$/.test(el.tagName) || /btn|button|cta/i.test(cls);
+        if (!isCta) continue;
+        if (/outline|ghost/i.test(cls)) continue;
+        const filled = bg && bg.a >= 0.5 && isPurple(bg) || gradPurp && (!bg || bg.a < 0.1);
+        if (filled) {
+          filledCtas++;
+          if (samples.length < 2) samples.push({ tag: el.tagName, bg: cs.backgroundColor });
+        }
+      }
+      return { purpleEls, filledCtas, samples, triggered: filledCtas >= 1 };
+    })(ctx);
+    } catch (e) {
+      signals["purple_accent"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["gradient_text"] = ((ctx) => {
+      const { visible, h1 } = ctx;
+      let count = 0;
+      let heroHasGradient = false;
+      for (const el of visible) {
+        const cs = getComputedStyle(el);
+        const clip = cs.webkitBackgroundClip || cs.backgroundClip;
+        if (clip === "text" && /gradient\\(/.test(cs.backgroundImage || "")) {
+          count++;
+          if (el === h1) heroHasGradient = true;
+        }
+      }
+      if (h1 && !heroHasGradient) {
+        const cs = getComputedStyle(h1);
+        const clip = cs.webkitBackgroundClip || cs.backgroundClip;
+        if (clip === "text" && /gradient\\(/.test(cs.backgroundImage || "")) {
+          heroHasGradient = true;
+        }
+      }
+      return { count, heroHasGradient, triggered: count > 0 || heroHasGradient };
+    })(ctx);
+    } catch (e) {
+      signals["gradient_text"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["gradient_backgrounds"] = ((ctx) => {
+      const { visible } = ctx;
+      let n = 0, conic = 0;
+      for (const el of visible) {
+        const cs = getComputedStyle(el);
+        const bgImg = cs.backgroundImage || "";
+        if (/gradient\\(/.test(bgImg)) {
+          const rgba = bgImg.match(/rgba?\\(\\s*\\d+\\s*,\\s*\\d+\\s*,\\s*\\d+(?:\\s*,\\s*([\\d.]+))?\\s*\\)/g);
+          let hasOpaqueStop = !rgba;
+          if (rgba) {
+            for (const r of rgba) {
+              const a = r.match(/,\\s*([\\d.]+)\\s*\\)/);
+              if (!a || parseFloat(a[1]) > 0.05) {
+                hasOpaqueStop = true;
+                break;
+              }
+            }
+          }
+          if (hasOpaqueStop) {
+            n++;
+            if (/conic-gradient/.test(bgImg)) conic++;
+          }
+        }
+      }
+      return { bgElements: n, conic, triggered: n >= 5 };
+    })(ctx);
+    } catch (e) {
+      signals["gradient_backgrounds"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["accent_stripe"] = ((ctx) => {
+      const { visible, parseColor } = ctx;
+      let stripeCards = 0;
+      for (const el of visible) {
+        const cs = getComputedStyle(el);
+        const r = el.getBoundingClientRect();
+        if (r.width < 100 || r.height < 60) continue;
+        const widths = {
+          top: parseFloat(cs.borderTopWidth),
+          left: parseFloat(cs.borderLeftWidth),
+          right: parseFloat(cs.borderRightWidth),
+          bottom: parseFloat(cs.borderBottomWidth)
+        };
+        const colors = {
+          top: parseColor(cs.borderTopColor),
+          left: parseColor(cs.borderLeftColor)
+        };
+        const otherMax = Math.max(widths.left, widths.right, widths.bottom);
+        const topStripe = widths.top >= 3 && otherMax < widths.top - 1 && colors.top && colors.top.a > 0.3;
+        const leftStripe = widths.left >= 3 && Math.max(widths.top, widths.right, widths.bottom) < widths.left - 1 && colors.left && colors.left.a > 0.3;
+        if (topStripe || leftStripe) stripeCards++;
+      }
+      return { stripeCards, triggered: stripeCards >= 2 };
+    })(ctx);
+    } catch (e) {
+      signals["accent_stripe"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["glassmorphism"] = ((ctx) => {
+      const { visible, parseColor } = ctx;
+      let glassCount = 0;
+      for (const el of visible) {
+        const cs = getComputedStyle(el);
+        const filter = cs.backdropFilter || cs.webkitBackdropFilter || "";
+        if (!/blur\\(/.test(filter)) continue;
+        const bg = parseColor(cs.backgroundColor);
+        if (bg && bg.a > 0 && bg.a < 0.8) {
+          glassCount++;
+        }
+      }
+      return { glassCount, triggered: glassCount >= 2 };
+    })(ctx);
+    } catch (e) {
+      signals["glassmorphism"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["colored_glows"] = ((ctx) => {
+      const { visible, parseColor, isPurple } = ctx;
+      let glowCount = 0;
+      for (const el of visible) {
+        const cs = getComputedStyle(el);
+        const shadow = cs.boxShadow || "";
+        if (shadow === "none" || !shadow.includes("rgb")) continue;
+        const blurMatch = shadow.match(/\\s(\\d+(?:\\.\\d+)?)px\\s/g) || [];
+        const maxBlur = Math.max(0, ...blurMatch.map((b) => parseFloat(b)));
+        if (maxBlur < 24) continue;
+        const colors = shadow.match(/rgba?\\([^)]+\\)|#[0-9a-f]{3,8}/gi) || [];
+        for (const c of colors) {
+          const col = parseColor(c);
+          if (!col || col.a < 0.1) continue;
+          if (isPurple(col)) {
+            glowCount++;
+            break;
+          }
+          const max = Math.max(col.r, col.g, col.b), min = Math.min(col.r, col.g, col.b);
+          if (max - min > 60 && col.a > 0.2) {
+            glowCount++;
+            break;
+          }
+        }
+      }
+      return { glowCount, triggered: glowCount >= 1 };
+    })(ctx);
+    } catch (e) {
+      signals["colored_glows"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["centered_hero"] = ((ctx) => {
+      const { h1, isSlopFont: isSlopFont2 } = ctx;
+      if (!h1) return { triggered: false, h1Found: false };
+      const cs = getComputedStyle(h1);
+      const fontSize = parseFloat(cs.fontSize);
+      let centered = cs.textAlign === "center";
+      if (!centered && h1.parentElement) {
+        const pcs = getComputedStyle(h1.parentElement);
+        if (pcs.textAlign === "center") centered = true;
+      }
+      if (!centered) {
+        try {
+          const r = h1.getBoundingClientRect();
+          const pr = (h1.parentElement || document.body).getBoundingClientRect();
+          const elCx = r.left + r.width / 2;
+          const prCx = pr.left + pr.width / 2;
+          if (pr.width > 0 && Math.abs(elCx - prCx) / pr.width < 0.12) centered = true;
+        } catch {
+        }
+      }
+      const big = fontSize >= 28;
+      const slopFont = isSlopFont2(cs.fontFamily);
+      const triggered = centered && big && slopFont;
+      return { triggered, fontSize, centered, slopFont, family: cs.fontFamily };
+    })(ctx);
+    } catch (e) {
+      signals["centered_hero"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["hero_eyebrow_pill"] = ((ctx) => {
+      const { h1, parseColor } = ctx;
+      if (!h1) return { triggered: false };
+      const h1Rect = h1.getBoundingClientRect();
+      const candidates = Array.from(document.querySelectorAll("a, div, span, button"));
+      const pillKeywords = /\\b(new|beta|now in|introducing|announcing|just shipped|v\\d+|launching|coming soon|early access|whats new|just landed|just dropped)\\b/i;
+      for (const el of candidates) {
+        const r = el.getBoundingClientRect();
+        if (r.bottom > h1Rect.top || r.bottom < h1Rect.top - 250) continue;
+        if (r.width < 40 || r.width > 500 || r.height > 80) continue;
+        const cs = getComputedStyle(el);
+        const radius = parseFloat(cs.borderRadius);
+        if (!radius || radius < r.height / 3) continue;
+        const txt = (el.textContent || "").trim();
+        if (txt.length < 2 || txt.length > 80) continue;
+        const elCenter = r.left + r.width / 2;
+        const h1Center = h1Rect.left + h1Rect.width / 2;
+        if (Math.abs(elCenter - h1Center) > h1Rect.width / 2) continue;
+        if (pillKeywords.test(txt) || /✨|🚀|⚡/.test(txt)) {
+          return { triggered: true, text: txt.slice(0, 60), radius };
+        }
+      }
+      return { triggered: false };
+    })(ctx);
+    } catch (e) {
+      signals["hero_eyebrow_pill"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["all_caps_labels"] = ((ctx) => {
+      const { visible } = ctx;
+      let count = 0;
+      const samples = [];
+      for (const el of visible) {
+        const cs = getComputedStyle(el);
+        if (cs.textTransform !== "uppercase") continue;
+        const txt = (el.textContent || "").trim();
+        if (txt.length < 3 || txt.length > 40) continue;
+        const ls = parseFloat(cs.letterSpacing);
+        if (isNaN(ls) || ls < 0.5) continue;
+        count++;
+        if (samples.length < 3) samples.push(txt.slice(0, 30));
+      }
+      return { count, samples, triggered: count >= 2 };
+    })(ctx);
+    } catch (e) {
+      signals["all_caps_labels"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["perma_dark_mode"] = ((ctx) => {
+      const { parseColor, isDark, isMidGrey } = ctx;
+      const cand = [];
+      cand.push(parseColor(getComputedStyle(document.documentElement).backgroundColor));
+      cand.push(parseColor(getComputedStyle(document.body).backgroundColor));
+      const topWrappers = Array.from(document.body.children).slice(0, 8);
+      for (const w of topWrappers) {
+        try {
+          const r = w.getBoundingClientRect();
+          if (r.width >= window.innerWidth * 0.8 && r.height >= window.innerHeight * 0.5) {
+            cand.push(parseColor(getComputedStyle(w).backgroundColor));
+          }
+        } catch {
+        }
+      }
+      try {
+        const el = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
+        if (el) cand.push(parseColor(getComputedStyle(el).backgroundColor));
+      } catch {
+      }
+      let bodyBg = null;
+      for (const c of cand) {
+        if (c && c.a >= 0.5) {
+          bodyBg = c;
+          break;
+        }
+      }
+      const dark = isDark(bodyBg);
+      if (!dark) return { triggered: false, bodyDark: false };
+      const ps = document.querySelectorAll("p, li, span");
+      let greys = 0, total = 0;
+      for (const p of ps) {
+        const cs = getComputedStyle(p);
+        if (cs.display === "none" || cs.visibility === "hidden") continue;
+        const txt = (p.textContent || "").trim();
+        if (txt.length < 6) continue;
+        total++;
+        if (isMidGrey(parseColor(cs.color))) greys++;
+        if (total >= 200) break;
+      }
+      const ratio = total ? greys / total : 0;
+      const triggered = dark && (ratio >= 0.3 || total >= 5);
+      return {
+        bodyDark: true,
+        greyParas: greys,
+        totalParas: total,
+        ratio: +ratio.toFixed(2),
+        triggered
+      };
+    })(ctx);
+    } catch (e) {
+      signals["perma_dark_mode"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["icon_card_grid"] = ((ctx) => {
+      const { visible } = ctx;
+      const groups = /* @__PURE__ */ new Map();
+      for (const el of visible) {
+        const parent = el.parentElement;
+        if (!parent) continue;
+        getComputedStyle(el);
+        const r = el.getBoundingClientRect();
+        if (r.width < 150 || r.width > 600 || r.height < 100 || r.height > 600) continue;
+        const icon = el.querySelector(
+          ":scope > svg, :scope > img, :scope > div > svg, :scope > div > img"
+        );
+        if (!icon) continue;
+        const ir = icon.getBoundingClientRect();
+        if (ir.width > 80 || ir.height > 80) continue;
+        if (ir.top > r.top + r.height * 0.4) continue;
+        const key = parent.tagName + ":" + Math.round(r.width / 20);
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(el);
+      }
+      let maxGroup = 0;
+      for (const arr of groups.values()) if (arr.length > maxGroup) maxGroup = arr.length;
+      return { maxGroupSize: maxGroup, triggered: maxGroup >= 3 };
+    })(ctx);
+    } catch (e) {
+      signals["icon_card_grid"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["numbered_steps"] = ((ctx) => {
+      const { visible } = ctx;
+      const numberPat = /^(?:step\\s*)?(\\d{1,2})(?:[.):]|\\s*[—-])?\\s*/i;
+      const parents = /* @__PURE__ */ new Map();
+      for (const el of visible) {
+        const txt = (el.textContent || "").trim();
+        const m = txt.match(numberPat);
+        if (!m) continue;
+        const n = parseInt(m[1], 10);
+        if (n < 1 || n > 9) continue;
+        if (!el.parentElement) continue;
+        const key = el.parentElement;
+        if (!parents.has(key)) parents.set(key, /* @__PURE__ */ new Set());
+        parents.get(key).add(n);
+      }
+      let bestRun = 0;
+      for (const set of parents.values()) {
+        if (set.has(1) && set.has(2) && set.has(3)) {
+          let run = 3 + (set.has(4) ? 1 : 0) + (set.has(5) ? 1 : 0);
+          if (run > bestRun) bestRun = run;
+        }
+      }
+      return { bestRun, triggered: bestRun >= 3 };
+    })(ctx);
+    } catch (e) {
+      signals["numbered_steps"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["stat_banner"] = ((ctx) => {
+      const { visible } = ctx;
+      const statPat = /^\\$?\\d+[.,]?\\d*\\s*[KMB%+]?\\+?$/i;
+      const candidates = [];
+      for (const el of visible) {
+        const cs = getComputedStyle(el);
+        const fs = parseFloat(cs.fontSize);
+        if (fs < 28) continue;
+        const txt = (el.textContent || "").trim();
+        if (txt.length > 12 || !statPat.test(txt)) continue;
+        candidates.push({ el, top: el.getBoundingClientRect().top, txt });
+      }
+      candidates.sort((a, b) => a.top - b.top);
+      let bestCluster = 0;
+      for (let i = 0; i < candidates.length; i++) {
+        let n = 1;
+        for (let j = i + 1; j < candidates.length; j++) {
+          if (Math.abs(candidates[j].top - candidates[i].top) < 80) n++;
+        }
+        if (n > bestCluster) bestCluster = n;
+      }
+      return { clusterSize: bestCluster, triggered: bestCluster >= 3 };
+    })(ctx);
+    } catch (e) {
+      signals["stat_banner"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["faq_accordion"] = ((ctx) => {
+      const details = document.querySelectorAll("details");
+      let count = 0;
+      const pageHeight = document.documentElement.scrollHeight;
+      for (const d of details) {
+        const r = d.getBoundingClientRect();
+        const absTop = r.top + window.scrollY;
+        if (absTop < pageHeight * 0.4) continue;
+        count++;
+      }
+      let textFaq = false;
+      const h = document.querySelectorAll("h1,h2,h3");
+      for (const el of h) {
+        const t = (el.textContent || "").trim().toLowerCase();
+        if (t === "faq" || t === "frequently asked questions" || t.startsWith("faq")) {
+          textFaq = true;
+          break;
+        }
+      }
+      return {
+        detailsCount: count,
+        hasFaqHeading: textFaq,
+        triggered: count >= 3 || textFaq && count >= 1
+      };
+    })(ctx);
+    } catch (e) {
+      signals["faq_accordion"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["gradient_letter_avatars"] = ((ctx) => {
+      const { visible } = ctx;
+      let count = 0;
+      const samples = [];
+      for (const el of visible) {
+        const cs = getComputedStyle(el);
+        const r = el.getBoundingClientRect();
+        if (r.width < 28 || r.width > 96) continue;
+        if (Math.abs(r.width - r.height) > 8) continue;
+        const radius = parseFloat(cs.borderRadius);
+        if (radius < r.width / 3) continue;
+        const bg = cs.backgroundImage || "";
+        const bgColor = cs.backgroundColor;
+        const hasGradient = /gradient\\(/.test(bg);
+        const hasSolidColor = bgColor && bgColor !== "rgba(0, 0, 0, 0)" && bgColor !== "transparent";
+        if (!hasGradient && !hasSolidColor) continue;
+        const txt = (el.textContent || "").trim();
+        if (txt.length < 1 || txt.length > 3) continue;
+        if (!/^[A-Za-z]{1,3}$/.test(txt)) continue;
+        if (el.querySelector("img, svg[data-photo]")) continue;
+        count++;
+        if (samples.length < 3) samples.push({ initials: txt, size: Math.round(r.width) });
+      }
+      return { count, samples, triggered: count >= 2 };
+    })(ctx);
+    } catch (e) {
+      signals["gradient_letter_avatars"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["bento_grid"] = ((ctx) => {
+      const { visible } = ctx;
+      let best = { children: 0, spanVariety: 0, rounded: 0 };
+      for (const el of visible) {
+        const cs = getComputedStyle(el);
+        if (cs.display !== "grid") continue;
+        const cols = (cs.gridTemplateColumns || "").split(" ").filter(Boolean).length;
+        if (cols < 2) continue;
+        const kids = Array.from(el.children);
+        if (kids.length < 4) continue;
+        const spans = /* @__PURE__ */ new Set();
+        let rounded = 0, sized = 0;
+        for (const k of kids) {
+          const kr = k.getBoundingClientRect();
+          if (kr.width < 80 || kr.height < 60) continue;
+          sized++;
+          const kcs = getComputedStyle(k);
+          const gc = (kcs.gridColumn || "").toString();
+          const m = gc.match(/span\\s+(\\d+)/i);
+          spans.add(m ? parseInt(m[1], 10) : 1);
+          if (parseFloat(kcs.borderRadius) >= 12) rounded++;
+        }
+        if (sized < 4) continue;
+        const score = { children: sized, spanVariety: spans.size, rounded };
+        if (rounded >= 4 && spans.size >= 2 && sized > best.children) best = score;
+      }
+      return {
+        ...best,
+        triggered: best.rounded >= 4 && best.spanVariety >= 2 && best.children >= 5
+      };
+    })(ctx);
+    } catch (e) {
+      signals["bento_grid"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["aurora_mesh_gradient"] = ((ctx) => {
+      const { visible } = ctx;
+      let blobs = 0;
+      const samples = [];
+      const vw = window.innerWidth, vh = window.innerHeight;
+      for (const el of visible) {
+        const cs = getComputedStyle(el);
+        const bgImg = cs.backgroundImage || "";
+        const isGrad = /(radial|conic)-gradient\\(/.test(bgImg) || /linear-gradient\\(/.test(bgImg) && parseFloat(
+          cs.filter && cs.filter.match(/blur\\(([\\d.]+)px\\)/)?.[1] || 0
+        ) > 0;
+        if (!isGrad) continue;
+        const blurM = (cs.filter || "").match(/blur\\(([\\d.]+)px\\)/);
+        const blur = blurM ? parseFloat(blurM[1]) : 0;
+        const radius = parseFloat(cs.borderRadius) || 0;
+        const r = el.getBoundingClientRect();
+        const big = r.width >= vw * 0.25 && r.height >= vh * 0.2;
+        const orby = radius >= Math.min(r.width, r.height) * 0.4 || cs.borderRadius === "50%" || /9999px/.test(cs.borderRadius);
+        const positioned = cs.position === "absolute" || cs.position === "fixed";
+        if (blur >= 24 && big) {
+          blobs++;
+        } else if (positioned && orby && big && /(radial|conic)-gradient/.test(bgImg)) {
+          blobs++;
+        } else continue;
+        if (samples.length < 3) samples.push({ blur: Math.round(blur), radius: cs.borderRadius });
+      }
+      return { blobs, samples, triggered: blobs >= 2 };
+    })(ctx);
+    } catch (e) {
+      signals["aurora_mesh_gradient"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["ai_sparkle_badges"] = ((ctx) => {
+      const { visible } = ctx;
+      const sparkleEmoji = /[\\u2728\\u2729\\u2734\\u2735]|\\uD83C\\uDF1F|\\uD83E\\uDE84/;
+      const magicWord = /\\b(ai|magic|generate|powered by ai|with ai|smart)\\b/i;
+      let emojiHits = 0, svgHits = 0;
+      const samples = [];
+      for (const el of visible) {
+        const txt = (el.textContent || "").trim();
+        if (txt && txt.length <= 40 && sparkleEmoji.test(txt) && el.children.length <= 1) {
+          emojiHits++;
+          if (samples.length < 3) samples.push(txt.slice(0, 30));
+          continue;
+        }
+        const attrs = (el.getAttribute && (el.getAttribute("class") || "") + " " + (el.getAttribute("aria-label") || "") + " " + (el.getAttribute("data-icon") || "") || "").toLowerCase();
+        if (/sparkle|sparkles|magic-wand|wand-sparkles/.test(attrs)) {
+          const near = (el.closest('button, a, label, [role="button"]') || el).textContent || "";
+          svgHits += magicWord.test(near) ? 1 : 0.5;
+        }
+      }
+      const total = emojiHits + svgHits;
+      return {
+        emojiHits,
+        svgHits,
+        samples,
+        triggered: total >= 1 && (emojiHits >= 1 || svgHits >= 1)
+      };
+    })(ctx);
+    } catch (e) {
+      signals["ai_sparkle_badges"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["cream_default_bg"] = ((ctx) => {
+      const { parseColor } = ctx;
+      function isCream(c) {
+        if (!c || c.a < 0.5) return false;
+        if (Math.min(c.r, c.g, c.b) < 209) return false;
+        if (!(c.r >= c.g && c.g >= c.b)) return false;
+        const warmth = c.r - c.b;
+        return warmth >= 6 && warmth <= 48;
+      }
+      const bodyBg = parseColor(getComputedStyle(document.body).backgroundColor);
+      const htmlBg = parseColor(getComputedStyle(document.documentElement).backgroundColor);
+      let surface = bodyBg && bodyBg.a >= 0.5 ? bodyBg : htmlBg;
+      if (!surface || surface.a < 0.5 || !isCream(surface) && Math.min(surface.r, surface.g, surface.b) >= 250) {
+        const wrappers = Array.from(document.body.children).slice(0, 8);
+        for (const w of wrappers) {
+          try {
+            const r = w.getBoundingClientRect();
+            if (r.width >= window.innerWidth * 0.8 && r.height >= window.innerHeight * 0.5) {
+              const wc = parseColor(getComputedStyle(w).backgroundColor);
+              if (wc && wc.a >= 0.5 && isCream(wc)) {
+                surface = wc;
+                break;
+              }
+            }
+          } catch {
+          }
+        }
+      }
+      const cream = isCream(surface);
+      const hex = surface ? "#" + [surface.r, surface.g, surface.b].map((v) => Math.round(v).toString(16).padStart(2, "0")).join("") : null;
+      return { surface: hex, triggered: cream };
+    })(ctx);
+    } catch (e) {
+      signals["cream_default_bg"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["low_contrast_text"] = ((ctx) => {
+      const {
+        visible,
+        parseColor,
+        contrastRatio,
+        relativeLuminance,
+        channelSpread,
+        effectiveBackground
+      } = ctx;
+      const BODY = /^(p|li|span|dd|blockquote|figcaption|small)$/i;
+      let fails = 0, checked = 0;
+      const samples = [];
+      const seen = /* @__PURE__ */ new Set();
+      for (const el of visible) {
+        if (seen.has(el)) continue;
+        if (!BODY.test(el.tagName)) continue;
+        if (el.closest('a, button, [role="button"], nav, header')) continue;
+        const direct = Array.from(el.childNodes).filter((n) => n.nodeType === 3).map((n) => n.textContent.trim()).join(" ").trim();
+        if (direct.length < 20) continue;
+        seen.add(el);
+        const cs = getComputedStyle(el);
+        const fontSize = parseFloat(cs.fontSize) || 16;
+        if (fontSize >= 24) continue;
+        const fg = parseColor(cs.color);
+        if (!fg || fg.a < 0.5) continue;
+        const bg = effectiveBackground(el);
+        if (!bg || bg._approx) continue;
+        const bgLum = relativeLuminance(bg);
+        if (bgLum < 0.6) continue;
+        if (channelSpread(fg) >= 40) continue;
+        checked++;
+        const ratio = contrastRatio(fg, bg);
+        if (ratio < 4.5) {
+          fails++;
+          if (samples.length < 3) {
+            samples.push({ text: direct.slice(0, 30), ratio: +ratio.toFixed(2), floor: 4.5 });
+          }
+        }
+        if (checked >= 400) break;
+      }
+      const ratioFail = checked ? fails / checked : 0;
+      const triggered = checked >= 4 && fails >= 4 && ratioFail >= 0.25;
+      return { fails, checked, ratioFail: +ratioFail.toFixed(3), samples, triggered };
+    })(ctx);
+    } catch (e) {
+      signals["low_contrast_text"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["crushed_tracking"] = ((ctx) => {
+      const { visible } = ctx;
+      let count = 0;
+      const samples = [];
+      for (const el of visible) {
+        const txt = (el.textContent || "").trim();
+        if (txt.length < 3 || txt.length > 80) continue;
+        const cs = getComputedStyle(el);
+        const fontSize = parseFloat(cs.fontSize) || 16;
+        if (fontSize < 28) continue;
+        const ls = parseFloat(cs.letterSpacing);
+        if (isNaN(ls)) continue;
+        const em = ls / fontSize;
+        if (em <= -0.05) {
+          count++;
+          if (samples.length < 3) {
+            samples.push({ text: txt.slice(0, 30), em: +em.toFixed(3), px: +ls.toFixed(1) });
+          }
+        }
+      }
+      return { count, samples, triggered: count >= 1 };
+    })(ctx);
+    } catch (e) {
+      signals["crushed_tracking"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["gray_on_color"] = ((ctx) => {
+      const { visible, parseColor, rgbToHsl, channelSpread, effectiveBackground } = ctx;
+      function isMidGreyText(c) {
+        if (!c || c.a < 0.5) return false;
+        if (channelSpread(c) >= 20) return false;
+        const hsl = rgbToHsl(c);
+        if (!hsl) return false;
+        return hsl.l > 0.3 && hsl.l < 0.75;
+      }
+      let count = 0;
+      const samples = [];
+      const seen = /* @__PURE__ */ new Set();
+      for (const el of visible) {
+        if (seen.has(el)) continue;
+        if (el.closest('a, button, [role="button"]')) continue;
+        const direct = Array.from(el.childNodes).filter((n) => n.nodeType === 3).map((n) => n.textContent.trim()).join(" ").trim();
+        if (direct.length < 12) continue;
+        seen.add(el);
+        const cs = getComputedStyle(el);
+        const fg = parseColor(cs.color);
+        if (!isMidGreyText(fg)) continue;
+        const bg = effectiveBackground(el);
+        if (!bg || bg._approx) continue;
+        if (channelSpread(bg) < 40) continue;
+        count++;
+        if (samples.length < 3) samples.push({ text: direct.slice(0, 30) });
+        if (count >= 50) break;
+      }
+      return { count, samples, triggered: count >= 3 };
+    })(ctx);
+    } catch (e) {
+      signals["gray_on_color"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["oversized_hero_h1"] = ((ctx) => {
+      const { h1 } = ctx;
+      if (!h1) return { triggered: false };
+      const cs = getComputedStyle(h1);
+      const fontSize = parseFloat(cs.fontSize) || 0;
+      const text = (h1.textContent || "").trim();
+      const triggered = fontSize >= 72 && text.length >= 40;
+      return {
+        fontSize: Math.round(fontSize),
+        chars: text.length,
+        text: text.slice(0, 60),
+        triggered
+      };
+    })(ctx);
+    } catch (e) {
+      signals["oversized_hero_h1"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["nested_cards"] = ((ctx) => {
+      const { visible } = ctx;
+      const SKIP = /^(input|select|textarea|img|video|canvas|picture|pre|code|svg|button|a|nav|li)$/i;
+      function isCardLike(el) {
+        const tag = el.tagName.toLowerCase();
+        if (SKIP.test(tag)) return false;
+        const cs = getComputedStyle(el);
+        if (cs.position === "absolute" || cs.position === "fixed") return false;
+        const cls = (el.getAttribute("class") || "").toLowerCase();
+        if (/(dropdown|popover|tooltip|menu|modal|dialog|overlay)/.test(cls)) return false;
+        if ((el.textContent || "").trim().length < 10) return false;
+        const r = el.getBoundingClientRect();
+        if (r.width < 50 || r.height < 30) return false;
+        const hasShadow = cs.boxShadow && cs.boxShadow !== "none";
+        const hasBorder = parseFloat(cs.borderTopWidth) > 0 || parseFloat(cs.borderLeftWidth) > 0 || /\\bborder\\b/.test(cls);
+        const radius = parseFloat(cs.borderRadius) || 0;
+        const hasRadius = radius > 0;
+        const bg = cs.backgroundColor;
+        const hasBg = bg && bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent";
+        return (hasShadow || hasBorder) && (hasRadius || hasBg);
+      }
+      function inTransformedFrame(el) {
+        let a = el.parentElement, g = 0;
+        while (a && g++ < 20) {
+          const cs = getComputedStyle(a);
+          if (cs.transform !== "none" || cs.perspective !== "none") return true;
+          a = a.parentElement;
+        }
+        return false;
+      }
+      const cards = [];
+      for (const el of visible) {
+        try {
+          if (isCardLike(el)) cards.push(el);
+        } catch {
+        }
+      }
+      const cardSet = new Set(cards);
+      let nested = 0;
+      const samples = [];
+      for (const el of cards) {
+        let anc = el.parentElement, hasCardAncestor = false;
+        let guard = 0;
+        while (anc && guard++ < 30) {
+          if (cardSet.has(anc)) {
+            hasCardAncestor = true;
+            break;
+          }
+          anc = anc.parentElement;
+        }
+        if (!hasCardAncestor) continue;
+        let containsCard = false;
+        for (const other of cards) {
+          if (other !== el && el.contains(other)) {
+            containsCard = true;
+            break;
+          }
+        }
+        if (containsCard) continue;
+        if (inTransformedFrame(el)) continue;
+        nested++;
+        if (samples.length < 3) {
+          samples.push((el.getAttribute("class") || el.tagName.toLowerCase()).slice(0, 40));
+        }
+      }
+      return { nested, samples, triggered: nested >= 3 };
+    })(ctx);
+    } catch (e) {
+      signals["nested_cards"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["wide_body_tracking"] = ((ctx) => {
+      const { visible } = ctx;
+      const BODY = /^(p|li|td|dd|blockquote|figcaption)$/i;
+      let count = 0;
+      const samples = [];
+      for (const el of visible) {
+        if (!BODY.test(el.tagName)) continue;
+        const txt = (el.textContent || "").trim();
+        if (txt.length < 40) continue;
+        const cs = getComputedStyle(el);
+        if (cs.textTransform === "uppercase") continue;
+        const fontSize = parseFloat(cs.fontSize) || 16;
+        const ls = parseFloat(cs.letterSpacing);
+        if (isNaN(ls)) continue;
+        const em = ls / fontSize;
+        if (em > 0.05) {
+          count++;
+          if (samples.length < 3) samples.push({ em: +em.toFixed(3), text: txt.slice(0, 30) });
+        }
+      }
+      return { count, samples, triggered: count >= 1 };
+    })(ctx);
+    } catch (e) {
+      signals["wide_body_tracking"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["flat_type_hierarchy"] = ((ctx) => {
+      const { visible } = ctx;
+      const TEXTY = /^(h1|h2|h3|h4|h5|h6|p|span|a|li|td|th|label|button|div)$/i;
+      const sizes = /* @__PURE__ */ new Set();
+      for (const el of visible) {
+        if (!TEXTY.test(el.tagName)) continue;
+        const txt = (el.textContent || "").trim();
+        if (txt.length < 2) continue;
+        const fs = Math.round(parseFloat(getComputedStyle(el).fontSize));
+        if (fs >= 8 && fs < 200) sizes.add(fs);
+      }
+      const arr = [...sizes];
+      if (arr.length < 3) return { distinct: arr.length, triggered: false };
+      const ratio = Math.max(...arr) / Math.min(...arr);
+      return {
+        distinct: arr.length,
+        ratio: +ratio.toFixed(2),
+        min: Math.min(...arr),
+        max: Math.max(...arr),
+        triggered: ratio < 2
+      };
+    })(ctx);
+    } catch (e) {
+      signals["flat_type_hierarchy"] = { triggered: false, error: e.message };
+    }
+
+    // Copy axis: extract page text in-DOM (scored caller-side by scoreCopy).
+    const extractTextContext = function extractTextContext() {
+  function visibleText(root) {
+    if (!root) return "";
+    var t = root.innerText != null ? root.innerText : root.textContent;
+    return (t || "").replace(/\\u00AD/g, "");
+  }
+  var main = document.querySelector('main, article, [role="main"]') || document.body;
+  var clone = main.cloneNode(true);
+  var strip = clone.querySelectorAll(
+    'nav, footer, header, script, style, noscript, svg, code, pre, [aria-hidden="true"]'
+  );
+  for (var i = 0; i < strip.length; i++) {
+    if (strip[i].parentNode) strip[i].parentNode.removeChild(strip[i]);
+  }
+  var text = visibleText(clone).trim();
+  var headings = [];
+  var hs = clone.querySelectorAll("h1, h2, h3, h4, li, dt");
+  for (var j = 0; j < hs.length && headings.length < 200; j++) {
+    var ht = (hs[j].innerText || hs[j].textContent || "").trim();
+    if (ht) headings.push(ht.slice(0, 200));
+  }
+  var paragraphs = [];
+  var ps = clone.querySelectorAll("p");
+  for (var k = 0; k < ps.length && paragraphs.length < 200; k++) {
+    var pt = (ps[k].innerText || ps[k].textContent || "").trim();
+    if (pt) paragraphs.push(pt.slice(0, 400));
+  }
+  var words = text ? text.split(/\\s+/).filter(Boolean) : [];
+  return {
+    text: text.slice(0, 2e5),
+    // cap to keep payloads sane
+    headings,
+    paragraphs,
+    wordCount: words.length
+  };
+};
+    let textContext = null;
+    try { textContext = extractTextContext(); } catch (e) { textContext = { error: e.message }; }
+
+    // System axis: observe fonts/colors/radii (scored caller-side).
+    let systemContext = null;
+    
+
+    return {
+      title: document.title,
+      url: location.href,
+      viewport: { w: window.innerWidth, h: window.innerHeight },
+      docHeight: document.documentElement.scrollHeight,
+      h1Text: h1 ? h1.textContent.trim().slice(0, 120) : null,
+      h1Font: h1 ? getComputedStyle(h1).fontFamily : null,
+      visibleCount: visible.length,
+      signals,
+      textContext,
+      systemContext
+    };
+  })();"
+`;
+
+exports[`buildPageScript with includeSystem injects system axis extractor 1`] = `
+"(() => {
+    // Polyfill esbuild's __name helper (wrangler bundles named fns wrapped with it).
+    const __name = (fn) => fn;
+    function createColorHelpers() {
+  const _canvas = document.createElement("canvas");
+  _canvas.width = _canvas.height = 1;
+  const _ctx = _canvas.getContext("2d", { willReadFrequently: true });
+  function parseColor(str) {
+    if (!str) return null;
+    const s = String(str).trim();
+    if (!s || s === "transparent" || s === "none") return null;
+    if (/^rgba?\\(\\s*0\\s*,\\s*0\\s*,\\s*0\\s*,\\s*0\\s*\\)/.test(s)) return null;
+    try {
+      _ctx.clearRect(0, 0, 1, 1);
+      _ctx.fillStyle = "#000";
+      _ctx.fillStyle = s;
+      _ctx.fillRect(0, 0, 1, 1);
+      const d = _ctx.getImageData(0, 0, 1, 1).data;
+      return { r: d[0], g: d[1], b: d[2], a: d[3] / 255 };
+    } catch (e) {
+      return null;
+    }
+  }
+  function rgbToHsl(c) {
+    if (!c) return null;
+    const r = c.r / 255, g = c.g / 255, b = c.b / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0, s = 0;
+    const l = (max + min) / 2;
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r:
+          h = (g - b) / d + (g < b ? 6 : 0);
+          break;
+        case g:
+          h = (b - r) / d + 2;
+          break;
+        case b:
+          h = (r - g) / d + 4;
+          break;
+      }
+      h /= 6;
+    }
+    return { h: h * 360, s, l, a: c.a };
+  }
+  function isPurple(c) {
+    if (!c || c.a < 0.25) return false;
+    const hsl = rgbToHsl(c);
+    if (!hsl) return false;
+    return hsl.h >= 240 && hsl.h <= 295 && hsl.s >= 0.35 && hsl.l > 0.15 && hsl.l < 0.85;
+  }
+  function isDark(c) {
+    if (!c) return false;
+    const hsl = rgbToHsl(c);
+    return hsl ? hsl.l < 0.25 : false;
+  }
+  function isMidGrey(c) {
+    if (!c) return false;
+    const hsl = rgbToHsl(c);
+    if (!hsl) return false;
+    return hsl.s < 0.15 && hsl.l > 0.35 && hsl.l < 0.75;
+  }
+  function relativeLuminance(c) {
+    if (!c) return 0;
+    const lin = [c.r, c.g, c.b].map((v) => {
+      const s = v / 255;
+      return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
+  }
+  function contrastRatio(c1, c2) {
+    const l1 = relativeLuminance(c1);
+    const l2 = relativeLuminance(c2);
+    return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+  }
+  function channelSpread(c) {
+    if (!c) return 0;
+    return Math.max(c.r, c.g, c.b) - Math.min(c.r, c.g, c.b);
+  }
+  function isNeutral(c) {
+    if (!c || c.a < 0.05) return true;
+    return channelSpread(c) < 30;
+  }
+  function effectiveBackground(el) {
+    let node = el;
+    let guard = 0;
+    while (node && node.nodeType === 1 && guard++ < 40) {
+      const cs = getComputedStyle(node);
+      const bg = parseColor(cs.backgroundColor);
+      if (bg && bg.a >= 0.5) return bg;
+      const img = cs.backgroundImage || "";
+      if (img && img !== "none" && /gradient|url\\(/.test(img)) {
+        const stop = img.match(/rgba?\\([^)]+\\)|#[0-9a-fA-F]{3,8}/);
+        if (stop) {
+          const sc = parseColor(stop[0]);
+          if (sc && sc.a >= 0.5) return sc;
+        }
+        return { r: 255, g: 255, b: 255, a: 1, _approx: true };
+      }
+      node = node.parentElement;
+    }
+    return { r: 255, g: 255, b: 255, a: 1 };
+  }
+  return {
+    parseColor,
+    rgbToHsl,
+    isPurple,
+    isDark,
+    isMidGrey,
+    relativeLuminance,
+    contrastRatio,
+    channelSpread,
+    isNeutral,
+    effectiveBackground
+  };
+}
+    function createVisibilityHelpers() {
+  function isVisible(el) {
+    if (!el || !(el instanceof Element)) return false;
+    const cs = getComputedStyle(el);
+    if (cs.display === "none" || cs.visibility === "hidden") return false;
+    if (parseFloat(cs.opacity) === 0) return false;
+    const r = el.getBoundingClientRect();
+    if (r.width < 4 || r.height < 4) return false;
+    return true;
+  }
+  function getVisible(root, max) {
+    root = root || document.body;
+    max = max || 4e3;
+    const out = [];
+    const all = root.querySelectorAll("*");
+    for (let i = 0; i < all.length && out.length < max; i++) {
+      if (isVisible(all[i])) out.push(all[i]);
+    }
+    return out;
+  }
+  function inViewport(el) {
+    const r = el.getBoundingClientRect();
+    return r.top < window.innerHeight && r.bottom > 0 && r.left < window.innerWidth && r.right > 0;
+  }
+  function inHero(el) {
+    const r = el.getBoundingClientRect();
+    return r.top < 900 && r.top > -100;
+  }
+  return { isVisible, getVisible, inViewport, inHero };
+}
+    function isSlopFont(family) {
+  if (!family) return false;
+  const f = String(family).toLowerCase().replace(/['"]/g, "");
+  const first = f.split(",")[0].trim();
+  return SLOP_FONT_PREFIXES.some((p) => first.startsWith(p));
+}
+    function isAccentSerif(family) {
+  if (!family) return false;
+  const f = String(family).toLowerCase().replace(/['"]/g, "");
+  const first = f.split(",")[0].trim();
+  return ACCENT_SERIF_PREFIXES.some((p) => first.startsWith(p));
+}
+    const SLOP_FONT_PREFIXES = ["inter","geist","space grotesk","space-grotesk","instrument serif","instrument-serif","general sans","general-sans","satoshi","plus jakarta sans","plus-jakarta","plus jakarta","manrope","dm sans","dm-sans","cal sans","cal-sans","switzer","clash display","clash-display"];
+    const ACCENT_SERIF_PREFIXES = ["instrument serif","instrument-serif","fraunces","playfair","lora","ibm plex serif","spectral","tinos","cormorant"];
+
+    const colorHelpers = createColorHelpers();
+    const visHelpers = createVisibilityHelpers();
+    const visible = visHelpers.getVisible(document.body, 4000);
+
+    let h1 = null;
+    for (const el of document.querySelectorAll('h1')) {
+      if (visHelpers.isVisible(el)) { h1 = el; break; }
+    }
+
+    const ctx = {
+      visible, h1,
+      parseColor: colorHelpers.parseColor,
+      rgbToHsl: colorHelpers.rgbToHsl,
+      isPurple: colorHelpers.isPurple,
+      isDark: colorHelpers.isDark,
+      isMidGrey: colorHelpers.isMidGrey,
+      relativeLuminance: colorHelpers.relativeLuminance,
+      contrastRatio: colorHelpers.contrastRatio,
+      channelSpread: colorHelpers.channelSpread,
+      effectiveBackground: colorHelpers.effectiveBackground,
+      isSlopFont, isAccentSerif,
+      SLOP_FONT_PREFIXES, ACCENT_SERIF_PREFIXES,
+      // inHero is consumed by the declarative rules engine for heroOnly specs.
+      // isVisible / inViewport / isNeutral were never consumed by any pattern,
+      // so they are omitted (the visible array is already pre-filtered).
+      inHero: visHelpers.inHero
+    };
+
+    const signals = {};
+    
+    try {
+      signals["slop_fonts"] = ((ctx) => {
+      const { visible, isSlopFont: isSlopFont2, isAccentSerif: isAccentSerif2, h1 } = ctx;
+      let slopCount = 0, total = 0, accentSerifWords = 0;
+      const seen = /* @__PURE__ */ new Set();
+      for (const el of visible) {
+        if (!el.textContent || !el.textContent.trim()) continue;
+        const fam = getComputedStyle(el).fontFamily;
+        if (!fam || seen.has(el)) continue;
+        seen.add(el);
+        total++;
+        if (isSlopFont2(fam)) slopCount++;
+        if (isAccentSerif2(fam) && /italic|oblique/.test(getComputedStyle(el).fontStyle)) {
+          accentSerifWords++;
+        }
+      }
+      const heroFam = h1 ? getComputedStyle(h1).fontFamily : "";
+      const heroIsSlop = isSlopFont2(heroFam);
+      const ratio = total ? slopCount / total : 0;
+      return {
+        slopCount,
+        total,
+        ratio: +ratio.toFixed(3),
+        heroIsSlop,
+        heroFam,
+        accentSerifItalicCount: accentSerifWords,
+        triggered: heroIsSlop || ratio >= 0.6 || accentSerifWords > 0
+      };
+    })(ctx);
+    } catch (e) {
+      signals["slop_fonts"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["purple_accent"] = ((ctx) => {
+      const { visible, parseColor, isPurple } = ctx;
+      let purpleEls = 0, filledCtas = 0;
+      const samples = [];
+      for (const el of visible) {
+        const cs = getComputedStyle(el);
+        const bg = parseColor(cs.backgroundColor);
+        const bgImg = cs.backgroundImage || "";
+        const border = parseColor(cs.borderColor);
+        let purp = false, gradPurp = false;
+        if (isPurple(bg)) purp = true;
+        if (isPurple(border) && parseFloat(cs.borderWidth) > 0) purp = true;
+        if (bgImg.includes("gradient")) {
+          const m = bgImg.match(/rgba?\\([^)]+\\)|#[0-9a-f]{3,8}/gi) || [];
+          for (const c of m) {
+            if (isPurple(parseColor(c))) {
+              gradPurp = true;
+              break;
+            }
+          }
+          if (gradPurp) purp = true;
+        }
+        if (!purp) continue;
+        purpleEls++;
+        const cls = (el.className || "") + "";
+        const isCta = /^(A|BUTTON)$/.test(el.tagName) || /btn|button|cta/i.test(cls);
+        if (!isCta) continue;
+        if (/outline|ghost/i.test(cls)) continue;
+        const filled = bg && bg.a >= 0.5 && isPurple(bg) || gradPurp && (!bg || bg.a < 0.1);
+        if (filled) {
+          filledCtas++;
+          if (samples.length < 2) samples.push({ tag: el.tagName, bg: cs.backgroundColor });
+        }
+      }
+      return { purpleEls, filledCtas, samples, triggered: filledCtas >= 1 };
+    })(ctx);
+    } catch (e) {
+      signals["purple_accent"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["gradient_text"] = ((ctx) => {
+      const { visible, h1 } = ctx;
+      let count = 0;
+      let heroHasGradient = false;
+      for (const el of visible) {
+        const cs = getComputedStyle(el);
+        const clip = cs.webkitBackgroundClip || cs.backgroundClip;
+        if (clip === "text" && /gradient\\(/.test(cs.backgroundImage || "")) {
+          count++;
+          if (el === h1) heroHasGradient = true;
+        }
+      }
+      if (h1 && !heroHasGradient) {
+        const cs = getComputedStyle(h1);
+        const clip = cs.webkitBackgroundClip || cs.backgroundClip;
+        if (clip === "text" && /gradient\\(/.test(cs.backgroundImage || "")) {
+          heroHasGradient = true;
+        }
+      }
+      return { count, heroHasGradient, triggered: count > 0 || heroHasGradient };
+    })(ctx);
+    } catch (e) {
+      signals["gradient_text"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["gradient_backgrounds"] = ((ctx) => {
+      const { visible } = ctx;
+      let n = 0, conic = 0;
+      for (const el of visible) {
+        const cs = getComputedStyle(el);
+        const bgImg = cs.backgroundImage || "";
+        if (/gradient\\(/.test(bgImg)) {
+          const rgba = bgImg.match(/rgba?\\(\\s*\\d+\\s*,\\s*\\d+\\s*,\\s*\\d+(?:\\s*,\\s*([\\d.]+))?\\s*\\)/g);
+          let hasOpaqueStop = !rgba;
+          if (rgba) {
+            for (const r of rgba) {
+              const a = r.match(/,\\s*([\\d.]+)\\s*\\)/);
+              if (!a || parseFloat(a[1]) > 0.05) {
+                hasOpaqueStop = true;
+                break;
+              }
+            }
+          }
+          if (hasOpaqueStop) {
+            n++;
+            if (/conic-gradient/.test(bgImg)) conic++;
+          }
+        }
+      }
+      return { bgElements: n, conic, triggered: n >= 5 };
+    })(ctx);
+    } catch (e) {
+      signals["gradient_backgrounds"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["accent_stripe"] = ((ctx) => {
+      const { visible, parseColor } = ctx;
+      let stripeCards = 0;
+      for (const el of visible) {
+        const cs = getComputedStyle(el);
+        const r = el.getBoundingClientRect();
+        if (r.width < 100 || r.height < 60) continue;
+        const widths = {
+          top: parseFloat(cs.borderTopWidth),
+          left: parseFloat(cs.borderLeftWidth),
+          right: parseFloat(cs.borderRightWidth),
+          bottom: parseFloat(cs.borderBottomWidth)
+        };
+        const colors = {
+          top: parseColor(cs.borderTopColor),
+          left: parseColor(cs.borderLeftColor)
+        };
+        const otherMax = Math.max(widths.left, widths.right, widths.bottom);
+        const topStripe = widths.top >= 3 && otherMax < widths.top - 1 && colors.top && colors.top.a > 0.3;
+        const leftStripe = widths.left >= 3 && Math.max(widths.top, widths.right, widths.bottom) < widths.left - 1 && colors.left && colors.left.a > 0.3;
+        if (topStripe || leftStripe) stripeCards++;
+      }
+      return { stripeCards, triggered: stripeCards >= 2 };
+    })(ctx);
+    } catch (e) {
+      signals["accent_stripe"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["glassmorphism"] = ((ctx) => {
+      const { visible, parseColor } = ctx;
+      let glassCount = 0;
+      for (const el of visible) {
+        const cs = getComputedStyle(el);
+        const filter = cs.backdropFilter || cs.webkitBackdropFilter || "";
+        if (!/blur\\(/.test(filter)) continue;
+        const bg = parseColor(cs.backgroundColor);
+        if (bg && bg.a > 0 && bg.a < 0.8) {
+          glassCount++;
+        }
+      }
+      return { glassCount, triggered: glassCount >= 2 };
+    })(ctx);
+    } catch (e) {
+      signals["glassmorphism"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["colored_glows"] = ((ctx) => {
+      const { visible, parseColor, isPurple } = ctx;
+      let glowCount = 0;
+      for (const el of visible) {
+        const cs = getComputedStyle(el);
+        const shadow = cs.boxShadow || "";
+        if (shadow === "none" || !shadow.includes("rgb")) continue;
+        const blurMatch = shadow.match(/\\s(\\d+(?:\\.\\d+)?)px\\s/g) || [];
+        const maxBlur = Math.max(0, ...blurMatch.map((b) => parseFloat(b)));
+        if (maxBlur < 24) continue;
+        const colors = shadow.match(/rgba?\\([^)]+\\)|#[0-9a-f]{3,8}/gi) || [];
+        for (const c of colors) {
+          const col = parseColor(c);
+          if (!col || col.a < 0.1) continue;
+          if (isPurple(col)) {
+            glowCount++;
+            break;
+          }
+          const max = Math.max(col.r, col.g, col.b), min = Math.min(col.r, col.g, col.b);
+          if (max - min > 60 && col.a > 0.2) {
+            glowCount++;
+            break;
+          }
+        }
+      }
+      return { glowCount, triggered: glowCount >= 1 };
+    })(ctx);
+    } catch (e) {
+      signals["colored_glows"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["centered_hero"] = ((ctx) => {
+      const { h1, isSlopFont: isSlopFont2 } = ctx;
+      if (!h1) return { triggered: false, h1Found: false };
+      const cs = getComputedStyle(h1);
+      const fontSize = parseFloat(cs.fontSize);
+      let centered = cs.textAlign === "center";
+      if (!centered && h1.parentElement) {
+        const pcs = getComputedStyle(h1.parentElement);
+        if (pcs.textAlign === "center") centered = true;
+      }
+      if (!centered) {
+        try {
+          const r = h1.getBoundingClientRect();
+          const pr = (h1.parentElement || document.body).getBoundingClientRect();
+          const elCx = r.left + r.width / 2;
+          const prCx = pr.left + pr.width / 2;
+          if (pr.width > 0 && Math.abs(elCx - prCx) / pr.width < 0.12) centered = true;
+        } catch {
+        }
+      }
+      const big = fontSize >= 28;
+      const slopFont = isSlopFont2(cs.fontFamily);
+      const triggered = centered && big && slopFont;
+      return { triggered, fontSize, centered, slopFont, family: cs.fontFamily };
+    })(ctx);
+    } catch (e) {
+      signals["centered_hero"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["hero_eyebrow_pill"] = ((ctx) => {
+      const { h1, parseColor } = ctx;
+      if (!h1) return { triggered: false };
+      const h1Rect = h1.getBoundingClientRect();
+      const candidates = Array.from(document.querySelectorAll("a, div, span, button"));
+      const pillKeywords = /\\b(new|beta|now in|introducing|announcing|just shipped|v\\d+|launching|coming soon|early access|whats new|just landed|just dropped)\\b/i;
+      for (const el of candidates) {
+        const r = el.getBoundingClientRect();
+        if (r.bottom > h1Rect.top || r.bottom < h1Rect.top - 250) continue;
+        if (r.width < 40 || r.width > 500 || r.height > 80) continue;
+        const cs = getComputedStyle(el);
+        const radius = parseFloat(cs.borderRadius);
+        if (!radius || radius < r.height / 3) continue;
+        const txt = (el.textContent || "").trim();
+        if (txt.length < 2 || txt.length > 80) continue;
+        const elCenter = r.left + r.width / 2;
+        const h1Center = h1Rect.left + h1Rect.width / 2;
+        if (Math.abs(elCenter - h1Center) > h1Rect.width / 2) continue;
+        if (pillKeywords.test(txt) || /✨|🚀|⚡/.test(txt)) {
+          return { triggered: true, text: txt.slice(0, 60), radius };
+        }
+      }
+      return { triggered: false };
+    })(ctx);
+    } catch (e) {
+      signals["hero_eyebrow_pill"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["all_caps_labels"] = ((ctx) => {
+      const { visible } = ctx;
+      let count = 0;
+      const samples = [];
+      for (const el of visible) {
+        const cs = getComputedStyle(el);
+        if (cs.textTransform !== "uppercase") continue;
+        const txt = (el.textContent || "").trim();
+        if (txt.length < 3 || txt.length > 40) continue;
+        const ls = parseFloat(cs.letterSpacing);
+        if (isNaN(ls) || ls < 0.5) continue;
+        count++;
+        if (samples.length < 3) samples.push(txt.slice(0, 30));
+      }
+      return { count, samples, triggered: count >= 2 };
+    })(ctx);
+    } catch (e) {
+      signals["all_caps_labels"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["perma_dark_mode"] = ((ctx) => {
+      const { parseColor, isDark, isMidGrey } = ctx;
+      const cand = [];
+      cand.push(parseColor(getComputedStyle(document.documentElement).backgroundColor));
+      cand.push(parseColor(getComputedStyle(document.body).backgroundColor));
+      const topWrappers = Array.from(document.body.children).slice(0, 8);
+      for (const w of topWrappers) {
+        try {
+          const r = w.getBoundingClientRect();
+          if (r.width >= window.innerWidth * 0.8 && r.height >= window.innerHeight * 0.5) {
+            cand.push(parseColor(getComputedStyle(w).backgroundColor));
+          }
+        } catch {
+        }
+      }
+      try {
+        const el = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
+        if (el) cand.push(parseColor(getComputedStyle(el).backgroundColor));
+      } catch {
+      }
+      let bodyBg = null;
+      for (const c of cand) {
+        if (c && c.a >= 0.5) {
+          bodyBg = c;
+          break;
+        }
+      }
+      const dark = isDark(bodyBg);
+      if (!dark) return { triggered: false, bodyDark: false };
+      const ps = document.querySelectorAll("p, li, span");
+      let greys = 0, total = 0;
+      for (const p of ps) {
+        const cs = getComputedStyle(p);
+        if (cs.display === "none" || cs.visibility === "hidden") continue;
+        const txt = (p.textContent || "").trim();
+        if (txt.length < 6) continue;
+        total++;
+        if (isMidGrey(parseColor(cs.color))) greys++;
+        if (total >= 200) break;
+      }
+      const ratio = total ? greys / total : 0;
+      const triggered = dark && (ratio >= 0.3 || total >= 5);
+      return {
+        bodyDark: true,
+        greyParas: greys,
+        totalParas: total,
+        ratio: +ratio.toFixed(2),
+        triggered
+      };
+    })(ctx);
+    } catch (e) {
+      signals["perma_dark_mode"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["icon_card_grid"] = ((ctx) => {
+      const { visible } = ctx;
+      const groups = /* @__PURE__ */ new Map();
+      for (const el of visible) {
+        const parent = el.parentElement;
+        if (!parent) continue;
+        getComputedStyle(el);
+        const r = el.getBoundingClientRect();
+        if (r.width < 150 || r.width > 600 || r.height < 100 || r.height > 600) continue;
+        const icon = el.querySelector(
+          ":scope > svg, :scope > img, :scope > div > svg, :scope > div > img"
+        );
+        if (!icon) continue;
+        const ir = icon.getBoundingClientRect();
+        if (ir.width > 80 || ir.height > 80) continue;
+        if (ir.top > r.top + r.height * 0.4) continue;
+        const key = parent.tagName + ":" + Math.round(r.width / 20);
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(el);
+      }
+      let maxGroup = 0;
+      for (const arr of groups.values()) if (arr.length > maxGroup) maxGroup = arr.length;
+      return { maxGroupSize: maxGroup, triggered: maxGroup >= 3 };
+    })(ctx);
+    } catch (e) {
+      signals["icon_card_grid"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["numbered_steps"] = ((ctx) => {
+      const { visible } = ctx;
+      const numberPat = /^(?:step\\s*)?(\\d{1,2})(?:[.):]|\\s*[—-])?\\s*/i;
+      const parents = /* @__PURE__ */ new Map();
+      for (const el of visible) {
+        const txt = (el.textContent || "").trim();
+        const m = txt.match(numberPat);
+        if (!m) continue;
+        const n = parseInt(m[1], 10);
+        if (n < 1 || n > 9) continue;
+        if (!el.parentElement) continue;
+        const key = el.parentElement;
+        if (!parents.has(key)) parents.set(key, /* @__PURE__ */ new Set());
+        parents.get(key).add(n);
+      }
+      let bestRun = 0;
+      for (const set of parents.values()) {
+        if (set.has(1) && set.has(2) && set.has(3)) {
+          let run = 3 + (set.has(4) ? 1 : 0) + (set.has(5) ? 1 : 0);
+          if (run > bestRun) bestRun = run;
+        }
+      }
+      return { bestRun, triggered: bestRun >= 3 };
+    })(ctx);
+    } catch (e) {
+      signals["numbered_steps"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["stat_banner"] = ((ctx) => {
+      const { visible } = ctx;
+      const statPat = /^\\$?\\d+[.,]?\\d*\\s*[KMB%+]?\\+?$/i;
+      const candidates = [];
+      for (const el of visible) {
+        const cs = getComputedStyle(el);
+        const fs = parseFloat(cs.fontSize);
+        if (fs < 28) continue;
+        const txt = (el.textContent || "").trim();
+        if (txt.length > 12 || !statPat.test(txt)) continue;
+        candidates.push({ el, top: el.getBoundingClientRect().top, txt });
+      }
+      candidates.sort((a, b) => a.top - b.top);
+      let bestCluster = 0;
+      for (let i = 0; i < candidates.length; i++) {
+        let n = 1;
+        for (let j = i + 1; j < candidates.length; j++) {
+          if (Math.abs(candidates[j].top - candidates[i].top) < 80) n++;
+        }
+        if (n > bestCluster) bestCluster = n;
+      }
+      return { clusterSize: bestCluster, triggered: bestCluster >= 3 };
+    })(ctx);
+    } catch (e) {
+      signals["stat_banner"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["faq_accordion"] = ((ctx) => {
+      const details = document.querySelectorAll("details");
+      let count = 0;
+      const pageHeight = document.documentElement.scrollHeight;
+      for (const d of details) {
+        const r = d.getBoundingClientRect();
+        const absTop = r.top + window.scrollY;
+        if (absTop < pageHeight * 0.4) continue;
+        count++;
+      }
+      let textFaq = false;
+      const h = document.querySelectorAll("h1,h2,h3");
+      for (const el of h) {
+        const t = (el.textContent || "").trim().toLowerCase();
+        if (t === "faq" || t === "frequently asked questions" || t.startsWith("faq")) {
+          textFaq = true;
+          break;
+        }
+      }
+      return {
+        detailsCount: count,
+        hasFaqHeading: textFaq,
+        triggered: count >= 3 || textFaq && count >= 1
+      };
+    })(ctx);
+    } catch (e) {
+      signals["faq_accordion"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["gradient_letter_avatars"] = ((ctx) => {
+      const { visible } = ctx;
+      let count = 0;
+      const samples = [];
+      for (const el of visible) {
+        const cs = getComputedStyle(el);
+        const r = el.getBoundingClientRect();
+        if (r.width < 28 || r.width > 96) continue;
+        if (Math.abs(r.width - r.height) > 8) continue;
+        const radius = parseFloat(cs.borderRadius);
+        if (radius < r.width / 3) continue;
+        const bg = cs.backgroundImage || "";
+        const bgColor = cs.backgroundColor;
+        const hasGradient = /gradient\\(/.test(bg);
+        const hasSolidColor = bgColor && bgColor !== "rgba(0, 0, 0, 0)" && bgColor !== "transparent";
+        if (!hasGradient && !hasSolidColor) continue;
+        const txt = (el.textContent || "").trim();
+        if (txt.length < 1 || txt.length > 3) continue;
+        if (!/^[A-Za-z]{1,3}$/.test(txt)) continue;
+        if (el.querySelector("img, svg[data-photo]")) continue;
+        count++;
+        if (samples.length < 3) samples.push({ initials: txt, size: Math.round(r.width) });
+      }
+      return { count, samples, triggered: count >= 2 };
+    })(ctx);
+    } catch (e) {
+      signals["gradient_letter_avatars"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["bento_grid"] = ((ctx) => {
+      const { visible } = ctx;
+      let best = { children: 0, spanVariety: 0, rounded: 0 };
+      for (const el of visible) {
+        const cs = getComputedStyle(el);
+        if (cs.display !== "grid") continue;
+        const cols = (cs.gridTemplateColumns || "").split(" ").filter(Boolean).length;
+        if (cols < 2) continue;
+        const kids = Array.from(el.children);
+        if (kids.length < 4) continue;
+        const spans = /* @__PURE__ */ new Set();
+        let rounded = 0, sized = 0;
+        for (const k of kids) {
+          const kr = k.getBoundingClientRect();
+          if (kr.width < 80 || kr.height < 60) continue;
+          sized++;
+          const kcs = getComputedStyle(k);
+          const gc = (kcs.gridColumn || "").toString();
+          const m = gc.match(/span\\s+(\\d+)/i);
+          spans.add(m ? parseInt(m[1], 10) : 1);
+          if (parseFloat(kcs.borderRadius) >= 12) rounded++;
+        }
+        if (sized < 4) continue;
+        const score = { children: sized, spanVariety: spans.size, rounded };
+        if (rounded >= 4 && spans.size >= 2 && sized > best.children) best = score;
+      }
+      return {
+        ...best,
+        triggered: best.rounded >= 4 && best.spanVariety >= 2 && best.children >= 5
+      };
+    })(ctx);
+    } catch (e) {
+      signals["bento_grid"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["aurora_mesh_gradient"] = ((ctx) => {
+      const { visible } = ctx;
+      let blobs = 0;
+      const samples = [];
+      const vw = window.innerWidth, vh = window.innerHeight;
+      for (const el of visible) {
+        const cs = getComputedStyle(el);
+        const bgImg = cs.backgroundImage || "";
+        const isGrad = /(radial|conic)-gradient\\(/.test(bgImg) || /linear-gradient\\(/.test(bgImg) && parseFloat(
+          cs.filter && cs.filter.match(/blur\\(([\\d.]+)px\\)/)?.[1] || 0
+        ) > 0;
+        if (!isGrad) continue;
+        const blurM = (cs.filter || "").match(/blur\\(([\\d.]+)px\\)/);
+        const blur = blurM ? parseFloat(blurM[1]) : 0;
+        const radius = parseFloat(cs.borderRadius) || 0;
+        const r = el.getBoundingClientRect();
+        const big = r.width >= vw * 0.25 && r.height >= vh * 0.2;
+        const orby = radius >= Math.min(r.width, r.height) * 0.4 || cs.borderRadius === "50%" || /9999px/.test(cs.borderRadius);
+        const positioned = cs.position === "absolute" || cs.position === "fixed";
+        if (blur >= 24 && big) {
+          blobs++;
+        } else if (positioned && orby && big && /(radial|conic)-gradient/.test(bgImg)) {
+          blobs++;
+        } else continue;
+        if (samples.length < 3) samples.push({ blur: Math.round(blur), radius: cs.borderRadius });
+      }
+      return { blobs, samples, triggered: blobs >= 2 };
+    })(ctx);
+    } catch (e) {
+      signals["aurora_mesh_gradient"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["ai_sparkle_badges"] = ((ctx) => {
+      const { visible } = ctx;
+      const sparkleEmoji = /[\\u2728\\u2729\\u2734\\u2735]|\\uD83C\\uDF1F|\\uD83E\\uDE84/;
+      const magicWord = /\\b(ai|magic|generate|powered by ai|with ai|smart)\\b/i;
+      let emojiHits = 0, svgHits = 0;
+      const samples = [];
+      for (const el of visible) {
+        const txt = (el.textContent || "").trim();
+        if (txt && txt.length <= 40 && sparkleEmoji.test(txt) && el.children.length <= 1) {
+          emojiHits++;
+          if (samples.length < 3) samples.push(txt.slice(0, 30));
+          continue;
+        }
+        const attrs = (el.getAttribute && (el.getAttribute("class") || "") + " " + (el.getAttribute("aria-label") || "") + " " + (el.getAttribute("data-icon") || "") || "").toLowerCase();
+        if (/sparkle|sparkles|magic-wand|wand-sparkles/.test(attrs)) {
+          const near = (el.closest('button, a, label, [role="button"]') || el).textContent || "";
+          svgHits += magicWord.test(near) ? 1 : 0.5;
+        }
+      }
+      const total = emojiHits + svgHits;
+      return {
+        emojiHits,
+        svgHits,
+        samples,
+        triggered: total >= 1 && (emojiHits >= 1 || svgHits >= 1)
+      };
+    })(ctx);
+    } catch (e) {
+      signals["ai_sparkle_badges"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["cream_default_bg"] = ((ctx) => {
+      const { parseColor } = ctx;
+      function isCream(c) {
+        if (!c || c.a < 0.5) return false;
+        if (Math.min(c.r, c.g, c.b) < 209) return false;
+        if (!(c.r >= c.g && c.g >= c.b)) return false;
+        const warmth = c.r - c.b;
+        return warmth >= 6 && warmth <= 48;
+      }
+      const bodyBg = parseColor(getComputedStyle(document.body).backgroundColor);
+      const htmlBg = parseColor(getComputedStyle(document.documentElement).backgroundColor);
+      let surface = bodyBg && bodyBg.a >= 0.5 ? bodyBg : htmlBg;
+      if (!surface || surface.a < 0.5 || !isCream(surface) && Math.min(surface.r, surface.g, surface.b) >= 250) {
+        const wrappers = Array.from(document.body.children).slice(0, 8);
+        for (const w of wrappers) {
+          try {
+            const r = w.getBoundingClientRect();
+            if (r.width >= window.innerWidth * 0.8 && r.height >= window.innerHeight * 0.5) {
+              const wc = parseColor(getComputedStyle(w).backgroundColor);
+              if (wc && wc.a >= 0.5 && isCream(wc)) {
+                surface = wc;
+                break;
+              }
+            }
+          } catch {
+          }
+        }
+      }
+      const cream = isCream(surface);
+      const hex = surface ? "#" + [surface.r, surface.g, surface.b].map((v) => Math.round(v).toString(16).padStart(2, "0")).join("") : null;
+      return { surface: hex, triggered: cream };
+    })(ctx);
+    } catch (e) {
+      signals["cream_default_bg"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["low_contrast_text"] = ((ctx) => {
+      const {
+        visible,
+        parseColor,
+        contrastRatio,
+        relativeLuminance,
+        channelSpread,
+        effectiveBackground
+      } = ctx;
+      const BODY = /^(p|li|span|dd|blockquote|figcaption|small)$/i;
+      let fails = 0, checked = 0;
+      const samples = [];
+      const seen = /* @__PURE__ */ new Set();
+      for (const el of visible) {
+        if (seen.has(el)) continue;
+        if (!BODY.test(el.tagName)) continue;
+        if (el.closest('a, button, [role="button"], nav, header')) continue;
+        const direct = Array.from(el.childNodes).filter((n) => n.nodeType === 3).map((n) => n.textContent.trim()).join(" ").trim();
+        if (direct.length < 20) continue;
+        seen.add(el);
+        const cs = getComputedStyle(el);
+        const fontSize = parseFloat(cs.fontSize) || 16;
+        if (fontSize >= 24) continue;
+        const fg = parseColor(cs.color);
+        if (!fg || fg.a < 0.5) continue;
+        const bg = effectiveBackground(el);
+        if (!bg || bg._approx) continue;
+        const bgLum = relativeLuminance(bg);
+        if (bgLum < 0.6) continue;
+        if (channelSpread(fg) >= 40) continue;
+        checked++;
+        const ratio = contrastRatio(fg, bg);
+        if (ratio < 4.5) {
+          fails++;
+          if (samples.length < 3) {
+            samples.push({ text: direct.slice(0, 30), ratio: +ratio.toFixed(2), floor: 4.5 });
+          }
+        }
+        if (checked >= 400) break;
+      }
+      const ratioFail = checked ? fails / checked : 0;
+      const triggered = checked >= 4 && fails >= 4 && ratioFail >= 0.25;
+      return { fails, checked, ratioFail: +ratioFail.toFixed(3), samples, triggered };
+    })(ctx);
+    } catch (e) {
+      signals["low_contrast_text"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["crushed_tracking"] = ((ctx) => {
+      const { visible } = ctx;
+      let count = 0;
+      const samples = [];
+      for (const el of visible) {
+        const txt = (el.textContent || "").trim();
+        if (txt.length < 3 || txt.length > 80) continue;
+        const cs = getComputedStyle(el);
+        const fontSize = parseFloat(cs.fontSize) || 16;
+        if (fontSize < 28) continue;
+        const ls = parseFloat(cs.letterSpacing);
+        if (isNaN(ls)) continue;
+        const em = ls / fontSize;
+        if (em <= -0.05) {
+          count++;
+          if (samples.length < 3) {
+            samples.push({ text: txt.slice(0, 30), em: +em.toFixed(3), px: +ls.toFixed(1) });
+          }
+        }
+      }
+      return { count, samples, triggered: count >= 1 };
+    })(ctx);
+    } catch (e) {
+      signals["crushed_tracking"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["gray_on_color"] = ((ctx) => {
+      const { visible, parseColor, rgbToHsl, channelSpread, effectiveBackground } = ctx;
+      function isMidGreyText(c) {
+        if (!c || c.a < 0.5) return false;
+        if (channelSpread(c) >= 20) return false;
+        const hsl = rgbToHsl(c);
+        if (!hsl) return false;
+        return hsl.l > 0.3 && hsl.l < 0.75;
+      }
+      let count = 0;
+      const samples = [];
+      const seen = /* @__PURE__ */ new Set();
+      for (const el of visible) {
+        if (seen.has(el)) continue;
+        if (el.closest('a, button, [role="button"]')) continue;
+        const direct = Array.from(el.childNodes).filter((n) => n.nodeType === 3).map((n) => n.textContent.trim()).join(" ").trim();
+        if (direct.length < 12) continue;
+        seen.add(el);
+        const cs = getComputedStyle(el);
+        const fg = parseColor(cs.color);
+        if (!isMidGreyText(fg)) continue;
+        const bg = effectiveBackground(el);
+        if (!bg || bg._approx) continue;
+        if (channelSpread(bg) < 40) continue;
+        count++;
+        if (samples.length < 3) samples.push({ text: direct.slice(0, 30) });
+        if (count >= 50) break;
+      }
+      return { count, samples, triggered: count >= 3 };
+    })(ctx);
+    } catch (e) {
+      signals["gray_on_color"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["oversized_hero_h1"] = ((ctx) => {
+      const { h1 } = ctx;
+      if (!h1) return { triggered: false };
+      const cs = getComputedStyle(h1);
+      const fontSize = parseFloat(cs.fontSize) || 0;
+      const text = (h1.textContent || "").trim();
+      const triggered = fontSize >= 72 && text.length >= 40;
+      return {
+        fontSize: Math.round(fontSize),
+        chars: text.length,
+        text: text.slice(0, 60),
+        triggered
+      };
+    })(ctx);
+    } catch (e) {
+      signals["oversized_hero_h1"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["nested_cards"] = ((ctx) => {
+      const { visible } = ctx;
+      const SKIP = /^(input|select|textarea|img|video|canvas|picture|pre|code|svg|button|a|nav|li)$/i;
+      function isCardLike(el) {
+        const tag = el.tagName.toLowerCase();
+        if (SKIP.test(tag)) return false;
+        const cs = getComputedStyle(el);
+        if (cs.position === "absolute" || cs.position === "fixed") return false;
+        const cls = (el.getAttribute("class") || "").toLowerCase();
+        if (/(dropdown|popover|tooltip|menu|modal|dialog|overlay)/.test(cls)) return false;
+        if ((el.textContent || "").trim().length < 10) return false;
+        const r = el.getBoundingClientRect();
+        if (r.width < 50 || r.height < 30) return false;
+        const hasShadow = cs.boxShadow && cs.boxShadow !== "none";
+        const hasBorder = parseFloat(cs.borderTopWidth) > 0 || parseFloat(cs.borderLeftWidth) > 0 || /\\bborder\\b/.test(cls);
+        const radius = parseFloat(cs.borderRadius) || 0;
+        const hasRadius = radius > 0;
+        const bg = cs.backgroundColor;
+        const hasBg = bg && bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent";
+        return (hasShadow || hasBorder) && (hasRadius || hasBg);
+      }
+      function inTransformedFrame(el) {
+        let a = el.parentElement, g = 0;
+        while (a && g++ < 20) {
+          const cs = getComputedStyle(a);
+          if (cs.transform !== "none" || cs.perspective !== "none") return true;
+          a = a.parentElement;
+        }
+        return false;
+      }
+      const cards = [];
+      for (const el of visible) {
+        try {
+          if (isCardLike(el)) cards.push(el);
+        } catch {
+        }
+      }
+      const cardSet = new Set(cards);
+      let nested = 0;
+      const samples = [];
+      for (const el of cards) {
+        let anc = el.parentElement, hasCardAncestor = false;
+        let guard = 0;
+        while (anc && guard++ < 30) {
+          if (cardSet.has(anc)) {
+            hasCardAncestor = true;
+            break;
+          }
+          anc = anc.parentElement;
+        }
+        if (!hasCardAncestor) continue;
+        let containsCard = false;
+        for (const other of cards) {
+          if (other !== el && el.contains(other)) {
+            containsCard = true;
+            break;
+          }
+        }
+        if (containsCard) continue;
+        if (inTransformedFrame(el)) continue;
+        nested++;
+        if (samples.length < 3) {
+          samples.push((el.getAttribute("class") || el.tagName.toLowerCase()).slice(0, 40));
+        }
+      }
+      return { nested, samples, triggered: nested >= 3 };
+    })(ctx);
+    } catch (e) {
+      signals["nested_cards"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["wide_body_tracking"] = ((ctx) => {
+      const { visible } = ctx;
+      const BODY = /^(p|li|td|dd|blockquote|figcaption)$/i;
+      let count = 0;
+      const samples = [];
+      for (const el of visible) {
+        if (!BODY.test(el.tagName)) continue;
+        const txt = (el.textContent || "").trim();
+        if (txt.length < 40) continue;
+        const cs = getComputedStyle(el);
+        if (cs.textTransform === "uppercase") continue;
+        const fontSize = parseFloat(cs.fontSize) || 16;
+        const ls = parseFloat(cs.letterSpacing);
+        if (isNaN(ls)) continue;
+        const em = ls / fontSize;
+        if (em > 0.05) {
+          count++;
+          if (samples.length < 3) samples.push({ em: +em.toFixed(3), text: txt.slice(0, 30) });
+        }
+      }
+      return { count, samples, triggered: count >= 1 };
+    })(ctx);
+    } catch (e) {
+      signals["wide_body_tracking"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["flat_type_hierarchy"] = ((ctx) => {
+      const { visible } = ctx;
+      const TEXTY = /^(h1|h2|h3|h4|h5|h6|p|span|a|li|td|th|label|button|div)$/i;
+      const sizes = /* @__PURE__ */ new Set();
+      for (const el of visible) {
+        if (!TEXTY.test(el.tagName)) continue;
+        const txt = (el.textContent || "").trim();
+        if (txt.length < 2) continue;
+        const fs = Math.round(parseFloat(getComputedStyle(el).fontSize));
+        if (fs >= 8 && fs < 200) sizes.add(fs);
+      }
+      const arr = [...sizes];
+      if (arr.length < 3) return { distinct: arr.length, triggered: false };
+      const ratio = Math.max(...arr) / Math.min(...arr);
+      return {
+        distinct: arr.length,
+        ratio: +ratio.toFixed(2),
+        min: Math.min(...arr),
+        max: Math.max(...arr),
+        triggered: ratio < 2
+      };
+    })(ctx);
+    } catch (e) {
+      signals["flat_type_hierarchy"] = { triggered: false, error: e.message };
+    }
+
+    // Copy axis: extract page text in-DOM (scored caller-side by scoreCopy).
+    const extractTextContext = function extractTextContext() {
+  function visibleText(root) {
+    if (!root) return "";
+    var t = root.innerText != null ? root.innerText : root.textContent;
+    return (t || "").replace(/\\u00AD/g, "");
+  }
+  var main = document.querySelector('main, article, [role="main"]') || document.body;
+  var clone = main.cloneNode(true);
+  var strip = clone.querySelectorAll(
+    'nav, footer, header, script, style, noscript, svg, code, pre, [aria-hidden="true"]'
+  );
+  for (var i = 0; i < strip.length; i++) {
+    if (strip[i].parentNode) strip[i].parentNode.removeChild(strip[i]);
+  }
+  var text = visibleText(clone).trim();
+  var headings = [];
+  var hs = clone.querySelectorAll("h1, h2, h3, h4, li, dt");
+  for (var j = 0; j < hs.length && headings.length < 200; j++) {
+    var ht = (hs[j].innerText || hs[j].textContent || "").trim();
+    if (ht) headings.push(ht.slice(0, 200));
+  }
+  var paragraphs = [];
+  var ps = clone.querySelectorAll("p");
+  for (var k = 0; k < ps.length && paragraphs.length < 200; k++) {
+    var pt = (ps[k].innerText || ps[k].textContent || "").trim();
+    if (pt) paragraphs.push(pt.slice(0, 400));
+  }
+  var words = text ? text.split(/\\s+/).filter(Boolean) : [];
+  return {
+    text: text.slice(0, 2e5),
+    // cap to keep payloads sane
+    headings,
+    paragraphs,
+    wordCount: words.length
+  };
+};
+    let textContext = null;
+    try { textContext = extractTextContext(); } catch (e) { textContext = { error: e.message }; }
+
+    // System axis: observe fonts/colors/radii (scored caller-side).
+    let systemContext = null;
+    
+    const extractSystemContext = function extractSystemContext() {
+  const out = { fonts: {}, ctas: [], surface: null, headings: [], radii: [] };
+  const seenRadii = /* @__PURE__ */ new Set();
+  const visible = (el) => {
+    if (!el.getClientRects || el.getClientRects().length === 0) return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 1 && r.height > 1;
+  };
+  const els = document.querySelectorAll("body *");
+  let inspected = 0;
+  for (const el of els) {
+    if (inspected >= 2500) break;
+    const tag = el.tagName;
+    if (tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT" || tag === "META" || tag === "LINK" || tag === "SVG" || tag === "PATH")
+      continue;
+    if (!visible(el)) continue;
+    inspected++;
+    const cs = getComputedStyle(el);
+    let hasText = false;
+    for (const n of el.childNodes) {
+      if (n.nodeType === 3 && n.textContent.trim().length > 1) {
+        hasText = true;
+        break;
+      }
+    }
+    if (hasText) {
+      const fam = cs.fontFamily || "";
+      out.fonts[fam] = (out.fonts[fam] || 0) + 1;
+    }
+    const br = parseFloat(cs.borderTopLeftRadius);
+    if (Number.isFinite(br) && br >= 3 && br <= 64 && !seenRadii.has(br)) {
+      seenRadii.add(br);
+      out.radii.push(br);
+    }
+    if ((tag === "A" || tag === "BUTTON") && out.ctas.length < 30) {
+      const bg = cs.backgroundColor || "";
+      const a = bg.match(/rgba?\\([^)]*?,\\s*([\\d.]+)\\)$/);
+      const opaque = bg && bg !== "transparent" && (!a || parseFloat(a[1]) >= 0.5);
+      if (opaque) {
+        out.ctas.push({
+          bg,
+          text: (el.textContent || "").trim().slice(0, 40)
+        });
+      }
+    }
+    if ((tag === "H1" || tag === "H2" || tag === "H3") && out.headings.length < 12) {
+      out.headings.push({ tag, color: cs.color, fontFamily: cs.fontFamily });
+    }
+  }
+  const bodyBg = getComputedStyle(document.body).backgroundColor;
+  const htmlBg = getComputedStyle(document.documentElement).backgroundColor;
+  out.surface = bodyBg && bodyBg !== "rgba(0, 0, 0, 0)" ? bodyBg : htmlBg;
+  return out;
+};
+    try { systemContext = extractSystemContext(); } catch (e) { systemContext = { error: e.message }; }
+    
+
+    return {
+      title: document.title,
+      url: location.href,
+      viewport: { w: window.innerWidth, h: window.innerHeight },
+      docHeight: document.documentElement.scrollHeight,
+      h1Text: h1 ? h1.textContent.trim().slice(0, 120) : null,
+      h1Font: h1 ? getComputedStyle(h1).fontFamily : null,
+      visibleCount: visible.length,
+      signals,
+      textContext,
+      systemContext
+    };
+  })();"
+`;

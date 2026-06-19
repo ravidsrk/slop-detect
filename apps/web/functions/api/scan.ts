@@ -7,17 +7,11 @@
 import { acquireBrowser, releaseBrowser } from '../_browser.js';
 import {
   PATTERNS,
-  createColorHelpers,
-  createVisibilityHelpers,
-  isSlopFont,
-  isAccentSerif,
-  SLOP_FONT_PREFIXES,
-  ACCENT_SERIF_PREFIXES,
+  buildPageScript,
+  detectBlocked,
   scorePatterns,
   applyPreset,
   isPreset,
-  extractTextContext,
-  extractSystemContext,
   parseDesignMd,
   scoreSystemCompliance,
   scoreCopy,
@@ -274,143 +268,4 @@ export async function onRequestPost({ request, env }) {
   } finally {
     await releaseBrowser(browser);
   }
-}
-
-// ── Anti-bot / dead-page heuristics ─────────────────────────────────────────
-function detectBlocked(data, _ctx) {
-  const title = (data?.title || '').trim();
-  const h1 = (data?.h1Text || '').trim();
-  const visibleCount = data?.visibleCount || 0;
-  const signals = data?.signals || {};
-  // Count how many patterns returned ANY non-empty evidence — proxy
-  // for "did the page actually render meaningful DOM?".
-  const patternsWithEvidence = Object.values(signals).filter((s) => {
-    if (!s || typeof s !== 'object') return false;
-    const keys = Object.keys(s).filter((k) => k !== 'triggered' && k !== 'error');
-    return keys.length > 0;
-  }).length;
-
-  // Cloudflare's interstitial keeps an empty <title> long enough that we
-  // sometimes capture it, but more commonly the title is "Just a moment...".
-  const cfMarkers = [
-    'Just a moment...',
-    'Attention Required! | Cloudflare',
-    'Please Wait... | Cloudflare',
-    'Access denied | Cloudflare',
-    'Sorry, you have been blocked',
-  ];
-  if (cfMarkers.some((m) => title.includes(m))) {
-    return {
-      code: 'cloudflare_challenge',
-      reason: 'Site is behind a Cloudflare bot challenge — cannot score automatically.',
-      hint: 'Try a different URL, or use the `slop-detect` CLI locally with a real browser session.',
-    };
-  }
-
-  // Other anti-bot vendors
-  if (/access denied|forbidden|akamai/i.test(title) && visibleCount < 20) {
-    return {
-      code: 'access_blocked',
-      reason: `Site refused the scan (title: "${title.slice(0, 80)}")`,
-      hint: 'The target is blocking automated requests. Try the CLI from your machine.',
-    };
-  }
-
-  // Empty / dead page (no title, no h1, no visible content) — usually means
-  // the page never finished rendering inside the headless runtime, OR the site
-  // is gating content behind a JS auth wall. ChatGPT/Cursor/etc do this.
-  const noContent = !title && !h1;
-  const sparseDom = visibleCount < 10 || patternsWithEvidence < 4;
-  if (noContent || sparseDom) {
-    return {
-      code: 'empty_page',
-      reason: 'Target page rendered no scannable content (no title, no H1, or empty DOM).',
-      hint: 'The site likely requires sign-in, uses heavy client-side hydration, or blocks headless browsers. Try a public marketing URL instead.',
-    };
-  }
-
-  return null;
-}
-
-// ── Page-side script assembler ──────────────────────────────────────────────
-function buildPageScript(opts: any = {}) {
-  const patternCalls = PATTERNS.map(
-    (p) => `
-    try {
-      signals[${JSON.stringify(p.id)}] = (${p.extract.toString()})(ctx);
-    } catch (e) {
-      signals[${JSON.stringify(p.id)}] = { triggered: false, error: e.message };
-    }`
-  ).join('\n');
-
-  return `(() => {
-    // Polyfill esbuild's __name helper (wrangler bundles named fns wrapped with it).
-    const __name = (fn) => fn;
-    ${createColorHelpers.toString()}
-    ${createVisibilityHelpers.toString()}
-    ${isSlopFont.toString()}
-    ${isAccentSerif.toString()}
-    const SLOP_FONT_PREFIXES = ${JSON.stringify(SLOP_FONT_PREFIXES)};
-    const ACCENT_SERIF_PREFIXES = ${JSON.stringify(ACCENT_SERIF_PREFIXES)};
-
-    const colorHelpers = createColorHelpers();
-    const visHelpers = createVisibilityHelpers();
-    const visible = visHelpers.getVisible(document.body, 4000);
-
-    let h1 = null;
-    for (const el of document.querySelectorAll('h1')) {
-      if (visHelpers.isVisible(el)) { h1 = el; break; }
-    }
-
-    const ctx = {
-      visible, h1,
-      parseColor: colorHelpers.parseColor,
-      rgbToHsl: colorHelpers.rgbToHsl,
-      isPurple: colorHelpers.isPurple,
-      isDark: colorHelpers.isDark,
-      isMidGrey: colorHelpers.isMidGrey,
-      relativeLuminance: colorHelpers.relativeLuminance,
-      contrastRatio: colorHelpers.contrastRatio,
-      channelSpread: colorHelpers.channelSpread,
-      effectiveBackground: colorHelpers.effectiveBackground,
-      isSlopFont, isAccentSerif,
-      SLOP_FONT_PREFIXES, ACCENT_SERIF_PREFIXES,
-      // inHero is consumed by the declarative rules engine for heroOnly specs.
-      // isVisible / inViewport / isNeutral were never consumed by any pattern,
-      // so they are omitted (the visible array is already pre-filtered).
-      inHero: visHelpers.inHero
-    };
-
-    const signals = {};
-    ${patternCalls}
-
-    // Copy axis: extract page text in-DOM (scored Worker-side by scoreCopy).
-    const extractTextContext = ${extractTextContext.toString()};
-    let textContext = null;
-    try { textContext = extractTextContext(); } catch (e) { textContext = { error: e.message }; }
-
-    // System axis: observe fonts/colors/radii (scored Worker-side).
-    let systemContext = null;
-    ${
-      opts.includeSystem
-        ? `
-    const extractSystemContext = ${extractSystemContext.toString()};
-    try { systemContext = extractSystemContext(); } catch (e) { systemContext = { error: e.message }; }
-    `
-        : ''
-    }
-
-    return {
-      title: document.title,
-      url: location.href,
-      viewport: { w: window.innerWidth, h: window.innerHeight },
-      docHeight: document.documentElement.scrollHeight,
-      h1Text: h1 ? h1.textContent.trim().slice(0, 120) : null,
-      h1Font: h1 ? getComputedStyle(h1).fontFamily : null,
-      visibleCount: visible.length,
-      signals,
-      textContext,
-      systemContext
-    };
-  })();`;
 }
