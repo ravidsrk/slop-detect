@@ -149,17 +149,71 @@ test('link endpoint never reveals whether an email has watches (anti-enumeration
   const kv = makeKv();
   await seedWatches(kv, [{ domain: 'a.com', email: 'known@x.io' }]);
   const env = { RESULTS: kv, ...LIVE_ENV };
+  const deferred = [];
+  const waitUntil = (task) => deferred.push(task);
 
-  const r1 = await linkPost({ request: postReq({ email: 'known@x.io' }), env });
-  const r2 = await linkPost({ request: postReq({ email: 'unknown@x.io' }), env });
+  const r1 = await linkPost({
+    request: postReq({ email: 'known@x.io' }),
+    env,
+    waitUntil,
+  });
+  const r2 = await linkPost({
+    request: postReq({ email: 'unknown@x.io' }),
+    env,
+    waitUntil,
+  });
   const [b1, b2] = [await r1.json(), await r2.json()];
   expect(r1.status).toBe(r2.status);
   expect(b1, 'identical bodies for known and unknown emails').toEqual(b2);
+
+  expect(deferred.length).toBe(1);
+  await deferred[0];
 
   // …but only the known email actually got a message, with a token link in it.
   expect(sent.length).toBe(1);
   expect(sent[0].to[0]).toBe('known@x.io');
   expect(sent[0].text).toMatch(/\/dashboard\?token=/);
+});
+
+test('link endpoint defers rate-limit work to waitUntil (latency-safe anti-enumeration)', async () => {
+  const kv = makeKv();
+  await seedWatches(kv, [{ domain: 'a.com', email: 'known@x.io' }]);
+  let rateLimitGets = 0;
+  let rateLimitGetsAtWaitUntil = -1;
+  const rateLimitKv = {
+    async get(k) {
+      rateLimitGets += 1;
+      await new Promise((r) => setTimeout(r, 80));
+      return kv.get(k);
+    },
+    async put(k, v, o) {
+      return kv.put(k, v, o);
+    },
+  };
+  const deferred = [];
+  const waitUntil = (task) => {
+    rateLimitGetsAtWaitUntil = rateLimitGets;
+    deferred.push(task);
+  };
+  const env = { RESULTS: kv, RATE_LIMIT: rateLimitKv, ...LIVE_ENV };
+
+  const t0 = performance.now();
+  await linkPost({ request: postReq({ email: 'known@x.io' }), env, waitUntil });
+  const knownMs = performance.now() - t0;
+
+  const t1 = performance.now();
+  await linkPost({ request: postReq({ email: 'unknown@x.io' }), env, waitUntil });
+  const unknownMs = performance.now() - t1;
+
+  expect(
+    rateLimitGetsAtWaitUntil,
+    'RATE_LIMIT not touched when waitUntil is registered'
+  ).toBe(0);
+  expect(Math.abs(knownMs - unknownMs), 'known vs unknown response timing').toBeLessThan(30);
+  expect(deferred.length).toBe(1);
+
+  await deferred[0];
+  expect(rateLimitGets, 'RATE_LIMIT checked only inside deferred send').toBeGreaterThan(0);
 });
 
 test('link endpoint rate-limits magic-link sends per email (anti-bombing)', async () => {
