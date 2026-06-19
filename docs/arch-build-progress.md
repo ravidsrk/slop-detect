@@ -35,8 +35,8 @@ PHASE=FIXING
 PHASE 1 LIVE STATE (grok --inject WORKS; codex needs direct terminal-send of the spec file):
 CLOSED so far (7/15): SEC-1(#70), COST-1(#71), SEC-3(#71), OPS-2(#69), DEP-1(#69), SEC-4(#73), COST-2(#72). BASE @e5aa33e.
 IN-FLIGHT:
-- rel1-browser-reuse [REL-1,REL-2]: PR#74 | grok term_40669fad FIXING round1 (SCAN_DISABLED above /og cache).
-  CRITICAL PATH → on MERGE unblocks cou1.
+- rel1-browser-reuse [REL-1,REL-2]: PR#74 | codex term_06b9e894 RE-REVIEW round2 (fix moved SCAN_DISABLED
+  above /og cache lookup). CRITICAL PATH → on MERGE unblocks cou1.
 QUEUED (scan.ts chain, serial, after rel1 #74 merges): cou1 (foundation) → rel3-dm1-dm2 → sec2 → ops1.
 All 4 parallel lanes CLOSED. Remaining 8 findings = rel1 (in fix) + the serial scan.ts chain.
 NOTE: gh self-review blocked → verdict via worker_done + PR comment (see DECISIONS). Merge: gh pr merge --merge
