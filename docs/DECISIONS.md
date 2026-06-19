@@ -37,7 +37,9 @@ Roles (this run):
 
 Worker launch flags:
 
-- codex: `codex --full-auto`, max reasoning.
+- codex: this build is codex-cli 0.141.0 which has NO `--full-auto` flag. Correct autonomous
+  launch: `codex --ask-for-approval never --sandbox danger-full-access` (full auto, no prompts,
+  network for gh). The directive's `codex --full-auto` is obsolete for this version.
 - grok / claude: auto / skip-permissions, max reasoning tier.
 - All workers fully autonomous; coordinator answers blocking `ask` from DECISION DEFAULTS.
 
