@@ -35,7 +35,7 @@ PHASE=FIXING
 PHASE 1 LIVE STATE (grok --inject WORKS; codex needs direct terminal-send of the spec file):
 CLOSED so far (14/15): SEC-1,COST-1,SEC-3,OPS-2,DEP-1,SEC-4,COST-2,REL-1,REL-2,COU-1,REL-3,DM-1,DM-2,SEC-2. BASE @8f93e93.
 IN-FLIGHT (LAST finding):
-- ops1-report-waituntil [OPS-1]: PR#78 | codex review term_3f374339 | REVIEWING.
+- ops1-report-waituntil [OPS-1]: PR#78 | grok term_92448f17 FIXING round1 — codex caught (1) scan_failed omits navMs/patternsErrored on nav failure, (2) report.test weak (waitUntil not tied to fetch promise). Fix both.
 After OPS-1 merges → T_FINAL writes docs/arch-build-readiness.md (final PR into BASE) → DONE.
 DO-NOT-FIX: CONC-1 (stats-only, accepted).
 NOTE: gh self-review blocked → verdict via worker_done + PR comment (see DECISIONS). Merge: gh pr merge --merge
