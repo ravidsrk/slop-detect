@@ -6,9 +6,9 @@
 
 import { acquireBrowser, releaseBrowser } from '../_browser.js';
 import {
-  PATTERNS,
   buildPageScript,
   detectBlocked,
+  assemblePatternResults,
   scorePatterns,
   applyPreset,
   isPreset,
@@ -16,6 +16,8 @@ import {
   scoreSystemCompliance,
   scoreCopy,
   combineAxes,
+  SCAN_PAGE_WAIT,
+  waitFontsReadyInPage,
 } from '@slop-detect/core';
 import {
   newId,
@@ -87,14 +89,22 @@ export async function onRequestPost({ request, env }) {
     const navStart = Date.now();
     const navResponse = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25000 });
     const finalNavUrl = navResponse?.url() ?? url;
-    // Soft wait for fonts/CSS/above-fold images. Don't fail if it stays busy.
+    // Soft wait for CSS/above-fold images — shared budget with the CLI runner.
     await Promise.race([
-      page.waitForNetworkIdle({ idleTime: 500, timeout: 6000 }).catch(() => {}),
-      new Promise((r) => setTimeout(r, 7000)),
+      page
+        .waitForNetworkIdle({
+          idleTime: SCAN_PAGE_WAIT.networkIdleMs,
+          timeout: SCAN_PAGE_WAIT.networkIdleTimeoutMs,
+        })
+        .catch(() => {}),
+      new Promise((r) => setTimeout(r, SCAN_PAGE_WAIT.totalWaitCapMs)),
     ]);
-    await new Promise((r) => setTimeout(r, 400));
+    await new Promise((r) => setTimeout(r, SCAN_PAGE_WAIT.postNetworkSettleMs));
+    // REL-3: wait for web fonts before scoring (mirrors og/[id].ts).
+    await page.evaluate(waitFontsReadyInPage, SCAN_PAGE_WAIT.fontsReadyTimeoutMs);
     const navMs = Date.now() - navStart;
 
+    const browserVersion = await browser.version();
     const data = await page.evaluate(pageScript);
 
     // SSRF (defense-in-depth): re-validate on the navigation response URL, not
@@ -154,18 +164,10 @@ export async function onRequestPost({ request, env }) {
     }
 
     // Score on the Worker side (patterns metadata lives here, not on the page).
-    const patterns = PATTERNS.map((p) => {
-      const sig = data.signals[p.id] || { triggered: false };
-      return {
-        id: p.id,
-        label: p.label,
-        short: p.short,
-        category: p.category,
-        weight: p.weight,
-        triggered: !!sig.triggered,
-        evidence: sig,
-      };
-    });
+    const { patterns, patternsErrored } = assemblePatternResults(data.signals);
+    if (patternsErrored > 0) {
+      report(env, 'warn', 'pattern_errors', { url, patternsErrored });
+    }
 
     // Optional scoring preset (full|strict|marketing|minimal). All patterns are
     // always extracted (one page eval); the preset only narrows what's scored
@@ -183,6 +185,8 @@ export async function onRequestPost({ request, env }) {
       preset,
       ...scoring, // top-level = DESIGN axis (backward-compatible)
       patterns: scored,
+      patternsErrored,
+      browserVersion,
       screenshot,
       navMs,
     };

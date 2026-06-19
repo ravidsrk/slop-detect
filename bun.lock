@@ -86,7 +86,7 @@
       },
       "dependencies": {
         "@slop-detect/core": "workspace:*",
-        "playwright": "^1.49.0",
+        "playwright": "1.60.0",
       },
     },
     "packages/core": {
