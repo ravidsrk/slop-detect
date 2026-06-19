@@ -33,15 +33,12 @@ PHASE=FIXING
   Both merged into BASE @ce4409e. adv-review worktree + skeptic terminal: to retire.
 
 PHASE 1 LIVE STATE (grok --inject WORKS; codex needs direct terminal-send of the spec file):
-CLOSED so far (6/15): SEC-1 (#70), COST-1 (#71), SEC-3 (#71), OPS-2 (#69), DEP-1 (#69), SEC-4 (#73). BASE @c103e95.
+CLOSED so far (7/15): SEC-1(#70), COST-1(#71), SEC-3(#71), OPS-2(#69), DEP-1(#69), SEC-4(#73), COST-2(#72). BASE @e5aa33e.
 IN-FLIGHT:
-- rel1-browser-reuse [REL-1,REL-2]: PR#74 | grok term_40669fad FIXING round1 — codex confirmed REL-1 +
-  session API + all tests, but caught REL-2 gap (SCAN_DISABLED checked AFTER /og cache lookup → disabled
-  cache-hit serves rendered image). Fix = move kill-switch above cache lookup. (CRITICAL PATH → cou1.)
-- watch-cost2-index [COST-2]: PR#72 | codex term_001ff625 RE-REVIEW round2 (grok moved rate-limit/send into
-  waitUntil to equalize latency; reviewer re-checking timing oracle is gone).
+- rel1-browser-reuse [REL-1,REL-2]: PR#74 | grok term_40669fad FIXING round1 (SCAN_DISABLED above /og cache).
+  CRITICAL PATH → on MERGE unblocks cou1.
 QUEUED (scan.ts chain, serial, after rel1 #74 merges): cou1 (foundation) → rel3-dm1-dm2 → sec2 → ops1.
-All 4 parallel lanes done/closing; remaining work is mostly the serial scan.ts chain (inherent critical path).
+All 4 parallel lanes CLOSED. Remaining 8 findings = rel1 (in fix) + the serial scan.ts chain.
 NOTE: gh self-review blocked → verdict via worker_done + PR comment (see DECISIONS). Merge: gh pr merge --merge
 after worker_done verdict=approve; conflict-check via git merge-tree first; retire worktree after merge.
 PR-open + merge done by me (integrator). Codex reviewer lives in the coder's worktree (node_modules + branch there).
@@ -60,7 +57,7 @@ Serial chain on hot file scan.ts (one in-flight at a time, dependency order):
 Parallel independent lanes (run concurrently from t0, no scan.ts collision):
 - LANE-MW: COST-1 CLOSED via PR#71 | SEC-3 CLOSED via PR#71
 - LANE-WF: OPS-2 CLOSED via PR#69 | DEP-1 CLOSED via PR#69
-- LANE-WATCH: COST-2 IN-FLIGHT (PR#72, round2 review — timing-oracle fix)
+- LANE-WATCH: COST-2 CLOSED via PR#72
 - LANE-ACTION: SEC-4 CLOSED via PR#73
 
 DO-NOT-FIX: CONC-1 (stats-only KV RMW; code treats stats as approximate; no scan-correctness path depends).
@@ -78,7 +75,7 @@ Schema: TASK <slug> | WAVE | FILE | LANE | CLOSES=[ids] | CODED PR_OPEN REVIEWED
 - TASK ops1-report-waituntil | WAVE=4 | FILE=_report.ts+scan.ts(HOT) | LANE=CODE | CLOSES=[OPS-1] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=none | PR#- | WT=- | WORKER=- | NOTE=thread ctx.waitUntil into report(); emit navMs+patternsErrored; depends sec2 merged (scan.ts)
 - TASK mw-cost1-sec3 | WAVE=P | FILE=_middleware.ts | LANE=CODE+OPS | CLOSES=[COST-1,SEC-3] | CODED=t PR_OPEN=t REVIEWED=t MERGED=t ACCEPT=t | OPS=durable-object-hard-cap(record) | PR#71 | WT=retired | WORKER=grok | NOTE=MERGED 8827957; COST-1+SEC-3 CLOSED; ACCEPT=middleware tests pass (codex re-demonstrated burst case)
 - TASK wf-ops2-dep1 | WAVE=P | FILE=ci.yml+deploy.yml | LANE=CODE+OPS | CLOSES=[OPS-2,DEP-1] | CODED=t PR_OPEN=t REVIEWED=t MERGED=t ACCEPT=t | OPS=canary-schedule+dependabot(record) | PR#69 | WT=retired | WORKER=grok | NOTE=MERGED 81e8c9e; OPS-2+DEP-1 CLOSED; round1 fix removed schedule->prod-deploy path; SHAs verified real
-- TASK watch-cost2-index | WAVE=P | FILE=watch.ts+_data.ts | LANE=CODE | CLOSES=[COST-2] | CODED=t PR_OPEN=t REVIEWED=f MERGED=f ACCEPT=f | OPS=none | PR#72 | WT=fix-watch | WORKER=grok term_7278cb4c | NOTE=b22ef97; codex review task_7116c1318fde/ctx_1a72888428e0 term_001ff625 IN PROGRESS
+- TASK watch-cost2-index | WAVE=P | FILE=watch.ts+_data.ts | LANE=CODE | CLOSES=[COST-2] | CODED=t PR_OPEN=t REVIEWED=t MERGED=t ACCEPT=t | OPS=none | PR#72 | WT=retired | WORKER=grok | NOTE=MERGED e5aa33e; COST-2 CLOSED; round1 fix moved rate-limit/send into waitUntil (timing oracle gone, re-demonstrated)
 
 ## HOT-FILE COLLISION MAP (serialize)
 
