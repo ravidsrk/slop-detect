@@ -33,14 +33,17 @@ PHASE=FIXING
   Both merged into BASE @ce4409e. adv-review worktree + skeptic terminal: to retire.
 
 PHASE 1 LIVE STATE (grok --inject WORKS; codex needs direct terminal-send of the spec file):
-- wf-ops2-dep1: PR#69 | review FAIL round1 (codex caught schedule->prod-deploy path). grok term_3ad5de70
-  FIXING round1 (task_2245f9241a09/ctx_ddedae7f401e). SHAs+hermetic smoke already validated.
-- sec1-ssrf-boundary: PR#70 | codex review term_46b9493d task_c0e46c3a613a/ctx_aa88d0ae6075 | REVIEWING
-  (CRITICAL PATH — rel1 + whole scan.ts chain unblocks on this MERGE)
-- mw-cost1-sec3: PR#71 | codex review term_1e34b9aa task_e3484a999d87/ctx_7312d0d726a7 | REVIEWING
-- watch-cost2-index: PR#72 | codex review term_001ff625 task_7116c1318fde/ctx_1a72888428e0 | REVIEWING
-Action lane (SEC-4) HELD until a slot frees + chain moving. NOTE: gh self-review blocked → verdict via
-worker_done + PR comment (see DECISIONS). Merge policy: gh pr merge --merge after worker_done verdict=approve.
+CLOSED so far (3/15): SEC-1 (#70), COST-1 (#71), SEC-3 (#71). BASE @8827957.
+IN-FLIGHT:
+- rel1-browser-reuse [REL-1,REL-2]: grok term_40669fad task_5cfa387a0926 | WT fix-rel1 | CODING (CRITICAL PATH;
+  verifying @cloudflare/puppeteer session API; on merge unblocks cou1 → rest of scan.ts chain)
+- action-sec4-doc [SEC-4]: grok term_d2371277 task_da8de07e5d0c | WT fix-action | CODING
+- watch-cost2-index [COST-2]: PR#72 | codex review term_001ff625 task_7116c1318fde/ctx_1a72888428e0 | REVIEWING
+- wf-ops2-dep1 [OPS-2,DEP-1]: PR#69 | grok term_3ad5de70 FIXING round1 (codex caught schedule->prod-deploy);
+  SHAs+hermetic smoke already validated.
+QUEUED (scan.ts chain, serial, after rel1 merges): cou1 → rel3-dm1-dm2 → sec2 → ops1.
+NOTE: gh self-review blocked → verdict via worker_done + PR comment (see DECISIONS). Merge: gh pr merge --merge
+after worker_done verdict=approve; conflict-check via git merge-tree first; retire worktree after merge.
 PR-open + merge done by me (integrator). Codex reviewer lives in the coder's worktree (node_modules + branch there).
 NOT STARTED: scan.ts chain T2 rel1 (after sec1 MERGES — collides on scan.ts), T3 cou1, T4 rel3-dm1-dm2,
 sec2, ops1; parallel lane action-sec4 (spec ready /tmp/spec-action.txt).
@@ -49,16 +52,16 @@ Review spec files: /tmp/spec-review-wf-final.txt (template /tmp/spec-review-wf.t
 ## FINDING CLOSE-INDEX (15 confirmed; CONC-1 = do-not-fix)
 
 Serial chain on hot file scan.ts (one in-flight at a time, dependency order):
-- WAVE 1 (P1, highest stakes): SEC-1 OPEN | REL-1 OPEN (REL-1 bundled with REL-2)
-- WAVE 2 (FOUNDATION): COU-1 OPEN
+- WAVE 1 (P1, highest stakes): SEC-1 CLOSED via PR#70 | REL-1 IN-FLIGHT (bundled w/ REL-2, fix-rel1)
+- WAVE 2 (FOUNDATION): COU-1 OPEN (starts after rel1 merges — scan.ts collision)
 - WAVE 3 (P2 on slimmed runner, after COU-1): REL-3 OPEN | DM-1 OPEN | DM-2 OPEN
-- WAVE 4 (P2 remaining scan.ts/coupled): SEC-2 OPEN | OPS-1 OPEN | REL-2 OPEN (bundled into REL-1 task)
+- WAVE 4 (P2 remaining scan.ts/coupled): SEC-2 OPEN | OPS-1 OPEN | REL-2 IN-FLIGHT (bundled into rel1)
 
 Parallel independent lanes (run concurrently from t0, no scan.ts collision):
-- LANE-MW: COST-1 OPEN | SEC-3 OPEN  (apps/web/functions/api/_middleware.ts)
-- LANE-WF: OPS-2 OPEN | DEP-1 OPEN  (.github/workflows/ci.yml + deploy.yml)
-- LANE-WATCH: COST-2 OPEN  (apps/web/functions/api/watch.ts + _data.ts)
-- LANE-ACTION: SEC-4 OPEN  (packages/action + README)
+- LANE-MW: COST-1 CLOSED via PR#71 | SEC-3 CLOSED via PR#71
+- LANE-WF: OPS-2 OPEN | DEP-1 OPEN  (PR#69, in review-fix round1 — codex caught schedule->prod-deploy)
+- LANE-WATCH: COST-2 IN-FLIGHT (PR#72, in review)
+- LANE-ACTION: SEC-4 IN-FLIGHT (fix-action, coding)
 
 DO-NOT-FIX: CONC-1 (stats-only KV RMW; code treats stats as approximate; no scan-correctness path depends).
 
@@ -66,16 +69,16 @@ DO-NOT-FIX: CONC-1 (stats-only KV RMW; code treats stats as approximate; no scan
 
 Schema: TASK <slug> | WAVE | FILE | LANE | CLOSES=[ids] | CODED PR_OPEN REVIEWED MERGED ACCEPT | OPS | PR# | WT | WORKER | NOTE
 
-- TASK sec1-ssrf-boundary | WAVE=1 | FILE=scan.ts(HOT) | LANE=CODE | CLOSES=[SEC-1] | CODED=t PR_OPEN=t REVIEWED=f MERGED=f ACCEPT=f | OPS=dns-rebind-egress-note | PR#70 | WT=fix-sec1 | WORKER=grok term_983afb42 | NOTE=24de26c; codex review task_c0e46c3a613a/ctx_aa88d0ae6075 term_46b9493d IN PROGRESS
-- TASK rel1-browser-reuse | WAVE=1 | FILE=scan.ts(HOT)+og | LANE=CODE | CLOSES=[REL-1,REL-2] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=verify-at-scale(concurrency-cap) | PR#- | WT=- | WORKER=- | NOTE=new functions/_browser.ts connect-or-launch (VERIFY @cloudflare/puppeteer sessions()/connect() exists first); og honors SCAN_DISABLED; depends sec1 merged
+- TASK sec1-ssrf-boundary | WAVE=1 | FILE=scan.ts(HOT) | LANE=CODE | CLOSES=[SEC-1] | CODED=t PR_OPEN=t REVIEWED=t MERGED=t ACCEPT=t | OPS=dns-rebind-egress-note | PR#70 | WT=retired | WORKER=grok | NOTE=MERGED 6ca6efa; SEC-1 CLOSED; ACCEPT=scan-contract tests pass (codex re-demonstrated)
+- TASK rel1-browser-reuse | WAVE=1 | FILE=scan.ts(HOT)+og | LANE=CODE | CLOSES=[REL-1,REL-2] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=verify-at-scale(concurrency-cap) | PR#- | WT=fix-rel1 | WORKER=grok term_40669fad task_5cfa387a0926 | NOTE=CODING off BASE@8827957; verifying @cloudflare/puppeteer session API first
+- TASK action-sec4-doc | WAVE=P | FILE=packages/action | LANE=CODE+OPS | CLOSES=[SEC-4] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=none | PR#- | WT=fix-action | WORKER=grok term_d2371277 task_da8de07e5d0c | NOTE=CODING
 - TASK cou1-core-runner | WAVE=2 | FILE=scan.ts(HOT)+detector.ts | LANE=CODE | CLOSES=[COU-1] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=none | PR#- | WT=- | WORKER=- | NOTE=hoist buildPageScript+ctx+detectBlocked to @slop-detect/core; snapshot parity test; depends rel1 merged
 - TASK rel3-dm1-dm2-runner | WAVE=3 | FILE=scan.ts(HOT)+detector.ts+core | LANE=CODE | CLOSES=[REL-3,DM-1,DM-2] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=dm2-engine-pin | PR#- | WT=- | WORKER=- | NOTE=fonts.ready+unified wait; patternsErrored; engine/browserVersion in result; depends cou1 merged
 - TASK sec2-body-caps | WAVE=4 | FILE=aeo.ts+scan.ts(HOT) | LANE=CODE | CLOSES=[SEC-2] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=none | PR#- | WT=- | WORKER=- | NOTE=readCapped on all aeo bodies + scan DESIGN.md stream-cap; depends rel3-dm1-dm2 merged (scan.ts)
 - TASK ops1-report-waituntil | WAVE=4 | FILE=_report.ts+scan.ts(HOT) | LANE=CODE | CLOSES=[OPS-1] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=none | PR#- | WT=- | WORKER=- | NOTE=thread ctx.waitUntil into report(); emit navMs+patternsErrored; depends sec2 merged (scan.ts)
-- TASK mw-cost1-sec3 | WAVE=P | FILE=_middleware.ts | LANE=CODE+OPS | CLOSES=[COST-1,SEC-3] | CODED=t PR_OPEN=t REVIEWED=f MERGED=f ACCEPT=f | OPS=durable-object-hard-cap(record) | PR#71 | WT=fix-mw | WORKER=grok term_1d62134e | NOTE=6b959e4+aaa0855; codex review task_e3484a999d87/ctx_7312d0d726a7 term_1e34b9aa IN PROGRESS
+- TASK mw-cost1-sec3 | WAVE=P | FILE=_middleware.ts | LANE=CODE+OPS | CLOSES=[COST-1,SEC-3] | CODED=t PR_OPEN=t REVIEWED=t MERGED=t ACCEPT=t | OPS=durable-object-hard-cap(record) | PR#71 | WT=retired | WORKER=grok | NOTE=MERGED 8827957; COST-1+SEC-3 CLOSED; ACCEPT=middleware tests pass (codex re-demonstrated burst case)
 - TASK wf-ops2-dep1 | WAVE=P | FILE=ci.yml+deploy.yml | LANE=CODE+OPS | CLOSES=[OPS-2,DEP-1] | CODED=t PR_OPEN=t REVIEWED=f MERGED=f ACCEPT=f | OPS=canary-schedule+dependabot(record) | PR#69 | WT=fix-wf | WORKER=grok term_3ad5de70 | NOTE=2 commits, 40-char SHA pins+hermetic smoke; codex reviewing
-- TASK watch-cost2-index | WAVE=P | FILE=watch.ts+_data.ts | LANE=CODE | CLOSES=[COST-2] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=none | PR#- | WT=- | WORKER=- | NOTE=email->domains index key written on subscribe; one get on lookup; PARALLEL
-- TASK action-sec4-doc | WAVE=P | FILE=packages/action | LANE=CODE+OPS | CLOSES=[SEC-4] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=none | PR#- | WT=- | WORKER=- | NOTE=pull_request_target least-trust warning in action.yml/README; optional notice log; PARALLEL
+- TASK watch-cost2-index | WAVE=P | FILE=watch.ts+_data.ts | LANE=CODE | CLOSES=[COST-2] | CODED=t PR_OPEN=t REVIEWED=f MERGED=f ACCEPT=f | OPS=none | PR#72 | WT=fix-watch | WORKER=grok term_7278cb4c | NOTE=b22ef97; codex review task_7116c1318fde/ctx_1a72888428e0 term_001ff625 IN PROGRESS
 
 ## HOT-FILE COLLISION MAP (serialize)
 
