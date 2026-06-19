@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Non-gating live canary — informational only; deploy is not blocked by it.
+  schedule:
+    - cron: '0 6 * * *'
 
 jobs:
   lint:
@@ -55,18 +58,52 @@ jobs:
         run: bun run --filter @slop-detect/core build && bun run --filter slop-detect build
       - name: Install Playwright Chromium
         run: bunx playwright install --with-deps chromium
-      - name: Scan a known-clean page (HN)
+      - name: Serve local clean fixture
+        run: |
+          cd packages/cli/test/fixtures
+          python3 -m http.server 8765 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8765/clean-artisan.html >/dev/null && break
+            sleep 0.2
+          done
+          echo "FIXTURE_URL=http://127.0.0.1:8765/clean-artisan.html" >> "$GITHUB_ENV"
+      - name: Scan hermetic clean fixture
         env:
           # Chromium was installed above — skip the CLI's lazy installer so its
           # download progress can't pollute stdout (which is redirected to JSON).
           SKIP_PLAYWRIGHT_DOWNLOAD: 1
         run: |
           cd packages/cli
-          node dist/bin/slop.js https://news.ycombinator.com --json > result.json
+          node dist/bin/slop.js "$FIXTURE_URL" --json > result.json
           cat result.json
           score=$(node -e "console.log(JSON.parse(require('fs').readFileSync('result.json')).score)")
           echo "Score: $score"
           if [ "$score" -gt 12 ]; then
-            echo "::error::Hacker News should score Clean (< 12), got $score"
+            echo "::error::Clean artisan fixture should score Clean (< 12), got $score"
             exit 1
           fi
+
+  smoke-live-canary:
+    name: Live scan canary (non-gating)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    if: github.event_name == 'schedule'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.5
+      - run: bun install
+      - name: Build CLI + core
+        run: bun run --filter @slop-detect/core build && bun run --filter slop-detect build
+      - name: Install Playwright Chromium
+        run: bunx playwright install --with-deps chromium
+      - name: Scan live HN (informational)
+        env:
+          SKIP_PLAYWRIGHT_DOWNLOAD: 1
+        run: |
+          cd packages/cli
+          node dist/bin/slop.js https://news.ycombinator.com --json > result.json
+          cat result.json
+          score=$(node -e "console.log(JSON.parse(require('fs').readFileSync('result.json')).score)")
+          echo "Live HN score: $score (non-gating — does not block deploy)"
