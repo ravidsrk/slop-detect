@@ -56,3 +56,13 @@ MAINTAINER authorship, no tool trailers. One in-flight task per hot file; parall
 
 Coordinator mode: manual orchestration loop (not `orchestration run`). Coordinator terminal lives
 in the piddock worktree on BASE; pulls BASE after each merge; ledger = docs/arch-build-progress.md.
+
+### Update (2026-06-19, mid-run): self-review block + verdict channel
+
+All fix PRs are authored by the same GitHub account (ravidsrk), so a @codex reviewer running
+`gh pr review <n> --approve|--request-changes` is REJECTED by GitHub ("can't review your own PR").
+Therefore the authoritative review verdict is the reviewer's `worker_done` payload
+(`verdict: approve|request-changes`) PLUS a posted PR COMMENT with the findings — NOT the gh review
+state. The integrator (coordinator) merges on a worker_done `approve`; routes the PR comment's findings
+back to the same-worktree grok on `request-changes` (max 3 rounds). Codex `--inject` does not submit into
+its TUI; reviewers are driven by `terminal send` of a /tmp spec file. Grok `--inject` works.
