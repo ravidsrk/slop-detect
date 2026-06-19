@@ -989,6 +989,14 @@ form.addEventListener('submit', async (e) => {
       return;
     }
     if (!r.ok || data.error) throw new Error(data.error || ('HTTP ' + r.status));
+    // Design flow (Landing -> Result): a scan lands on the full per-domain Result
+    // page. When the scan persisted a shareable snapshot, navigate to its permalink
+    // (/r/<id>); only fall back to the inline result when sharing is off (no id).
+    if (data.id) {
+      statusEl.textContent = 'Scan complete. Opening the result…';
+      window.location.href = '/r/' + encodeURIComponent(data.id);
+      return;
+    }
     render(data, Date.now() - t0);
     statusEl.classList.remove('show');
   } catch (err) {
