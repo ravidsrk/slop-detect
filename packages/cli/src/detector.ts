@@ -7,12 +7,15 @@ import {
   PATTERNS,
   buildPageScript,
   detectBlocked,
+  assemblePatternResults,
   scorePatterns,
   applyPreset,
   parseDesignMd,
   scoreSystemCompliance,
   scoreCopy,
   combineAxes,
+  SCAN_PAGE_WAIT,
+  waitFontsReadyInPage,
 } from '@slop-detect/core';
 
 // Options accepted by the scan entry points. All optional — the CLI fills in
@@ -197,12 +200,19 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
     deviceScaleFactor: 1,
   });
   const page = await context.newPage();
+  const browserVersion = browser.version();
   let result;
   try {
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: opts.timeout || 30000 });
-    // Give CSS / fonts / above-fold images a moment to settle
-    await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
-    await page.waitForTimeout(500);
+    // Shared settle budget with the web runner (SCAN_PAGE_WAIT).
+    await Promise.race([
+      page
+        .waitForLoadState('networkidle', { timeout: SCAN_PAGE_WAIT.networkIdleTimeoutMs })
+        .catch(() => {}),
+      new Promise((r) => setTimeout(r, SCAN_PAGE_WAIT.totalWaitCapMs)),
+    ]);
+    await page.waitForTimeout(SCAN_PAGE_WAIT.postNetworkSettleMs);
+    await page.evaluate(waitFontsReadyInPage, SCAN_PAGE_WAIT.fontsReadyTimeoutMs);
 
     const data = await page.evaluate(buildPageScript({ includeSystem: !!opts.designMd }));
 
@@ -228,18 +238,10 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
     }
 
     // Build the structured result on the Node side.
-    const patterns = PATTERNS.map((p) => {
-      const sig = data.signals[p.id] || { triggered: false };
-      return {
-        id: p.id,
-        label: p.label,
-        short: p.short,
-        category: p.category,
-        weight: p.weight,
-        triggered: !!sig.triggered,
-        evidence: sig,
-      };
-    });
+    const { patterns, patternsErrored } = assemblePatternResults(data.signals);
+    if (patternsErrored > 0) {
+      console.warn(`slop-detect: ${patternsErrored} pattern extractor(s) failed`);
+    }
 
     // Always extract every pattern (one cheap page eval), but score against the
     // selected preset's subset so the number — and the displayed pattern list —
@@ -262,6 +264,8 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
       preset,
       ...scoring, // top-level = DESIGN axis (backward-compatible)
       patterns: scored,
+      patternsErrored,
+      browserVersion,
     };
 
     // Multi-axis: attach per-axis summaries + a unified score when >1 axis asked.

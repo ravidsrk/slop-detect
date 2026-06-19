@@ -31,6 +31,7 @@ const mock = vi.hoisted(() => ({
 
 function makeMockBrowser() {
   return {
+    version: async () => 'HeadlessChrome/131.0.0.0',
     newPage: async () => ({
       setViewport: async () => {},
       setUserAgent: async () => {},
@@ -180,6 +181,8 @@ test('a healthy scan returns the design-axis scoring contract', async () => {
   expect(typeof r.verdict).toBe('string');
   expect(r.verdict.length).toBeGreaterThan(0);
   expect(r.definitionsVersion).toBeTruthy();
+  expect(r.browserVersion).toBe('HeadlessChrome/131.0.0.0');
+  expect(r.patternsErrored).toBe(0);
 
   // Preset defaults to "full"; navMs is reported; no screenshot unless requested.
   expect(r.preset).toBe('full');
@@ -235,6 +238,22 @@ test('axes:[design,copy] adds the multi-axis shape + unified headline', async ()
   expect(TIERS).toContain(r.unifiedTier);
   expect(typeof r.unifiedGrade).toBe('string');
   expect(r.axesScored).toEqual(['design', 'copy']);
+});
+
+test('patternsErrored surfaces extractor failures in the API response', async () => {
+  mock.pageData = healthyPageData({
+    signals: {
+      ...healthyPageData().signals,
+      purple_accent: { triggered: false, error: 'ctx.isPurple is not a function' },
+    },
+  });
+  const res = await onRequestPost({
+    request: postReq({ url: 'https://acme.example.com' }),
+    env: { BROWSER: {} },
+  });
+  expect(res.status).toBe(200);
+  const r = await res.json();
+  expect(r.patternsErrored).toBe(1);
 });
 
 test('the design axis is the default when no axes are requested', async () => {
