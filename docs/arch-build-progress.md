@@ -35,8 +35,7 @@ PHASE=FIXING
 PHASE 1 LIVE STATE (grok --inject WORKS; codex needs direct terminal-send of the spec file):
 CLOSED so far (13/15): SEC-1,COST-1,SEC-3,OPS-2,DEP-1,SEC-4,COST-2,REL-1,REL-2,COU-1,REL-3,DM-1,DM-2. BASE @1f0fdd0.
 IN-FLIGHT:
-- sec2-body-caps [SEC-2]: grok term_4c3a4530 task_4621d761f5a3 | WT fix-sec2 | CODING (readCapped on all aeo
-  bodies + scan DESIGN.md stream-cap).
+- sec2-body-caps [SEC-2]: PR#77 | codex review term_a5f808ac | REVIEWING (readCapped applied everywhere).
 QUEUED (last, serial, after sec2 merges — scan.ts collision): ops1 (_report.ts+scan.ts waitUntil).
 Remaining 2 findings = SEC-2 (coding) + OPS-1. Then T_FINAL readiness doc.
 NOTE: gh self-review blocked → verdict via worker_done + PR comment (see DECISIONS). Merge: gh pr merge --merge
@@ -71,7 +70,7 @@ Schema: TASK <slug> | WAVE | FILE | LANE | CLOSES=[ids] | CODED PR_OPEN REVIEWED
 - TASK action-sec4-doc | WAVE=P | FILE=packages/action | LANE=CODE+OPS | CLOSES=[SEC-4] | CODED=t PR_OPEN=t REVIEWED=t MERGED=t ACCEPT=t | OPS=none | PR#73 | WT=retired | WORKER=grok | NOTE=MERGED c103e95; SEC-4 CLOSED; ACCEPT=notice-on-pr_target test passes; dep add reviewed OK
 - TASK cou1-core-runner | WAVE=2 | FILE=scan.ts(HOT)+detector.ts | LANE=CODE | CLOSES=[COU-1] | CODED=t PR_OPEN=t REVIEWED=t MERGED=t ACCEPT=t | OPS=none | PR#75 | WT=retired | WORKER=grok | NOTE=MERGED 0bab0ed; COU-1 CLOSED; page-script.ts in core, -285 dup lines, snapshot+golden pass; core stays pure
 - TASK rel3-dm1-dm2-runner | WAVE=3 | FILE=core+scan.ts(HOT)+detector.ts | LANE=CODE | CLOSES=[REL-3,DM-1,DM-2] | CODED=t PR_OPEN=t REVIEWED=t MERGED=t ACCEPT=t | OPS=dm2-engine-pin | PR#76 | WT=retired | WORKER=grok | NOTE=MERGED 1f0fdd0; REL-3+DM-1+DM-2 CLOSED; runner-wait.ts+result-assembly.ts; playwright 1.60.0 pinned (real); golden+typecheck pass
-- TASK sec2-body-caps | WAVE=4 | FILE=aeo.ts+scan.ts(HOT) | LANE=CODE | CLOSES=[SEC-2] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=none | PR#- | WT=fix-sec2 | WORKER=grok term_4c3a4530 task_4621d761f5a3 | NOTE=CODING off BASE@1f0fdd0; readCapped on all aeo bodies + scan DESIGN.md stream-cap
+- TASK sec2-body-caps | WAVE=4 | FILE=aeo.ts+scan.ts(HOT) | LANE=CODE | CLOSES=[SEC-2] | CODED=t PR_OPEN=t REVIEWED=f MERGED=f ACCEPT=f | OPS=none | PR#77 | WT=fix-sec2 | WORKER=grok term_4c3a4530 | NOTE=2 commits; readBodyCapped wrapper on all aeo bodies + Content-Length short-circuit; scan DESIGN.md readCapped; codex review task_6e2283de6047/ctx_0138ccff1250 term_a5f808ac
 - TASK ops1-report-waituntil | WAVE=4 | FILE=_report.ts+scan.ts(HOT) | LANE=CODE | CLOSES=[OPS-1] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=none | PR#- | WT=- | WORKER=- | NOTE=thread ctx.waitUntil into report(); emit navMs+patternsErrored; depends sec2 merged (scan.ts)
 - TASK mw-cost1-sec3 | WAVE=P | FILE=_middleware.ts | LANE=CODE+OPS | CLOSES=[COST-1,SEC-3] | CODED=t PR_OPEN=t REVIEWED=t MERGED=t ACCEPT=t | OPS=durable-object-hard-cap(record) | PR#71 | WT=retired | WORKER=grok | NOTE=MERGED 8827957; COST-1+SEC-3 CLOSED; ACCEPT=middleware tests pass (codex re-demonstrated burst case)
 - TASK wf-ops2-dep1 | WAVE=P | FILE=ci.yml+deploy.yml | LANE=CODE+OPS | CLOSES=[OPS-2,DEP-1] | CODED=t PR_OPEN=t REVIEWED=t MERGED=t ACCEPT=t | OPS=canary-schedule+dependabot(record) | PR#69 | WT=retired | WORKER=grok | NOTE=MERGED 81e8c9e; OPS-2+DEP-1 CLOSED; round1 fix removed schedule->prod-deploy path; SHAs verified real
