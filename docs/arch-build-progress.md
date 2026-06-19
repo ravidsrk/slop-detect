@@ -36,8 +36,8 @@ PHASE 1 LIVE STATE (grok --inject WORKS; codex needs direct terminal-send of the
 CLOSED so far (10/15): SEC-1(#70), COST-1(#71), SEC-3(#71), OPS-2(#69), DEP-1(#69), SEC-4(#73), COST-2(#72),
 REL-1(#74), REL-2(#74), COU-1(#75). BASE @0bab0ed.
 IN-FLIGHT:
-- rel3-dm1-dm2-runner [REL-3,DM-1,DM-2]: grok term_239ebb3f task_8241498af25c | WT fix-rel3 | CODING
-  (single-edits in core post-COU-1: fonts.ready+unified wait, patternsErrored, engine version + pin playwright).
+- rel3-dm1-dm2-runner [REL-3,DM-1,DM-2]: PR#76 | codex review term_87da629c | REVIEWING (runner-wait.ts +
+  result-assembly.ts in core, fonts.ready both runners, patternsErrored, browserVersion, playwright pin 1.60.0).
 QUEUED (scan.ts chain, serial, after rel3 merges): sec2 (aeo.ts+scan.ts) → ops1 (_report.ts+scan.ts).
 Remaining 5 findings = REL-3,DM-1,DM-2 (coding) + SEC-2 + OPS-1. Concurrency ~1 (serial chain).
 NOTE: gh self-review blocked → verdict via worker_done + PR comment (see DECISIONS). Merge: gh pr merge --merge
@@ -52,7 +52,7 @@ Review spec files: /tmp/spec-review-wf-final.txt (template /tmp/spec-review-wf.t
 Serial chain on hot file scan.ts (one in-flight at a time, dependency order):
 - WAVE 1 (P1, highest stakes): SEC-1 CLOSED via PR#70 | REL-1 CLOSED via PR#74
 - WAVE 2 (FOUNDATION): COU-1 CLOSED via PR#75
-- WAVE 3 (P2 on slimmed runner, after COU-1): REL-3 IN-FLIGHT | DM-1 IN-FLIGHT | DM-2 IN-FLIGHT (bundled, fix-rel3)
+- WAVE 3 (P2 on slimmed runner, after COU-1): REL-3/DM-1/DM-2 IN-REVIEW (PR#76, bundled)
 - WAVE 4 (P2 remaining scan.ts/coupled): SEC-2 OPEN | OPS-1 OPEN | REL-2 CLOSED via PR#74
 
 Parallel independent lanes (run concurrently from t0, no scan.ts collision):
@@ -71,7 +71,7 @@ Schema: TASK <slug> | WAVE | FILE | LANE | CLOSES=[ids] | CODED PR_OPEN REVIEWED
 - TASK rel1-browser-reuse | WAVE=1 | FILE=scan.ts(HOT)+og | LANE=CODE | CLOSES=[REL-1,REL-2] | CODED=t PR_OPEN=t REVIEWED=t MERGED=t ACCEPT=t | OPS=verify-at-scale(concurrency-cap) | PR#74 | WT=retired | WORKER=grok | NOTE=MERGED efc77b7; REL-1+REL-2 CLOSED; _browser.ts session reuse (v1.1.0 API verified); round1 fix=SCAN_DISABLED above /og cache; ACCEPT=browser-reuse+og-route+SEC-1 tests pass
 - TASK action-sec4-doc | WAVE=P | FILE=packages/action | LANE=CODE+OPS | CLOSES=[SEC-4] | CODED=t PR_OPEN=t REVIEWED=t MERGED=t ACCEPT=t | OPS=none | PR#73 | WT=retired | WORKER=grok | NOTE=MERGED c103e95; SEC-4 CLOSED; ACCEPT=notice-on-pr_target test passes; dep add reviewed OK
 - TASK cou1-core-runner | WAVE=2 | FILE=scan.ts(HOT)+detector.ts | LANE=CODE | CLOSES=[COU-1] | CODED=t PR_OPEN=t REVIEWED=t MERGED=t ACCEPT=t | OPS=none | PR#75 | WT=retired | WORKER=grok | NOTE=MERGED 0bab0ed; COU-1 CLOSED; page-script.ts in core, -285 dup lines, snapshot+golden pass; core stays pure
-- TASK rel3-dm1-dm2-runner | WAVE=3 | FILE=core+scan.ts(HOT)+detector.ts | LANE=CODE | CLOSES=[REL-3,DM-1,DM-2] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=dm2-engine-pin | PR#- | WT=fix-rel3 | WORKER=grok term_239ebb3f task_8241498af25c | NOTE=CODING off BASE@0bab0ed; fonts.ready+unified wait; patternsErrored; engine version+pin playwright
+- TASK rel3-dm1-dm2-runner | WAVE=3 | FILE=core+scan.ts(HOT)+detector.ts | LANE=CODE | CLOSES=[REL-3,DM-1,DM-2] | CODED=t PR_OPEN=t REVIEWED=f MERGED=f ACCEPT=f | OPS=dm2-engine-pin | PR#76 | WT=fix-rel3 | WORKER=grok term_239ebb3f | NOTE=3 commits; runner-wait.ts+result-assembly.ts in core; playwright pinned 1.60.0 (real); codex review task_a48f0ed77bbe/ctx_0a6d5a098b98 term_87da629c
 - TASK sec2-body-caps | WAVE=4 | FILE=aeo.ts+scan.ts(HOT) | LANE=CODE | CLOSES=[SEC-2] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=none | PR#- | WT=- | WORKER=- | NOTE=readCapped on all aeo bodies + scan DESIGN.md stream-cap; depends rel3-dm1-dm2 merged (scan.ts)
 - TASK ops1-report-waituntil | WAVE=4 | FILE=_report.ts+scan.ts(HOT) | LANE=CODE | CLOSES=[OPS-1] | CODED=f PR_OPEN=f REVIEWED=f MERGED=f ACCEPT=f | OPS=none | PR#- | WT=- | WORKER=- | NOTE=thread ctx.waitUntil into report(); emit navMs+patternsErrored; depends sec2 merged (scan.ts)
 - TASK mw-cost1-sec3 | WAVE=P | FILE=_middleware.ts | LANE=CODE+OPS | CLOSES=[COST-1,SEC-3] | CODED=t PR_OPEN=t REVIEWED=t MERGED=t ACCEPT=t | OPS=durable-object-hard-cap(record) | PR#71 | WT=retired | WORKER=grok | NOTE=MERGED 8827957; COST-1+SEC-3 CLOSED; ACCEPT=middleware tests pass (codex re-demonstrated burst case)
