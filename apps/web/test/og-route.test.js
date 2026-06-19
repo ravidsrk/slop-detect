@@ -100,6 +100,21 @@ test('SCAN_DISABLED serves the static fallback without launching a browser', asy
   expect(mock.calls.sessions).toBe(0);
 });
 
+test('SCAN_DISABLED serves the fallback even when og cache is populated', async () => {
+  const kv = makeKv({
+    'r:abc123def456': JSON.stringify(slim),
+    'og:abc123def456': mock.screenshotBytes,
+  });
+  const res = await onRequestGet(
+    ogCtx('abc123def456', { RESULTS: kv, BROWSER: {}, SCAN_DISABLED: '1' })
+  );
+  expect(res.status).toBe(302);
+  expect(res.headers.get('Location')).toBe('https://slop-detect.com/og.png');
+  expect(mock.calls.launch).toBe(0);
+  expect(mock.calls.connect).toBe(0);
+  expect(mock.calls.sessions).toBe(0);
+});
+
 test('cache miss with a valid id launches at most once', async () => {
   const kv = makeKv({ 'r:abc123def456': JSON.stringify(slim) });
   const res = await onRequestGet(ogCtx('abc123def456', { RESULTS: kv, BROWSER: {} }));

@@ -12,6 +12,10 @@ import { cardHtml } from '../_card.js';
 const OG_TTL = 60 * 60 * 24 * 30; // 30 days
 
 export async function onRequestGet({ params, env, request }) {
+  if (isScanDisabled(env)) {
+    return Response.redirect(new URL('/og.png', request.url).toString(), 302);
+  }
+
   const id = String(params.id || '')
     .replace(/\.png$/i, '')
     .replace(/[^a-z0-9]/gi, '')
@@ -28,10 +32,6 @@ export async function onRequestGet({ params, env, request }) {
       const cached = await env.RESULTS.get(`og:${id}`, 'arrayBuffer');
       if (cached) return new Response(cached, { headers: pngHeaders });
     } catch (_) {}
-  }
-
-  if (isScanDisabled(env)) {
-    return Response.redirect(new URL('/og.png', request.url).toString(), 302);
   }
 
   const slim = await getResult(env.RESULTS, id);
