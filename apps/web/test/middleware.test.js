@@ -197,3 +197,61 @@ test('OPTIONS preflight returns 204 regardless of origin', async () => {
   const res = await onRequest(makeContext(req));
   expect(res.status).toBe(204);
 });
+
+test('COST-1 parallel burst cannot overshoot per-IP limit via stale KV [COST-1]', async () => {
+  // KV always returns 0 — simulates concurrent reads of the same stale counter.
+  // Without the per-isolate memIncrement ceiling, all K requests would pass.
+  const anonNoOriginLimit = 3; // Math.max(2, Math.floor(SCAN_LIMIT_PER_MIN / 2))
+  const staleKv = {
+    get: async () => '0',
+    put: async () => {},
+  };
+  const ip = '203.0.113.200';
+  const parallel = 8;
+  const results = await Promise.all(
+    Array.from({ length: parallel }, () =>
+      onRequest(
+        makeContext(
+          makeRequest({
+            headers: { 'CF-Connecting-IP': ip },
+            body: { url: 'https://x.com' },
+          }),
+          { RATE_LIMIT: staleKv }
+        )
+      )
+    )
+  );
+  const allowed = results.filter((r) => r.status === 200).length;
+  expect(
+    allowed,
+    `expected at most ${anonNoOriginLimit} parallel scans with stale KV, got ${allowed}`
+  ).toBeLessThanOrEqual(anonNoOriginLimit);
+});
+
+test('SEC-3 no-origin scan allowed only up to anon limit (Turnstile bypass floor) [SEC-3]', async () => {
+  // Turnstile is required only for trusted browser origins. No-origin callers
+  // (CLI/curl) bypass captcha by design; the per-IP limit is the real floor.
+  const anonNoOriginLimit = 3;
+  const okKv = { get: async () => '0', put: async () => {} };
+  const ip = '203.0.113.201';
+  let allowed = 0;
+  let got429 = false;
+  for (let i = 0; i < 8; i++) {
+    const req = makeRequest({
+      headers: { 'CF-Connecting-IP': ip },
+      body: { url: 'https://x.com' },
+    });
+    const res = await onRequest(
+      makeContext(req, { RATE_LIMIT: okKv, TURNSTILE_SECRET: 'secret' })
+    );
+    if (res.status === 200) allowed++;
+    if (res.status === 429) {
+      got429 = true;
+      break;
+    }
+  }
+  expect(got429, 'expected no-origin scans to hit the per-IP floor').toBeTruthy();
+  expect(allowed).toBeLessThanOrEqual(anonNoOriginLimit);
+});
+
+
