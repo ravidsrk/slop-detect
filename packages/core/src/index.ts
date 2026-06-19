@@ -26,6 +26,8 @@ export {
   aiBotsBlockedByRobots,
   toMarkdownUrl,
   runAeoChecks,
+  readCapped,
+  MAX_HTML_BYTES,
 } from './aeo.js';
 export {
   parseDesignMd,
