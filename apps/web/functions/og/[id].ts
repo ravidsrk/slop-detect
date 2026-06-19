@@ -5,7 +5,7 @@
 // Falls back to the static /og.png if anything goes wrong (a broken unfurl is
 // worse than a generic one).
 
-import puppeteer from '@cloudflare/puppeteer';
+import { acquireBrowser, isScanDisabled, releaseBrowser } from '../_browser.js';
 import { getResult } from '../_shared.js';
 import { cardHtml } from '../_card.js';
 
@@ -30,6 +30,10 @@ export async function onRequestGet({ params, env, request }) {
     } catch (_) {}
   }
 
+  if (isScanDisabled(env)) {
+    return Response.redirect(new URL('/og.png', request.url).toString(), 302);
+  }
+
   const slim = await getResult(env.RESULTS, id);
   if (!slim || !env.BROWSER) {
     return Response.redirect(new URL('/og.png', request.url).toString(), 302);
@@ -37,7 +41,7 @@ export async function onRequestGet({ params, env, request }) {
 
   let browser;
   try {
-    browser = await puppeteer.launch(env.BROWSER);
+    ({ browser } = await acquireBrowser(env.BROWSER));
     const page = await browser.newPage();
     await page.setViewport({ width: 1200, height: 630, deviceScaleFactor: 1 });
     await page.setContent(cardHtml(slim), { waitUntil: 'networkidle0', timeout: 15000 });
@@ -62,8 +66,6 @@ export async function onRequestGet({ params, env, request }) {
   } catch (_) {
     return Response.redirect(new URL('/og.png', request.url).toString(), 302);
   } finally {
-    try {
-      await browser?.close();
-    } catch (_) {}
+    await releaseBrowser(browser);
   }
 }
