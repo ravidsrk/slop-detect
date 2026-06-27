@@ -221,6 +221,29 @@ export async function emailIndexKey(email: string): Promise<string> {
   return `${EMAIL_INDEX_PREFIX}${await emailHash(email)}`;
 }
 
+// ── Per-recipient confirmation-email cap (anti email-bomb) ────────────────────
+// /api/watch issues a double-opt-in email to a CALLER-SUPPLIED address, so the
+// per-IP middleware limit alone lets one IP mail an arbitrary victim ~20×/min
+// and burn sender reputation. Cap the SEND per recipient, keyed on the HASHED
+// address (never store a raw email in a rate-limit key — same reason the index
+// is hashed). Mirrors dashLinkAllowed in api/dashboard/link.ts. Fail CLOSED: if
+// the counter store is missing or erroring we skip the send, because the abuse
+// here is the outbound mail itself, so "store down" must mean "don't mail".
+const WATCH_VERIFY_LIMIT = 3;
+const WATCH_VERIFY_WINDOW_SEC = 60 * 60; // 3 confirmation emails per address per hour
+export async function watchVerifyAllowed(kv, email) {
+  if (!kv || !email) return false;
+  try {
+    const key = `rl:watchverify:${await emailHash(email)}`;
+    const n = parseInt(await kv.get(key), 10) || 0;
+    if (n >= WATCH_VERIFY_LIMIT) return false;
+    await kv.put(key, String(n + 1), { expirationTtl: WATCH_VERIFY_WINDOW_SEC });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // Domains monitored by one email — one kv.get. Used by the magic-link endpoint
 // where we only need a count, not full watch records.
 export async function getEmailDomains(kv, email) {
