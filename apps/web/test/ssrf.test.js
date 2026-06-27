@@ -39,6 +39,15 @@ const BLOCKED = [
   'http://[::169.254.169.254]/', // IPv4-compatible metadata (::/96)
   'http://[::ffff:10.0.0.5]/', // IPv4-mapped RFC-1918
   'http://[::ffff:192.168.1.1]/', // IPv4-mapped RFC-1918
+  // Regression: trailing-dot FQDNs resolve identically to their dot-free form but
+  // `new URL()` keeps the root dot on NAMES, so the exact-match + suffix block
+  // checks used to miss these — an SSRF allow-list bypass to internal services.
+  'http://localhost.', // loopback name as FQDN
+  'http://app.localhost.', // *.localhost suffix as FQDN
+  'http://foo.internal.', // *.internal suffix as FQDN
+  'http://api.svc.cluster.local.', // k8s service FQDN
+  'http://db.local.', // *.local suffix as FQDN
+  'http://127.0.0.1.', // loopback IP literal with trailing dot
   'file:///etc/passwd',
   'data:text/html,<script>',
   'ftp://example.com',
@@ -55,6 +64,10 @@ const ALLOWED = [
   // A PUBLIC IPv4-mapped address must still be allowed (we decode + apply the v4
   // rule, not block the whole form) — guards against over-blocking the fix.
   ['http://[::ffff:8.8.8.8]/', 'http://[::ffff:8.8.8.8]/'],
+  // A legitimate PUBLIC FQDN with a trailing dot must still pass (we only strip
+  // the dot for the block decision, not from the returned URL) — guards against
+  // the trailing-dot fix over-blocking real fully-qualified names.
+  ['http://example.com.', 'http://example.com.'],
 ];
 
 test('SSRF guard blocks private/loopback/metadata/non-http hosts', () => {

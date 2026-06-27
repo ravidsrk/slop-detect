@@ -85,7 +85,14 @@ export function validateScanUrl(raw) {
     return { error: 'Only http(s) URLs can be scanned', status: 400 };
   }
 
-  const host = parsed.hostname.toLowerCase();
+  // Strip any trailing dot(s): `localhost.`, `foo.internal.`, and
+  // `svc.cluster.local.` are fully-qualified DNS names that resolve identically
+  // to their dot-free form, but `new URL()` PRESERVES the root dot on names (it
+  // only normalizes it away for IP literals). Without this, the exact-match set
+  // and the `.endsWith('.internal'/'.local'/'.localhost')` suffix checks below
+  // all miss the trailing-dot variant — an SSRF allow-list bypass to internal
+  // services. Also hardens the IPv4 path if a runtime keeps the dot on a literal.
+  const host = parsed.hostname.toLowerCase().replace(/\.+$/, '');
   const blocked =
     PRIVATE_HOSTNAMES.has(host) ||
     host.endsWith('.localhost') ||

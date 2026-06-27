@@ -29,6 +29,7 @@ import {
   issueWatchToken,
   addToEmailIndex,
   removeFromEmailIndex,
+  watchVerifyAllowed,
 } from '../_shared.js';
 import { emailConfigured, sendEmail } from '../_email.js';
 import { buildVerificationEmail } from '../_alerts.js';
@@ -206,7 +207,12 @@ export async function onRequestPost({ request, env }) {
   const origin = new URL(request.url).origin;
   const alertsLive = emailConfigured(env);
   let verificationSent = false;
-  if (alertsLive && !watch.verified) {
+  // Per-recipient cap: the confirmation email goes to a caller-supplied address,
+  // so without a per-email throttle one IP could bomb a victim's inbox (the
+  // per-IP middleware limit alone allows ~20/min). Gate the whole issue+send on
+  // a hashed-email counter (fail-closed). Subscribing still succeeds; only the
+  // email is throttled, so the consent record and monitoring are unaffected.
+  if (alertsLive && !watch.verified && (await watchVerifyAllowed(env.RATE_LIMIT, email))) {
     try {
       const token = await issueWatchToken(env.RESULTS, domain);
       if (token) {

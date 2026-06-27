@@ -211,7 +211,7 @@ export async function consumeDashboardToken(kv, token) {
 // subscribe, pruned on unsubscribe; listWatchesByEmail self-heals stale rows.
 const EMAIL_INDEX_PREFIX = 'e:';
 
-async function emailHash(email: string): Promise<string> {
+export async function emailHash(email: string): Promise<string> {
   const want = String(email).trim().toLowerCase();
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(want));
   return Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, '0')).join('');
@@ -219,6 +219,29 @@ async function emailHash(email: string): Promise<string> {
 
 export async function emailIndexKey(email: string): Promise<string> {
   return `${EMAIL_INDEX_PREFIX}${await emailHash(email)}`;
+}
+
+// ── Per-recipient confirmation-email cap (anti email-bomb) ────────────────────
+// /api/watch issues a double-opt-in email to a CALLER-SUPPLIED address, so the
+// per-IP middleware limit alone lets one IP mail an arbitrary victim ~20×/min
+// and burn sender reputation. Cap the SEND per recipient, keyed on the HASHED
+// address (never store a raw email in a rate-limit key — same reason the index
+// is hashed). Mirrors dashLinkAllowed in api/dashboard/link.ts. Fail CLOSED: if
+// the counter store is missing or erroring we skip the send, because the abuse
+// here is the outbound mail itself, so "store down" must mean "don't mail".
+const WATCH_VERIFY_LIMIT = 3;
+const WATCH_VERIFY_WINDOW_SEC = 60 * 60; // 3 confirmation emails per address per hour
+export async function watchVerifyAllowed(kv, email) {
+  if (!kv || !email) return false;
+  try {
+    const key = `rl:watchverify:${await emailHash(email)}`;
+    const n = parseInt(await kv.get(key), 10) || 0;
+    if (n >= WATCH_VERIFY_LIMIT) return false;
+    await kv.put(key, String(n + 1), { expirationTtl: WATCH_VERIFY_WINDOW_SEC });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // Domains monitored by one email — one kv.get. Used by the magic-link endpoint
@@ -359,6 +382,10 @@ function historyPoint(slim) {
 // are approximate under heavy concurrency, which is fine for a percentile.
 const STATS_DIST_KEY = 'stats:dist';
 const STATS_CATCLEAN_KEY = 'stats:catclean';
+// Marker: this domain has already contributed to the GLOBAL aggregates. One slot
+// per domain so a re-scanned (or attacker-hammered) domain can't skew the public
+// score distribution or per-category averages — see claimStatsContribution.
+const STATS_CONTRIB_PREFIX = 'gs:';
 
 type CatCleanStore = { cats: Record<string, { sum: number; n: number }>; count: number };
 
@@ -476,11 +503,33 @@ export async function percentileForScore(kv, score) {
 // appendHistory call de-dupes against this one by scan id.
 export async function recordScan(kv, slim) {
   if (!kv || !slim || !slim.domain) return;
+  // The per-domain timeline records EVERY scan, but the global aggregates count
+  // each domain once — otherwise re-scanning a single domain (a legitimate
+  // redesign, or an attacker hammering /api/scan) would skew the public score
+  // distribution, the per-category averages, and every other domain's percentile.
+  const firstContribution = await claimStatsContribution(kv, slim.domain);
   await Promise.all([
     appendHistory(kv, slim.domain, historyPoint(slim)),
-    bumpScoreStats(kv, slim.score),
-    bumpCategoryStats(kv, slim),
+    ...(firstContribution ? [bumpScoreStats(kv, slim.score), bumpCategoryStats(kv, slim)] : []),
   ]);
+}
+
+// Claim a domain's single slot in the global aggregates. Returns true the first
+// time a domain is recorded, false on every later scan of that domain. The
+// marker is durable (no TTL): letting it expire would re-open the dedup, so an
+// attacker could just wait out the window. Get-then-put is not atomic — a rare
+// concurrent race double-counts one domain, which is harmless for an aggregate.
+// On a KV error we fall back to counting (a lost dedup beats dropping a real
+// first scan from the stats).
+async function claimStatsContribution(kv, domain) {
+  const key = `${STATS_CONTRIB_PREFIX}${domain}`;
+  try {
+    if (await kv.get(key)) return false;
+    await kv.put(key, '1');
+  } catch {
+    return true;
+  }
+  return true;
 }
 
 // Decide whether `current` is a regression from `baseline`. Pure — unit-tested.

@@ -6,7 +6,7 @@
 // middleware (cheap rate limit, CORS, foreign-origin rejection; no Turnstile).
 // Configured-off without an email provider + SESSION_SECRET, like alerts.
 
-import { isValidEmail, getEmailDomains, issueDashboardToken } from '../../_shared.js';
+import { isValidEmail, getEmailDomains, issueDashboardToken, emailHash } from '../../_shared.js';
 import { emailConfigured, sendEmail } from '../../_email.js';
 import { buildDashboardLinkEmail } from '../../_alerts.js';
 
@@ -24,7 +24,9 @@ const DASHLINK_WINDOW_SEC = 3600;
 
 async function dashLinkAllowed(kv, email) {
   if (!kv) return true;
-  const key = `rl:dashlink:${email}`;
+  // Key on the hashed address, never the raw email, so a rate-limit counter is
+  // not a place a plaintext address sits at rest.
+  const key = `rl:dashlink:${await emailHash(email)}`;
   try {
     const n = parseInt(await kv.get(key), 10) || 0;
     if (n >= DASHLINK_LIMIT) return false;

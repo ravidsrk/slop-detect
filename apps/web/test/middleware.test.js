@@ -156,6 +156,37 @@ test('global daily cap fails closed when KV read errors', async () => {
   expect((await res.json()).error).toBe('scanning_paused');
 });
 
+test('/api/aeo charges several daily-cap units for its fan-out; a scan charges one', async () => {
+  // aeo does not drive the browser but fans out to ~30 outbound fetches, so it
+  // must consume more of the shared daily budget than a single scan.
+  const puts = [];
+  const countingKv = {
+    get: async () => '0',
+    put: async (k, v) => {
+      puts.push([k, v]);
+    },
+  };
+  const aeoReq = makeRequest({
+    path: '/api/aeo',
+    headers: { 'CF-Connecting-IP': '203.0.113.71' },
+    body: { url: 'https://x.com' },
+  });
+  await onRequest(makeContext(aeoReq, { RATE_LIMIT: countingKv, SCAN_DAILY_CAP: '10000' }));
+  const aeoGlobal = puts.find(([k]) => k.startsWith('rl:global:scan:'));
+  expect(aeoGlobal, 'aeo increments the global daily cap').toBeTruthy();
+  expect(aeoGlobal[1], 'aeo charges AEO_COST_UNITS').toBe('3');
+
+  puts.length = 0;
+  const scanReq = makeRequest({
+    path: '/api/scan',
+    headers: { 'CF-Connecting-IP': '203.0.113.72' },
+    body: { url: 'https://x.com' },
+  });
+  await onRequest(makeContext(scanReq, { RATE_LIMIT: countingKv, SCAN_DAILY_CAP: '10000' }));
+  const scanGlobal = puts.find(([k]) => k.startsWith('rl:global:scan:'));
+  expect(scanGlobal[1], 'a browser scan charges one unit').toBe('1');
+});
+
 test('SCAN_DISABLED kill switch returns 503 scanning_paused', async () => {
   const okKv = { get: async () => '0', put: async () => {} };
   const req = makeRequest({
