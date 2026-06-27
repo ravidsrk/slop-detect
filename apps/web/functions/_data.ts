@@ -211,7 +211,7 @@ export async function consumeDashboardToken(kv, token) {
 // subscribe, pruned on unsubscribe; listWatchesByEmail self-heals stale rows.
 const EMAIL_INDEX_PREFIX = 'e:';
 
-async function emailHash(email: string): Promise<string> {
+export async function emailHash(email: string): Promise<string> {
   const want = String(email).trim().toLowerCase();
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(want));
   return Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, '0')).join('');
