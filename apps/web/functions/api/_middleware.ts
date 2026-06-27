@@ -141,7 +141,7 @@ const memCounters = new Map(); // key -> { count, resetAt }
 // normal per-IP limit: a degraded mode should be conservative, not generous.
 const SCAN_FALLBACK_CEILING = 3;
 
-function memIncrement(key, windowMs = 60000) {
+function memIncrement(key, windowMs = 60000, inc = 1) {
   const now = Date.now();
   // Opportunistic sweep of expired entries so the map can't grow unbounded in a
   // long-lived isolate (it's only touched during KV-degraded mode, so this is
@@ -151,12 +151,22 @@ function memIncrement(key, windowMs = 60000) {
   }
   const cur = memCounters.get(key);
   if (!cur || now >= cur.resetAt) {
-    const fresh = { count: 1, resetAt: now + windowMs };
+    const fresh = { count: inc, resetAt: now + windowMs };
     memCounters.set(key, fresh);
     return fresh.count;
   }
-  cur.count += 1;
+  cur.count += inc;
   return cur.count;
+}
+
+// Daily-cap cost weight per route. A browser scan is one unit. /api/aeo does NOT
+// drive the browser but fans out to ~30 outbound fetches per call (5 fetch
+// families × up to 6 redirect hops), so against the shared global daily budget
+// one aeo call is worth several scan-equivalents of outbound work. Charging it a
+// heavier weight bounds the total daily fan-out a distributed flood can inflict.
+const AEO_COST_UNITS = 3;
+function dailyCostUnits(route) {
+  return route === 'aeo' ? AEO_COST_UNITS : 1;
 }
 
 // Rate-limit gate. Returns { ok, used, limit, degraded }.
@@ -472,7 +482,10 @@ export async function onRequest(context) {
         );
       }
       // Per-isolate ceiling on the happy path (key includes the day; 24h window).
-      const memUsed = memIncrement(gkey, 86400000);
+      // aeo charges several units (see dailyCostUnits) for its fan-out; a browser
+      // scan and a fix-prompt {url} re-scan each charge one.
+      const costUnits = dailyCostUnits(route);
+      const memUsed = memIncrement(gkey, 86400000, costUnits);
       if (memUsed > cap) {
         return jsonResponse(
           {
@@ -486,7 +499,7 @@ export async function onRequest(context) {
         );
       }
       try {
-        await env.RATE_LIMIT.put(gkey, String(used + 1), { expirationTtl: 172800 });
+        await env.RATE_LIMIT.put(gkey, String(used + costUnits), { expirationTtl: 172800 });
       } catch (_) {
         /* best-effort */
       }
