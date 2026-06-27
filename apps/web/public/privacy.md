@@ -1,6 +1,6 @@
 # Slop Detector — Privacy Policy
 
-_Last updated: 2026-06-05 · Policy version: 2026.06_
+_Last updated: 2026-06-28 · Policy version: 2026.06_
 
 Slop Detector is an open-source project. We collect as little as possible and we
 never sell data. This page is the plain-language record of what is stored, why,
@@ -11,13 +11,32 @@ and how to remove it.
 | Data | When | Why | Retention |
 | --- | --- | --- | --- |
 | **Scanned URL + scan result** (score, triggered patterns, title/H1) | Every scan you run on the web/API | To render the result, the shareable permalink, and the per-domain badge | ~90 days (KV TTL) |
-| **Your email address** | Only if you start **monitoring** a domain (`POST /api/watch`) | To send regression alerts ("your score dropped") for that domain | Until you unsubscribe; otherwise up to 1 year |
-| **Per-IP rate-limit counters** | Every API request | Abuse / cost protection | 60 seconds |
+| **Your email address** | Only if you start **monitoring** a domain (`POST /api/watch`) or request a dashboard sign-in link (`POST /api/dashboard/link`) | To send regression alerts ("your score dropped") and the sign-in link you asked for. We store it hashed (SHA-256) in the lookup index. | Until you unsubscribe; otherwise up to 1 year |
+| **Dashboard sign-in session** (`sd_session` cookie) | Only after you click an emailed sign-in link | To keep you signed in to the agency dashboard. It is a single HttpOnly, Secure, SameSite=Lax cookie holding a signed token, not an advertising/tracking ID. | 30 days, or until you sign out |
+| **Sign-in / confirmation link tokens** | When you request a dashboard link or start monitoring | Single-use tokens that verify the emailed link | 15 minutes (sign-in) / 7 days (monitoring confirmation) |
+| **Per-IP and per-email rate-limit counters** | Every API request / email send | Abuse, cost, and inbox-spam protection | 60 seconds to 1 hour |
 
 We do **not** store full page content, screenshots (unless you explicitly request
-one in a scan, and even then it is not persisted to the directory), cookies, or
-any advertising/tracking identifiers. We do not use third-party analytics that
+one in a scan, and even then it is not persisted to the directory), advertising or
+cross-site tracking identifiers, or behavioural profiles. The only cookie we set
+is the functional `sd_session` sign-in cookie described above, and only after you
+deliberately sign in to the dashboard. We do not use third-party analytics that
 profile you.
+
+## Third parties (sub-processors)
+
+To run the service we rely on a few providers. Visiting the site necessarily
+shares your IP address with them, the same way loading any website does:
+
+| Provider | Role | What it receives |
+| --- | --- | --- |
+| **Cloudflare** | Hosting, the headless-scan browser, and the Turnstile anti-abuse challenge | Request metadata including your IP; Turnstile runs on the scan form to block bots |
+| **Google Fonts** | Serves the web fonts used by the site | Your IP and user-agent when your browser fetches the font files |
+| **Resend** | Sends the monitoring and sign-in emails | The recipient address and message, only when an email is actually sent |
+
+None of these are used for advertising. If you would rather not share anything
+with Google or Cloudflare, self-host (see below); the fonts and challenge are the
+only third-party assets the pages load.
 
 ## Lawful basis & consent
 
