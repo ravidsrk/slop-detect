@@ -382,6 +382,10 @@ function historyPoint(slim) {
 // are approximate under heavy concurrency, which is fine for a percentile.
 const STATS_DIST_KEY = 'stats:dist';
 const STATS_CATCLEAN_KEY = 'stats:catclean';
+// Marker: this domain has already contributed to the GLOBAL aggregates. One slot
+// per domain so a re-scanned (or attacker-hammered) domain can't skew the public
+// score distribution or per-category averages — see claimStatsContribution.
+const STATS_CONTRIB_PREFIX = 'gs:';
 
 type CatCleanStore = { cats: Record<string, { sum: number; n: number }>; count: number };
 
@@ -499,11 +503,33 @@ export async function percentileForScore(kv, score) {
 // appendHistory call de-dupes against this one by scan id.
 export async function recordScan(kv, slim) {
   if (!kv || !slim || !slim.domain) return;
+  // The per-domain timeline records EVERY scan, but the global aggregates count
+  // each domain once — otherwise re-scanning a single domain (a legitimate
+  // redesign, or an attacker hammering /api/scan) would skew the public score
+  // distribution, the per-category averages, and every other domain's percentile.
+  const firstContribution = await claimStatsContribution(kv, slim.domain);
   await Promise.all([
     appendHistory(kv, slim.domain, historyPoint(slim)),
-    bumpScoreStats(kv, slim.score),
-    bumpCategoryStats(kv, slim),
+    ...(firstContribution ? [bumpScoreStats(kv, slim.score), bumpCategoryStats(kv, slim)] : []),
   ]);
+}
+
+// Claim a domain's single slot in the global aggregates. Returns true the first
+// time a domain is recorded, false on every later scan of that domain. The
+// marker is durable (no TTL): letting it expire would re-open the dedup, so an
+// attacker could just wait out the window. Get-then-put is not atomic — a rare
+// concurrent race double-counts one domain, which is harmless for an aggregate.
+// On a KV error we fall back to counting (a lost dedup beats dropping a real
+// first scan from the stats).
+async function claimStatsContribution(kv, domain) {
+  const key = `${STATS_CONTRIB_PREFIX}${domain}`;
+  try {
+    if (await kv.get(key)) return false;
+    await kv.put(key, '1');
+  } catch {
+    return true;
+  }
+  return true;
 }
 
 // Decide whether `current` is a regression from `baseline`. Pure — unit-tested.

@@ -101,6 +101,27 @@ test('recordScan bumps the score distribution; getStats aggregates it', async ()
   expect(stats.slopShare).toBe(67); // 2 of 3 score >= 10
 });
 
+test('global stats count each domain once, even across re-scans (anti-poisoning)', async () => {
+  const kv = makeKv();
+  // An attacker hammers /api/scan for one domain they control, 5 times.
+  for (let i = 0; i < 5; i++) {
+    await recordScan(kv, slim({ id: `spam${i}`, domain: 'spam.com', score: 95, tier: 'Heavy' }));
+  }
+  // One honest, distinct domain.
+  await recordScan(kv, slim({ id: 'honest', domain: 'honest.com', score: 4, tier: 'Clean' }));
+
+  const stats = await getStats(kv);
+  expect(stats.count, 'spam.com contributes ONE slot, not five').toBe(2);
+  expect(stats.heavy).toBe(1);
+  expect(stats.clean).toBe(1);
+  // The category corpus is deduped the same way.
+  const { count } = await getCategoryCleanAverages(kv);
+  expect(count).toBe(2);
+  // ...but the per-domain timeline still records every re-scan.
+  const hist = await getHistory(kv, 'spam.com');
+  expect(hist.length).toBe(5);
+});
+
 test('getScoreDistribution returns a 101-bucket array, empty when unseeded', async () => {
   const kv = makeKv();
   const dist = await getScoreDistribution(kv);
