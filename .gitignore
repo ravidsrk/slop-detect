@@ -51,3 +51,4 @@ core.[0-9]*
 
 # Pika MCP token (secret — never commit)
 .mogra/pika/tok.json
+.gstack/
