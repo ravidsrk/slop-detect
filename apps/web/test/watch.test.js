@@ -2,7 +2,7 @@
 // recordScanForWatch hook + the /api/watch handlers, all driven against an
 // in-memory KV mock — no real Cloudflare KV, browser, or network.
 
-import { test, expect } from 'vitest';
+import { test, expect, afterEach } from 'vitest';
 import {
   normalizeDomain,
   isValidEmail,
@@ -13,8 +13,14 @@ import {
   getHistory,
   emailIndexKey,
   getEmailDomains,
+  watchVerifyAllowed,
 } from '../functions/_shared.ts';
 import { onRequestPost, onRequestGet } from '../functions/api/watch.ts';
+
+const realFetch = globalThis.fetch;
+afterEach(() => {
+  globalThis.fetch = realFetch;
+});
 
 // Minimal CF-KV-shaped mock: string values, TTL ignored.
 function makeKv(seed = {}) {
@@ -250,4 +256,52 @@ test('GET /api/watch on an unwatched domain says monitoring:false', async () => 
   const res = await onRequestGet({ request: makeGetReq('unseen.com'), env });
   const j = await res.json();
   expect(j.monitoring).toBe(false);
+});
+
+// ── Per-recipient confirmation-email cap (anti email-bomb) ────────────────────
+test('watchVerifyAllowed caps confirmation emails per recipient and fails closed', async () => {
+  const kv = makeKv();
+  // 3 sends allowed in the window, the 4th is blocked.
+  expect(await watchVerifyAllowed(kv, 'victim@x.io')).toBe(true);
+  expect(await watchVerifyAllowed(kv, 'victim@x.io')).toBe(true);
+  expect(await watchVerifyAllowed(kv, 'victim@x.io')).toBe(true);
+  expect(await watchVerifyAllowed(kv, 'victim@x.io')).toBe(false);
+  // A different recipient has its own budget.
+  expect(await watchVerifyAllowed(kv, 'other@x.io')).toBe(true);
+  // The key is the hashed address, never the raw email.
+  expect([...kv.store.keys()].some((k) => k.includes('victim@x.io'))).toBe(false);
+  // No counter store → fail closed (do not send).
+  expect(await watchVerifyAllowed(null, 'victim@x.io')).toBe(false);
+});
+
+test('POST /api/watch stops emailing one address after the per-recipient cap', async () => {
+  let sends = 0;
+  globalThis.fetch = async (url) => {
+    if (String(url).includes('api.resend.com')) {
+      sends++;
+      return new Response(JSON.stringify({ id: `e${sends}` }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    throw new Error(`unexpected fetch to ${url}`);
+  };
+  const env = {
+    RESULTS: makeKv(),
+    RATE_LIMIT: makeKv(),
+    RESEND_API_KEY: 're_test',
+    ALERT_FROM: 'Slop Detect <alerts@slop-detect.com>',
+  };
+  // An attacker re-POSTs the same victim address; the confirmation email must be
+  // capped regardless of how many times they hit the endpoint.
+  const results = [];
+  for (let i = 0; i < 5; i++) {
+    const res = await onRequestPost({
+      request: makePostReq({ domain: 'attacker-chosen.com', email: 'victim@x.io' }),
+      env,
+    });
+    results.push((await res.json()).verificationSent);
+  }
+  expect(results).toEqual([true, true, true, false, false]);
+  expect(sends, 'only 3 emails reach the victim, not 5').toBe(3);
 });
