@@ -46,7 +46,12 @@ export async function sendEmail(
     });
     if (!res.ok) {
       const body = await res.text().catch(() => '');
-      report(env, 'error', 'email_send_failed', { status: res.status, body: body.slice(0, 200) });
+      // The provider echoes the recipient address back in error bodies, and this
+      // log can be forwarded to an external ERROR_WEBHOOK — scrub any email first.
+      report(env, 'error', 'email_send_failed', {
+        status: res.status,
+        body: scrubEmails(body).slice(0, 200),
+      });
       return { sent: false, reason: `http_${res.status}` };
     }
     const data = await res.json().catch(() => ({}));
@@ -63,4 +68,10 @@ function redact(addr) {
   const at = s.indexOf('@');
   if (at < 1) return '***';
   return `${s[0]}***${s.slice(at)}`;
+}
+
+// Replace any email addresses embedded in free-form provider text before it is
+// logged or forwarded to an external webhook.
+function scrubEmails(text) {
+  return String(text == null ? '' : text).replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, '[redacted-email]');
 }
