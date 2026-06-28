@@ -26,13 +26,16 @@ export const BRAND_CSS = `
     /* borders + hairlines (light) */
     --border:#DBDDD6; --border-2:#E4E6DF; --row:#E7E8E2; --row-inner:#EDEEE8;
     --border-btn:#C9CBC3; --border-chip:#D7D9D2; --track:#E2E4DD; --neutral:#CDCFC8;
-    /* ink tints on light, high contrast first */
-    --text:#181815; --text-2:#3A3B33; --text-3:#46473F; --text-4:#6E6F63;
-    --text-5:#7E7F72; --text-6:#9A9B8E;
+    /* ink tints on light, high contrast first. text-4/5 darkened to clear WCAG
+       AA (4.5:1) on the paper AND the tinted code-panel backgrounds, where the
+       old values measured 3.5-3.7:1 — the slop detector's own low-contrast-text
+       axis flags that. text-6 stays as the single faint, decorative-only tone. */
+    --text:#181815; --text-2:#3A3B33; --text-3:#46473F; --text-4:#565750;
+    --text-5:#5E5F57; --text-6:#9A9B8E;
     /* verdict core hues (fills + dots) */
     --clean:#1FA85E; --mild:#D89A2E; --heavy:#C9402E;
-    /* verdict text hues (AA on paper) */
-    --clean-text:#15824A; --mild-text:#9A6B12; --heavy-text:#B23A2A;
+    /* verdict text hues — nudged to actually clear AA 4.5:1 on paper (were 4.3-4.4) */
+    --clean-text:#11703F; --mild-text:#835A0E; --heavy-text:#B23A2A;
     --system-text:#2C6E8F; --clean-dark:#3FBE7A;
     /* ink tints on the dark register */
     --d-text:#F4F5F2; --d-text-2:#C9CABF; --d-text-3:#B6B7AC; --d-text-4:#8A8B7E;
