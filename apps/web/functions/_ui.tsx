@@ -111,13 +111,13 @@ export const UI_CSS = `
   .ft-inner{max-width:1080px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap}
   .ft-id{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .ft-word{font-family:var(--mono);font-weight:700;font-size:var(--fs-wordmark);letter-spacing:-0.01em;color:var(--d-text)}
-  .ft-meta{font-family:var(--mono);font-size:12px;color:var(--text-4)}
+  .ft-meta{font-family:var(--mono);font-size:12px;color:var(--d-text-4)}
   .ft-links{display:flex;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:12px}
   .ft-links a{color:var(--d-text-3)}
   .ft-links a:hover{color:var(--d-text)}
   .ft-note{max-width:1080px;margin:16px auto 0;display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
   .ft-fp{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--d-text-3)}
-  .ft-repro{font-family:var(--mono);font-size:12px;color:var(--text-4)}
+  .ft-repro{font-family:var(--mono);font-size:12px;color:var(--d-text-4)}
 
   /* scan input — the primary action; one bordered row, no slop styling */
   .scan{display:flex;align-items:stretch;overflow:hidden;background:var(--panel);border:1px solid var(--text);border-radius:4px}
