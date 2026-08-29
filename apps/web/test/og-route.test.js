@@ -237,3 +237,28 @@ test('RATE_LIMIT KV errors fail closed without launching Chromium', async () => 
   expect(res.status).toBe(302);
   expect(mock.calls.launch).toBe(0);
 });
+
+test('RATE_LIMIT KV errors do not exhaust the isolate OG budget', async () => {
+  const results = makeKv({ 'r:abc123def456': JSON.stringify(slim) });
+  const ip = '192.0.2.56';
+  const throwing = {
+    async get() {
+      throw new Error('kv down');
+    },
+    async put() {
+      throw new Error('kv down');
+    },
+  };
+  for (let i = 0; i < OG_RENDER_LIMIT; i++) {
+    const denied = await onRequestGet(
+      ogCtx('abc123def456', { RESULTS: results, BROWSER: {}, RATE_LIMIT: throwing }, undefined, ip)
+    );
+    expect(denied.status).toBe(302);
+  }
+  const rate = makeKv();
+  const res = await onRequestGet(
+    ogCtx('abc123def456', { RESULTS: results, BROWSER: {}, RATE_LIMIT: rate }, undefined, ip)
+  );
+  expect(res.status).toBe(200);
+  expect(mock.calls.launch).toBe(1);
+});

@@ -268,16 +268,26 @@ function ogMemIncrement(ip) {
   cur.count += 1;
   return cur.count;
 }
+function ogMemDecrement(ip) {
+  const key = ip || 'unknown';
+  const cur = ogMem.get(key);
+  if (!cur || cur.count <= 0) return;
+  cur.count -= 1;
+}
 export async function ogRenderAllowed(kv, ip) {
   if (ogMemIncrement(ip) > OG_RENDER_LIMIT) return false;
   if (!kv) return true;
   try {
     const key = `rl:ogrender:${ip || 'unknown'}`;
     const n = parseInt(await kv.get(key), 10) || 0;
-    if (n >= OG_RENDER_LIMIT) return false;
+    if (n >= OG_RENDER_LIMIT) {
+      ogMemDecrement(ip);
+      return false;
+    }
     await kv.put(key, String(n + 1), { expirationTtl: OG_RENDER_WINDOW_SEC });
     return true;
   } catch {
+    ogMemDecrement(ip);
     return false;
   }
 }
