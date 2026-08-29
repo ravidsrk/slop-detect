@@ -1,8 +1,8 @@
 // Serialization-safety guard for the TypeScript build.
 //
 // The design patterns' `extract()` functions are stringified with .toString()
-// and executed INSIDE the headless browser (see packages/cli/src/detector.js and
-// packages/web/functions/api/scan.js). That only works if the compiled output is
+// and executed INSIDE the headless browser (see packages/cli/src/detector.ts and
+// apps/web/functions/api/scan.ts). That only works if the compiled output is
 // plain, self-contained browser JS — if tsc ever started injecting runtime
 // helpers (tslib __awaiter/__spreadArray/…) into a function body, the serialized
 // code would reference an undefined helper and blow up in the page.

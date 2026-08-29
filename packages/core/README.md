@@ -58,7 +58,7 @@ console.log(`${score}/100 — ${tier}`);
 ## Reference runners
 
 - Node + Playwright: [`slop-detect`](https://www.npmjs.com/package/slop-detect)
-- Cloudflare Workers + Browser Rendering: see [`packages/web/functions/api/scan.js`](https://github.com/ravidsrk/slop-detect/blob/main/packages/web/functions/api/scan.js)
+- Cloudflare Workers + Browser Rendering: see [`apps/web/functions/api/scan.ts`](https://github.com/ravidsrk/slop-detect/blob/main/apps/web/functions/api/scan.ts)
 
 ## License
 

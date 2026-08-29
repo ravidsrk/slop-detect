@@ -1,4 +1,4 @@
-// slop-detect-core — public entry point.
+// @slop-detect/core — public entry point.
 //
 // This package is the pure, runtime-agnostic detection engine. It does NOT
 // know how to fetch a page (no Playwright, no Puppeteer, no fetch). Callers
@@ -6,7 +6,7 @@
 // responsible for opening the page in a browser, running the per-pattern
 // `detect()` callback inside that page's context, then assembling a result.
 //
-// See packages/cli/src/detector.js and packages/web/functions/api/scan.js
+// See packages/cli/src/detector.ts and apps/web/functions/api/scan.ts
 // for the two reference runners.
 
 export { PATTERNS } from './patterns.js';

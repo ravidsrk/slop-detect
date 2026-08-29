@@ -29,7 +29,6 @@ export interface ScanOptions {
   designMd?: string;
   api?: string;
   apiKey?: string;
-  includeSystem?: boolean;
 }
 
 // Playwright is heavy (pulls in a ~150 MB browser) and is ONLY needed for an
