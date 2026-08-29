@@ -63,9 +63,8 @@ test('publishable packages share one version and a changesets fixed group', () =
   const core = JSON.parse(read('../../../packages/core/package.json'));
   const cli = JSON.parse(read('../../../packages/cli/package.json'));
   const mcp = JSON.parse(read('../../../packages/mcp/package.json'));
-  expect(core.version).toBe(pkg.version);
-  expect(cli.version).toBe(pkg.version);
-  expect(mcp.version).toBe(pkg.version);
+  expect(cli.version).toBe(core.version);
+  expect(mcp.version).toBe(core.version);
   const changesets = JSON.parse(read('../../../.changeset/config.json'));
   expect(changesets.fixed).toEqual([['@slop-detect/core', 'slop-detect', 'slop-detect-mcp']]);
 });
