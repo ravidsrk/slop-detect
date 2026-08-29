@@ -244,6 +244,25 @@ export async function watchVerifyAllowed(kv, email) {
   }
 }
 
+// ── Per-IP OG card render cap ─────────────────────────────────────────────────
+// GET /og/:id.png sits outside /api/* middleware but launches Chromium. Cap
+// uncached renders per client IP. Missing RATE_LIMIT binding allows (local /
+// test); KV errors fail closed so a broken counter cannot spend browser minutes.
+export const OG_RENDER_LIMIT = 10;
+export const OG_RENDER_WINDOW_SEC = 60;
+export async function ogRenderAllowed(kv, ip) {
+  if (!kv) return true;
+  try {
+    const key = `rl:ogrender:${ip || 'unknown'}`;
+    const n = parseInt(await kv.get(key), 10) || 0;
+    if (n >= OG_RENDER_LIMIT) return false;
+    await kv.put(key, String(n + 1), { expirationTtl: OG_RENDER_WINDOW_SEC });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // Domains monitored by one email — one kv.get. Used by the magic-link endpoint
 // where we only need a count, not full watch records.
 export async function getEmailDomains(kv, email) {
