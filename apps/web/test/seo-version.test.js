@@ -59,6 +59,17 @@ test('openapi + agent surface advertise the released package version (no drift)'
   expect(serverCard.version, 'mcp server-card.json must track package.json').toBe(v);
 });
 
+test('publishable packages share one version and a changesets fixed group', () => {
+  const core = JSON.parse(read('../../../packages/core/package.json'));
+  const cli = JSON.parse(read('../../../packages/cli/package.json'));
+  const mcp = JSON.parse(read('../../../packages/mcp/package.json'));
+  expect(core.version).toBe(pkg.version);
+  expect(cli.version).toBe(pkg.version);
+  expect(mcp.version).toBe(pkg.version);
+  const changesets = JSON.parse(read('../../../.changeset/config.json'));
+  expect(changesets.fixed).toEqual([['@slop-detect/core', 'slop-detect', 'slop-detect-mcp']]);
+});
+
 // ── defs drift: catalogue label pinned to ONE source (DEFINITIONS_VERSION) ────
 test('catalogue version labels track DEFINITIONS_VERSION (no defs drift)', () => {
   expect(DEFINITIONS_VERSION, 'parsed DEFINITIONS_VERSION from core').toMatch(/^\d{4}\.\d{2}$/);

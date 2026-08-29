@@ -45,8 +45,8 @@ Worker launch flags:
 
 Safety mapping (this is NOT a money/custody/infra-prod system, but rails still bind):
 
-- No deploy/promote. `web:deploy` (Cloudflare) and npm `release`/`changeset publish` are OPS,
-  never run by the swarm. Merges land on BASE only; BASE→main is a human meta-PR (out of scope).
+- No deploy/promote. `web:deploy` (Cloudflare) and npm publish via a `v*` tag
+  (`.github/workflows/publish.yml`) are OPS, never run by the swarm. Merges land on BASE only; BASE→main is a human meta-PR (out of scope).
 - Acceptance demonstrated via vitest unit/integration tests + local CLI/fixture harnesses only.
   No live network scans against third-party sites required for acceptance; use fixtures/local.
 - Secrets: never commit keys/tokens/.env. Web app reads secrets from env/wrangler bindings.
