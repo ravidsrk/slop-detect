@@ -114,12 +114,22 @@ async function scan(apiBase, url) {
 // ---------------------------------------------------------------------------
 // Threshold gate. Returns { passed, reason } given the result + fail-under.
 // ---------------------------------------------------------------------------
-function evaluateThreshold(result, failUnder) {
+export function evaluateThreshold(result, failUnder) {
   const raw = String(failUnder ?? '').trim();
 
   // Empty → report-only, always passes.
   if (raw === '') {
     return { passed: true, mode: 'report-only', reason: 'No threshold set — report only.' };
+  }
+
+  if (result?.error || result?.blocked) {
+    return {
+      passed: false,
+      mode: 'failed-scan',
+      reason: result.error
+        ? `Scan error: ${result.error}`
+        : `Scan blocked (${result.code || 'blocked'}).`,
+    };
   }
 
   if (isLetterGrade(raw)) {
