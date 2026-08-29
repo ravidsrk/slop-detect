@@ -248,7 +248,9 @@ export async function watchVerifyAllowed(kv, email) {
 // GET /og/:id.png sits outside /api/* middleware but launches Chromium. Cap
 // uncached renders per client IP. An in-isolate counter serializes concurrent
 // requests in one Worker (KV get/put is not atomic). Missing RATE_LIMIT still
-// honors the isolate cap; KV errors fail closed.
+// honors the isolate cap; KV errors fail closed. Cross-isolate KV races are
+// the same residual as watchVerifyAllowed / dashLinkAllowed — atomic counting
+// needs a Durable Object (see #109).
 export const OG_RENDER_LIMIT = 10;
 export const OG_RENDER_WINDOW_SEC = 60;
 const ogMem = new Map();
