@@ -87,3 +87,18 @@ test('the llms developer surfaces advertise the full MCP tool list', () => {
     }
   }
 });
+
+test('published surfaces do not hardcode a 16-rule pattern count', () => {
+  const files = [
+    '../../../packages/cli/README.md',
+    '../../../packages/mcp/README.md',
+    '../../../packages/action/README.md',
+    '../../../packages/action/action.yml',
+    '../API.md',
+  ];
+  for (const rel of files) {
+    const txt = read(rel);
+    expect(txt.includes('16-rule'), rel).toBeFalsy();
+    expect(txt.includes('16 "AI slop"'), rel).toBeFalsy();
+  }
+});
