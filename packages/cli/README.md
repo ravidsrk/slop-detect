@@ -15,7 +15,7 @@ npm install -g slop-detect
 slop-detect https://your-site.com
 ```
 
-The `postinstall` hook downloads a Chromium build (~150 MB) via Playwright.
+Chromium is installed lazily on the first local scan (~150 MB via Playwright), not at `npm install`. Set `SKIP_PLAYWRIGHT_DOWNLOAD=1` to skip the download when a browser is already present. `--remote` scans via the API and needs no Chromium.
 
 ## Usage
 
