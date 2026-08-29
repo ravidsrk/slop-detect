@@ -29,6 +29,10 @@ export interface ScanOptions {
   designMd?: string;
   api?: string;
   apiKey?: string;
+  // Kept on the public options object so existing TS call sites that pass
+  // includeSystem: true keep typechecking. Runtime equivalent: inject the
+  // system extractor (also implied by designMd).
+  includeSystem?: boolean;
 }
 
 // Playwright is heavy (pulls in a ~150 MB browser) and is ONLY needed for an
@@ -213,7 +217,9 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
     await page.waitForTimeout(SCAN_PAGE_WAIT.postNetworkSettleMs);
     await page.evaluate(waitFontsReadyInPage, SCAN_PAGE_WAIT.fontsReadyTimeoutMs);
 
-    const data = await page.evaluate(buildPageScript({ includeSystem: !!opts.designMd }));
+    const data = await page.evaluate(
+      buildPageScript({ includeSystem: !!(opts.designMd || opts.includeSystem) })
+    );
 
     // Anti-bot / dead-page detection — don't silently return Clean 0.
     const blocked = detectBlocked(data);
