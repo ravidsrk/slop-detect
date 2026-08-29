@@ -66,3 +66,17 @@ test('invalid --timeout value exits 2 (usage error)', () => {
     expect(r.stderr).toMatch(/--timeout needs a positive integer/);
   }
 });
+
+test('valid --timeout is accepted at parse time (no URL still exits 2)', () => {
+  const r = run(['--timeout', '30000']);
+  expect(r.status).toBe(2);
+  expect(r.stderr).not.toMatch(/Unknown flag/);
+  expect(r.stderr).not.toMatch(/--timeout needs a positive integer/);
+  expect(r.stdout).toMatch(/Usage:/);
+});
+
+test('--timeout with --remote exits 2 before any scan', () => {
+  const r = run(['https://example.com', '--remote', '--timeout', '5000']);
+  expect(r.status).toBe(2);
+  expect(r.stderr).toMatch(/--timeout applies to local Playwright navigation only/);
+});

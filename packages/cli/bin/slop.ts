@@ -135,6 +135,13 @@ if (urls.length === 0) {
   process.exit(2);
 }
 
+if (flags.timeout && flags.remote) {
+  console.error(
+    '--timeout applies to local Playwright navigation only; drop --remote or omit --timeout.'
+  );
+  process.exit(2);
+}
+
 // Normalize bare hostnames the way the web UI does: `slop-detect example.com`
 // should Just Work. Prepend https:// when no http(s) scheme is present. An
 // explicit non-http(s) scheme (file:, ftp:…) is rejected — we only scan pages.
@@ -184,7 +191,7 @@ Options:
                     higher is better. Local scans only for now.
   --fail-on <tier>  Exit non-zero (1) if any page scores at/above tier: mild | heavy.
                     A blocked or errored scan also exits 1. Use this to gate CI.
-  --timeout <ms>    Navigation timeout in milliseconds (default 30000)
+  --timeout <ms>    Local Playwright navigation timeout in ms (default 30000)
   --help, -h        Show this help
 
 Examples:
