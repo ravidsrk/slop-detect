@@ -1,6 +1,7 @@
-// MCP server wiring. Exposes two tools — scan_page and fix_prompt — over the
-// stdio transport so any MCP client (Claude Code, Cursor, Windsurf) can drive
-// slop-detect.com without a browser or API key.
+// MCP server wiring. Exposes four tools — scan_page, check_aeo,
+// check_design_system, and fix_prompt — over the stdio transport so any MCP
+// client (Claude Code, Cursor, Windsurf) can drive slop-detect.com without a
+// browser or API key.
 
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
