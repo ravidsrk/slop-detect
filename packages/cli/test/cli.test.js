@@ -20,6 +20,7 @@ test('--help exits 0 and lists the dynamic pattern catalogue', () => {
   expect(r.status).toBe(0);
   expect(r.stdout).toMatch(/AI-design-slop patterns \(defs/);
   expect(r.stdout).toMatch(/--fail-on <tier>/);
+  expect(r.stdout).toMatch(/--timeout <ms>/);
   // The list is generated from PATTERNS — it must contain a known short name.
   expect(r.stdout).toMatch(/Slop fonts/);
 });
@@ -50,4 +51,32 @@ test('unknown flag exits 2 (usage error)', () => {
   const r = run(['https://example.com', '--nope']);
   expect(r.status).toBe(2);
   expect(r.stderr).toMatch(/Unknown flag/);
+});
+
+test('--timeout without a value exits 2 (usage error)', () => {
+  const r = run(['https://example.com', '--timeout']);
+  expect(r.status).toBe(2);
+  expect(r.stderr).toMatch(/--timeout needs a positive integer/);
+});
+
+test('invalid --timeout value exits 2 (usage error)', () => {
+  for (const val of ['0', '-1', 'bogus', '30000.5']) {
+    const r = run(['https://example.com', '--timeout', val]);
+    expect(r.status).toBe(2);
+    expect(r.stderr).toMatch(/--timeout needs a positive integer/);
+  }
+});
+
+test('valid --timeout is accepted at parse time (no URL still exits 2)', () => {
+  const r = run(['--timeout', '30000']);
+  expect(r.status).toBe(2);
+  expect(r.stderr).not.toMatch(/Unknown flag/);
+  expect(r.stderr).not.toMatch(/--timeout needs a positive integer/);
+  expect(r.stdout).toMatch(/Usage:/);
+});
+
+test('--timeout with --remote exits 2 before any scan', () => {
+  const r = run(['https://example.com', '--remote', '--timeout', '5000']);
+  expect(r.status).toBe(2);
+  expect(r.stderr).toMatch(/--timeout applies to local Playwright navigation only/);
 });
