@@ -9,8 +9,8 @@
 // `{ id, label, short, category, weight, extract }` pattern object the runners
 // already understand.
 //
-// SERIALIZATION CONSTRAINT: both runners (cli/src/detector.js and
-// web/functions/api/scan.js) do `pattern.extract.toString()` and inject the
+// SERIALIZATION CONSTRAINT: both runners (cli/src/detector.ts and
+// apps/web/functions/api/scan.ts) do `pattern.extract.toString()` and inject the
 // source into the page via page.evaluate(). So a compiled `extract` MUST be
 // fully self-contained — it cannot close over module-scope variables, because
 // .toString() drops the closure. We satisfy this by string-templating the rule

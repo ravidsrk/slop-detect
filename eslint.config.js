@@ -91,7 +91,7 @@ export default tseslint.config(
   // functions serialized + executed inside the headless page, so document/window/
   // getComputedStyle are defined at runtime. (core's equivalents are .ts above.)
   {
-    files: ['packages/cli/src/detector.js', 'packages/cli/bin/*.js'],
+    files: ['packages/cli/src/detector.ts', 'packages/cli/bin/*.ts'],
     languageOptions: {
       globals: { ...globals.node, ...globals.browser },
     },
