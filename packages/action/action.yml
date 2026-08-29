@@ -21,7 +21,7 @@ author: 'Ravindra Kumar'
 
 branding:
   icon: 'eye'
-  color: 'purple'
+  color: 'gray-dark'
 
 inputs:
   url:
