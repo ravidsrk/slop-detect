@@ -27,7 +27,7 @@ function readVersion() {
 }
 const VERSION = readVersion();
 
-const TOOLS = [
+export const TOOLS = [
   {
     name: 'scan_page',
     description:
@@ -105,7 +105,7 @@ function asToolResult(text, isError = false) {
   return { content: [{ type: 'text', text }], isError };
 }
 
-async function handleCall(name, args) {
+export async function handleCall(name, args) {
   const url = args && typeof args.url === 'string' ? args.url.trim() : '';
   if (!url) {
     return asToolResult('Missing required argument "url" (a string).', true);
