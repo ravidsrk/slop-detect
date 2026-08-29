@@ -2,7 +2,7 @@
 
 > MCP server that lets AI coding agents scan landing pages for **AI-design-slop** and pull a ready-to-paste fix prompt — straight from the chat.
 
-Part of [slop-detect](https://slop-detect.com): the 16-rule fingerprint that catches Cursor / v0 / Lovable template slop in the wild. This package wraps the live `slop-detect.com` API as a [Model Context Protocol](https://modelcontextprotocol.io) server, so **Claude Code, Cursor, and Windsurf** can audit and de-slop pages without a browser or API key.
+Part of [slop-detect](https://slop-detect.com): the versioned fingerprint that catches Cursor / v0 / Lovable template slop in the wild (live catalogue: [`/api/patterns`](https://slop-detect.com/api/patterns)). This package wraps the live `slop-detect.com` API as a [Model Context Protocol](https://modelcontextprotocol.io) server, so **Claude Code, Cursor, and Windsurf** can audit and de-slop pages without a browser or API key.
 
 ## Tools
 
