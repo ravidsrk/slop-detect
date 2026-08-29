@@ -4,7 +4,7 @@ This directory ships [Agent Skills](https://agentskills.io) — portable, agent-
 
 | Skill | What it does |
 |---|---|
-| [`slop-detect/`](./slop-detect/) | Scan any URL for the 16-rule AI-design-slop fingerprint and generate a fix prompt |
+| [`slop-detect/`](./slop-detect/) | Scan any URL for the versioned AI-design-slop fingerprint and generate a fix prompt |
 
 ## Install
 

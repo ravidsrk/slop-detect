@@ -95,6 +95,7 @@ test('published surfaces do not hardcode a 16-rule pattern count', () => {
     '../../../packages/action/README.md',
     '../../../packages/action/action.yml',
     '../API.md',
+    '../../../skills/README.md',
   ];
   for (const rel of files) {
     const txt = read(rel);
