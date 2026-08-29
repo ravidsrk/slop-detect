@@ -1,6 +1,6 @@
 # Slop Detect Action
 
-> Score a landing page against the 16-rule **AI-design-slop fingerprint** and gate your PRs.
+> Score a landing page against the versioned **AI-design-slop fingerprint** and gate your PRs.
 
 A [composite GitHub Action](https://docs.github.com/actions/creating-actions/creating-a-composite-action)
 that scans a URL (typically a **deploy-preview**), posts a **sticky PR comment**

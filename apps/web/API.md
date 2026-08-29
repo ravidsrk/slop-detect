@@ -1,8 +1,8 @@
 # slop-detect Public API
 
 Public REST API for [slop-detect.com](https://slop-detect.com) — scan a URL for
-the 16 "AI slop" design patterns, get a remediation prompt, and embed live
-badges.
+AI-design-slop patterns (live catalogue: [`/api/patterns`](https://slop-detect.com/api/patterns)), get a
+remediation prompt, and embed live badges.
 
 - **Base URL:** `https://slop-detect.com` (also `https://slop-detector-8by.pages.dev`)
 - **Auth:** optional API key (see [Authentication](#authentication)). No key = anonymous tier.
