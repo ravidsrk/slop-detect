@@ -6,7 +6,7 @@
 // worse than a generic one).
 
 import { acquireBrowser, isScanDisabled, releaseBrowser } from '../_browser.js';
-import { getResult } from '../_shared.js';
+import { getResult, ogRenderAllowed } from '../_shared.js';
 import { cardHtml } from '../_card.js';
 
 const OG_TTL = 60 * 60 * 24 * 30; // 30 days
@@ -36,6 +36,11 @@ export async function onRequestGet({ params, env, request }) {
 
   const slim = await getResult(env.RESULTS, id);
   if (!slim || !env.BROWSER) {
+    return Response.redirect(new URL('/og.png', request.url).toString(), 302);
+  }
+
+  const ip = request.headers?.get?.('CF-Connecting-IP') || 'unknown';
+  if (!(await ogRenderAllowed(env.RATE_LIMIT, ip))) {
     return Response.redirect(new URL('/og.png', request.url).toString(), 302);
   }
 

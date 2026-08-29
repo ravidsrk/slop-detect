@@ -244,6 +244,54 @@ export async function watchVerifyAllowed(kv, email) {
   }
 }
 
+// ── Per-IP OG card render cap ─────────────────────────────────────────────────
+// GET /og/:id.png sits outside /api/* middleware but launches Chromium. Cap
+// uncached renders per client IP. An in-isolate counter serializes concurrent
+// requests in one Worker (KV get/put is not atomic). Missing RATE_LIMIT still
+// honors the isolate cap; KV errors fail closed. Cross-isolate KV races are
+// the same residual as watchVerifyAllowed / dashLinkAllowed — atomic counting
+// needs a Durable Object (see #109).
+export const OG_RENDER_LIMIT = 10;
+export const OG_RENDER_WINDOW_SEC = 60;
+const ogMem = new Map();
+function ogMemIncrement(ip) {
+  const now = Date.now();
+  if (ogMem.size > 256) {
+    for (const [k, v] of ogMem) if (now >= v.resetAt) ogMem.delete(k);
+  }
+  const key = ip || 'unknown';
+  const cur = ogMem.get(key);
+  if (!cur || now >= cur.resetAt) {
+    ogMem.set(key, { count: 1, resetAt: now + OG_RENDER_WINDOW_SEC * 1000 });
+    return 1;
+  }
+  cur.count += 1;
+  return cur.count;
+}
+function ogMemDecrement(ip) {
+  const key = ip || 'unknown';
+  const cur = ogMem.get(key);
+  if (!cur || cur.count <= 0) return;
+  cur.count -= 1;
+}
+export async function ogRenderAllowed(kv, ip) {
+  if (ogMemIncrement(ip) > OG_RENDER_LIMIT) return false;
+  if (!kv) return true;
+  try {
+    const key = `rl:ogrender:${ip || 'unknown'}`;
+    const n = parseInt(await kv.get(key), 10) || 0;
+    if (n >= OG_RENDER_LIMIT) {
+      ogMemDecrement(ip);
+      return false;
+    }
+    await kv.put(key, String(n + 1), { expirationTtl: OG_RENDER_WINDOW_SEC });
+    return true;
+  } catch {
+    ogMemDecrement(ip);
+    return false;
+  }
+}
+
 // Domains monitored by one email — one kv.get. Used by the magic-link endpoint
 // where we only need a count, not full watch records.
 export async function getEmailDomains(kv, email) {
