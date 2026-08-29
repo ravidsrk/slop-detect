@@ -37,7 +37,6 @@ packages/
 
 apps/
 ├── web/     slop-detect-web      ← Cloudflare Pages app for slop-detect.com
-└── docs/    slop-detect-docs     ← Next.js 15 docs site
 
 examples/
 ├── astro-blog/                   ← reference Astro integration
@@ -180,9 +179,6 @@ bun run --filter slop-detect scan https://example.com -- --copy  # design + copy
 
 # 4) Run the web app locally (won't actually scan without Cloudflare):
 bun run web:dev
-
-# 5) Run the docs site locally:
-bun run docs:dev
 ```
 
 ## Pull request checklist

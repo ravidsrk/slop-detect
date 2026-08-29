@@ -35,7 +35,6 @@
     "demo": "npm run --workspace slop-detect demo",
     "web:dev": "bun run --filter slop-detect-web dev",
     "web:deploy": "bun run --filter slop-detect-web deploy",
-    "docs:dev": "bun run --filter slop-detect-docs dev",
     "calibrate": "node --import tsx packages/cli/calibration/run.mjs"
   },
   "engines": {
