@@ -221,9 +221,7 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
     await page.waitForTimeout(SCAN_PAGE_WAIT.postNetworkSettleMs);
     await page.evaluate(waitFontsReadyInPage, SCAN_PAGE_WAIT.fontsReadyTimeoutMs);
 
-    const data = await page.evaluate(
-      buildPageScript({ includeSystem: shouldIncludeSystem(opts) })
-    );
+    const data = await page.evaluate(buildPageScript({ includeSystem: shouldIncludeSystem(opts) }));
 
     // Anti-bot / dead-page detection — don't silently return Clean 0.
     const blocked = detectBlocked(data);
