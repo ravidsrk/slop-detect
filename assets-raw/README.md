@@ -2,7 +2,7 @@
 
 Dated evidence snapshots. **Not** the live scoring engine.
 
-The live catalogue is `@slop-detect/core` (`DEFINITIONS_VERSION`, currently `2026.09`) and `GET /api/patterns`. Do not regenerate these files to chase the engine.
+The live catalogue is `@slop-detect/core` (`DEFINITIONS_VERSION`) and `GET /api/patterns`. Do not regenerate these files to chase the engine.
 
 | File | What it is |
 | --- | --- |
