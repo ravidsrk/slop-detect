@@ -9,9 +9,13 @@ Part of [slop-detect](https://slop-detect.com): the 16-rule fingerprint that cat
 | Tool | Input | What it does |
 | --- | --- | --- |
 | `scan_page` | `{ url }` | Scans the page and returns a grade, a 0-100 score (**lower is better**), the slop tier, a verdict, the triggered patterns, and a shareable result URL. |
+| `check_aeo` | `{ url }` | Checks whether AI engines (ChatGPT, Claude, Perplexity, Google AI Overviews) can read and cite the page. Returns an AEO score 0-100 (**higher is better**), a tier (AI-Ready / Partial / Invisible), and which checks failed. |
+| `check_design_system` | `{ url, design_md_url? }` | Checks whether the page honors its own DESIGN.md. Returns a compliance score 0-100 (**higher is better**), a tier (Aligned / Drifting / Off-system / No system / No data), and named drift. Default file is `<origin>/DESIGN.md`; pass `design_md_url` to override. `No system` means no parseable DESIGN.md tokens; `No data` means nothing observable to check. |
 | `fix_prompt` | `{ url }` | Returns a copy-paste prompt that tells a coding agent exactly how to de-slop the page. |
 
-> **Score polarity:** `0` = no slop. Tiers are **Clean** (0–9), **Mild** (10–27), **Heavy** (28+).
+> **Score polarity:** slop `0` = clean (Clean 0–9, Mild 10–27, Heavy 28+). AEO and design-system scores are inverted: **higher is better**.
+
+Example asks: "scan https://example.com for slop", "can AI engines cite https://example.com?", "does https://example.com honor its DESIGN.md?", "give me a fix prompt for https://example.com".
 
 ## Install
 
