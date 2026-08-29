@@ -1,6 +1,6 @@
 # slop-detect
 
-> Score any landing page against the 16-rule AI-design-slop fingerprint, from your terminal.
+> Score any landing page against the versioned AI-design-slop fingerprint, from your terminal.
 
 Playwright-based, deterministic, zero-config. Perfect for CI, batch scans, and air-gapped audits.
 

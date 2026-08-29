@@ -16,7 +16,7 @@
 #   body/title/branch content. Treat `url` as untrusted user input. Grant least
 #   privilege: `permissions: pull-requests: write` (plus `contents: read` if needed).
 name: 'Slop Detect'
-description: 'Score a landing page against the 16-rule AI-design-slop fingerprint and gate PRs.'
+description: 'Score a landing page against the AI-design-slop fingerprint and gate PRs.'
 author: 'Ravindra Kumar'
 
 branding:
