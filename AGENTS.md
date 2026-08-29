@@ -48,7 +48,6 @@ packages/
 
 apps/
 ├── web/     slop-detect-web        ← Cloudflare Pages site + Functions (the API)
-└── docs/    slop-detect-docs       ← Next.js 15 docs site
 
 examples/
 ├── astro-blog/                     ← Astro 5 reference integration

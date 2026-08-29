@@ -284,8 +284,7 @@ slop-detect/
 │   ├── mcp/     slop-detect-mcp     ← Model Context Protocol server for agents
 │   └── action/                      ← GitHub Action wrapper (not on npm)
 ├── apps/
-│   ├── web/     slop-detect-web     ← Cloudflare Pages app powering slop-detect.com
-│   └── docs/    slop-detect-docs    ← Next.js 15 docs site
+│   └── web/     slop-detect-web     ← Cloudflare Pages app powering slop-detect.com
 ├── examples/
 │   ├── astro-blog/                  ← Astro 5 reference integration
 │   └── nextjs-app-router/           ← Next 15 reference integration
@@ -309,9 +308,6 @@ bun run --filter slop-detect scan -- https://your-url.com
 
 # Run the web app locally
 bun run web:dev                          # http://localhost:8788
-
-# Run the docs site locally
-bun run docs:dev
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full contributor guide, including how to propose a 17th pattern or improve a fix recipe.

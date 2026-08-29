@@ -48,9 +48,8 @@ all 7 pass (12 passed total in the CLI workspace, exit 0). So the skips are an
 environment gate, not a coverage gap. With the golden suite included the suite total is
 330 tests, all green.
 
-The turbo "6 test tasks" count covers the 4 real vitest suites above plus
-slop-detect-docs and the two examples (astro-blog, nextjs-app-router), which declare no
-test command and pass as no-ops.
+The turbo test graph covers the real vitest suites plus the two examples
+(astro-blog, nextjs-app-router), which declare no test command and pass as no-ops.
 
 ## Parity matrix: build tasks 00 to 17
 
