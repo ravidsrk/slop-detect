@@ -189,6 +189,16 @@ bun run web:dev
 - [ ] If you changed a fix recipe: a before/after comparison of the generated prompt
 - [ ] README / pattern table updated if the public surface changed
 
+## Releasing
+
+Publish path is **tag-gated** `.github/workflows/publish.yml`, not `changeset publish`.
+
+1. Land version bumps on `main` (changesets may draft them; the three publishable packages are a **fixed** group so they cannot drift).
+2. Confirm `packages/{core,cli,mcp}/package.json` versions are identical and CHANGELOG is updated.
+3. Cut `vX.Y.Z` matching that version. The workflow publishes `@slop-detect/core` → `slop-detect` → `slop-detect-mcp` and fails if `NPM_TOKEN` is missing or a package version does not match the tag.
+
+Do not run `bun run release` — it exits non-zero on purpose.
+
 ## Reporting bugs
 
 Use the **Bug Report** issue template. Include:

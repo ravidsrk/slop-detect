@@ -29,7 +29,7 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,mdx}\"",
     "changeset": "changeset",
     "version-packages": "changeset version && bun install --lockfile-only",
-    "release": "turbo run build --filter=./packages/* && changeset publish",
+    "release": "echo 'Do not npm-publish from here. Cut a vX.Y.Z tag after versions match; .github/workflows/publish.yml publishes core then cli then mcp.' && exit 1",
     "clean": "turbo run clean && rm -rf node_modules",
     "scan": "npm run --workspace slop-detect scan --",
     "demo": "npm run --workspace slop-detect demo",
