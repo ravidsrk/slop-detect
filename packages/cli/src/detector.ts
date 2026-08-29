@@ -35,6 +35,10 @@ export interface ScanOptions {
   includeSystem?: boolean;
 }
 
+export function shouldIncludeSystem(opts: ScanOptions = {}) {
+  return !!(opts.designMd || opts.includeSystem);
+}
+
 // Playwright is heavy (pulls in a ~150 MB browser) and is ONLY needed for an
 // actual scan. Import it lazily so `--help`, flag validation, error paths, and
 // the `--remote` API mode all work without it installed. A top-level import here
@@ -218,7 +222,7 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
     await page.evaluate(waitFontsReadyInPage, SCAN_PAGE_WAIT.fontsReadyTimeoutMs);
 
     const data = await page.evaluate(
-      buildPageScript({ includeSystem: !!(opts.designMd || opts.includeSystem) })
+      buildPageScript({ includeSystem: shouldIncludeSystem(opts) })
     );
 
     // Anti-bot / dead-page detection — don't silently return Clean 0.
