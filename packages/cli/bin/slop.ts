@@ -24,6 +24,7 @@ const flags = {
   remote: false,
   api: null,
   designMd: null,
+  timeout: null,
 };
 
 // Tier severity ordering for --fail-on. A scan exits non-zero when its tier is
@@ -92,6 +93,20 @@ for (let i = 0; i < args.length; i++) {
       process.exit(2);
     }
     flags.failOn = val === 'mild' ? 'Mild' : 'Heavy';
+  } else if (a === '--timeout' || a.startsWith('--timeout=')) {
+    const raw = a.startsWith('--timeout=') ? a.slice('--timeout='.length) : args[++i];
+    const val = Number(raw);
+    if (
+      raw == null ||
+      String(raw).startsWith('--') ||
+      !Number.isFinite(val) ||
+      !Number.isInteger(val) ||
+      val <= 0
+    ) {
+      console.error('--timeout needs a positive integer (milliseconds), e.g. --timeout 30000.');
+      process.exit(2);
+    }
+    flags.timeout = val;
   } else if (a === '--help' || a === '-h') {
     help();
     process.exit(0);
@@ -117,6 +132,13 @@ for (let i = 0; i < args.length; i++) {
 
 if (urls.length === 0) {
   help();
+  process.exit(2);
+}
+
+if (flags.timeout && flags.remote) {
+  console.error(
+    '--timeout applies to local Playwright navigation only; drop --remote or omit --timeout.'
+  );
   process.exit(2);
 }
 
@@ -169,6 +191,7 @@ Options:
                     higher is better. Local scans only for now.
   --fail-on <tier>  Exit non-zero (1) if any page scores at/above tier: mild | heavy.
                     A blocked or errored scan also exits 1. Use this to gate CI.
+  --timeout <ms>    Local Playwright navigation timeout in ms (default 30000)
   --help, -h        Show this help
 
 Examples:
@@ -397,6 +420,7 @@ function renderSystem(sys) {
         preset: flags.preset,
         axes: flags.axes,
         api: flags.api,
+        timeout: flags.timeout || undefined,
       };
       if (flags.designMd && !flags.remote) {
         const loaded = await loadDesignMd(flags.designMd, url);
