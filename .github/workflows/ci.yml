@@ -56,7 +56,9 @@ jobs:
       - name: Build CLI + core
         run: bun run --filter @slop-detect/core build && bun run --filter slop-detect build
       - name: Install Playwright Chromium
-        run: bunx playwright install --with-deps chromium
+        # Pinned to the workspace playwright (bare `bunx playwright` may resolve a
+        # newer rev whose browsers 1.60.0 refuses). Keep in sync with engine-pin.test.js.
+        run: bunx --package playwright@1.60.0 playwright install --with-deps chromium
       - name: Golden detector tests (real Chromium)
         env:
           RUN_GOLDEN: 1
