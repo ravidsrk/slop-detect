@@ -1031,17 +1031,17 @@
     {
       "exit_criteria": [
         {
-          "evidence": null,
+          "evidence": "docs/completion/evidence/T-02-bun.txt (FROZEN_EXIT=0)",
           "met": true,
           "text": "Cold start passes from lockfile"
         },
         {
-          "evidence": null,
+          "evidence": "CI run 34867308165 on PR 125 all pass + docs/completion/evidence/T-03-gate.txt (local, all 0)",
           "met": true,
           "text": "CI green on main"
         },
         {
-          "evidence": null,
+          "evidence": "docs/completion/evidence/T-01-branches.txt (main only)",
           "met": true,
           "text": "Branch list clean"
         }
