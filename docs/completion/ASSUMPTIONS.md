@@ -14,3 +14,6 @@
 - **A-08 (S2):** H-blocked tasks → CONDITIONAL-GO conditions, never halt phases. Rejected: halt on H-block.
 - **A-09 (S3/T-04):** .astro files outside the eslint gate accepted: example builds compile .astro
   in CI; eslint-plugin-astro disproportionate for demos. Rejected: new parser dep for examples.
+- **A-10 (S3/review):** Correcting wrong summary arithmetic (counts, pins) to match frozen register
+  rows preserves the S2 freeze; rows/decisions/scopes unchanged (G-53 note broadened to name the
+  astro major it already covered by class). Rejected: leaving known-wrong summaries frozen.

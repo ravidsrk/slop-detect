@@ -21,3 +21,10 @@ ui-ux-audit ANCESTOR-OK
 === POST-DELETE ===
   origin/HEAD -> origin/main
   origin/main
+=== TIP SHAs (recovered post-delete from git log subjects, re-verified 2026-09-14) ===
+main at recheck: 8582b8fc06b72e120bd6970897771fb044c60f50
+adversarial-fresh 3ac0b8b41278308557e1f67f286c2d75d54c9cf6 ANCESTOR-OF-MAIN
+adversarial-release-review aa20350725190e03ac85a2fdf3a5aae3278fbdf4 ANCESTOR-OF-MAIN
+final-shipping da0482447ae5e6b3fb78a8cc95d2df5a1e87352c ANCESTOR-OF-MAIN
+scan-to-result-page c21fa01daae47e9ada20e3fc4f60ac3d04519b19 ANCESTOR-OF-MAIN
+ui-ux-audit eaf2022f6ba36184e642eb56ef82c28b5e7bef39 ANCESTOR-OF-MAIN

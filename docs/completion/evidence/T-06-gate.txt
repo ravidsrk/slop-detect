@@ -30,3 +30,13 @@ REMAINING:
 - esbuild/vite dev-server findings: dev-only (no dev servers in prod). Accepted.
 - undici/miniflare: fixed in-range where available; wrangler chain is CLI dev-only.
 FULL SUITE GREEN on new lockfile (407 passed, 10 cli-skipped, 0 failed).
+
+=== CORRECTION 2026-09-14 (review thread PR121) ===
+- undici 7.24.8 (11 advisories) REMAINS via wrangler>miniflare; the triage line
+  "fixed in-range where available" overstated. Scope: dev-only (wrangler is a
+  devDependency of slop-detect-web: local `wrangler pages dev` + deploys; not
+  bundled into Pages Functions). Accepted dev-only; re-check on wrangler majors.
+- Remaining criticals disposition: vitest-UI RCE -> G-53 DEFER (major >=3.2.6, dev-only,
+  UI server never runs); astro AVIF RCE -> G-53 DEFER (major >=7.2.8, example-only).
+  T-06 contract = fix criticals or disposition via H/DEFER with reachability analysis
+  (PLAN.md clarified accordingly; neither critical is human-actionable work).
