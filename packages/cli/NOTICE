@@ -19,7 +19,7 @@ architecture and re-calibrated — from Impeccable's anti-pattern detector
   - wide_body_tracking    (from "wide-tracking")
   - flat_type_hierarchy   (from "flat-type-hierarchy")
 
-The WCAG contrast/luminance helpers in packages/core/src/color.js
+The WCAG contrast/luminance helpers in packages/core/src/color.ts
 (relativeLuminance, contrastRatio) were likewise adapted from Impeccable's
 shared/color.mjs.
 

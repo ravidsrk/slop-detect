@@ -2,6 +2,7 @@
   "name": "@slop-detect/action",
   "private": true,
   "type": "module",
+  "license": "MIT",
   "scripts": {
     "test": "vitest run",
     "lint": "eslint ."
