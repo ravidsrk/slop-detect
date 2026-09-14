@@ -43,7 +43,7 @@ Order: T-14, T-15, T-17, T-16, T-20, T-21, T-18a, T-18b, T-18c, T-19a, T-19b, T-
 
 ## P4 Operability — exit: alert proven; rollback rehearsed; runbooks top-5; health wired
 
-Order: T-23, T-22, T-24, T-25, T-26, T-27, T-28, T-29.
+Order: T-23, T-22, T-24, T-25, T-26, T-28, T-29, T-27.
 
 - **T-22** (M): Request IDs + JSON log standard across functions. Gaps G-04. Acceptance: evidence/T-22-reqid.txt.
 - **T-23** (S): Health/readiness endpoint + test. Gaps G-07. Acceptance: evidence/T-23-health.txt.
