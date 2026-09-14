@@ -77,4 +77,8 @@
   Also avoided the `.dev.vars.*` gitignore trap by using root .env.example.
 - second look: READMEs never mentioned env setup → added the .dev.vars pointer (stranger angle).
   Noticed web README says npm while repo uses bun — left for S4 Stranger Test (owns README truth).
+- CI red herring on PR 122: dashboard.test.js:93 flaked (1/256: sig ended in `ff`, tamper was a no-op).
+  Root-caused with rate demo (5/2048) in evidence/T-07-flake.txt; fixed test to flip the last nibble
+  deterministically. R13-allowed test fix with reasoning logged here + in the test comment.
+- artifacts: /tmp/flake-demo.mjs, /tmp/flake-hist.mjs, /tmp/flake-rate.mjs (flake demos; DELETE in S6).
 - resume_pointer: P1/T-05

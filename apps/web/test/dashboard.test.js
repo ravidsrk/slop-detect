@@ -89,8 +89,10 @@ test('session round-trips; tampering, expiry, and wrong secret all reject', asyn
   const tok = await signSession('a@x.io', SECRET);
   expect(await verifySession(tok, SECRET)).toBe('a@x.io');
 
-  // Tampered signature.
-  expect(await verifySession(tok.slice(0, -2) + 'ff', SECRET)).toBe(null);
+  // Tampered signature (flip the last nibble to a *different* value — the old
+  // `slice(0, -2) + 'ff'` was a no-op 1/256 runs when the sig already ended in ff).
+  const badSig = tok.slice(0, -1) + (tok.endsWith('0') ? '1' : '0');
+  expect(await verifySession(badSig, SECRET)).toBe(null);
   // Tampered payload (forge a different email, keep the old signature).
   const [, sig] = [tok.slice(0, tok.lastIndexOf('.')), tok.slice(tok.lastIndexOf('.') + 1)];
   const forged =

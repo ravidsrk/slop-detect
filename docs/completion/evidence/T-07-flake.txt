@@ -1,0 +1,5 @@
+=== FLAKE ROOT CAUSE (CI run 34862622878, dashboard.test.js:93) ===
+Old tamper tok.slice(0,-2)+ff is a no-op when the hex sig already ends in ff (P=1/256 per run).
+Demo: 5/2048 distinct sigs ended in ff; all 5 verified under the old tamper (flake reproduced).
+Fix: flip last nibble to a guaranteed-different value -> deterministic rejection.
+Dashboard suite: 5 consecutive local passes post-fix (16/16 each).

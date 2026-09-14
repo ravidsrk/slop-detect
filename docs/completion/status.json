@@ -1357,14 +1357,15 @@
       "status": "done"
     },
     {
-      "attempts": 1,
+      "attempts": 2,
       "block_signature": null,
       "branch": "ravidsrk/p1-secret-scan",
       "commit": null,
       "depends_on": [],
       "evidence": [
         "docs/completion/evidence/T-07-secrets.txt",
-        "docs/completion/evidence/T-07-gate.txt"
+        "docs/completion/evidence/T-07-gate.txt",
+        "docs/completion/evidence/T-07-flake.txt"
       ],
       "gaps": ["G-20"],
       "id": "T-07",
