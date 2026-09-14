@@ -289,7 +289,7 @@
       "status": "works"
     }
   ],
-  "current_commit": "6770c5827946a25a58fdc3d131e57bc6d0fc87e3",
+  "current_commit": "395e66158dd86121945780ddadad006406ea8ba7",
   "definition_frozen_at": "6770c58",
   "gaps": [
     {
@@ -577,7 +577,7 @@
       "issue_url": null,
       "severity": "S2",
       "source": ["F-3-01"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-04"]
     },
     {
@@ -941,7 +941,10 @@
       "tasks": ["T-36"]
     }
   ],
-  "gate": { "reason": "Not evaluated until S5-A", "status": "NOT_EVALUATED" },
+  "gate": {
+    "reason": "Not evaluated until S5-A",
+    "status": "NOT_EVALUATED"
+  },
   "history": [
     {
       "commit": "6770c58",
@@ -1027,13 +1030,25 @@
   "plan_phases": [
     {
       "exit_criteria": [
-        { "evidence": null, "met": false, "text": "Cold start passes from lockfile" },
-        { "evidence": null, "met": false, "text": "CI green on main" },
-        { "evidence": null, "met": false, "text": "Branch list clean" }
+        {
+          "evidence": null,
+          "met": false,
+          "text": "Cold start passes from lockfile"
+        },
+        {
+          "evidence": null,
+          "met": false,
+          "text": "CI green on main"
+        },
+        {
+          "evidence": null,
+          "met": false,
+          "text": "Branch list clean"
+        }
       ],
       "id": "P1",
       "name": "Green baseline",
-      "status": "pending"
+      "status": "active"
     },
     {
       "exit_criteria": [
@@ -1042,9 +1057,21 @@
           "met": false,
           "text": "Backup restored (local rehearsal + prod H filed)"
         },
-        { "evidence": null, "met": false, "text": "Secrets out of history/config" },
-        { "evidence": null, "met": false, "text": "Authz gaps closed" },
-        { "evidence": null, "met": false, "text": "Dependency criticals gone" }
+        {
+          "evidence": null,
+          "met": false,
+          "text": "Secrets out of history/config"
+        },
+        {
+          "evidence": null,
+          "met": false,
+          "text": "Authz gaps closed"
+        },
+        {
+          "evidence": null,
+          "met": false,
+          "text": "Dependency criticals gone"
+        }
       ],
       "id": "P2",
       "name": "Safety & kill switches",
@@ -1052,8 +1079,16 @@
     },
     {
       "exit_criteria": [
-        { "evidence": null, "met": false, "text": "Each flow happy + failure evidenced" },
-        { "evidence": null, "met": false, "text": "CUT surfaces removed" }
+        {
+          "evidence": null,
+          "met": false,
+          "text": "Each flow happy + failure evidenced"
+        },
+        {
+          "evidence": null,
+          "met": false,
+          "text": "CUT surfaces removed"
+        }
       ],
       "id": "P3",
       "name": "Critical flows",
@@ -1061,9 +1096,21 @@
     },
     {
       "exit_criteria": [
-        { "evidence": null, "met": false, "text": "One alert proven to fire" },
-        { "evidence": null, "met": false, "text": "Rollback rehearsed" },
-        { "evidence": null, "met": false, "text": "Runbooks top-5 + health wired" }
+        {
+          "evidence": null,
+          "met": false,
+          "text": "One alert proven to fire"
+        },
+        {
+          "evidence": null,
+          "met": false,
+          "text": "Rollback rehearsed"
+        },
+        {
+          "evidence": null,
+          "met": false,
+          "text": "Runbooks top-5 + health wired"
+        }
       ],
       "id": "P4",
       "name": "Operability",
@@ -1071,9 +1118,21 @@
     },
     {
       "exit_criteria": [
-        { "evidence": null, "met": false, "text": "Legal pages live" },
-        { "evidence": null, "met": false, "text": "Export/delete works" },
-        { "evidence": null, "met": false, "text": "Retention set; regulatory H filed" }
+        {
+          "evidence": null,
+          "met": false,
+          "text": "Legal pages live"
+        },
+        {
+          "evidence": null,
+          "met": false,
+          "text": "Export/delete works"
+        },
+        {
+          "evidence": null,
+          "met": false,
+          "text": "Retention set; regulatory H filed"
+        }
       ],
       "id": "P5",
       "name": "Compliance & legal",
@@ -1081,15 +1140,29 @@
     },
     {
       "exit_criteria": [
-        { "evidence": null, "met": false, "text": "Analytics fire on critical flows" },
-        { "evidence": null, "met": false, "text": "Email auth passes (or H outstanding)" }
+        {
+          "evidence": null,
+          "met": false,
+          "text": "Analytics fire on critical flows"
+        },
+        {
+          "evidence": null,
+          "met": false,
+          "text": "Email auth passes (or H outstanding)"
+        }
       ],
       "id": "P6",
       "name": "Launch surfaces",
       "status": "pending"
     },
     {
-      "exit_criteria": [{ "evidence": null, "met": false, "text": "S4 can begin without setup" }],
+      "exit_criteria": [
+        {
+          "evidence": null,
+          "met": false,
+          "text": "S4 can begin without setup"
+        }
+      ],
       "id": "P7",
       "name": "Rehearsal prep",
       "status": "pending"
@@ -1179,9 +1252,9 @@
       "url": "child-transcript:C1-C16"
     }
   ],
-  "resume_pointer": "P1/T-04",
+  "resume_pointer": "P1/T-06",
   "run_id": "20260914-S1",
-  "stage": "S2",
+  "stage": "S3",
   "tasks": [
     {
       "attempts": 0,
@@ -1232,20 +1305,20 @@
       "status": "todo"
     },
     {
-      "attempts": 0,
+      "attempts": 1,
       "block_signature": null,
-      "branch": null,
-      "commit": null,
+      "branch": "ravidsrk/p1-gate-lint-typecheck",
+      "commit": "395e661",
       "depends_on": [],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-04-gate.txt"],
       "gaps": ["G-24"],
       "id": "T-04",
       "owner": "agent",
       "plan_phase": "P1",
-      "pr": null,
-      "review": null,
+      "pr": "https://github.com/ravidsrk/slop-detect/pull/120",
+      "review": "greptile",
       "size": "S",
-      "status": "todo"
+      "status": "done"
     },
     {
       "attempts": 0,

@@ -1,0 +1,32 @@
+=== FORMAT ===
+FORMAT_EXIT=0
+=== LINT ===
+ Tasks:    7 successful, 7 total
+LINT_EXIT=0
+=== TYPECHECK ===
+TYPECHECK_EXIT=0
+=== TEST ===
+@slop-detect/action:test:  Test Files  2 passed (2)
+@slop-detect/action:test:       Tests  7 passed (7)
+slop-detect-mcp:test:  Test Files  3 passed (3)
+slop-detect-mcp:test:       Tests  14 passed (14)
+slop-detect:test:  Test Files  3 passed | 2 skipped (5)
+slop-detect:test:       Tests  12 passed | 10 skipped (22)
+@slop-detect/core:test:  Test Files  10 passed (10)
+@slop-detect/core:test:       Tests  71 passed (71)
+slop-detect-web:test:  Test Files  28 passed (28)
+slop-detect-web:test:       Tests  303 passed (303)
+ Tasks:    7 successful, 7 total
+TEST_EXIT=0
+=== TRIAGE (2026-09-14) ===
+BEFORE: 94 vulns (4 critical, 44 high, 39 moderate, 7 low) — see T-06-audit.txt
+AFTER in-range fix + ws override: 38 (2 critical, 13 high, 18 moderate, 5 low) — see T-06-audit-after.txt
+REMAINING:
+- astro AVIF RCE (critical): example-only; needs astro major >=7.2.8 (out of range). Not prod-reachable.
+- vitest UI RCE (critical): dev-only; UI server never runs (vitest run). Needs vitest >=3.2.6 major -> G-53 DEFER.
+- next.js RCEs: FIXED in-range (patch bump).
+- ws DoS (high, via @cloudflare/puppeteer): FIXED via overrides ws ^8.21.0 (peer is CF browser binding, low reachability anyway).
+- extract-zip symlink traversal (high, no published fix): via @puppeteer/browsers download toolchain; dev/CI-time only, archives from vendor URLs. Accepted dev-only.
+- esbuild/vite dev-server findings: dev-only (no dev servers in prod). Accepted.
+- undici/miniflare: fixed in-range where available; wrangler chain is CLI dev-only.
+FULL SUITE GREEN on new lockfile (407 passed, 10 cli-skipped, 0 failed).
