@@ -567,9 +567,11 @@ export async function recordScan(kv, slim) {
 
 // Claim a domain's single slot in the global aggregates. Returns true the first
 // time a domain is recorded, false on every later scan of that domain. The
-// marker lives 1 year: long enough that expiry-driven re-contribution is
-// negligible drift, short enough that one key per scanned domain cannot grow
-// the namespace without bound. Get-then-put is not atomic — a rare concurrent
+// marker lives 1 year. Tradeoff, stated plainly: a domain re-scanned after its
+// marker expires contributes to the aggregates a second time (the aggregates
+// themselves never expire). That slow second-order drift on already-approximate
+// percentiles is the lesser evil versus one immortal key per scanned domain
+// growing the namespace without bound. Get-then-put is not atomic — a rare concurrent
 // race double-counts one domain, which is harmless for an aggregate.
 // On a KV error we fall back to counting (a lost dedup beats dropping a real
 // first scan from the stats).

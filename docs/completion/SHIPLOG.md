@@ -144,6 +144,9 @@
 - Email index (e:) now shadows 1y WATCH_TTL (was immortal); gs: markers 1y (was immortal,
   the real unbounded growth — one key per scanned domain). stats:dist/catclean confirmed
   durable-by-design (2 fixed bounded keys). Full map in docs/KV_TTL.md; 5-test guard added.
-- Evidence: evidence/T-10-gate.txt (all 0; web 308 with new guard). Review: greptile local.
+- Evidence: evidence/T-10-gate.txt (all 0; web 312 with 9-test guard). Review: greptile local,
+  2 findings: P1 gs:-drift → declined with stated tradeoff (drift is second-order on approximate
+  aggregates; unbounded keys the worse failure; comment now says so); P2 guard-incomplete → fixed
+  (9 tests pin all data-layer TTLs; route-level puts mapped in doc).
 - second look: verified e: prefix from source (not guessed) and BADGE_TTL is HTTP cache, not KV.
 - resume_pointer: P2/T-13
