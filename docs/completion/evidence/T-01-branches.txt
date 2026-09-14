@@ -1,0 +1,23 @@
+=== ANCESTOR CHECK (captured pre-delete via `git merge-base --is-ancestor origin/ravidsrk/<b> main`) ===
+adversarial-fresh ANCESTOR-OK
+adversarial-release-review ANCESTOR-OK
+final-shipping ANCESTOR-OK
+scan-to-result-page ANCESTOR-OK
+ui-ux-audit ANCESTOR-OK
+=== PRE-DELETE ===
+  origin/HEAD -> origin/main
+  origin/main
+  origin/ravidsrk/ui-ux-audit
+  origin/ravidsrk/adversarial-release-review
+  origin/ravidsrk/adversarial-fresh
+  origin/ravidsrk/scan-to-result-page
+  origin/ravidsrk/final-shipping
+=== DELETE ===
+ - [deleted]         ravidsrk/adversarial-fresh
+ - [deleted]         ravidsrk/adversarial-release-review
+ - [deleted]         ravidsrk/final-shipping
+ - [deleted]         ravidsrk/scan-to-result-page
+ - [deleted]         ravidsrk/ui-ux-audit
+=== POST-DELETE ===
+  origin/HEAD -> origin/main
+  origin/main
