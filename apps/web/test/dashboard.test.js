@@ -32,7 +32,7 @@ function makeKv(seed = {}) {
       return store.has(k) ? store.get(k).value : null;
     },
     async put(k, v, o = {}) {
-      store.set(k, { value: v, metadata: o.metadata });
+      store.set(k, { value: v, metadata: o.metadata, ttl: o.expirationTtl });
     },
     async delete(k) {
       store.delete(k);
@@ -175,6 +175,24 @@ test('link endpoint never reveals whether an email has watches (anti-enumeration
   expect(sent.length).toBe(1);
   expect(sent[0].to[0]).toBe('known@x.io');
   expect(sent[0].text).toMatch(/\/dashboard\?token=/);
+});
+
+test('dashlink rate counter carries a 1h TTL (KV_TTL.md)', async () => {
+  globalThis.fetch = async () => new Response('{}', { status: 200 });
+  const kv = makeKv();
+  await seedWatches(kv, [{ domain: 'a.com', email: 'known@x.io' }]);
+  const rate = makeKv();
+  const env = { RESULTS: kv, RATE_LIMIT: rate, ...LIVE_ENV };
+  const deferred = [];
+  await linkPost({
+    request: postReq({ email: 'known@x.io' }),
+    env,
+    waitUntil: (task) => deferred.push(task),
+  });
+  for (const d of deferred) await d;
+  const hit = [...rate.store.entries()].find(([k]) => k.startsWith('rl:dashlink:'));
+  expect(hit, 'expected a dashlink counter write').toBeDefined();
+  expect(hit[1].ttl).toBe(3600);
 });
 
 test('link endpoint defers rate-limit work to waitUntil (latency-safe anti-enumeration)', async () => {

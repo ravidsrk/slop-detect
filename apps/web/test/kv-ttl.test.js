@@ -1,8 +1,8 @@
 // KV TTL guard (T-10 / G-14): data-layer KV writes carry the TTL from
 // docs/KV_TTL.md, and the two durable aggregate keys explicitly carry none.
-// Route-level single-site puts (og:image bytes, dashlink counter, middleware
-// counters) are mapped in the doc and reviewed against it; this suite pins the
-// data-layer writes reachable via public functions. TTL-capturing mock below.
+// Route-level puts are pinned in their own suites: og:image in og-route.test.js,
+// dashlink counter in dashboard.test.js, middleware counters in middleware.test.js.
+// TTL-capturing mock below.
 
 import { test, expect } from 'vitest';
 import {
