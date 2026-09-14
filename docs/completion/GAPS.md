@@ -59,10 +59,10 @@
 | G-50 | #102 billing | S3 | DEFER | Owner-gated post-launch; S5-C issue |
 | G-51 | F-4-01 coverage | S3 | DEFER | No coverage gate; post-launch issue |
 | G-52 | F-3-03 big files | S3 | DEFER | Refactor; post-launch issue |
-| G-53 | F-R-07/10 majors | S3 | DEFER | eslint-10/vitest-4+; verify EOL at pickup |
+| G-53 | F-R-07/10 majors | S3 | DEFER | eslint-10/vitest-4+/astro-7.2.8+ (AVIF RCE); verify EOL at pickup |
 | G-54 | F-6-04 enc | S3 | DEFER | App-layer email encryption; post-launch |
 | G-45 | F-9-04 Logpush | S2 | ACCEPT | Paid; webhook suffices. Expiry 2027-03-14 |
 | G-57 | F-16-04 support | S3 | ACCEPT | GitHub-issues-as-support, documented (T-36). No expiry (model, not risk) |
 | (—) | F-R-04 CERT 6h | — | NO-EFFECT | Not a provider/VPS/VDA; stance in runbook |
 
-Cut line: everything FINISH above + gate proofs are the plan. Counts: S0 2 · S1 19 · S2 22 · S3 5 · CUT 1 · DEFER 5 · ACCEPT 2.
+Cut line: everything FINISH above + gate proofs are the plan. Counts (FINISH only): S0 2 · S1 19 · S2 21 · S3 4 · CUT 1 · DEFER 5 · ACCEPT 2 (54 gaps total; by severity: S0 2, S1 19, S2 23, S3 10).

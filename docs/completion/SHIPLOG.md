@@ -123,3 +123,18 @@
 - second look: checked the NOTICE-testing angle (only an unrelated ::notice:: match) — no change.
 - P1 exit: cold start passes (frozen 0) · CI green on main (per-PR greens) · branches main-only.
   P1 COMPLETE. resume_pointer: P2/T-10
+
+## 2026-09-14 Review follow-ups PRs 119–126 (10 threads)
+- Gap counts corrected (bot was right): 54 gaps {S0:2, S1:19, S2:23, S3:10}; FINISH 46 {2/19/21/4}.
+  SHIPLOG S2-B "56" and GAPS.md "S2 22/S3 5" were arithmetic errors; register rows unchanged (A-10).
+- T-06 contract clarified in PLAN (fix or H/DEFER-disposition); G-53 broadened to astro-7.2.8+;
+  undici 7.24.8 corrected to REMAINS/dev-only (wrangler is a devDep) in T-06-gate.txt correction block.
+- T-01 evidence: recovered all 5 deleted tip SHAs from git log subjects, re-verified ancestors
+  of main@8582b8f, appended to T-01-branches.txt.
+- "Zero 1.3.5 references" qualified: zero EXECUTABLE pins (historical refs remain in
+  STATUS/RESEARCH/PLAN/GAPS audit prose + docs/DECISIONS.md, as they should).
+- P1 "CI green on main" re-evidenced with push run 34868596276 (merge #126, success).
+- Threads answered in-thread: 119/4006362109 fixed, 120/4006605725 declined (A-09),
+  121/4006740270 fixed, 121/4006740284 fixed, 121/4006740301 covered (#122),
+  122/4006808659 covered (1f87861), 124/4007124419 fixed, 125/4007198149 covered (c8d1f1a),
+  125/4007198161 fixed, 126/4007277838 fixed.

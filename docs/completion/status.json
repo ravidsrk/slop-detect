@@ -289,7 +289,7 @@
       "status": "works"
     }
   ],
-  "current_commit": "1f87861e2443ba92777565583f3186386ed63b40",
+  "current_commit": "8582b8fc06b72e120bd6970897771fb044c60f50",
   "definition_frozen_at": "6770c58",
   "gaps": [
     {
@@ -1036,7 +1036,7 @@
           "text": "Cold start passes from lockfile"
         },
         {
-          "evidence": "CI run 34867308165 on PR 125 all pass + docs/completion/evidence/T-03-gate.txt (local, all 0)",
+          "evidence": "CI push run 34868596276 on main (merge #126) success + docs/completion/evidence/T-03-gate.txt (local, all 0)",
           "met": true,
           "text": "CI green on main"
         },
@@ -1292,7 +1292,7 @@
       "attempts": 1,
       "block_signature": null,
       "branch": "ravidsrk/p1-release-hygiene",
-      "commit": null,
+      "commit": "8582b8f",
       "depends_on": [],
       "evidence": [
         "docs/completion/evidence/T-03-versions.txt",
