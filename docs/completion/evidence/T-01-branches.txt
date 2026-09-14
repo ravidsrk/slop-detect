@@ -1,4 +1,10 @@
-=== PRE-DELETE (all ancestors of main, verified above) ===
+=== ANCESTOR CHECK (captured pre-delete via `git merge-base --is-ancestor origin/ravidsrk/<b> main`) ===
+adversarial-fresh ANCESTOR-OK
+adversarial-release-review ANCESTOR-OK
+final-shipping ANCESTOR-OK
+scan-to-result-page ANCESTOR-OK
+ui-ux-audit ANCESTOR-OK
+=== PRE-DELETE ===
   origin/HEAD -> origin/main
   origin/main
   origin/ravidsrk/ui-ux-audit
