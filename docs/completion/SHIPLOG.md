@@ -37,3 +37,17 @@
 - second look: rechecked every above-line G-NN has ≥1 T-NN (yes); T-24/T-25 depend on T-22;
   T-27/T-40 depend on T-29; T-19b on T-19a; T-35 on T-24. No L tasks. No change needed.
 - S2 exit: MET. resume_pointer: P1/T-04
+
+## 2026-09-14 S3/P1 T-04 gate lint+typecheck (G-24) — DONE
+- branch ravidsrk/p1-gate-lint-typecheck → PR #120 → merge 395e661 (merge commit, no squash).
+- Finding: typecheck was ALREADY gated; the real gap was eslint never running (no lint scripts).
+  Wired `eslint .` into all 7 workspaces + CI step; cleared 12 warnings; snapshot updated for 3
+  behavior-preserving serialized-extract edits (dist-diff verified, 14 lines; vitest terminal
+  reindent display was an alignment artifact — snapshot file diff is exactly the 3 hunks).
+- Evidence: evidence/T-04-gate.txt (format/lint/typecheck/test exit 0; forced lint 7/7 zero problems).
+- Review: greptile local. P2 examples-noop → fixed (real scripts + generated-tree ignores).
+  .astro-parser note → ACCEPTED with reason: example builds compile .astro in CI's build step;
+  eslint-plugin-astro is disproportionate for demos (A-09).
+- second look: re-verified the snapshot file diff hunk-by-hunk before accepting -u; also confirmed
+  the mid-task "1 problem" was stale turbo cache (forced run clean). No further change.
+- resume_pointer: P1/T-06

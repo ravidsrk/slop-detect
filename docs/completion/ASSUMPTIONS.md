@@ -12,3 +12,5 @@
 - **A-06 (S2):** A10 downgraded 3→2; completion 59.7→58.4. Rejected: keeping an unanchored 3.
 - **A-07 (S2):** P6 billing E2E dropped (G-50 DEFER per owner #102). Rejected: building billing in this run.
 - **A-08 (S2):** H-blocked tasks → CONDITIONAL-GO conditions, never halt phases. Rejected: halt on H-block.
+- **A-09 (S3/T-04):** .astro files outside the eslint gate accepted: example builds compile .astro
+  in CI; eslint-plugin-astro disproportionate for demos. Rejected: new parser dep for examples.
