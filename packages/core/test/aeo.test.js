@@ -96,7 +96,7 @@ function makeFetch(routes) {
 }
 
 test('runAeoChecks: fully AEO-ready site scores AI-Ready (100)', async () => {
-  const fetchImpl = makeFetch((path, ua) => {
+  const fetchImpl = makeFetch((path, _ua) => {
     if (path === '/') {
       return {
         body: '<html><head><link rel="alternate" type="text/markdown" href="/index.md"></head><body>hi</body></html>',

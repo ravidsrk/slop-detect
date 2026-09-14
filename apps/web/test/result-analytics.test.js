@@ -30,7 +30,7 @@ test('radar draws rank-average polygon + legend only when catAvg present and cou
   expect(withAvg).toMatch(/— you/);
 
   const lowCount = r(
-    Analytics({ slim, categories, catAvg: categories.map((c) => 0.5), catAvgCount: 4 })
+    Analytics({ slim, categories, catAvg: categories.map(() => 0.5), catAvgCount: 4 })
   );
   expect(lowCount).not.toMatch(/--- rank avg/);
   expect(lowCount).not.toMatch(/stroke-dasharray="3 3"/);

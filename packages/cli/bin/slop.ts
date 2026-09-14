@@ -492,7 +492,6 @@ function renderSystem(sys) {
       } else if (r.error) {
         console.log(`  ${C.red}error${C.reset}  ${r.url}`);
       } else {
-        const ts = tierStyle(r.tier);
         const sumScore = r.axes && r.axes.copy ? r.unifiedScore : r.score;
         const sumTier = r.axes && r.axes.copy ? r.unifiedTier : r.tier;
         const sts = tierStyle(sumTier);

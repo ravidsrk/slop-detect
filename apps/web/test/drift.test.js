@@ -8,7 +8,6 @@ import {
   recordScanForWatch,
   getWatch,
   slimResult,
-  publicWatch,
   getHistory,
 } from '../functions/_shared.ts';
 import { monitorSweep } from '../functions/_sweep.ts';

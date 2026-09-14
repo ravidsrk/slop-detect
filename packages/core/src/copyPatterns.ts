@@ -332,7 +332,7 @@ export const COPY_PATTERNS = [
     axis: 'copy',
     category: 'copy',
     weight: 3,
-    match: ({ text, headings, paragraphs }) => {
+    match: ({ headings, paragraphs }) => {
       // Lines that START with a "marketing emoji" — the GPT bullet aesthetic.
       const lead =
         /^\s*(?:[\u2705\u2728\u2734\u2733\u2B50\uD83D\uDE80\uD83D\uDD25\uD83D\uDCA1\uD83C\uDF89\uD83D\uDC4D\uD83D\uDE4C\u26A1\uD83D\uDCAA\uD83D\uDEE0\uD83D\uDC49])/u;
