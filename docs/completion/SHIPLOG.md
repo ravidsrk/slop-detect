@@ -90,6 +90,8 @@
   into the smoke job so the claim is now true. Note: install via the workspace playwright binary;
   bare `bunx playwright` may resolve a newer rev (learned the hard way).
 - Evidence: evidence/T-05-golden.txt (11/11), evidence/T-05-gate.txt (default gate all 0).
-- Review: greptile local (see below).
+- Review: greptile local, 1 P2 (TBD PR ref) resolved by PR-link commit.
+- CI fix (attempt 2): smoke failed — bare `bunx playwright install` fetched a newer rev's browsers
+  that 1.60.0 refuses. Pinned the installer to playwright@1.60.0 with engine-pin sync comment.
 - second look: left the stale `npm test` wording in the golden header alone (cosmetic; S4 owns docs).
 - resume_pointer: P1/T-01
