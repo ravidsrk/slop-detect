@@ -1,0 +1,19 @@
+=== VERSION SYNC (changesets fixed group) ===
+@slop-detect/core 0.8.0
+slop-detect 0.8.0
+slop-detect-mcp 0.8.0
+fixed group:
+[["@slop-detect/core","slop-detect","slop-detect-mcp"]]
+cli->core link:
+workspace:*
+mcp: API client, no core dep (verified imports)
+=== LICENSE MATRIX ===
+root LICENSE == core/cli/mcp LICENSE (MIT Ravindra Kumar; diff-verified identical)
+core: LICENSE+NOTICE, files ships both
+cli: LICENSE+NOTICE (bundles core), files ships both
+mcp: LICENSE, no NOTICE (API client, ships no adapted logic)
+action: private, not on npm; added license field MIT
+=== TAG HYGIENE ===
+v0.5.2
+v0.5.1
+latest tag v0.5.2 behind 0.8.0; tag cut awaits H-04 (NPM_TOKEN + publish order)

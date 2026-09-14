@@ -113,3 +113,13 @@
 - Evidence: evidence/T-02-bun.txt. Review: greptile local.
 - second look: no change (mechanical bump, verified by grep + frozen install + CI on 1.4.2).
 - resume_pointer: P1/T-03
+
+## 2026-09-14 S3/P1 T-03 release hygiene (G-36) — DONE
+- branch ravidsrk/p1-release-hygiene → PR (see status.json) → merge commit, no squash.
+- Versions in sync (0.8.0 ×3, fixed group, cli→core workspace:*). MCP verified API-only (no NOTICE
+  duty). Fixed stale `color.js`→`color.ts` path in core+cli NOTICE; added license field to action.
+  Tag cut stays with H-04.
+- Evidence: evidence/T-03-versions.txt, evidence/T-03-gate.txt (all 0). Review: greptile local.
+- second look: checked the NOTICE-testing angle (only an unrelated ::notice:: match) — no change.
+- P1 exit: cold start passes (frozen 0) · CI green on main (per-PR greens) · branches main-only.
+  P1 COMPLETE. resume_pointer: P2/T-10
