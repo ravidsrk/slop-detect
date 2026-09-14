@@ -289,7 +289,7 @@
       "status": "works"
     }
   ],
-  "current_commit": "395e66158dd86121945780ddadad006406ea8ba7",
+  "current_commit": "744f1f604cc43cfce6e1a09698f1e1ed4af5b0f8",
   "definition_frozen_at": "6770c58",
   "gaps": [
     {
@@ -529,7 +529,7 @@
       "issue_url": null,
       "severity": "S1",
       "source": ["F-5-hist"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-07"]
     },
     {
@@ -541,7 +541,7 @@
       "issue_url": null,
       "severity": "S1",
       "source": ["F-5-06"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-06"]
     },
     {
@@ -1252,7 +1252,7 @@
       "url": "child-transcript:C1-C16"
     }
   ],
-  "resume_pointer": "P1/T-06",
+  "resume_pointer": "P1/T-05",
   "run_id": "20260914-S1",
   "stage": "S3",
   "tasks": [
@@ -1337,36 +1337,44 @@
       "status": "todo"
     },
     {
-      "attempts": 0,
+      "attempts": 1,
       "block_signature": null,
-      "branch": null,
-      "commit": null,
+      "branch": "ravidsrk/p1-dep-audit",
+      "commit": "744f1f6",
       "depends_on": [],
-      "evidence": [],
+      "evidence": [
+        "docs/completion/evidence/T-06-audit.txt",
+        "docs/completion/evidence/T-06-audit-after.txt",
+        "docs/completion/evidence/T-06-gate.txt"
+      ],
       "gaps": ["G-21"],
       "id": "T-06",
       "owner": "agent",
       "plan_phase": "P1",
-      "pr": null,
-      "review": null,
+      "pr": "https://github.com/ravidsrk/slop-detect/pull/121",
+      "review": "greptile",
       "size": "S",
-      "status": "todo"
+      "status": "done"
     },
     {
-      "attempts": 0,
+      "attempts": 2,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p1-secret-scan",
       "commit": null,
       "depends_on": [],
-      "evidence": [],
+      "evidence": [
+        "docs/completion/evidence/T-07-secrets.txt",
+        "docs/completion/evidence/T-07-gate.txt",
+        "docs/completion/evidence/T-07-flake.txt"
+      ],
       "gaps": ["G-20"],
       "id": "T-07",
       "owner": "agent",
       "plan_phase": "P1",
-      "pr": null,
-      "review": null,
+      "pr": "https://github.com/ravidsrk/slop-detect/pull/122",
+      "review": "greptile",
       "size": "S",
-      "status": "todo"
+      "status": "done"
     },
     {
       "attempts": 0,

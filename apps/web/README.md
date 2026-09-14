@@ -21,6 +21,8 @@ npx wrangler pages dev public
 
 Note: Browser Rendering only runs on Cloudflare's edge — local `wrangler pages dev` won't be able to actually scan URLs. Deploy to a preview environment to test the scanner.
 
+Local env: copy the root `.env.example` to `apps/web/.dev.vars` (gitignored) and fill in values. Production values live as Cloudflare Pages env vars / secrets, never in the repo.
+
 ## Deploy
 
 ```bash

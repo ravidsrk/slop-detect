@@ -51,3 +51,34 @@
 - second look: re-verified the snapshot file diff hunk-by-hunk before accepting -u; also confirmed
   the mid-task "1 problem" was stale turbo cache (forced run clean). No further change.
 - resume_pointer: P1/T-06
+
+## 2026-09-14 S3/P1 T-06 dep-audit baseline (G-21) — DONE
+- branch ravidsrk/p1-dep-audit → PR #121 → merge 744f1f6.
+- `bun audit fix` in-range: 94 → 39 (next.js RCEs fixed); ws ^8.21.0 override: 39 → 38.
+  Remaining 2 criticals unreachable in prod (astro example-only major; vitest-UI dev-only → G-53).
+- Evidence: evidence/T-06-audit.txt (before), T-06-audit-after.txt, T-06-gate.txt (all exits 0).
+- Review: greptile local, 1 P2 (stale FORMAT_EXIT=1 in gate file) → fixed by regenerating evidence.
+- artifacts: /tmp/dist-clean.js + /tmp/dist-edited.js (T-04 bundle diff; DELETE in S6),
+  /tmp/audit-before.txt (T-06 audit copy; DELETE in S6), /tmp/T-06-gate-new.txt (consumed by mv; GONE).
+  (Late-manifested: created before I started the manifest habit; no more unmanifested artifacts.)
+- second look: lesson learned — regenerate gate evidence instead of appending corrections; applied
+  immediately in this same task. Also folded the floating T-04 record updates into this branch as
+  their own commit; henceforth record updates ride the task branch that produced them.
+- resume_pointer: P1/T-07
+
+## 2026-09-14 S3/P1 T-07 secret scan (G-20) — DONE
+- branch ravidsrk/p1-secret-scan → PR (see status.json) → merge commit, no squash.
+- History sweep: private-key pickaxe empty; provider-key hits all benign (test fixtures, doc
+  name-references, redacted bearer). No tracked/local .env. Created root .env.example (14 runtime
+  keys from env.* grep) + README pointer. Clean cert, no rotation.
+- Evidence: evidence/T-07-secrets.txt, evidence/T-07-gate.txt (all exits 0).
+- Review: greptile local, 1 P2 (record-not-updated) → fixed by writing the record on this branch
+  pre-push (new pattern: record rides its task branch; PR URL added in a follow-up commit).
+  Also avoided the `.dev.vars.*` gitignore trap by using root .env.example.
+- second look: READMEs never mentioned env setup → added the .dev.vars pointer (stranger angle).
+  Noticed web README says npm while repo uses bun — left for S4 Stranger Test (owns README truth).
+- CI red herring on PR 122: dashboard.test.js:93 flaked (1/256: sig ended in `ff`, tamper was a no-op).
+  Root-caused with rate demo (5/2048) in evidence/T-07-flake.txt; fixed test to flip the last nibble
+  deterministically. R13-allowed test fix with reasoning logged here + in the test comment.
+- artifacts: /tmp/flake-demo.mjs, /tmp/flake-hist.mjs, /tmp/flake-rate.mjs (flake demos; DELETE in S6).
+- resume_pointer: P1/T-05
