@@ -471,7 +471,7 @@
       "issue_url": null,
       "severity": "S1",
       "source": ["F-6-02", "F-6-03"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-10"]
     },
     {
@@ -1089,7 +1089,7 @@
       ],
       "id": "P2",
       "name": "Safety & kill switches",
-      "status": "pending"
+      "status": "active"
     },
     {
       "exit_criteria": [
@@ -1266,7 +1266,7 @@
       "url": "child-transcript:C1-C16"
     }
   ],
-  "resume_pointer": "P2/T-10",
+  "resume_pointer": "P2/T-13",
   "run_id": "20260914-S1",
   "stage": "S3",
   "tasks": [
@@ -1429,20 +1429,20 @@
       "status": "todo"
     },
     {
-      "attempts": 0,
+      "attempts": 1,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p2-kv-ttl",
       "commit": null,
       "depends_on": [],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-10-gate.txt"],
       "gaps": ["G-14"],
       "id": "T-10",
       "owner": "agent",
       "plan_phase": "P2",
-      "pr": null,
-      "review": null,
+      "pr": "TBD-post-create",
+      "review": "greptile",
       "size": "S",
-      "status": "todo"
+      "status": "done"
     },
     {
       "attempts": 0,

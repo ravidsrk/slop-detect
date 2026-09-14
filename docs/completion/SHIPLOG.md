@@ -138,3 +138,12 @@
   121/4006740270 fixed, 121/4006740284 fixed, 121/4006740301 covered (#122),
   122/4006808659 covered (1f87861), 124/4007124419 fixed, 125/4007198149 covered (c8d1f1a),
   125/4007198161 fixed, 126/4007277838 fixed.
+
+## 2026-09-14 S3/P2 T-10 KV TTLs (G-14) — DONE
+- branch ravidsrk/p2-kv-ttl → PR (see status.json) → merge commit, no squash.
+- Email index (e:) now shadows 1y WATCH_TTL (was immortal); gs: markers 1y (was immortal,
+  the real unbounded growth — one key per scanned domain). stats:dist/catclean confirmed
+  durable-by-design (2 fixed bounded keys). Full map in docs/KV_TTL.md; 5-test guard added.
+- Evidence: evidence/T-10-gate.txt (all 0; web 308 with new guard). Review: greptile local.
+- second look: verified e: prefix from source (not guessed) and BADGE_TTL is HTTP cache, not KV.
+- resume_pointer: P2/T-13
