@@ -104,3 +104,12 @@
   also confirmed no open PRs reference the deleted branches (PR count 0 open — checked pre-delete
   via gh; the only opens were mine, since merged).
 - resume_pointer: P1/T-02
+
+## 2026-09-14 S3/P1 T-02 bun pin (G-37) — DONE
+- branch ravidsrk/p1-bun-pin → PR (see status.json) → merge commit, no squash.
+- Decision: adopt 1.4.2 (running locally + green) rather than downgrade. Bumped 10 pins:
+  packageManager + setup-bun in ci×4, publish, deploy, leaderboard, calibrate, smoke-live-canary.
+  Zero 1.3.5 references remain. Frozen install clean, full gate green.
+- Evidence: evidence/T-02-bun.txt. Review: greptile local.
+- second look: no change (mechanical bump, verified by grep + frozen install + CI on 1.4.2).
+- resume_pointer: P1/T-03

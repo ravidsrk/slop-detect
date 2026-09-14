@@ -1,0 +1,20 @@
+=== FROZEN INSTALL (bun 1.4.2, pin now 1.4.2) ===
+
+Checked 745 installs across 927 packages (no changes) [11.00ms]
+FROZEN_EXIT=0
+=== FORMAT ===
+FORMAT_EXIT=0
+=== LINT ===
+ Tasks:    7 successful, 7 total
+LINT_EXIT=0
+=== TYPECHECK ===
+TYPECHECK_EXIT=0
+=== TEST ===
+@slop-detect/core:test:       Tests  71 passed (71)
+slop-detect-mcp:test:       Tests  14 passed (14)
+@slop-detect/action:test:       Tests  7 passed (7)
+slop-detect-web:test:       Tests  303 passed (303)
+slop-detect:test:       Tests  12 passed | 10 skipped (22)
+ Tasks:    7 successful, 7 total
+TEST_EXIT=0
+BUN_LOCAL=1.4.2

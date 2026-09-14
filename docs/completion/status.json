@@ -733,7 +733,7 @@
       "issue_url": null,
       "severity": "S3",
       "source": ["bun-drift"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-02"]
     },
     {
@@ -1252,7 +1252,7 @@
       "url": "child-transcript:C1-C16"
     }
   ],
-  "resume_pointer": "P1/T-02",
+  "resume_pointer": "P1/T-03",
   "run_id": "20260914-S1",
   "stage": "S3",
   "tasks": [
@@ -1260,7 +1260,7 @@
       "attempts": 1,
       "block_signature": null,
       "branch": "ravidsrk/p1-prune-branches",
-      "commit": null,
+      "commit": "33c7320",
       "depends_on": [],
       "evidence": ["docs/completion/evidence/T-01-branches.txt"],
       "gaps": ["G-38"],
@@ -1273,20 +1273,20 @@
       "status": "done"
     },
     {
-      "attempts": 0,
+      "attempts": 1,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p1-bun-pin",
       "commit": null,
       "depends_on": [],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-02-bun.txt"],
       "gaps": ["G-37"],
       "id": "T-02",
       "owner": "agent",
       "plan_phase": "P1",
-      "pr": null,
-      "review": null,
+      "pr": "https://github.com/ravidsrk/slop-detect/pull/125",
+      "review": "greptile",
       "size": "S",
-      "status": "todo"
+      "status": "done"
     },
     {
       "attempts": 0,
