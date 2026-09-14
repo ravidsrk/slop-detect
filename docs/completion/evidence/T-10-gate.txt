@@ -1,0 +1,15 @@
+=== FORMAT ===
+FORMAT_EXIT=0
+=== LINT ===
+ Tasks:    7 successful, 7 total
+LINT_EXIT=0
+=== TYPECHECK ===
+TYPECHECK_EXIT=0
+=== TEST ===
+@slop-detect/core:test:       Tests  71 passed (71)
+slop-detect-mcp:test:       Tests  14 passed (14)
+@slop-detect/action:test:       Tests  7 passed (7)
+slop-detect:test:       Tests  12 passed | 10 skipped (22)
+slop-detect-web:test:       Tests  315 passed (315)
+ Tasks:    7 successful, 7 total
+TEST_EXIT=0

@@ -60,8 +60,10 @@ const slim = {
 
 function makeKv(seed = {}) {
   const store = new Map(Object.entries(seed));
+  const puts = [];
   return {
     store,
+    puts,
     async get(k, type) {
       if (!store.has(k)) return null;
       const v = store.get(k);
@@ -70,8 +72,9 @@ function makeKv(seed = {}) {
       }
       return v;
     },
-    async put(k, v) {
+    async put(k, v, o = {}) {
       store.set(k, v);
+      puts.push({ k, ttl: o.expirationTtl });
     },
   };
 }
@@ -261,4 +264,21 @@ test('RATE_LIMIT KV errors do not exhaust the isolate OG budget', async () => {
   );
   expect(res.status).toBe(200);
   expect(mock.calls.launch).toBe(1);
+});
+
+test('rendered og:image is cached with a 30d TTL (KV_TTL.md)', async () => {
+  const results = makeKv({ 'r:abc123def456': JSON.stringify(slim) });
+  const rate = makeKv();
+  const res = await onRequestGet(
+    ogCtx(
+      'abc123def456',
+      { RESULTS: results, BROWSER: {}, RATE_LIMIT: rate },
+      undefined,
+      '192.0.2.99'
+    )
+  );
+  expect(res.status).toBe(200);
+  const cached = results.puts.find((p) => p.k === 'og:abc123def456');
+  expect(cached, 'expected an og: cache write').toBeDefined();
+  expect(cached.ttl).toBe(60 * 60 * 24 * 30);
 });

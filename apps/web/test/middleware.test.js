@@ -282,3 +282,25 @@ test('SEC-3 no-origin scan allowed only up to anon limit (Turnstile bypass floor
   expect(got429, 'expected no-origin scans to hit the per-IP floor').toBeTruthy();
   expect(allowed).toBeLessThanOrEqual(anonNoOriginLimit);
 });
+
+test('middleware scan counters carry window TTLs (KV_TTL.md)', async () => {
+  const puts = [];
+  const rateKv = {
+    get: async () => '0',
+    put: async (k, v, o = {}) => {
+      puts.push({ k, ttl: o.expirationTtl });
+    },
+  };
+  const req = makeRequest({
+    headers: { 'CF-Connecting-IP': '203.0.113.99' },
+    body: { url: 'https://x.com' },
+  });
+  const res = await onRequest(makeContext(req, { RATE_LIMIT: rateKv, TURNSTILE_SECRET: 'secret' }));
+  expect(res.status).toBe(200);
+  const perIp = puts.find((p) => p.k.startsWith('rl:scan:'));
+  const global = puts.find((p) => p.k.startsWith('rl:global:scan:'));
+  expect(perIp, 'expected a per-IP scan counter write').toBeDefined();
+  expect(perIp.ttl).toBe(60);
+  expect(global, 'expected a global daily budget write').toBeDefined();
+  expect(global.ttl).toBe(172800);
+});

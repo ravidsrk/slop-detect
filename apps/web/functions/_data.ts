@@ -314,7 +314,8 @@ export async function addToEmailIndex(kv, email, domain) {
   const domains = await getEmailDomains(kv, want);
   if (domains.includes(domain)) return;
   domains.push(domain);
-  await kv.put(key, JSON.stringify(domains));
+  // Shadow the watches' own TTL so the index cannot outlive its entries.
+  await kv.put(key, JSON.stringify(domains), { expirationTtl: WATCH_TTL });
 }
 
 export async function removeFromEmailIndex(kv, email, domain) {
@@ -322,7 +323,7 @@ export async function removeFromEmailIndex(kv, email, domain) {
   const key = await emailIndexKey(email);
   const want = String(email).trim().toLowerCase();
   const domains = (await getEmailDomains(kv, want)).filter((d) => d !== domain);
-  if (domains.length) await kv.put(key, JSON.stringify(domains));
+  if (domains.length) await kv.put(key, JSON.stringify(domains), { expirationTtl: WATCH_TTL });
   else await kv.delete(key);
 }
 
@@ -340,7 +341,9 @@ export async function listWatchesByEmail(kv, email) {
     const all = await listWatches(kv, { limit: 1000 });
     const mine = all.filter((w) => w && w.email === want);
     if (mine.length) {
-      await kv.put(key, JSON.stringify(mine.map((w) => w.domain).filter(Boolean)));
+      await kv.put(key, JSON.stringify(mine.map((w) => w.domain).filter(Boolean)), {
+        expirationTtl: WATCH_TTL,
+      });
     }
     return mine;
   }
@@ -564,16 +567,20 @@ export async function recordScan(kv, slim) {
 
 // Claim a domain's single slot in the global aggregates. Returns true the first
 // time a domain is recorded, false on every later scan of that domain. The
-// marker is durable (no TTL): letting it expire would re-open the dedup, so an
-// attacker could just wait out the window. Get-then-put is not atomic — a rare
-// concurrent race double-counts one domain, which is harmless for an aggregate.
+// marker lives 1 year. Tradeoff, stated plainly: a domain re-scanned after its
+// marker expires contributes to the aggregates a second time (the aggregates
+// themselves never expire). That slow second-order drift on already-approximate
+// percentiles is the lesser evil versus one immortal key per scanned domain
+// growing the namespace without bound. Get-then-put is not atomic — a rare concurrent
+// race double-counts one domain, which is harmless for an aggregate.
 // On a KV error we fall back to counting (a lost dedup beats dropping a real
 // first scan from the stats).
+const STATS_CONTRIB_TTL = 60 * 60 * 24 * 365; // 1 year
 async function claimStatsContribution(kv, domain) {
   const key = `${STATS_CONTRIB_PREFIX}${domain}`;
   try {
     if (await kv.get(key)) return false;
-    await kv.put(key, '1');
+    await kv.put(key, '1', { expirationTtl: STATS_CONTRIB_TTL });
   } catch {
     return true;
   }
