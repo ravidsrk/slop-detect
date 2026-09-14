@@ -5,7 +5,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "echo 'Run `slop-detect <url>` against your deployed site to score it.'"
+    "lint": "eslint ."
   },
   "dependencies": {
     "next": "^15.0.0",

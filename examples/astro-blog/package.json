@@ -6,7 +6,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "lint": "echo 'Run `slop-detect <url>` against your deployed site to score it.'"
+    "lint": "eslint ."
   },
   "devDependencies": {
     "astro": "^5.0.0",

@@ -23,3 +23,6 @@ slop-detect-web:test:       Tests  303 passed (303)
 TEST_EXIT=0
 === LINT-CLEAN-PROOF ===
 ESLINT_EXIT=0
+=== LINT-FORCE-FINAL ===
+ Tasks:    7 successful, 7 total
+LINT_FORCE_EXIT=0
