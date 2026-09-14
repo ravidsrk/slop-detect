@@ -12,10 +12,10 @@ Order: T-04, T-06, T-07, T-05, T-01, T-02, T-03.
 - **T-03** (S): Release hygiene: version-sync check core/cli/mcp + LICENSE/notice pass. Gaps G-36. Acceptance: evidence/T-03-versions.txt.
 - **T-04** (S): Gate lint + typecheck in CI (not format-only). Gaps G-24. Acceptance: evidence/T-04-ci.txt (CI run green w/ new jobs).
 - **T-05** (S): CLI 10 skips: unskip or document each. Gaps G-25. Acceptance: evidence/T-05-skips.txt (0 unexplained skips).
-- **T-06** (S): Dependency-audit baseline; fix criticals or disposition via H/DEFER with reachability analysis. Gaps G-21. Acceptance: evidence/T-06-audit.txt.
+- **T-06** (S): Dependency-audit baseline; fix criticals or disposition via H/DEFER with reachability analysis. Gaps G-21. Acceptance: evidence/T-06-audit.txt (before), evidence/T-06-audit-after.txt, evidence/T-06-gate.txt (triage).
 - **T-07** (S): Secret-history scan (`git log -p` patterns). Gaps G-20. Acceptance: evidence/T-07-secrets.txt (clean cert or S0 escalation).
 
-## P2 Safety & kill switches — exit: backup rehearsed; secrets clean; authz closed; criticals gone
+## P2 Safety & kill switches — exit: backup rehearsed; secrets clean; authz closed; criticals fixed or dispositioned
 
 Order: T-10, T-13, T-08, T-09, T-11, T-12.
 

@@ -213,6 +213,20 @@
       "reason": "S3 exit allows BLOCKED-with-H; H never pauses the run (R15)",
       "rejected": ["halt on H-block"],
       "stage": "S2"
+    },
+    {
+      "id": "A-09",
+      "stage": "S3",
+      "decision": ".astro files outside the eslint gate accepted: example builds compile .astro in CI; eslint-plugin-astro disproportionate for demos",
+      "rejected": ["new parser dep for examples"],
+      "reason": "A-09 in ASSUMPTIONS.md"
+    },
+    {
+      "id": "A-10",
+      "stage": "S3",
+      "decision": "Correcting wrong summary arithmetic to match frozen register rows preserves the S2 freeze; rows/decisions/scopes unchanged",
+      "rejected": ["leaving known-wrong summaries frozen"],
+      "reason": "A-10 in ASSUMPTIONS.md"
     }
   ],
   "baseline": {
@@ -1058,8 +1072,8 @@
           "text": "Backup restored (local rehearsal + prod H filed)"
         },
         {
-          "evidence": null,
-          "met": false,
+          "evidence": "docs/completion/evidence/T-07-secrets.txt (clean cert)",
+          "met": true,
           "text": "Secrets out of history/config"
         },
         {
@@ -1070,7 +1084,7 @@
         {
           "evidence": null,
           "met": false,
-          "text": "Dependency criticals gone"
+          "text": "Dependency criticals fixed or dispositioned (H/DEFER) with reachability analysis"
         }
       ],
       "id": "P2",
