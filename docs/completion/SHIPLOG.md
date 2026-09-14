@@ -82,3 +82,14 @@
   deterministically. R13-allowed test fix with reasoning logged here + in the test comment.
 - artifacts: /tmp/flake-demo.mjs, /tmp/flake-hist.mjs, /tmp/flake-rate.mjs (flake demos; DELETE in S6).
 - resume_pointer: P1/T-05
+
+## 2026-09-14 S3/P1 T-05 golden skips (G-25) — DONE
+- branch ravidsrk/p1-golden-tests → PR (see status.json) → merge commit, no squash.
+- Finding: header claimed smoke-CI runs goldens — FALSE (ci.yml never did). Ran all 10 gated tests
+  locally with pinned-playwright Chromium: 11/11 green (incl. 1 always-on). Wired RUN_GOLDEN=1 step
+  into the smoke job so the claim is now true. Note: install via the workspace playwright binary;
+  bare `bunx playwright` may resolve a newer rev (learned the hard way).
+- Evidence: evidence/T-05-golden.txt (11/11), evidence/T-05-gate.txt (default gate all 0).
+- Review: greptile local (see below).
+- second look: left the stale `npm test` wording in the golden header alone (cosmetic; S4 owns docs).
+- resume_pointer: P1/T-01

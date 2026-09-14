@@ -289,7 +289,7 @@
       "status": "works"
     }
   ],
-  "current_commit": "744f1f604cc43cfce6e1a09698f1e1ed4af5b0f8",
+  "current_commit": "1f87861e2443ba92777565583f3186386ed63b40",
   "definition_frozen_at": "6770c58",
   "gaps": [
     {
@@ -589,7 +589,7 @@
       "issue_url": null,
       "severity": "S2",
       "source": ["F-4-03"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-05"]
     },
     {
@@ -1252,7 +1252,7 @@
       "url": "child-transcript:C1-C16"
     }
   ],
-  "resume_pointer": "P1/T-05",
+  "resume_pointer": "P1/T-01",
   "run_id": "20260914-S1",
   "stage": "S3",
   "tasks": [
@@ -1321,20 +1321,23 @@
       "status": "done"
     },
     {
-      "attempts": 0,
+      "attempts": 1,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p1-golden-tests",
       "commit": null,
       "depends_on": [],
-      "evidence": [],
+      "evidence": [
+        "docs/completion/evidence/T-05-golden.txt",
+        "docs/completion/evidence/T-05-gate.txt"
+      ],
       "gaps": ["G-25"],
       "id": "T-05",
       "owner": "agent",
       "plan_phase": "P1",
-      "pr": null,
-      "review": null,
+      "pr": "TBD-post-create",
+      "review": "greptile",
       "size": "S",
-      "status": "todo"
+      "status": "done"
     },
     {
       "attempts": 1,
@@ -1360,7 +1363,7 @@
       "attempts": 2,
       "block_signature": null,
       "branch": "ravidsrk/p1-secret-scan",
-      "commit": null,
+      "commit": "1f87861",
       "depends_on": [],
       "evidence": [
         "docs/completion/evidence/T-07-secrets.txt",

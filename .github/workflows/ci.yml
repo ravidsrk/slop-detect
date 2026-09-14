@@ -57,6 +57,14 @@ jobs:
         run: bun run --filter @slop-detect/core build && bun run --filter slop-detect build
       - name: Install Playwright Chromium
         run: bunx playwright install --with-deps chromium
+      - name: Golden detector tests (real Chromium)
+        env:
+          RUN_GOLDEN: 1
+          # Chromium was installed above — skip the CLI's lazy installer.
+          SKIP_PLAYWRIGHT_DOWNLOAD: 1
+        run: |
+          cd packages/cli
+          bunx vitest run test/golden.test.js test/fonts-ready.test.js test/engine-pin.test.js
       - name: Serve local clean fixture
         run: |
           cd packages/cli/test/fixtures

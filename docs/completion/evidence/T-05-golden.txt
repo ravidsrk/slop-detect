@@ -1,0 +1,22 @@
+
+ RUN  v2.1.9 /Users/ravindra/projects/slop-detect/packages/cli
+
+ ✓ test/engine-pin.test.js (2 tests) 1165ms
+   ✓ scanUrl records a non-null browserVersion from the Chromium engine 1164ms
+ ✓ test/fonts-ready.test.js (2 tests) 2892ms
+   ✓ slop_fonts is stable when document.fonts.ready is awaited before scoring 2369ms
+   ✓ slop_fonts is unstable without fonts.ready — scores before Inter is applied 520ms
+ ✓ test/golden.test.js (7 tests) 7315ms
+   ✓ clean artisan page scores Clean and trips no font/purple tells 1164ms
+   ✓ maximal VibeCode page scores out of Clean with the canonical tells 1026ms
+   ✓ a pill-shaped CTA button does NOT trigger the eyebrow-pill tell (calibration regression) 1022ms
+   ✓ the slop fixture STILL trips the eyebrow tell (its "Now in beta" pill) and glass 1017ms
+   ✓ the two fixtures are clearly separated (slop scores well above clean) 1044ms
+   ✓ a page that honors its DESIGN.md scores Aligned 1023ms
+   ✓ the same page against the WRONG system reads as drift, with named signals 1018ms
+
+ Test Files  3 passed (3)
+      Tests  11 passed (11)
+   Start at  21:14:09
+   Duration  7.52s (transform 65ms, setup 0ms, collect 158ms, tests 11.37s, environment 0ms, prepare 100ms)
+
