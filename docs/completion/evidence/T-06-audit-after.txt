@@ -1,0 +1,81 @@
+bun audit v1.4.2 (744846f84)
+
+@vitest/mocker@2.1.9
+  vitest > @vitest/mocker
+  moderate: Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock (>=2.1.0 <4.1.11) - https://github.com/advisories/GHSA-82fw-gwwq-j7x9
+
+astro@5.18.2
+  workspace:slop-detect-example-astro-blog > astro
+  low: Astro: Server island encrypted parameters vulnerable to cross-component replay (<6.1.10) - https://github.com/advisories/GHSA-xr5h-phrj-8vxv
+  moderate: Astro: XSS in define:vars via incomplete </script> tag sanitization (<6.1.6) - https://github.com/advisories/GHSA-j687-52p2-xcff
+  moderate: Astro: XSS via Unescaped Attribute Names in Spread Props (<6.4.6) - https://github.com/advisories/GHSA-jrpj-wcv7-9fh9
+  moderate: Astro: XSS via unescaped spread attribute names in renderHTMLElement (incomplete fix for CVE-2026-54298) (<7.0.6) - https://github.com/advisories/GHSA-f48w-9m4c-m7f5
+  low: Astro: Cross-site scripting via unescaped transition:* directive values on hydrated islands (>=3.10.0 <7.0.4) - https://github.com/advisories/GHSA-7pw4-f3q4-r2p2
+  moderate: Astro: Reflected XSS via unescaped View Transition animation properties (>=2.9.0 <=7.0.9) - https://github.com/advisories/GHSA-4g3v-8h47-v7g6
+  high: Astro: Host header SSRF in prerendered error page fetch (<6.4.6) - https://github.com/advisories/GHSA-2pvr-wf23-7pc7
+  high: Astro: Reflected XSS via unescaped slot name (<6.3.3) - https://github.com/advisories/GHSA-8hv8-536x-4wqp
+  critical: Astro: Remote code execution through AVIF image optimization (<7.2.8) - https://github.com/advisories/GHSA-26w7-cxv4-gfx2
+  moderate: Astro: Authorization bypass from missing path-segment boundary check when stripping the configured base (<=7.2.3) - https://github.com/advisories/GHSA-376h-93r7-7g6f
+
+esbuild@0.27.2, 0.27.7, 0.21.5, 0.27.3, 0.25.12
+  workspace:slop-detect-example-astro-blog > astro > esbuild
+  tsup > bundle-require > esbuild
+  workspace:slop-detect-web > wrangler > esbuild
+  vitest > vite-node > vite > esbuild
+  moderate: esbuild enables any website to send any requests to the development server and read the response (<=0.24.2) - https://github.com/advisories/GHSA-67mh-4wv8-2f99
+  low: esbuild allows arbitrary file read when running the development server on Windows (>=0.27.3 <0.28.1) - https://github.com/advisories/GHSA-g7r4-m6w7-qqqr
+
+extract-zip@2.0.1
+  workspace:slop-detect-web > @cloudflare/puppeteer > @puppeteer/browsers > extract-zip
+  high: extract-zip unvalidated symlink path traversal (<=2.0.1) - https://github.com/advisories/GHSA-jmr9-qjv8-65gv
+  high: extract-zip allows arbitrary file writes through symlink archive entries (<=2.0.1) - https://github.com/advisories/GHSA-7pqw-9j4j-h8q3
+
+postcss@8.4.31, 8.5.23
+  workspace:slop-detect-example-nextjs-app-router > next > postcss
+  tsup > postcss-load-config > postcss
+  workspace:slop-detect-example-astro-blog > astro > vite > postcss
+  vitest > vite-node > vite > postcss
+  moderate: PostCSS: incomplete fix of GHSA-6g55-p6wh-862q — attacker-controlled sourceMappingURL reads arbitrary .map files when `from` is unset (<=8.5.22) - https://github.com/advisories/GHSA-fxqj-rqcc-2cmp
+  moderate: PostCSS has XSS via Unescaped </style> in its CSS Stringify Output (<8.5.10) - https://github.com/advisories/GHSA-qx2v-qp2m-jg93
+  high: PostCSS: Arbitrary file read and information disclosure via attacker-controlled sourceMappingURL in CSS comments (<=8.5.11) - https://github.com/advisories/GHSA-6g55-p6wh-862q
+  high: PostCSS: Path Traversal in Previous Source Map Auto-Loading (sourceMappingURL) leads to Arbitrary .map File Disclosure (<=8.5.17) - https://github.com/advisories/GHSA-r28c-9q8g-f849
+
+sharp@0.34.5
+  workspace:slop-detect-example-astro-blog > astro > sharp
+  workspace:slop-detect-example-nextjs-app-router > next > sharp
+  workspace:slop-detect-web > wrangler > miniflare > sharp
+  high: sharp inherited vulnerabilities in libvips: CVE-2026-33327, CVE-2026-33328, CVE-2026-35590, CVE-2026-35591 (<0.35.0) - https://github.com/advisories/GHSA-f88m-g3jw-g9cj
+  high: sharp: Vulnerabilities in libheif: GHSA-g89c-p67h-r497 and GHSA-2jg2-4ch7-h545 (<0.35.4) - https://github.com/advisories/GHSA-rgj7-g3m4-5g8c
+
+undici@7.24.8
+  workspace:slop-detect-web > wrangler > miniflare > undici
+  moderate: undici vulnerable to downstream response desynchronization via retry interceptor (>=7.0.0 <7.29.0) - https://github.com/advisories/GHSA-8xcm-r25x-g524
+  high: undici vulnerable to cross-user information disclosure and parse-time crash via degenerate private cache directives (>=7.0.0 <7.29.0) - https://github.com/advisories/GHSA-4cwx-7wf7-3272
+  moderate: undici vulnerable to CRLF Injection via blob-like body 'type' property (>=7.0.0 <7.29.0) - https://github.com/advisories/GHSA-m8rv-5g2x-5cg5
+  moderate: undici vulnerable to cross-user information disclosure via whitespace around equals in Cache-Control directives (>=7.0.0 <7.29.0) - https://github.com/advisories/GHSA-jr45-8vmc-qm54
+  moderate: undici vulnerable to cookie attribute injection via unsanitized domain and unparsed setCookie fields (>=7.0.0 <7.29.0) - https://github.com/advisories/GHSA-v3r7-h72x-cjcm
+  high: undici vulnerable to TLS certificate validation bypass via dropped requestTls in SOCKS5 ProxyAgent (>=7.23.0 <7.28.0) - https://github.com/advisories/GHSA-vmh5-mc38-953g
+  moderate: undici vulnerable to HTTP header injection via Set-Cookie percent-decoding (>=7.0.0 <7.28.0) - https://github.com/advisories/GHSA-p88m-4jfj-68fv
+  high: undici WebSocket client vulnerable to denial of service via fragment count bypass (>=7.0.0 <7.28.0) - https://github.com/advisories/GHSA-vxpw-j846-p89q
+  high: undici vulnerable to cross-origin request routing via SOCKS5 proxy pool reuse (>=7.23.0 <7.28.0) - https://github.com/advisories/GHSA-hm92-r4w5-c3mj
+  low: undici vulnerable to Set-Cookie SameSite attribute downgrade via permissive substring matching (>=7.0.0 <7.28.0) - https://github.com/advisories/GHSA-g8m3-5g58-fq7m
+  moderate: undici vulnerable to cross-user information disclosure via shared cache whitespace bypass (>=7.0.0 <7.28.0) - https://github.com/advisories/GHSA-pr7r-676h-xcf6
+  low: undici vulnerable to HTTP response queue poisoning via keep-alive socket reuse (>=7.0.0 <7.28.0) - https://github.com/advisories/GHSA-35p6-xmwp-9g52
+
+vite@5.4.21, 6.4.3
+  workspace:slop-detect-example-astro-blog > astro > vite
+  vitest > vite-node > vite
+  moderate: launch-editor: NTLMv2 hash disclosure via UNC path handling on Windows (<=6.4.2) - https://github.com/advisories/GHSA-v6wh-96g9-6wx3
+  moderate: Vite Vulnerable to Path Traversal in Optimized Deps `.map` Handling (<=6.4.1) - https://github.com/advisories/GHSA-4w7w-66w2-5vf9
+  high: vite: `server.fs.deny` bypass on Windows alternate paths (<=6.4.2) - https://github.com/advisories/GHSA-fx2h-pf6j-xcff
+
+vitest@2.1.9
+  (direct dependency)
+  @vitest/coverage-v8 > vitest
+  critical: When Vitest UI server is listening, arbitrary file can be read and executed (<3.2.6) - https://github.com/advisories/GHSA-5xrq-8626-4rwp
+  moderate: Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock (>=2.1.0 <4.1.11) - https://github.com/advisories/GHSA-82fw-gwwq-j7x9
+
+38 vulnerabilities (2 critical, 13 high, 18 moderate, 5 low)
+
+  bun audit fix           upgrade the vulnerable packages within their ranges
+  bun audit fix --latest  also cross major versions

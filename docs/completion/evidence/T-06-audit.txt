@@ -1,0 +1,187 @@
+bun audit v1.4.2 (744846f84)
+
+@hono/node-server@1.19.14
+  workspace:slop-detect-mcp > @modelcontextprotocol/sdk > @hono/node-server
+  moderate: Node.js Adapter for Hono: Path traversal in `serve-static` on Windows via encoded backslash (`%5C`) (<1.19.15) - https://github.com/advisories/GHSA-frvp-7c67-39w9
+
+@vitest/mocker@2.1.9
+  vitest > @vitest/mocker
+  moderate: Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock (>=2.1.0 <4.1.11) - https://github.com/advisories/GHSA-82fw-gwwq-j7x9
+
+astro@5.18.2
+  workspace:slop-detect-example-astro-blog > astro
+  low: Astro: Server island encrypted parameters vulnerable to cross-component replay (<6.1.10) - https://github.com/advisories/GHSA-xr5h-phrj-8vxv
+  moderate: Astro: XSS in define:vars via incomplete </script> tag sanitization (<6.1.6) - https://github.com/advisories/GHSA-j687-52p2-xcff
+  moderate: Astro: XSS via Unescaped Attribute Names in Spread Props (<6.4.6) - https://github.com/advisories/GHSA-jrpj-wcv7-9fh9
+  moderate: Astro: XSS via unescaped spread attribute names in renderHTMLElement (incomplete fix for CVE-2026-54298) (<7.0.6) - https://github.com/advisories/GHSA-f48w-9m4c-m7f5
+  low: Astro: Cross-site scripting via unescaped transition:* directive values on hydrated islands (>=3.10.0 <7.0.4) - https://github.com/advisories/GHSA-7pw4-f3q4-r2p2
+  moderate: Astro: Reflected XSS via unescaped View Transition animation properties (>=2.9.0 <=7.0.9) - https://github.com/advisories/GHSA-4g3v-8h47-v7g6
+  high: Astro: Host header SSRF in prerendered error page fetch (<6.4.6) - https://github.com/advisories/GHSA-2pvr-wf23-7pc7
+  high: Astro: Reflected XSS via unescaped slot name (<6.3.3) - https://github.com/advisories/GHSA-8hv8-536x-4wqp
+  critical: Astro: Remote code execution through AVIF image optimization (<7.2.8) - https://github.com/advisories/GHSA-26w7-cxv4-gfx2
+  moderate: Astro: Authorization bypass from missing path-segment boundary check when stripping the configured base (<=7.2.3) - https://github.com/advisories/GHSA-376h-93r7-7g6f
+
+body-parser@2.2.2
+  workspace:slop-detect-mcp > @modelcontextprotocol/sdk > express > body-parser
+  low: body-parser vulnerable to denial of service when invalid limit value silently disables size enforcement (>=2.0.0 <2.3.0) - https://github.com/advisories/GHSA-v422-hmwv-36x6
+
+brace-expansion@1.1.15, 5.0.6, 2.1.1
+  eslint > @eslint/eslintrc > minimatch > brace-expansion
+  typescript-eslint > @typescript-eslint/utils > @typescript-eslint/typescript-estree > minimatch > brace-expansion
+  @vitest/coverage-v8 > test-exclude > glob > minimatch > brace-expansion
+  high: brace-expansion: DoS via unbounded expansion length causing an out-of-memory process crash (<1.1.17) - https://github.com/advisories/GHSA-mh99-v99m-4gvg
+  high: brace-expansion: DoS via unbounded expansion length causing an out-of-memory process crash (>=2.0.0 <2.1.3) - https://github.com/advisories/GHSA-mh99-v99m-4gvg
+  high: brace-expansion: DoS via unbounded expansion length causing an out-of-memory process crash (>=4.0.0 <5.0.8) - https://github.com/advisories/GHSA-mh99-v99m-4gvg
+  high: brace-expansion: DoS via unbounded intermediate arrays, bypassing the CVE-2026-14257 mitigation (>=4.0.0 <5.0.9) - https://github.com/advisories/GHSA-rgw5-rvv9-x895
+  high: brace-expansion: DoS via unbounded intermediate arrays, bypassing the CVE-2026-14257 mitigation (>=2.0.0 <2.1.4) - https://github.com/advisories/GHSA-rgw5-rvv9-x895
+  high: brace-expansion: DoS via unbounded intermediate arrays, bypassing the CVE-2026-14257 mitigation (<1.1.18) - https://github.com/advisories/GHSA-rgw5-rvv9-x895
+  high: brace-expansion: DoS via exponential-time expansion of consecutive non-expanding {} groups (>=2.0.0 <2.1.2) - https://github.com/advisories/GHSA-3jxr-9vmj-r5cp
+  high: brace-expansion: DoS via exponential-time expansion of consecutive non-expanding {} groups (<1.1.16) - https://github.com/advisories/GHSA-3jxr-9vmj-r5cp
+  high: brace-expansion: DoS via exponential-time expansion of consecutive non-expanding {} groups (>=3.0.0 <5.0.7) - https://github.com/advisories/GHSA-3jxr-9vmj-r5cp
+
+esbuild@0.27.7, 0.21.5, 0.27.3, 0.25.12
+  workspace:slop-detect-example-astro-blog > astro > esbuild
+  tsup > bundle-require > esbuild
+  workspace:slop-detect-web > wrangler > esbuild
+  vitest > vite-node > vite > esbuild
+  moderate: esbuild enables any website to send any requests to the development server and read the response (<=0.24.2) - https://github.com/advisories/GHSA-67mh-4wv8-2f99
+  low: esbuild allows arbitrary file read when running the development server on Windows (>=0.27.3 <0.28.1) - https://github.com/advisories/GHSA-g7r4-m6w7-qqqr
+
+extract-zip@2.0.1
+  workspace:slop-detect-web > @cloudflare/puppeteer > @puppeteer/browsers > extract-zip
+  high: extract-zip unvalidated symlink path traversal (<=2.0.1) - https://github.com/advisories/GHSA-jmr9-qjv8-65gv
+  high: extract-zip allows arbitrary file writes through symlink archive entries (<=2.0.1) - https://github.com/advisories/GHSA-7pqw-9j4j-h8q3
+
+fast-uri@3.1.2
+  workspace:slop-detect-mcp > @modelcontextprotocol/sdk > ajv > fast-uri
+  eslint > @eslint/eslintrc > ajv > fast-uri
+  high: fast-uri vulnerable to server-side request forgery via malformed IPv6 normalization (>=3.0.0 <3.1.6) - https://github.com/advisories/GHSA-f65p-4m7j-42xc
+  high: fast-uri vulnerable to server-side request forgery via repeated hostname percent-decoding (>=3.1.2 <3.1.6) - https://github.com/advisories/GHSA-fph4-wmhf-6fwf
+  high: fast-uri vulnerable to host confusion via percent-encoded scheme normalization (>=3.0.0 <3.1.6) - https://github.com/advisories/GHSA-jqff-g426-hqxp
+  high: fast-uri vulnerable to host confusion via backslash authority introducer (>=3.0.0 <3.1.5) - https://github.com/advisories/GHSA-7p8r-x3mc-p8w7
+  high: fast-uri vulnerable to host confusion via literal backslash authority delimiter (>=3.0.0 <=3.1.3) - https://github.com/advisories/GHSA-v2hh-gcrm-f6hx
+  high: fast-uri vulnerable to host confusion via failed IDN canonicalization (>=3.0.0 <3.1.3) - https://github.com/advisories/GHSA-4c8g-83qw-93j6
+
+hono@4.12.25
+  workspace:slop-detect-web > hono
+  workspace:slop-detect-mcp > @modelcontextprotocol/sdk > @hono/node-server > hono
+  moderate: Hono: ReDoS in CORS middleware via Access-Control-Request-Headers (<4.12.34) - https://github.com/advisories/GHSA-8j4g-w8fx-2239
+  moderate: Hono: API Gateway v1 adapter can drop a distinct repeated request header value during de-duplication (>=4.3.3 <4.12.27) - https://github.com/advisories/GHSA-xgm2-5f3f-mvvc
+  moderate: hono/jsx does not isolate context per request, leading to cross-request data disclosure (>=4.11.8 <4.12.27) - https://github.com/advisories/GHSA-hvrm-45r6-mjfj
+  moderate: Hono: Server-Side XSS via JSX Escaping Bypass in cx() Utility (>=4.0.0 <4.12.27) - https://github.com/advisories/GHSA-w62v-xxxg-mg59
+  moderate: Hono: `memo()` retains SSR output across requests, leading to cross-user data disclosure (>=3.8.0 <4.12.34) - https://github.com/advisories/GHSA-f23p-vx2j-j53r
+  low: Hono: Proxy Helper does not remove response headers listed in the `Connection` header (>=4.7.0 <4.12.34) - https://github.com/advisories/GHSA-79qm-7rj5-m7r9
+  moderate: Hono: Algorithmic Complexity DoS in Language Middleware (>=4.12.0 <4.12.34) - https://github.com/advisories/GHSA-54fx-42gc-7vw4
+  moderate: Hono: Incomplete fix for CVE-2026-39408: `toSSG()` still writes files outside the output directory (<4.13.5) - https://github.com/advisories/GHSA-gqvv-2mrq-wpjv
+  moderate: Hono: Unbounded dot-notation nesting in `parseBody()` can cause memory exhaustion (<4.13.5) - https://github.com/advisories/GHSA-g6gw-c38x-mqfc
+  moderate: Hono: Query parser reads parameters after the URL fragment, causing cache-key and proxy interpretation differentials (<4.13.5) - https://github.com/advisories/GHSA-crvj-82cr-hjcx
+
+ip-address@10.2.0
+  workspace:slop-detect-mcp > @modelcontextprotocol/sdk > express-rate-limit > ip-address
+  workspace:slop-detect-web > @cloudflare/puppeteer > @puppeteer/browsers > proxy-agent > pac-proxy-agent > socks-proxy-agent > socks > ip-address
+  high: ip-address: Address4 decodes leading-zero octets as decimal while resolvers decode them as octal, allowing SSRF and trust-boundary bypass (<=10.3.0) - https://github.com/advisories/GHSA-mwp4-54f8-5fhr
+  moderate: ip-address: a CIDR suffix on the parsed address suppresses special-use classification and can bypass SSRF and trust-boundary checks (>=10.1.1 <=10.2.1) - https://github.com/advisories/GHSA-4xrf-jv44-h6hh
+  moderate: ip-address: misclassification of IPv4-mapped/NAT64 IPv6 addresses can bypass SSRF and trust-boundary checks (>=10.1.1 <=10.2.0) - https://github.com/advisories/GHSA-22jq-vg5j-6vgg
+
+js-yaml@4.2.0, 3.14.2
+  workspace:slop-detect-example-astro-blog > astro > @astrojs/markdown-remark > js-yaml
+  eslint > @eslint/eslintrc > js-yaml
+  @changesets/cli > @manypkg/get-packages > read-yaml-file > js-yaml
+  moderate: JS-YAML: Quadratic-complexity DoS in merge key handling via repeated aliases (<3.15.0) - https://github.com/advisories/GHSA-h67p-54hq-rp68
+  high: js-yaml: YAML merge-key chains can force quadratic CPU consumption (>=4.0.0 <4.3.0) - https://github.com/advisories/GHSA-52cp-r559-cp3m
+  high: js-yaml: YAML merge-key chains can force quadratic CPU consumption (>=3.0.0 <3.15.0) - https://github.com/advisories/GHSA-52cp-r559-cp3m
+  high: JS-YAML: Quadratic CPU consumption in !!omap resolution (3.x and 4.x) — CVE-2026-59870 fix not backported (>=3.0.0 <3.15.1) - https://github.com/advisories/GHSA-5p4m-2wfm-xmqj
+  high: JS-YAML: Quadratic CPU consumption in !!omap resolution (3.x and 4.x) — CVE-2026-59870 fix not backported (>=4.0.0 <4.3.1) - https://github.com/advisories/GHSA-5p4m-2wfm-xmqj
+  high: js-yaml: maxTotalMergeKeys does not limit CPU use for empty merge sources (>=3.0.0 <3.15.2) - https://github.com/advisories/GHSA-2883-xcg3-v3hh
+  high: js-yaml: maxTotalMergeKeys does not limit CPU use for empty merge sources (>=4.0.0 <4.3.2) - https://github.com/advisories/GHSA-2883-xcg3-v3hh
+
+nanoid@3.3.12
+  workspace:slop-detect-example-nextjs-app-router > next > postcss > nanoid
+  tsup > postcss-load-config > postcss > nanoid
+  workspace:slop-detect-example-astro-blog > astro > vite > postcss > nanoid
+  vitest > vite-node > vite > postcss > nanoid
+  high: nanoid: non-secure generators can loop indefinitely with negative size (<3.3.16) - https://github.com/advisories/GHSA-28wg-ghj8-5hjv
+  high: nanoid: custom generators can loop indefinitely when size is zero (<3.3.18) - https://github.com/advisories/GHSA-2v37-7h3g-55p8
+
+next@15.5.19
+  workspace:slop-detect-example-nextjs-app-router > next
+  high: Next.js: Server-Side Request Forgery in Server Actions on custom servers (>=14.1.1 <15.5.21) - https://github.com/advisories/GHSA-89xv-2m56-2m9x
+  high: Next.js: Denial of Service in App Router using Server Actions (>=13.0.0 <15.5.21) - https://github.com/advisories/GHSA-m99w-x7hq-7vfj
+  moderate: Next.js: Cache confusion of response bodies for requests with bodies (>=13.0.0 <15.5.21) - https://github.com/advisories/GHSA-68g3-v927-f742
+  moderate: Next.js: Cache confusion of response bodies for requests with bodies containing invalid UTF-8 byte sequences (>=13.0.0 <15.5.21) - https://github.com/advisories/GHSA-4633-3j49-mh5q
+  moderate: Next.js: Unbounded Server Action payload in Edge runtime (>=13.0.0 <15.5.21) - https://github.com/advisories/GHSA-4c39-4ccg-62r3
+  high: Next.js: Server-Side Request Forgery in rewrites via attacker-controlled destination hostname (>=12.0.0 <15.5.21) - https://github.com/advisories/GHSA-p9j2-gv94-2wf4
+  moderate: Next.js: Denial of Service in the Image Optimization API using SVGs (>=15.5.0 <15.5.21) - https://github.com/advisories/GHSA-q8wf-6r8g-63ch
+  moderate: Next.js: Unauthenticated disclosure of internal Server Function endpoints (>=13.0.0 <15.5.21) - https://github.com/advisories/GHSA-955p-x3mx-jcvp
+  critical: Next.js: Unauthenticated Remote Code Execution on windows-hosted servers (>=13.4.0 <15.5.24) - https://github.com/advisories/GHSA-p293-qw3h-jr36
+  critical: Next.js: Unauthenticated Remote Code Execution in Image Optimization API when AVIF files are used (>=10.0.0 <15.5.24) - https://github.com/advisories/GHSA-2xp9-vwfh-vxw4
+
+postcss@8.5.15, 8.4.31
+  workspace:slop-detect-example-nextjs-app-router > next > postcss
+  tsup > postcss-load-config > postcss
+  workspace:slop-detect-example-astro-blog > astro > vite > postcss
+  vitest > vite-node > vite > postcss
+  moderate: PostCSS: incomplete fix of GHSA-6g55-p6wh-862q — attacker-controlled sourceMappingURL reads arbitrary .map files when `from` is unset (<=8.5.22) - https://github.com/advisories/GHSA-fxqj-rqcc-2cmp
+  moderate: PostCSS has XSS via Unescaped </style> in its CSS Stringify Output (<8.5.10) - https://github.com/advisories/GHSA-qx2v-qp2m-jg93
+  high: PostCSS: Arbitrary file read and information disclosure via attacker-controlled sourceMappingURL in CSS comments (<=8.5.11) - https://github.com/advisories/GHSA-6g55-p6wh-862q
+  high: PostCSS: Path Traversal in Previous Source Map Auto-Loading (sourceMappingURL) leads to Arbitrary .map File Disclosure (<=8.5.17) - https://github.com/advisories/GHSA-r28c-9q8g-f849
+
+qs@6.15.2
+  workspace:slop-detect-mcp > @modelcontextprotocol/sdk > express > body-parser > qs
+  moderate: qs array-limit bypass via bracket-key comma parsing (>=6.14.2 <=6.15.3) - https://github.com/advisories/GHSA-x5fp-wj9c-mxmx
+  moderate: qs: Denial of Service via Attacker Controlled isBuffer (>=2.2.5 <6.16.0) - https://github.com/advisories/GHSA-4mjr-xmp4-gh2g
+
+sharp@0.34.5
+  workspace:slop-detect-example-astro-blog > astro > sharp
+  workspace:slop-detect-example-nextjs-app-router > next > sharp
+  workspace:slop-detect-web > wrangler > miniflare > sharp
+  high: sharp inherited vulnerabilities in libvips: CVE-2026-33327, CVE-2026-33328, CVE-2026-35590, CVE-2026-35591 (<0.35.0) - https://github.com/advisories/GHSA-f88m-g3jw-g9cj
+  high: sharp: Vulnerabilities in libheif: GHSA-g89c-p67h-r497 and GHSA-2jg2-4ch7-h545 (<0.35.4) - https://github.com/advisories/GHSA-rgj7-g3m4-5g8c
+
+smol-toml@1.6.1
+  workspace:slop-detect-example-astro-blog > astro > @astrojs/markdown-remark > smol-toml
+  high: smol-toml: Denial of Service via malformed TOML documents (<=1.7.0) - https://github.com/advisories/GHSA-7w5x-hrqm-74c2
+
+svgo@4.0.1
+  workspace:slop-detect-example-astro-blog > astro > svgo
+  high: SVGO removeScripts plugin leaves some executable scripts intact (>=4.0.0 <4.0.2) - https://github.com/advisories/GHSA-2p49-hgcm-8545
+  moderate: SVGO: removeScripts incompletely sanitizes executable HTML in SVG foreignObject elements (>=4.0.0 <4.1.0) - https://github.com/advisories/GHSA-4vpr-x523-8j87
+  high: SVGO: removeScripts allows executable links through namespace and control-character bypasses (>=4.0.0 <4.1.0) - https://github.com/advisories/GHSA-w27v-7q3p-w38r
+
+undici@7.24.8
+  workspace:slop-detect-web > wrangler > miniflare > undici
+  moderate: undici vulnerable to downstream response desynchronization via retry interceptor (>=7.0.0 <7.29.0) - https://github.com/advisories/GHSA-8xcm-r25x-g524
+  high: undici vulnerable to cross-user information disclosure and parse-time crash via degenerate private cache directives (>=7.0.0 <7.29.0) - https://github.com/advisories/GHSA-4cwx-7wf7-3272
+  moderate: undici vulnerable to CRLF Injection via blob-like body 'type' property (>=7.0.0 <7.29.0) - https://github.com/advisories/GHSA-m8rv-5g2x-5cg5
+  moderate: undici vulnerable to cross-user information disclosure via whitespace around equals in Cache-Control directives (>=7.0.0 <7.29.0) - https://github.com/advisories/GHSA-jr45-8vmc-qm54
+  moderate: undici vulnerable to cookie attribute injection via unsanitized domain and unparsed setCookie fields (>=7.0.0 <7.29.0) - https://github.com/advisories/GHSA-v3r7-h72x-cjcm
+  high: undici vulnerable to TLS certificate validation bypass via dropped requestTls in SOCKS5 ProxyAgent (>=7.23.0 <7.28.0) - https://github.com/advisories/GHSA-vmh5-mc38-953g
+  moderate: undici vulnerable to HTTP header injection via Set-Cookie percent-decoding (>=7.0.0 <7.28.0) - https://github.com/advisories/GHSA-p88m-4jfj-68fv
+  high: undici WebSocket client vulnerable to denial of service via fragment count bypass (>=7.0.0 <7.28.0) - https://github.com/advisories/GHSA-vxpw-j846-p89q
+  high: undici vulnerable to cross-origin request routing via SOCKS5 proxy pool reuse (>=7.23.0 <7.28.0) - https://github.com/advisories/GHSA-hm92-r4w5-c3mj
+  low: undici vulnerable to Set-Cookie SameSite attribute downgrade via permissive substring matching (>=7.0.0 <7.28.0) - https://github.com/advisories/GHSA-g8m3-5g58-fq7m
+  moderate: undici vulnerable to cross-user information disclosure via shared cache whitespace bypass (>=7.0.0 <7.28.0) - https://github.com/advisories/GHSA-pr7r-676h-xcf6
+  low: undici vulnerable to HTTP response queue poisoning via keep-alive socket reuse (>=7.0.0 <7.28.0) - https://github.com/advisories/GHSA-35p6-xmwp-9g52
+
+vite@5.4.21, 6.4.3
+  workspace:slop-detect-example-astro-blog > astro > vite
+  vitest > vite-node > vite
+  moderate: launch-editor: NTLMv2 hash disclosure via UNC path handling on Windows (<=6.4.2) - https://github.com/advisories/GHSA-v6wh-96g9-6wx3
+  moderate: Vite Vulnerable to Path Traversal in Optimized Deps `.map` Handling (<=6.4.1) - https://github.com/advisories/GHSA-4w7w-66w2-5vf9
+  high: vite: `server.fs.deny` bypass on Windows alternate paths (<=6.4.2) - https://github.com/advisories/GHSA-fx2h-pf6j-xcff
+
+vitest@2.1.9
+  (direct dependency)
+  @vitest/coverage-v8 > vitest
+  critical: When Vitest UI server is listening, arbitrary file can be read and executed (<3.2.6) - https://github.com/advisories/GHSA-5xrq-8626-4rwp
+  moderate: Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock (>=2.1.0 <4.1.11) - https://github.com/advisories/GHSA-82fw-gwwq-j7x9
+
+ws@8.20.1
+  workspace:slop-detect-web > @cloudflare/puppeteer > ws
+  workspace:slop-detect-web > wrangler > miniflare > ws
+  high: ws: Memory exhaustion DoS from tiny fragments and data chunks (>=8.0.0 <8.21.0) - https://github.com/advisories/GHSA-96hv-2xvq-fx4p
+
+94 vulnerabilities (4 critical, 44 high, 39 moderate, 7 low)
+
+  bun audit fix           upgrade the vulnerable packages within their ranges
+  bun audit fix --latest  also cross major versions
