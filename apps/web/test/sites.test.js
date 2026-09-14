@@ -9,7 +9,6 @@ import {
   getListing,
   deleteListing,
   listSites,
-  listAllSites,
   recordScanForWatch,
   getWatch,
 } from '../functions/_shared.ts';

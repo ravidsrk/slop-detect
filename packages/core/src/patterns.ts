@@ -342,7 +342,7 @@ export const PATTERNS = [
     category: 'layout',
     weight: 5,
     extract: (ctx) => {
-      const { h1, parseColor } = ctx;
+      const { h1 } = ctx;
       if (!h1) return { triggered: false };
       const h1Rect = h1.getBoundingClientRect();
       // Look for small rounded pill elements within ~200px above the H1.
@@ -487,7 +487,6 @@ export const PATTERNS = [
       for (const el of visible) {
         const parent = el.parentElement;
         if (!parent) continue;
-        const cs = getComputedStyle(el);
         const r = el.getBoundingClientRect();
         if (r.width < 150 || r.width > 600 || r.height < 100 || r.height > 600) continue;
         // First descendant svg or img positioned at top
@@ -586,7 +585,7 @@ export const PATTERNS = [
     short: 'FAQ',
     category: 'layout',
     weight: 2,
-    extract: (ctx) => {
+    extract: () => {
       const details = document.querySelectorAll('details');
       let count = 0;
       const pageHeight = document.documentElement.scrollHeight;

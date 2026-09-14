@@ -437,7 +437,7 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
 
     try {
       signals["hero_eyebrow_pill"] = ((ctx) => {
-      const { h1, parseColor } = ctx;
+      const { h1 } = ctx;
       if (!h1) return { triggered: false };
       const h1Rect = h1.getBoundingClientRect();
       const candidates = Array.from(document.querySelectorAll("a, div, span, button"));
@@ -547,7 +547,6 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
       for (const el of visible) {
         const parent = el.parentElement;
         if (!parent) continue;
-        getComputedStyle(el);
         const r = el.getBoundingClientRect();
         if (r.width < 150 || r.width > 600 || r.height < 100 || r.height > 600) continue;
         const icon = el.querySelector(
@@ -627,7 +626,7 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
     }
 
     try {
-      signals["faq_accordion"] = ((ctx) => {
+      signals["faq_accordion"] = (() => {
       const details = document.querySelectorAll("details");
       let count = 0;
       const pageHeight = document.documentElement.scrollHeight;
@@ -1576,7 +1575,7 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
 
     try {
       signals["hero_eyebrow_pill"] = ((ctx) => {
-      const { h1, parseColor } = ctx;
+      const { h1 } = ctx;
       if (!h1) return { triggered: false };
       const h1Rect = h1.getBoundingClientRect();
       const candidates = Array.from(document.querySelectorAll("a, div, span, button"));
@@ -1686,7 +1685,6 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
       for (const el of visible) {
         const parent = el.parentElement;
         if (!parent) continue;
-        getComputedStyle(el);
         const r = el.getBoundingClientRect();
         if (r.width < 150 || r.width > 600 || r.height < 100 || r.height > 600) continue;
         const icon = el.querySelector(
@@ -1766,7 +1764,7 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
     }
 
     try {
-      signals["faq_accordion"] = ((ctx) => {
+      signals["faq_accordion"] = (() => {
       const details = document.querySelectorAll("details");
       let count = 0;
       const pageHeight = document.documentElement.scrollHeight;

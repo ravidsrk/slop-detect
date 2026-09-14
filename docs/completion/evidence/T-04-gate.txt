@@ -1,0 +1,28 @@
+=== FORMAT ===
+$ prettier --check "**/*.{ts,tsx,js,jsx,json,md,mdx}"
+Checking formatting...
+All matched files use Prettier code style!
+FORMAT_EXIT=0
+=== LINT ===
+ Tasks:    7 successful, 7 total
+LINT_EXIT=0
+=== TYPECHECK ===
+TYPECHECK_EXIT=0
+=== TEST ===
+@slop-detect/action:test:  Test Files  2 passed (2)
+@slop-detect/action:test:       Tests  7 passed (7)
+slop-detect-mcp:test:  Test Files  3 passed (3)
+slop-detect-mcp:test:       Tests  14 passed (14)
+@slop-detect/core:test:  Test Files  10 passed (10)
+@slop-detect/core:test:       Tests  71 passed (71)
+slop-detect:test:  Test Files  3 passed | 2 skipped (5)
+slop-detect:test:       Tests  12 passed | 10 skipped (22)
+slop-detect-web:test:  Test Files  28 passed (28)
+slop-detect-web:test:       Tests  303 passed (303)
+ Tasks:    7 successful, 7 total
+TEST_EXIT=0
+=== LINT-CLEAN-PROOF ===
+ESLINT_EXIT=0
+=== LINT-FORCE-FINAL ===
+ Tasks:    7 successful, 7 total
+LINT_FORCE_EXIT=0

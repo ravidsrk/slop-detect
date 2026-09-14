@@ -87,13 +87,13 @@ for (const entry of corpus.sites) {
   }
 
   // Incremental write so an interrupted run still leaves a usable artifact.
-  writeFileSync(OUT, JSON.stringify(buildReport(sites, corpus), null, 2) + '\n');
+  writeFileSync(OUT, JSON.stringify(buildReport(sites), null, 2) + '\n');
   if (i < corpus.sites.length) await sleep(SPACING_MS);
 }
 
 process.stderr.write(`\nDone. Wrote ${OUT.pathname}\n`);
 
-function buildReport(sites, corpus) {
+function buildReport(sites) {
   const scored = sites.filter((s) => s.scored);
   const avg = (arr) =>
     arr.length ? Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10 : null;

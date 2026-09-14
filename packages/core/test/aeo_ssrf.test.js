@@ -8,7 +8,7 @@ import { runAeoChecks } from '@slop-detect/core';
 // A fetch mock that 302-redirects the main page to cloud-metadata, and returns
 // a benign 200 for everything else (robots/llms/md/etc.).
 function makeRedirectingFetch(spy) {
-  return async (url, init) => {
+  return async (url, _init) => {
     spy.push(url);
     if (url === 'https://victim.example/') {
       return new Response(null, {

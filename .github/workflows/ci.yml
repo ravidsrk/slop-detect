@@ -18,6 +18,8 @@ jobs:
       - run: bun install
       - name: Prettier (format check)
         run: bun run format:check
+      - name: ESLint (correctness)
+        run: bun run lint
 
   typecheck:
     name: Typecheck

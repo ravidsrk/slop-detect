@@ -43,6 +43,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist .turbo",
+    "lint": "eslint .",
     "scan": "node dist/bin/slop.js",
     "demo": "node dist/bin/slop.js https://news.ycombinator.com https://www.aura.build https://lovable.dev"
   },

@@ -149,7 +149,6 @@ export function compileRule(rule) {
   // resulting function is fully self-contained → safe to .toString() + inject.
   const specLiteral = JSON.stringify(rule.detect);
   const body = `var __spec = ${specLiteral};\n${EVALUATOR_SOURCE}`;
-  // eslint-disable-next-line no-new-func
   const extract = new Function('ctx', body);
 
   return {
