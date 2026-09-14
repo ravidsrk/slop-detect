@@ -1,0 +1,17 @@
+=== PRE-DELETE (all ancestors of main, verified above) ===
+  origin/HEAD -> origin/main
+  origin/main
+  origin/ravidsrk/ui-ux-audit
+  origin/ravidsrk/adversarial-release-review
+  origin/ravidsrk/adversarial-fresh
+  origin/ravidsrk/scan-to-result-page
+  origin/ravidsrk/final-shipping
+=== DELETE ===
+ - [deleted]         ravidsrk/adversarial-fresh
+ - [deleted]         ravidsrk/adversarial-release-review
+ - [deleted]         ravidsrk/final-shipping
+ - [deleted]         ravidsrk/scan-to-result-page
+ - [deleted]         ravidsrk/ui-ux-audit
+=== POST-DELETE ===
+  origin/HEAD -> origin/main
+  origin/main

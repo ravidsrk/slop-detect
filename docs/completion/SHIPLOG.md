@@ -95,3 +95,12 @@
   that 1.60.0 refuses. Pinned the installer to playwright@1.60.0 with engine-pin sync comment.
 - second look: left the stale `npm test` wording in the golden header alone (cosmetic; S4 owns docs).
 - resume_pointer: P1/T-01
+
+## 2026-09-14 S3/P1 T-01 prune branches (G-38) — DONE
+- branch ravidsrk/p1-prune-branches → PR (see status.json) → merge commit, no squash.
+- Re-verified all 5 as ancestors of current main, then deleted remotely. Branch list now main only.
+- Evidence: evidence/T-01-branches.txt. Review: greptile local.
+- second look: deletion is unrecoverable-by-name but content lives on main (ancestor check);
+  also confirmed no open PRs reference the deleted branches (PR count 0 open — checked pre-delete
+  via gh; the only opens were mine, since merged).
+- resume_pointer: P1/T-02
