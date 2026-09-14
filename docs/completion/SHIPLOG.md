@@ -65,3 +65,16 @@
   immediately in this same task. Also folded the floating T-04 record updates into this branch as
   their own commit; henceforth record updates ride the task branch that produced them.
 - resume_pointer: P1/T-07
+
+## 2026-09-14 S3/P1 T-07 secret scan (G-20) — DONE
+- branch ravidsrk/p1-secret-scan → PR (see status.json) → merge commit, no squash.
+- History sweep: private-key pickaxe empty; provider-key hits all benign (test fixtures, doc
+  name-references, redacted bearer). No tracked/local .env. Created root .env.example (14 runtime
+  keys from env.* grep) + README pointer. Clean cert, no rotation.
+- Evidence: evidence/T-07-secrets.txt, evidence/T-07-gate.txt (all exits 0).
+- Review: greptile local, 1 P2 (record-not-updated) → fixed by writing the record on this branch
+  pre-push (new pattern: record rides its task branch; PR URL added in a follow-up commit).
+  Also avoided the `.dev.vars.*` gitignore trap by using root .env.example.
+- second look: READMEs never mentioned env setup → added the .dev.vars pointer (stranger angle).
+  Noticed web README says npm while repo uses bun — left for S4 Stranger Test (owns README truth).
+- resume_pointer: P1/T-05

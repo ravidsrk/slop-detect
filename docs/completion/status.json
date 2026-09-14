@@ -529,7 +529,7 @@
       "issue_url": null,
       "severity": "S1",
       "source": ["F-5-hist"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-07"]
     },
     {
@@ -1252,7 +1252,7 @@
       "url": "child-transcript:C1-C16"
     }
   ],
-  "resume_pointer": "P1/T-07",
+  "resume_pointer": "P1/T-05",
   "run_id": "20260914-S1",
   "stage": "S3",
   "tasks": [
@@ -1357,20 +1357,23 @@
       "status": "done"
     },
     {
-      "attempts": 0,
+      "attempts": 1,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p1-secret-scan",
       "commit": null,
       "depends_on": [],
-      "evidence": [],
+      "evidence": [
+        "docs/completion/evidence/T-07-secrets.txt",
+        "docs/completion/evidence/T-07-gate.txt"
+      ],
       "gaps": ["G-20"],
       "id": "T-07",
       "owner": "agent",
       "plan_phase": "P1",
-      "pr": null,
-      "review": null,
+      "pr": "TBD-post-create",
+      "review": "greptile",
       "size": "S",
-      "status": "todo"
+      "status": "done"
     },
     {
       "attempts": 0,
