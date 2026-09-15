@@ -52,6 +52,25 @@ GROUNDING SPOT-CHECKS (each verified by reading code, not memory):
 NEGATIVE CONTROL: deleting `email_retry` from ALERTS.md makes the
 guard fail naming exactly that event; restored clean.
 
+GREPTILE ROUND (3 P1 + 2 P2, all verified against code, all fixed):
+- P1 health field: RB-1 cited `scans.paused`, which does not exist —
+  health.ts returns checks.scans {ok, reason?} + KV probes reading
+  `health:ping`. Table + triage step rewritten to the real shape.
+- P1 latency threshold: settle is 7s cap + 0.4s + fonts 5s
+  (runner-wait.ts), not 6s; bounded total is ~46s, and acquisition +
+  persistence are unbounded. CAPACITY table + RB-2 threshold (~60s)
+  rewritten; arithmetic shown.
+- P1 counter loss: "2d of over-admission" confused key TTL with the
+  bound — a lost daily key forgets usage (up to one extra full cap
+  that day, unreconstructable). RECOVERY row split (60s buckets vs
+  daily key) + RB-4/RB-order references corrected.
+- P2 extractor evasion: guard inverted — EVERY report( call site
+  must now resolve an event or the suite fails with file:line
+  (proven with a SOME_CONST probe site; comment mentions skipped).
+- P2 subrequest math: 13 -> 15 (2 success-path webhooks, not 1, +
+  0-1 turnstile; scan_failed is catch-path-exclusive so never 3 —
+  mechanism corrected in-thread, conclusion accepted).
+
 FOLLOW-UP CANDIDATE (found while grounding, not fixed — docs task):
 Resend POST has retries (T-26) but no request timeout; a hung
 connection holds the caller to the Workers wall clock. Only the

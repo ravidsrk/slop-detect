@@ -21,7 +21,8 @@ in docs (see the env inventory in `wrangler.toml` comments).
 
 | Class | If lost | Recovery |
 |---|---|---|
-| Limiter counters (`rl:*`, both namespaces) | Benign: windows reset, limits briefly permissive | None needed — traffic rebuilds them in ≤60s (daily budget ≤2d of over-admission; acceptable, bounded by `SCAN_DAILY_CAP`) |
+| Per-IP 60s buckets (`rl:<route>:<bucket>`) | Benign: windows reset, limits permissive for ≤60s | None needed — traffic rebuilds them within the minute |
+| Daily budget key (`rl:global:scan:<day>`) | Prior usage FORGOTTEN — traffic restarts the counter from 0, so the affected day can admit up to one extra full cap (e.g. 8k used + key lost → up to ~18k vs the 10k cap). The 2d key TTL is NOT an admission bound | None possible (usage unreconstructable) — note the over-admission day in `ops` and move on |
 | Scan snapshots/history (`r:`, `d:`, `h:`, `og:`, `l:`, `stats:*`, `gs:`, `stats:ops:`) | Broken permalinks/badges, gapped timelines/stats | Restore from backup ([KV_BACKUP.md](KV_BACKUP.md)); re-scans organically refill `h:`/`d:` going forward |
 | Watches + tokens (`w:`, `e:`, `wv:`, `dt:`) | Monitoring silently stops; pending confirmations/logins die | Restore from backup; unwatched users must re-subscribe (no secondary record — this is the highest-value backup content) |
 | API-key records (`key:*`) | All keyed API access invalid | Restore from backup, else re-mint via wrangler (see API.md) and redistribute out-of-band |
@@ -44,4 +45,4 @@ say so in the incident channel (see the 3-liner in
 2. Restore `w:`/`e:` (watches) — the only user data with no secondary
    record.
 3. Restore `r:`/`h:`/`stats:*` (history) — nice-to-have; rescans refill.
-4. Counters need nothing. Sessions need nothing (users re-login).
+4. Counters need nothing (but note a lost daily-budget day in `ops` — usage is forgotten, not rebuilt). Sessions need nothing (users re-login).

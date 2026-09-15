@@ -18,15 +18,22 @@ platform limit. If a number has no source, it's a bug in this doc.
 KV-down daily-cap read also 503s (`:562`) — a KV outage pauses scans
 even with a healthy browser (see RB-4 in [RUNBOOKS.md](RUNBOOKS.md)).
 
-## Per-scan time budget (stages sum to ~40s worst case)
+## Per-scan time budget (bounded stages sum to ~46s)
 
 | Stage | Budget | Source |
 |---|---|---|
 | Navigation (`goto`, `domcontentloaded`) | 25s | `api/scan.ts:135` |
-| Settle (`networkIdleTimeoutMs`) | 6s | `core/src/runner-wait.ts:11` |
+| Settle: network-idle (6s) raced with hard cap | 7s cap wins | `core/src/runner-wait.ts:11-13`, `api/scan.ts:145` |
+| Post-settle delay | 400ms | `core/src/runner-wait.ts:15`, `api/scan.ts:147` |
+| Web-font wait (`document.fonts.ready`) | ≤5s | `core/src/runner-wait.ts:17`, `api/scan.ts:149` |
 | DESIGN.md fetch (SSRF-guarded, 1 retry, shared deadline) | 8s total | `api/scan.ts:282`, `_ssrf.ts` |
 | Browser cold-launch retry | 1 retry, 500ms base + jitter | `_browser.ts`, `_retry.ts` |
 | Resend (watch verification only; sweep/link are background) | 3 attempts, ~250/500ms + jitter, one `Idempotency-Key` | `_email.ts`, `_retry.ts` |
+| Browser acquisition + KV persistence | NO local timeout (unbounded) | — (absence verified: no timeout at the call sites) |
+
+25 + 7 + 0.4 + 5 + 8 ≈ 46s of bounded stages; anything beyond that is
+acquisition or persistence latency (see RB-2 in
+[RUNBOOKS.md](RUNBOOKS.md)).
 
 Known limitation (follow-up candidate, not fixed in T-26): the Resend
 POST has retries but no request timeout — a hung connection holds the
@@ -40,10 +47,14 @@ Fetch is the only subrequest burner here (KV and Browser Rendering
 bindings don't count). Worst case per scan:
 
 - DESIGN.md: ≤6 hops × 2 attempts = 12
-- `ERROR_WEBHOOK` POST: 1
+- `ERROR_WEBHOOK` POSTs: ≤2 (`pattern_errors` + `persist_failed` can
+  co-fire on the success path; `scan_failed` fires only on the catch
+  path, so all three never co-occur in one scan)
+- Turnstile siteverify: 0–1 (one POST when verification runs for the
+  caller; `_middleware.ts:168`)
 - Resend: 0 (never in the scan path)
 
-≈13 worst-case vs the 50 fence — comfortable margin. Retries were
+≈15 worst-case vs the 50 fence — comfortable margin. Retries were
 sized for this (see `_retry.ts` header).
 
 ## KV writes per scan (single-digit)

@@ -9,8 +9,11 @@ good Pages deployment from the dashboard" with no rehearsed script.
 
 ## Where to look first (every incident)
 
-1. `GET /api/health` — 200/503 readiness: browser binding, KV probes,
-   kill switch. Tells you which system is down in one call.
+1. `GET /api/health` — 200/503 readiness: `checks` = `browser`
+   (binding present), `rateLimitKv`/`resultsKv` (binding + one read of
+   the fixed `health:ping` key — readability, not any specific data
+   key), `scans` (`{ok:false, reason:'scanning paused'}` when the kill
+   switch is on). Tells you which system is down in one call.
 2. `GET /api/stats` (120s cache) → `ops` — per-route req/byStatus for
    today + yesterday. Tells you when it started and how wide it is.
 3. `wrangler tail` filtered by event (`scan_failed`, `handler_threw`,
@@ -35,8 +38,8 @@ Distinguish by shape — each cause has a different signature:
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| 503 `scanning_paused`, health `scans.paused=true` | `SCAN_DISABLED` kill switch on | Intended pause? If not, unset it in Pages env |
-| 503 `scanning_paused`, health `scans.paused=false` | KV down: daily-cap read failed (fail-closed, `_middleware.ts`) | RB-4 |
+| 503 `scanning_paused`, health `checks.scans={ok:false}` + `checks.rateLimitKv={ok:true}` | `SCAN_DISABLED` kill switch on | Intended pause? If not, unset it in Pages env |
+| 503 `scanning_paused`, health `checks.rateLimitKv={ok:false}` | KV down: daily-cap read failed (fail-closed, `_middleware.ts`) | RB-4 |
 | 500, no `scan_failed` line | `BROWSER` binding missing | Check Pages Functions bindings |
 | 502 + `scan_failed` lines, every scan | Browser Rendering down or bad deploy | `wrangler tail` the message; if it started at a deploy, roll back (T-27 procedure pending — dashboard redeploy meanwhile) |
 | 429s | Legit overload or abuse | Check `ops.byStatus`; daily cap (`SCAN_DAILY_CAP`, default 10000) resets at UTC midnight; per-IP 6/min |
@@ -50,11 +53,13 @@ succeeds, the browser is fine and the gate is the cause.
 1. `ops` nav-latency buckets (`lt1s…ge15s`) — confirms slowness and when.
 2. `pattern_errors` (warn) with `patternsErrored > 0` — which scan stage
    is erroring; page still returns, fidelity reduced.
-3. Timeouts to compare against: navigation 25s (`domcontentloaded`),
-   settle 6s (`networkIdleTimeoutMs`), DESIGN.md 8s total with 1 retry.
-   A scan slower than ~40s is a target problem, not ours, unless every
-   target is slow — then suspect Browser Rendering session limits
-   (launch errors in `scan_failed` messages after the 1 launch retry).
+3. Timeouts to compare against (bounded stages sum to ~46s — see
+   [CAPACITY.md](CAPACITY.md)): navigation 25s, settle 7s cap + 0.4s +
+   fonts ≤5s, DESIGN.md 8s. Browser acquisition and KV persistence
+   have NO local timeout, so a scan slower than ~60s for a
+   normally-fast target points at Browser Rendering or KV latency,
+   not the target — confirm via `scan_failed` messages (launch
+   errors after the 1 launch retry) and `persist_failed` lines.
 4. Fix-forward; no kill switch needed. If Browser Rendering is the
    cause, there is no failover — page the provider status, post the
    3-liner, wait.
@@ -86,8 +91,10 @@ succeeds, the browser is fine and the gate is the cause.
    share/monitoring writes fail (`persist_failed`, warn — scans still
    return); watch verify/dashboard links fail closed (no mail sent).
 3. If data was LOST (not just unreachable): [RECOVERY.md](RECOVERY.md)
-   + [KV_BACKUP.md](KV_BACKUP.md). Counters rebuild from traffic;
-   `key:*` API records are operator-minted and must be restored.
+   + [KV_BACKUP.md](KV_BACKUP.md). Per-IP counters rebuild from
+   traffic; a lost daily-budget key forgets usage (up to one extra
+   full cap that day); `key:*` API records are operator-minted and
+   must be restored.
 4. Honesty note: no verified backup exists yet (T-08 pending H-01) —
    until the first backup + verify run, "restore" is aspirational.
 
