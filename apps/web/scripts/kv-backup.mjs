@@ -153,8 +153,12 @@ export async function backupNamespace(kv, { binding, id }, outDir) {
     missing: entries.length - present.length,
     entries: present,
   };
-  mkdirSync(outDir, { recursive: true });
-  writeFileSync(join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
+  // Backups embed production KV values (watch records hold plaintext emails):
+  // owner-only modes, so other local users on a shared host can't read them.
+  mkdirSync(outDir, { recursive: true, mode: 0o700 });
+  writeFileSync(join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n', {
+    mode: 0o600,
+  });
   return manifest;
 }
 
@@ -164,12 +168,18 @@ export function validateManifest(manifest, target) {
   if (!manifest || !Array.isArray(manifest.entries))
     throw new Error('manifest has no entries array');
   if (target) {
-    if (manifest.binding && manifest.binding !== target.binding) {
+    // Identity fields are required, not optional: a manifest that omits them
+    // must not silently pass the cross-namespace check.
+    for (const f of ['binding', 'namespaceId']) {
+      if (typeof manifest[f] !== 'string' || !manifest[f])
+        throw new Error(`manifest missing required field ${f} — refusing restore`);
+    }
+    if (manifest.binding !== target.binding) {
       throw new Error(
         `manifest is for ${manifest.binding}, target is ${target.binding} — refusing cross-namespace restore`
       );
     }
-    if (manifest.namespaceId && manifest.namespaceId !== target.id) {
+    if (manifest.namespaceId !== target.id) {
       throw new Error(
         'manifest namespaceId does not match target — refusing cross-namespace restore'
       );
@@ -178,6 +188,14 @@ export function validateManifest(manifest, target) {
   return manifest.entries.map((e, i) => {
     if (typeof e?.name !== 'string' || !e.name) throw new Error(`entry ${i}: bad name`);
     if (typeof e?.base64 !== 'string') throw new Error(`entry ${i} (${e.name}): bad base64`);
+    // Non-numeric expiration would become NaN, dodge the skip check, and
+    // restore the key permanently — reject it before writing anything.
+    if (
+      e.expiration !== undefined &&
+      e.expiration !== null &&
+      (typeof e.expiration !== 'number' || !Number.isFinite(e.expiration))
+    )
+      throw new Error(`entry ${i} (${e.name}): bad expiration — refusing to write`);
     let raw;
     try {
       raw = Buffer.from(e.base64, 'base64');
@@ -236,7 +254,9 @@ function usage(exit = 2) {
     'usage: kv-backup.mjs backup [--out DIR] [--namespace binding|id]\n' +
       '       kv-backup.mjs restore --in DIR [--namespace binding|id] [--apply]\n' +
       '       kv-backup.mjs verify --in DIR [--namespace binding|id]\n' +
-      'env: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID'
+      'env: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID\n' +
+      'note: manifests embed production KV values (watch emails); files are\n' +
+      '      written 0600/0700 — keep backups on trusted storage only'
   );
   process.exit(exit);
 }

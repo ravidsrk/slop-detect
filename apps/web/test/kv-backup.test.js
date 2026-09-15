@@ -3,7 +3,7 @@
 // backend's pagination over mocked fetch, and wrangler.toml namespace parsing.
 
 import { test, expect } from 'vitest';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -52,7 +52,10 @@ function capturing(base) {
 }
 
 test('backup -> restore -> verify round-trips text and binary values', async () => {
-  const src = memoryKv({ 'r:a': 'hello', 'og:b': Buffer.from([0, 1, 2, 250]).toString('binary') });
+  // Seed raw bytes, not a lossy string coercion: byte 250 differs between
+  // latin-1 and UTF-8, so only a Buffer seed proves the bytes survive.
+  const BYTES = Buffer.from([0, 1, 2, 250]);
+  const src = memoryKv({ 'r:a': 'hello', 'og:b': BYTES });
   const dir = scratch();
   const manifest = await backupNamespace(src, REF, dir);
   expect(manifest.keys).toBe(2);
@@ -65,6 +68,43 @@ test('backup -> restore -> verify round-trips text and binary values', async () 
   const v = await verifyNamespace(dst, manifest);
   expect(v.mismatched).toEqual([]);
   expect(v.checked).toBe(2);
+  const restored = dst.store.get('og:b');
+  expect(Buffer.isBuffer(restored)).toBe(true);
+  expect(restored.equals(BYTES)).toBe(true);
+});
+
+test('backup writes owner-only modes (manifest embeds production values)', async () => {
+  const src = memoryKv({ 'w:x': '{"email":"a@b.c"}' });
+  const dir = scratch();
+  await backupNamespace(src, REF, join(dir, 'RESULTS'));
+  expect(statSync(join(dir, 'RESULTS')).mode & 0o777).toBe(0o700);
+  expect(statSync(join(dir, 'RESULTS', 'manifest.json')).mode & 0o777).toBe(0o600);
+});
+
+test('restore refuses manifests with missing identity fields', async () => {
+  const dst = memoryKv();
+  const noBinding = manifestOf([entry('a', 'hello')]);
+  delete noBinding.binding;
+  await expect(restoreNamespace(dst, noBinding, { apply: true, target: REF })).rejects.toThrow(
+    'missing required field binding'
+  );
+  const noNs = manifestOf([entry('a', 'hello')]);
+  delete noNs.namespaceId;
+  await expect(restoreNamespace(dst, noNs, { apply: true, target: REF })).rejects.toThrow(
+    'missing required field namespaceId'
+  );
+  expect(dst.store.size).toBe(0);
+});
+
+test('restore refuses non-numeric expiration (no silent permanent restore)', async () => {
+  const bad = entry('a', 'hello');
+  bad.expiration = '2030-01-01';
+  const manifest = manifestOf([bad]);
+  const dst = memoryKv();
+  await expect(restoreNamespace(dst, manifest, { apply: true, target: REF })).rejects.toThrow(
+    'bad expiration'
+  );
+  expect(dst.store.size).toBe(0);
 });
 
 test('restore is dry-run unless --apply: plans without writing', async () => {
