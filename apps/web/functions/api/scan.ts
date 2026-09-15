@@ -77,7 +77,17 @@ export async function onRequestPost({ request, env, waitUntil }) {
     }
   };
   if (!env.BROWSER) {
-    deferOps({ status: 500 });
+    // Honor share:false here too: this branch runs before the body parse, so
+    // check the flag inline (safe to consume: we return immediately after).
+    // Matters: fix-prompt{url} mode reuses this handler with share:false.
+    let shareFalse = false;
+    try {
+      const peek = await request.json();
+      shareFalse = peek && peek.share === false;
+    } catch {
+      shareFalse = false;
+    }
+    if (!shareFalse) deferOps({ status: 500 });
     return json({ error: 'BROWSER binding missing — check wrangler.toml', requestId }, 500);
   }
 

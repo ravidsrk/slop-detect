@@ -444,6 +444,33 @@ test('a successful scan bumps status + tier + navMs in one write (single-writer)
   expect(Object.values(blob.routes.scan.navMs).reduce((a, b) => a + b, 0)).toBe(1);
 });
 
+test('BROWSER-missing 500 bumps status, but not for share:false', async () => {
+  const store = new Map();
+  const kv = {
+    get: async (k) => (store.has(k) ? store.get(k) : null),
+    put: async (k, v) => {
+      store.set(k, v);
+    },
+  };
+  const pending = [];
+  const res = await onRequestPost({
+    request: postReq({ url: 'https://acme.example.com' }),
+    env: { RESULTS: kv },
+    waitUntil: (p) => pending.push(p),
+  });
+  expect(res.status).toBe(500);
+  const res2 = await onRequestPost({
+    request: postReq({ url: 'https://acme.example.com', share: false }),
+    env: { RESULTS: kv },
+    waitUntil: (p) => pending.push(p),
+  });
+  expect(res2.status).toBe(500);
+  await Promise.all(pending);
+  const blob = JSON.parse(store.get(`stats:ops:${new Date().toISOString().slice(0, 10)}`));
+  expect(blob.routes.scan.req).toBe(1);
+  expect(blob.routes.scan.byStatus).toEqual({ 500: 1 });
+});
+
 test('early scan errors bump status (single-writer covers every return path)', async () => {
   const store = new Map();
   const kv = {
