@@ -1777,7 +1777,7 @@
       "branch": "ravidsrk/p4-alert-proof",
       "commit": null,
       "depends_on": ["T-22"],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-25-alert.txt"],
       "gaps": ["G-06"],
       "id": "T-25",
       "owner": "agent",
