@@ -1,5 +1,7 @@
 === T-12 image version exposure (verify-first) ===
---- emission sweep: version identifiers in badge/og handlers + renderers ---
+--- emission sweep: version identifiers in badge/og handlers + badge renderer ---
+--- (_card.tsx excluded from this grep; its intentional defs label is recorded
+---  as the sole known emission in the next section) ---
 (no matches)
 --- sole emission: OG card defs label (_card.tsx:107) ---
 47:  /* masthead: the logo lockup + a mono defs stamp */
