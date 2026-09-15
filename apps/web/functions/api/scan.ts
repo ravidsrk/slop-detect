@@ -29,6 +29,7 @@ import {
   isAllowedUrl,
   fetchAllowedUrl,
   recordScanForWatch,
+  bumpOpsStats,
 } from '../_shared.js';
 import { report } from '../_report.js';
 import { requestIdFor } from '../_request-id.js';
@@ -58,6 +59,19 @@ export async function onRequestPost({ request, env, waitUntil }) {
   // requestIdFor re-derives deterministically when the middleware is absent
   // (tests, other runtimes) — cf-ray, echoed x-request-id, else fresh UUID.
   const requestId = request.headers?.get?.('x-request-id') || requestIdFor(request);
+  // Ops detail (G-05): tier/navMs/blocked only — NO status, so the middleware's
+  // uniform req/byStatus bump and this one never double-count a scan.
+  // share:false skips even anonymous bumps (privacy promise: no KV writes).
+  const deferOps = (patch) => {
+    if (body.share === false) return;
+    try {
+      const p = bumpOpsStats(env.RESULTS, 'scan', patch);
+      if (typeof waitUntil === 'function') waitUntil(p);
+      else void Promise.resolve(p).catch(() => {});
+    } catch {
+      /* metrics must never break the request */
+    }
+  };
   if (!env.BROWSER) {
     return json({ error: 'BROWSER binding missing — check wrangler.toml', requestId }, 500);
   }
@@ -154,6 +168,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
     // don't silently return a fake "Clean 0".
     const blocked = detectBlocked(data, { url, finalUrl: finalNavUrl });
     if (blocked) {
+      deferOps({ blocked: blocked.code });
       return json(
         {
           error: blocked.reason,
@@ -276,12 +291,19 @@ export async function onRequestPost({ request, env, waitUntil }) {
           env,
           'warn',
           'persist_failed',
-          { url, navMs, patternsErrored, message: e && e.message ? e.message : String(e) },
+          {
+            url,
+            navMs,
+            patternsErrored,
+            message: e && e.message ? e.message : String(e),
+            requestId,
+          },
           waitUntil
         );
       }
     }
 
+    deferOps({ tier: result.tier, navMs });
     return json(result);
   } catch (err) {
     // Surface scan failures instead of swallowing them (no PII: url only).

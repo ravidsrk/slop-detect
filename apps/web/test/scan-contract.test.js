@@ -414,6 +414,35 @@ test('502 bodies carry the forwarded x-request-id', async () => {
   expect(r.requestId).toBe('trace-502');
 });
 
+test('a successful scan bumps tier + navMs detail (no status: no double-count)', async () => {
+  const store = new Map();
+  const opsKv = {
+    get: async (k) => (store.has(k) ? store.get(k) : null),
+    put: async (k, v) => {
+      store.set(k, v);
+    },
+    delete: async (k) => {
+      store.delete(k);
+    },
+    list: async () => ({ keys: [] }),
+  };
+  const pending = [];
+  const res = await onRequestPost({
+    request: postReq({ url: 'https://acme.example.com' }),
+    env: { BROWSER: {}, RESULTS: opsKv },
+    waitUntil: (p) => pending.push(p),
+  });
+  expect(res.status).toBe(200);
+  const r = await res.json();
+  await Promise.all(pending);
+  const key = `stats:ops:${new Date().toISOString().slice(0, 10)}`;
+  const blob = JSON.parse(store.get(key));
+  // req stays 0 here: the middleware owns req/byStatus; scan.ts adds detail.
+  expect(blob.routes.scan.req).toBe(0);
+  expect(blob.routes.scan.tiers[r.tier]).toBe(1);
+  expect(Object.values(blob.routes.scan.navMs).reduce((a, b) => a + b, 0)).toBe(1);
+});
+
 test('the 502 report log line carries the requestId', async () => {
   mock.gotoError = new Error('boom');
   const spy = vi.spyOn(console, 'error').mockImplementation(() => {});

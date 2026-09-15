@@ -21,6 +21,7 @@
 
 import { requestIdFor, forwardWithId } from '../_request-id.js';
 import { report } from '../_report.js';
+import { bumpOpsStats } from '../_shared.js';
 
 const ALLOWED_ORIGINS = new Set([
   'https://slop-detect.com',
@@ -67,9 +68,23 @@ function jsonResponse(data, status, origin, requestId) {
   return new Response(JSON.stringify(data), { status, headers });
 }
 
+// Fire-and-forget ops-metric bump (G-05): via waitUntil when available so the
+// KV write never sits on the latency path, detached otherwise (tests). The
+// bump itself never throws; this wrapper is belt-and-braces.
+function deferOpsBump(env, waitUntil, routeLabel, patch) {
+  try {
+    const p = bumpOpsStats(env ? env.RESULTS : null, routeLabel, patch);
+    if (typeof waitUntil === 'function') waitUntil(p);
+    else void Promise.resolve(p).catch(() => {});
+  } catch {
+    /* metrics must never break the request */
+  }
+}
+
 // Convert a thrown handler into a traced JSON 500 (never leak the stack to
 // the caller — it goes to the log line, keyed by the same request ID).
-function tracedFailure(env, requestId, origin, url, err, waitUntil) {
+function tracedFailure(env, requestId, origin, url, routeLabel, err, waitUntil) {
+  deferOpsBump(env, waitUntil, routeLabel, { status: 500 });
   report(
     env,
     'error',
@@ -275,7 +290,30 @@ export async function onRequest(context) {
   // One ID per request (G-04): stamped on every response below and forwarded
   // to the handler so logs, error bodies, and responses all agree.
   const requestId = requestIdFor(request);
+  // First path segment under /api/ (scan, aeo, health, ...) — the per-route
+  // label for ops metrics (G-05). Rejections bump through `reject` below.
+  const routeLabel = url.pathname.replace(/^\/api\//, '').split('/')[0] || 'root';
+  // Peek POST bodies BEFORE forwardWithId: constructing the forwarded clone
+  // disturbs the original's body stream (undici marks it used), which would
+  // break any later request.clone() peek. One peek serves both consumers
+  // below (fix-prompt gating, scan share:false opt-out).
+  let peeked = null;
+  if ((routeLabel === 'scan' || routeLabel === 'fix-prompt') && request.method === 'POST') {
+    try {
+      peeked = await request.clone().json();
+    } catch {
+      peeked = null; // unparseable (or test double) — the handler 400s; count that
+    }
+  }
   const fwdRequest = forwardWithId(request, requestId);
+  // share:false opts the scan out of ALL RESULTS writes — including anonymous
+  // ops bumps (the privacy promise is "no KV writes"). Set by the body peek
+  // below; read at call time by reject() and the pass-through bump.
+  let opsOptOut = false;
+  const reject = (data, status) => {
+    if (!opsOptOut) deferOpsBump(env, context.waitUntil, routeLabel, { status });
+    return jsonResponse(data, status, origin, requestId);
+  };
 
   // CORS preflight passes through with the right headers.
   if (request.method === 'OPTIONS') {
@@ -289,8 +327,9 @@ export async function onRequest(context) {
     try {
       res = await next(fwdRequest);
     } catch (err) {
-      return tracedFailure(env, requestId, origin, url, err, context.waitUntil);
+      return tracedFailure(env, requestId, origin, url, routeLabel, err, context.waitUntil);
     }
+    deferOpsBump(env, context.waitUntil, routeLabel, { status: res.status });
     const merged = new Response(res.body, res);
     merged.headers.set('X-Request-Id', requestId);
     return merged;
@@ -322,14 +361,8 @@ export async function onRequest(context) {
   // browser, fully bypassing the scan gate. So when fix-prompt carries a `url`,
   // we gate it AS a scan: same limit, same shared rate bucket, same Turnstile.
   let effectiveRoute = route;
-  if (route === 'fix-prompt') {
-    try {
-      const peek = await request.clone().json();
-      if (peek && peek.url && !peek.result) effectiveRoute = 'scan';
-    } catch (_) {
-      // Unparseable body — let the handler return its own 400. Gate as fix-prompt.
-    }
-  }
+  if (route === 'fix-prompt' && peeked && peeked.url && !peeked.result) effectiveRoute = 'scan';
+  if (route === 'scan' && peeked && peeked.share === false) opsOptOut = true;
   // /api/aeo fires several outbound fetches per call against a user-supplied URL
   // (HTML, GPTBot UA, robots.txt, .md twin, llms.txt). It's cheaper than a
   // headless scan but just as abuse-prone (SSRF-adjacent, fan-out). Gate it AS a
@@ -350,25 +383,21 @@ export async function onRequest(context) {
   if (apiKey && env.RATE_LIMIT) {
     const resolved = await resolveApiKey(env.RATE_LIMIT, apiKey, keyCache);
     if (!resolved.found) {
-      return jsonResponse(
+      return reject(
         {
           error: 'invalid_api_key',
           message: 'The API key provided was not recognised.',
         },
-        401,
-        origin,
-        requestId
+        401
       );
     }
     if (resolved.record.disabled) {
-      return jsonResponse(
+      return reject(
         {
           error: 'key_disabled',
           message: 'This API key has been disabled. Contact the operator.',
         },
-        403,
-        origin,
-        requestId
+        403
       );
     }
     keyTier = effectiveTier(resolved.record);
@@ -380,15 +409,13 @@ export async function onRequest(context) {
   // explicit authorization to call us from anywhere (e.g. a partner dashboard).
   // No-origin callers (curl/CLI, Origin absent) are NOT foreign and pass through.
   if (foreignOrigin && !keyTier) {
-    return jsonResponse(
+    return reject(
       {
         error: 'origin_not_allowed',
         message:
           'This API is not callable from third-party origins. Use the CLI, the MCP server, or an API key.',
       },
-      403,
-      origin,
-      requestId
+      403
     );
   }
 
@@ -437,7 +464,7 @@ export async function onRequest(context) {
     if (!gate.ok) {
       const scope = keyTier ? 'for your API key' : 'per IP';
       const effLimit = gate.limit || limit;
-      return jsonResponse(
+      return reject(
         {
           error: 'rate_limited',
           message: `Too many requests. Limit is ${effLimit}/min ${scope} for /api/${effectiveRoute} (tier: ${tierLabel}).`,
@@ -446,9 +473,7 @@ export async function onRequest(context) {
           degraded: !!gate.degraded,
           retryAfter: 60,
         },
-        429,
-        origin,
-        requestId
+        429
       );
     }
   }
@@ -470,15 +495,13 @@ export async function onRequest(context) {
     const token = request.headers.get('X-Turnstile-Token');
     const verdict = await verifyTurnstile(token, env.TURNSTILE_SECRET, ip);
     if (!verdict.ok) {
-      return jsonResponse(
+      return reject(
         {
           error: 'turnstile_required',
           message: 'Captcha verification failed. Reload the page and try again.',
           reason: verdict.reason,
         },
-        403,
-        origin,
-        requestId
+        403
       );
     }
   }
@@ -492,15 +515,13 @@ export async function onRequest(context) {
   // Durable Object (future OPS).
   if (effectiveRoute === 'scan' && tierLabel !== 'unlimited') {
     if (env.SCAN_DISABLED === '1' || env.SCAN_DISABLED === 'true') {
-      return jsonResponse(
+      return reject(
         {
           error: 'scanning_paused',
           message:
             'Scanning is temporarily paused for maintenance. Try again shortly or self-host.',
         },
-        503,
-        origin,
-        requestId
+        503
       );
     }
     const cap = parseInt(env.SCAN_DAILY_CAP || '10000', 10);
@@ -516,28 +537,24 @@ export async function onRequest(context) {
         /* handled below */
       }
       if (!kvReadOk) {
-        return jsonResponse(
+        return reject(
           {
             error: 'scanning_paused',
             message:
               'Scanning is temporarily unavailable while capacity limits are checked. Try again shortly or self-host.',
           },
-          503,
-          origin,
-          requestId
+          503
         );
       }
       if (used >= cap) {
-        return jsonResponse(
+        return reject(
           {
             error: 'daily_capacity_reached',
             message:
               'Free scan capacity for today is used up — this protects the project from runaway costs. Try again tomorrow, use an API key, or self-host (it is MIT).',
             retryAfter: 3600,
           },
-          503,
-          origin,
-          requestId
+          503
         );
       }
       // Per-isolate ceiling on the happy path (key includes the day; 24h window).
@@ -546,16 +563,14 @@ export async function onRequest(context) {
       const costUnits = dailyCostUnits(route);
       const memUsed = memIncrement(gkey, 86400000, costUnits);
       if (memUsed > cap) {
-        return jsonResponse(
+        return reject(
           {
             error: 'daily_capacity_reached',
             message:
               'Free scan capacity for today is used up — this protects the project from runaway costs. Try again tomorrow, use an API key, or self-host (it is MIT).',
             retryAfter: 3600,
           },
-          503,
-          origin,
-          requestId
+          503
         );
       }
       try {
@@ -572,8 +587,9 @@ export async function onRequest(context) {
   try {
     res = await next(fwdRequest);
   } catch (err) {
-    return tracedFailure(env, requestId, origin, url, err, context.waitUntil);
+    return tracedFailure(env, requestId, origin, url, routeLabel, err, context.waitUntil);
   }
+  if (!opsOptOut) deferOpsBump(env, context.waitUntil, routeLabel, { status: res.status });
   // Attach CORS headers + rate-limit metadata to whatever the handler returns.
   const merged = new Response(res.body, res);
   for (const [k, v] of Object.entries(corsHeaders(origin))) {

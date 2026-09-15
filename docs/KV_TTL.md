@@ -17,6 +17,7 @@ this table is a bug — add the key here when you add a `kv.put`.
 | `e:<hash>` | 1y (`WATCH_TTL`) | Email→domains index; shadows watch TTL so it cannot outlive entries (T-10) |
 | `gs:<domain>` | 1y (`STATS_CONTRIB_TTL`) | Stats dedup marker; 1y bounds growth while keeping re-contribution negligible (T-10) |
 | `stats:dist`, `stats:catclean` | durable (no TTL, by design) | Two fixed bounded keys (101-bucket histogram; per-category sums) |
+| `stats:ops:<day>` | 30d (`OPS_TTL`) | Daily ops blob: per-route req/status, scan tiers, nav-latency buckets; read by /api/stats `ops` (T-24) |
 | `l:<domain>` | 1y (`LISTING_TTL`) | Public directory listings |
 | `og:<id>` | 30d (`OG_TTL`) | Rendered OG images |
 | `rl:dashlink:<hash>` | 1h (`DASHLINK_WINDOW_SEC`) | Magic-link send cap (3/hour/email) |

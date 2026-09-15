@@ -39,3 +39,26 @@ test('GET /api/stats is safe with no storage configured', async () => {
   const j = await res.json();
   expect(j.count).toBe(0);
 });
+
+test('GET /api/stats includes the ops flow dashboard (today + yesterday)', async () => {
+  const { bumpOpsStats, opsDateKey } = await import('../functions/_shared.ts');
+  const kv = makeKv();
+  const today = new Date();
+  const yesterday = new Date(today.getTime() - 86400000);
+  await bumpOpsStats(kv, 'scan', { status: 200 }, opsDateKey(today));
+  await bumpOpsStats(kv, 'health', { status: 200 }, opsDateKey(yesterday));
+  const res = await onRequestGet({ env: { RESULTS: kv } });
+  expect(res.status).toBe(200);
+  const j = await res.json();
+  expect(j.ops.today.routes.scan.req).toBe(1);
+  expect(j.ops.yesterday.routes.health.req).toBe(1);
+});
+
+test('GET /api/stats ops is null-blessed with no storage or no blobs', async () => {
+  const res = await onRequestGet({ env: {} });
+  const j = await res.json();
+  expect(j.ops).toEqual({ today: null, yesterday: null });
+  const res2 = await onRequestGet({ env: { RESULTS: makeKv() } });
+  const j2 = await res2.json();
+  expect(j2.ops).toEqual({ today: null, yesterday: null });
+});

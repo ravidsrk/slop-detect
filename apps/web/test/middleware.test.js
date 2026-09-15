@@ -433,3 +433,84 @@ test('a throwing GET handler becomes a traced JSON 500', async () => {
   expect(j.requestId).toBe(res.headers.get('X-Request-Id'));
   expect(j.requestId).toBeTruthy();
 });
+
+// ── Ops metrics bumps (G-05 / T-24) ──────────────────────────────────────────
+// The middleware bumps per-route req/byStatus fire-and-forget (no waitUntil in
+// these doubles, so the write lands detached — flush before asserting).
+
+function makeOpsKv() {
+  const store = new Map();
+  return {
+    store,
+    get: async (k) => (store.has(k) ? store.get(k) : null),
+    put: async (k, v) => {
+      store.set(k, v);
+    },
+  };
+}
+
+const flush = () => new Promise((r) => setTimeout(r, 25));
+
+function todayOpsKey() {
+  return `stats:ops:${new Date().toISOString().slice(0, 10)}`;
+}
+
+test('pass-through POST bumps the route req/byStatus blob', async () => {
+  const opsKv = makeOpsKv();
+  const req = makeRequest({
+    headers: { Origin: ALLOWED, 'CF-Connecting-IP': '203.0.113.216' },
+    body: { url: 'https://x.com' },
+  });
+  const res = await onRequest(makeContext(req, { RESULTS: opsKv }));
+  expect(res.status).toBe(200);
+  await flush();
+  const blob = JSON.parse(opsKv.store.get(todayOpsKey()));
+  expect(blob.routes.scan.req).toBe(1);
+  expect(blob.routes.scan.byStatus).toEqual({ 200: 1 });
+});
+
+test('rejections bump byStatus (403 foreign origin)', async () => {
+  const opsKv = makeOpsKv();
+  const req = makeRequest({
+    headers: { Origin: 'https://evil.example.com', 'CF-Connecting-IP': '203.0.113.217' },
+    body: { url: 'https://x.com' },
+  });
+  const res = await onRequest(makeContext(req, { RESULTS: opsKv }));
+  expect(res.status).toBe(403);
+  await flush();
+  const blob = JSON.parse(opsKv.store.get(todayOpsKey()));
+  expect(blob.routes.scan.req).toBe(1);
+  expect(blob.routes.scan.byStatus).toEqual({ 403: 1 });
+});
+
+test('missing RESULTS binding skips the bump without breaking the request', async () => {
+  const req = makeRequest({
+    headers: { Origin: ALLOWED, 'CF-Connecting-IP': '203.0.113.218' },
+    body: { url: 'https://x.com' },
+  });
+  const res = await onRequest(makeContext(req, {}));
+  expect(res.status).toBe(200);
+  await flush();
+});
+
+test('share:false skips even anonymous ops bumps (privacy promise)', async () => {
+  const opsKv = makeOpsKv();
+  const req = new Request('https://slop-detect.com/api/scan', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Origin: ALLOWED,
+      'CF-Connecting-IP': '203.0.113.219',
+    },
+    body: JSON.stringify({ url: 'https://x.com', share: false }),
+  });
+  const ctx = {
+    request: req,
+    env: { RESULTS: opsKv },
+    next: async () => new Response(JSON.stringify({ ok: true }), { status: 200 }),
+  };
+  const res = await onRequest(ctx);
+  expect(res.status).toBe(200);
+  await flush();
+  expect(opsKv.store.size).toBe(0);
+});
