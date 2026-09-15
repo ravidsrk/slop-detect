@@ -340,3 +340,13 @@
   CI smoke ran the file (42 passed incl. 29 new). Zero threads.
 - Evidence: evidence/T-18c-goldens.txt.
 - resume_pointer: P3/T-19a
+
+## 2026-09-15 S3/P3 T-19c calibration harness (G-47/gh-99 agent part) — DONE
+- branch ravidsrk/p3-cal-harness → PR #148 → merged 9a5e745, no squash.
+- Harness ran zero scans (phantom tsx dep); now bun-native. Seed
+  re-run: 5/13 (38.5%), recorded in CALIBRATION.md with June-vs-Sept
+  deltas; no thresholds touched. corpus.json unchanged.
+- Greptile P2 (matrix omitted null outcome) fixed in-thread.
+  Human 50-100 labels + second rater stay on H-05 (gates launch).
+- Evidence: evidence/T-19c-harness.txt.
+- resume_pointer: P3/T-19a (leaderboard build running)
