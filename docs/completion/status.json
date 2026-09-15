@@ -657,6 +657,7 @@
       "decision": "FINISH",
       "id": "G-27",
       "issue_url": null,
+      "residual": "true cross-isolate atomicity accepted, tracked by OPEN #109 (T-11 bounded the same-isolate case + tests; see KV_LIMITS.md)",
       "severity": "S2",
       "source": ["gh-109", "F-R-11"],
       "status": "closed",
