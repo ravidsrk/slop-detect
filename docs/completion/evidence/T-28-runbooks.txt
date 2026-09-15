@@ -1,0 +1,67 @@
+T-28 — runbooks top-5 + capacity + incident 3-liner + inventory/recovery (G-09 + G-33)
+Branch: ravidsrk/p4-runbooks
+
+CLAIM: an on-call engineer with no prior context can find the symptom,
+the budgets, and the recovery path from docs alone — and every number
+in those docs traces to code.
+
+CHANGE (docs + 1 guard test; zero prod-code changes):
+- docs/RUNBOOKS.md (new): top-5 incident runbooks (RB-1 all-scans-5xx
+  with per-shape cause table incl. the unlimited-tier sweep tell; RB-2
+  degraded; RB-3 silent alerts; RB-4 storage-down with fail-closed/open
+  blast radius; RB-5 watch/cron), "where to look first" triad (health,
+  stats ops, tail), incident 3-liner, severity rule. Rollback honestly
+  marked pending (T-27 owns the procedure + rehearsal).
+- docs/CAPACITY.md (new): every budget with file:line source — rate
+  limits, daily cap, kill switch, unlimited-tier bypass (incl. daily
+  cap + kill switch, _middleware.ts:540), per-scan time stages,
+  subrequest worst-case math (~13 vs the 50 platform fence), KV
+  writes, caches, scheduled load table. Asserts NO platform figures
+  it doesn't know (browser/KV ceilings described, not numbered).
+- docs/RECOVERY.md (new): store inventory (bindings + namespace IDs
+  from wrangler.toml), loss-impact + recovery per class, rotation
+  effects (SESSION_SECRET, CRON_SECRET both-sides), recovery order.
+  States plainly that NO verified backup exists yet (T-08/H-01), so
+  "restore" is a plan, not a capability.
+- apps/web/test/docs-alignment.test.js (+3): drift guard — every
+  report() event in code must be backticked in ALERTS.md (extractor
+  pinned against 10 known events so it can't pass vacuously); every
+  /api/* path in RUNBOOKS.md must map to a route file; every .md link
+  in the 4 ops docs must resolve. (Motivation: PR #160's stale
+  T-24 count — docs rot like code.)
+
+GROUNDING SPOT-CHECKS (each verified by reading code, not memory):
+- SCAN 6/min, FIXPROMPT 20/min, ceiling 3, AEO 3u, daily 10k:
+  _middleware.ts:36-37,190,215,551. Unlimited skips gate+cap+switch:
+  :46-47,467,540. KV-down cap-read 503: :562.
+- Nav 25s scan.ts:135; idle 6s runner-wait.ts:11; DESIGN.md 8s
+  scan.ts:282; stats cache 120s stats.ts:19; sessions 30d
+  _session.ts:14; sweep max 50/clamp 200 sweep.ts:56; CRON_SECRET
+  503/401 sweep.ts:37-43; repo secret must match Pages env
+  (monitor-sweep.yml header comment + step).
+- Schedules: health-ping 30min, canary daily 06:00 UTC (1 CLI scan
+  of news.ycombinator.com, non-gating), sweep daily 08:17 UTC,
+  leaderboard monthly 1st 06:00 (build.mjs), calibrate monthly 1st
+  07:00 — all from .github/workflows/*.yml.
+- KV key map + TTLs: KV_TTL.md (linked, not duplicated); backup
+  tool: KV_BACKUP.md (linked); counters: KV_LIMITS.md (linked).
+- A "typical ~8s scan" claim was drafted and REMOVED: traceable only
+  to a prior evidence note, not to code — the doc promises
+  code-or-platform sourcing, so it stays out.
+
+NEGATIVE CONTROL: deleting `email_retry` from ALERTS.md makes the
+guard fail naming exactly that event; restored clean.
+
+FOLLOW-UP CANDIDATE (found while grounding, not fixed — docs task):
+Resend POST has retries (T-26) but no request timeout; a hung
+connection holds the caller to the Workers wall clock. Only the
+in-request watch-verification send cares. Needs tests + its own PR.
+
+=== FORMAT ===
+FORMAT_EXIT=0
+=== TYPECHECK ===
+TYPECHECK_EXIT=0
+=== TEST ===
+BUN_TEST_EXIT=0
+slop-detect-web:test:       Tests  433 passed (433)
+(430 base + 3 new, exact.)
