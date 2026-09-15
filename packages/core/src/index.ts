@@ -41,6 +41,7 @@ export {
 } from './system.js';
 export {
   buildPageScript,
+  esbuildNamePolyfills,
   detectBlocked,
   type PageScriptData,
   type BlockedResult,
