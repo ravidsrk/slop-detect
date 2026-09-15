@@ -58,7 +58,7 @@ that violate these terms, without notice.
   - the per-domain score history behind `/score/<domain>`: up to 1 year,
     refreshed on each new scan of the domain;
   - aggregate statistics (score distribution, category averages — no URLs,
-    no emails): retained indefinitely.
+    no emails; one contribution per domain per year): retained indefinitely.
   All three may appear on public pages (result permalink, per-domain score
   pages, leaderboard).
 - Pass `share: false` on a scan request to skip all storage entirely — no

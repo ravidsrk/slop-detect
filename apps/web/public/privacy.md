@@ -15,7 +15,7 @@ and how to remove it.
 | **Dashboard sign-in session** (`sd_session` cookie) | Only after you click an emailed sign-in link | To keep you signed in to the agency dashboard. It is a single HttpOnly, Secure, SameSite=Lax cookie holding a signed token, not an advertising/tracking ID. | 30 days, or until you sign out |
 | **Sign-in / confirmation link tokens** | When you request a dashboard link or start monitoring | Single-use tokens that verify the emailed link | 15 minutes (sign-in) / 7 days (monitoring confirmation) |
 | **Per-IP and per-email rate-limit counters** | Every API request / email send | Abuse, cost, and inbox-spam protection | 60 seconds to 1 hour |
-| **Anonymous aggregate statistics** (score distribution, category averages) | Every stored scan | Leaderboard and percentiles | Indefinite; contains no URLs or emails |
+| **Anonymous aggregate statistics** (score distribution, category averages) | First stored scan per domain per year | Leaderboard and percentiles; each domain contributes once (re-scans within the year add history only) | Indefinite; contains no URLs or emails |
 
 We do **not** store full page content, screenshots (unless you explicitly request
 one in a scan, and even then it is not persisted to the directory), advertising or

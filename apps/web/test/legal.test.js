@@ -140,6 +140,10 @@ test('privacy policy: retention table matches the TTL constants', () => {
   expect(privacy).toMatch(/90 days/);
   expect(privacy).toMatch(/score-history point lives up to 1 year/);
   expect(privacy).toMatch(/Anonymous aggregate statistics/);
+  // recordScan dedupes via claimStatsContribution (STATS_CONTRIB_TTL = 1y):
+  // aggregates count each domain once per year, not once per scan.
+  expect(privacy).toMatch(/First stored scan per domain per year/);
+  expect(terms).toMatch(/one contribution per domain per year/);
   expect(privacy).toMatch(/up to 1 year/);
   expect(privacy).toMatch(/7 days/);
   expect(privacy).toMatch(/15 minutes/);
