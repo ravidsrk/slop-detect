@@ -1689,10 +1689,10 @@
     {
       "attempts": 0,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p3-spec-drift",
       "commit": null,
       "depends_on": [],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-21-spec.txt"],
       "gaps": ["G-31"],
       "id": "T-21",
       "owner": "agent",
@@ -1700,7 +1700,7 @@
       "pr": null,
       "review": null,
       "size": "S",
-      "status": "todo"
+      "status": "in_review"
     },
     {
       "attempts": 0,

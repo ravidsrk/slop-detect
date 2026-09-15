@@ -10,7 +10,7 @@ Score = sum of triggered design-pattern weights (27 patterns, clamped 0–100).
 
 - Few or no AI-design-slop tells detected
 - Letter grades A+ through A−
-- Typical of deliberately designed pages (Stripe, Linear, Notion calibrate here)
+- Typical of deliberately designed pages (Stripe, Linear, Notion are the calibration targets for this band; flagship calibration is tracked in issue #100)
 - CI with `--fail-on heavy` or `--fail-on mild` passes
 
 ### Mild (10–27)

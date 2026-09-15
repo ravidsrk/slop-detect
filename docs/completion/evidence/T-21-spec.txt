@@ -1,0 +1,39 @@
+=== T-21 spec-vs-engine drift (G-31) ===
+Method: every machine-checkable spec claim diffed against the engine
+(pattern/copy/AEO ids, weights, thresholds, tiers, versions, grades,
+exit codes, unified formula).
+--- drift found: 2 items, both spec-side (engine is tested behavior) ---
+1. spec/patterns.md summary row bento_grid said "≥5 rounded children";
+   engine requires ≥5 sized children with ≥4 rounded (r≥12px) + ≥2
+   spans — and the spec's OWN detail section already said that. Fixed
+   the summary row; summary/detail/engine now agree word-for-word.
+2. spec/conformance.md claimed Stripe/Linear "calibrate" Clean; both
+   currently score Mild (T-17: 19/19). Reworded to calibration TARGETS
+   with the #100 pointer (calibration itself is #100/H-05, not T-21).
+--- verified clean (no drift) ---
+counts 27/9/8 + DEFINITIONS_VERSION 2026.09; all 44 ids documented;
+all weights; design tiers 0-9/10-27/28+; copy tiers 0-7/8-19/20+ +
+thin<40; AEO tiers 0.8/0.5 + 70/30 required/recommended split; unified
+max+6/dirty-axis on design bands; grades A+..F bands; CLI exit 0/1/2 +
+always-fail-on-blocked; every design trigger threshold (28px hero,
+72px/40ch H1, counts, ratios, 4.5:1+25%, 0.05em, 2.0, 24px, 12px…);
+all 9 copy triggers incl. density formulas; centered_hero prose covers
+the T-17 content-box geometry without over-specifying.
+--- regression guard ---
+packages/core/test/spec-sync.test.js (4 tests): config counts/versions,
+design tiers at boundaries via scorePatterns, id presence in catalogues,
+catalogue weights = engine weights. Teeth-checked: bento weight 4→5 in
+spec fails 5-vs-4. Prose summaries stay human-review territory (noted).
+=== FORMAT ===
+FORMAT_EXIT=1
+=== LINT ===
+LINT_EXIT=0
+=== TYPECHECK ===
+TYPECHECK_EXIT=0
+=== TEST ===
+TEST_EXIT=0
+slop-detect-mcp:test:       Tests  14 passed (14)
+@slop-detect/action:test:       Tests  7 passed (7)
+@slop-detect/core:test:       Tests  77 passed (77)
+slop-detect:test:       Tests  12 passed | 12 skipped (24)
+slop-detect-web:test:       Tests  367 passed (367)
