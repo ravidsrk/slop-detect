@@ -98,9 +98,13 @@ deployment). So the rehearsal has two parts instead of one impossible
 preview-rollback step:
 
 **Part 1 — preview redeploy loop (zero prod impact).** Proves the
-preview pipeline + redeploy mechanics end to end. Push the marker
-branch AND open a draft PR (`preview.yml` runs on `pull_request`
-only — a bare branch push deploys nothing):
+preview pipeline + redeploy mechanics end to end. Prerequisite: the
+[STAGING.md](STAGING.md) finishing checklist is DONE (namespaces
+created, `preview_id` lines live) — otherwise `preview.yml`
+self-skips green and there is no preview to inspect. Abort here if
+the preflight notice says it skipped. Then push the marker branch AND
+open a draft PR (`preview.yml` runs on `pull_request` only — a bare
+branch push deploys nothing):
 
 ```bash
 git checkout -qb rehearse/rollback-$(date +%F) && \
