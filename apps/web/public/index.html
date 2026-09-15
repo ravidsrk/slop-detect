@@ -783,7 +783,7 @@
 
   <!-- Fix prompt modal -->
   <div class="modal-bg" id="modalBg">
-    <div class="modal" role="dialog" aria-labelledby="modalTitle">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modal-head">
         <div>
           <div class="modal-head-title" id="modalTitle">Fix prompt</div>
@@ -1253,7 +1253,34 @@ closeBtn.addEventListener('click', closeModal);
 modalBg.addEventListener('click', (e) => { if (e.target === modalBg) closeModal(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
-function closeModal() { modalBg.classList.remove('show'); }
+// Focus trap (T-20 / WCAG 2.1.2, 2.4.3): while the modal is open, Tab and
+// Shift+Tab cycle through the modal's own buttons and never reach the page
+// behind it. Focus moves in on open and returns to the invoker on close.
+let modalOpener = null;
+function modalFocusable() {
+  return [...modalBg.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+    .filter((el) => !el.disabled && el.getClientRects().length > 0);
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Tab' || !modalBg.classList.contains('show')) return;
+  const items = modalFocusable();
+  if (!items.length) return;
+  const first = items[0], last = items[items.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+});
+
+function closeModal() {
+  modalBg.classList.remove('show');
+  // Return focus to the invoker; if it is mid-load disabled, fall back to
+  // the Scan button so focus never strands on a hidden element.
+  const t =
+    modalOpener && document.contains(modalOpener) && !modalOpener.disabled
+      ? modalOpener
+      : document.getElementById('go');
+  if (t) t.focus();
+  modalOpener = null;
+}
 
 // ── One-click "Fix with AI" handoff ─────────────────────────────────────────
 // Deep-link the generated prompt straight into ChatGPT / Claude / Cursor with
@@ -1303,7 +1330,10 @@ async function openFixPrompt() {
   btn.disabled = true; btn.textContent = 'Generating…';
   modalPre.textContent = 'Generating fix prompt…';
   modalSub.textContent = `${lastResult.patternsFlagged} ${lastResult.patternsFlagged === 1 ? 'issue' : 'issues'} on ${new URL(lastResult.finalUrl || lastResult.url).hostname}`;
+  modalOpener = document.getElementById('fixPromptBtn');
   modalBg.classList.add('show');
+  const first = modalFocusable()[0];
+  if (first) first.focus();
 
   try {
     const r = await fetch('/api/fix-prompt', {

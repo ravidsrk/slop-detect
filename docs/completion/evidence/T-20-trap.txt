@@ -1,0 +1,42 @@
+=== T-20 modal focus-trap (G-30) — access-it scoped run ===
+Frozen surface: fix-prompt modal (open state) on / × WCAG 2.1.2/2.4.3/4.1.2.
+Oracle: scripted Playwright keyboard probe (real UI path: mocked /api/scan →
+render → fixPromptBtn → mocked /api/fix-prompt) + axe-core 4.10.2 in-page.
+--- DETECT (pre-fix baseline) ---
+initial focus: body, OUTSIDE modal. 8/8 Tab stops ESCAPED to background
+(nav links, watch form). Escape closed but focus stranded (no return).
+axe open-modal: color-contrast×2, heading-order, link-in-text-block, region
+(all page-level, pre-existing — outside this task's frozen surface).
+--- FIX (public/index.html) ---
+aria-modal="true"; Tab/Shift+Tab trap cycling the modal's 5 buttons;
+initial focus to first action; opener captured explicitly (NOT
+activeElement — the invoker is load-disabled at open, which stranded
+focus on body); closeModal returns focus, falling back to #go when the
+invoker is mid-load disabled so focus never strands on a hidden node.
+--- RE-VERIFY (post-fix probe) ---
+initial: openChatGPT INSIDE. 8/8 Tab stops cycle the 5 buttons, zero
+escapes. Shift+Tab wraps. Escape closes AND returns to fixPromptBtn.
+axe: identical 4 pre-existing issues — fix adds none, dialog named.
+--- NEGATIVE CONTROL (fix stashed) ---
+initial-inside: False | escaped: 8/8 | return-ok: False. Violation returns.
+--- HUMAN-AT PARK (past the automation ceiling) ---
+1. Screen-reader announcement of the dialog (role/aria-modal present but
+   NVDA/VoiceOver behavior unverified) — needs human + SR pass.
+2. Visible focus indicator on the 5 modal buttons (trap moves focus; whether
+   the indicator is perceivable is a human check).
+3. axe page-level issues above (contrast/headings/links/region) — out of
+   T-20 scope; candidates for a future access pass, not silently dropped.
+Verdict: CONFORMANT-WITH-MANUAL-PARKED (trap criteria proven; 3 parks).
+=== FORMAT ===
+FORMAT_EXIT=0
+=== LINT ===
+LINT_EXIT=0
+=== TYPECHECK ===
+TYPECHECK_EXIT=0
+=== TEST ===
+TEST_EXIT=0
+slop-detect-mcp:test:       Tests  14 passed (14)
+@slop-detect/action:test:       Tests  7 passed (7)
+@slop-detect/core:test:       Tests  73 passed (73)
+slop-detect:test:       Tests  12 passed | 11 skipped (23)
+slop-detect-web:test:       Tests  367 passed (367)

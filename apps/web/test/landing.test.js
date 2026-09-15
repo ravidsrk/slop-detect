@@ -81,6 +81,16 @@ test('exactly one domainOf helper (no shadowed duplicate)', () => {
   expect((html.match(/function domainOf/g) || []).length).toBe(1);
 });
 
+test('fix modal traps focus, moves it in, and returns it (T-20)', () => {
+  // Presence pin — the behavior itself is proven by the Playwright keyboard
+  // probe in T-20-trap.txt (trap + wrap + Escape + return, with a revert
+  // control showing 8/8 escapes without the fix).
+  expect(html).toMatch(/role="dialog" aria-modal="true"/);
+  expect(html).toMatch(/e\.key !== 'Tab' \|\| !modalBg\.classList\.contains\('show'\)/);
+  expect(html).toMatch(/modalOpener = document\.getElementById\('fixPromptBtn'\)/);
+  expect(html).toMatch(/modalOpener = null;/);
+});
+
 test('the retired /landing stub stays cut: tombstone redirect, no shipped files (T-16)', () => {
   const redirects = readFileSync(new URL('../public/_redirects', import.meta.url), 'utf8');
   expect(redirects).toMatch(/^\/landing\/\* \/ 301$/m);
