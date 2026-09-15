@@ -580,6 +580,108 @@ export async function percentileForScore(kv, score) {
   return percentileFromDistribution(await getScoreDistribution(kv), score);
 }
 
+// ── Daily ops metrics (per-route flow observability, G-05/G-44) ──────────────
+// One small JSON blob per UTC day (`stats:ops:YYYY-MM-DD`, 30d TTL): per-route
+// request counts + status breakdown, plus scan-tier/nav-latency-bucket detail
+// on the scan route. Bumped fire-and-forget via waitUntil (never on the
+// latency path) and surfaced read-only through GET /api/stats `ops`
+// (today + yesterday).
+// Read-modify-write races can drop increments under concurrency — same accepted
+// approximation as stats:dist; fine for ops trending, not billing.
+const OPS_PREFIX = 'stats:ops:';
+const OPS_TTL = 60 * 60 * 24 * 30; // 30d — bounds namespace growth (see KV_TTL.md)
+
+export function opsDateKey(d = new Date()) {
+  return `${OPS_PREFIX}${d.toISOString().slice(0, 10)}`;
+}
+
+function blankRouteBucket() {
+  // navMs is bucketed (never averaged): boundaries in seconds tuned to the
+  // ~8s typical scan, so p50/p95-ish reads survive aggregation.
+  return { req: 0, byStatus: {}, tiers: {}, blocked: {}, navMs: {} };
+}
+
+function navBucket(ms) {
+  const s = ms / 1000;
+  if (s < 1) return 'lt1s';
+  if (s < 3) return 'lt3s';
+  if (s < 8) return 'lt8s';
+  if (s < 15) return 'lt15s';
+  return 'ge15s';
+}
+
+// Pure merge: returns the updated blob. `req` increments iff patch.status is
+// present. Single-writer rule per route: the middleware owns every non-scan
+// route's bumps, and scan.ts owns every scan-route bump (status + detail in
+// one write) — the two never race on the same blob.
+export function mergeOpsBlob(
+  blob,
+  route,
+  patch: { status?: number | string; tier?: string; blocked?: string; navMs?: number } = {}
+) {
+  const b =
+    blob && typeof blob === 'object' && blob.routes && typeof blob.routes === 'object'
+      ? blob
+      : { date: null, routes: {} };
+  if (!b.routes[route] || typeof b.routes[route] !== 'object') b.routes[route] = blankRouteBucket();
+  const r = b.routes[route];
+  if (patch.status !== undefined && patch.status !== null) {
+    r.req += 1;
+    const k = String(patch.status);
+    r.byStatus[k] = (r.byStatus[k] || 0) + 1;
+  }
+  if (patch.tier) r.tiers[patch.tier] = (r.tiers[patch.tier] || 0) + 1;
+  if (patch.blocked) r.blocked[patch.blocked] = (r.blocked[patch.blocked] || 0) + 1;
+  if (typeof patch.navMs === 'number' && Number.isFinite(patch.navMs)) {
+    const k = navBucket(patch.navMs);
+    r.navMs[k] = (r.navMs[k] || 0) + 1;
+  }
+  return b;
+}
+
+export async function bumpOpsStats(kv, route, patch = {}, dateKey = null) {
+  if (!kv || !route) return;
+  const key = dateKey || opsDateKey();
+  try {
+    let blob = null;
+    try {
+      const raw = await kv.get(key);
+      blob = raw ? JSON.parse(raw) : null;
+    } catch {
+      blob = null; // corrupted blob: restart the day rather than crash
+    }
+    if (!blob || !blob.date) blob = { date: key.slice(OPS_PREFIX.length), routes: {} };
+    await kv.put(key, JSON.stringify(mergeOpsBlob(blob, route, patch)), {
+      expirationTtl: OPS_TTL,
+    });
+  } catch {
+    /* metrics must never break the request */
+  }
+}
+
+async function getOpsBlob(kv, key) {
+  if (!kv) return null;
+  try {
+    const raw = await kv.get(key);
+    if (!raw) return null;
+    const o = JSON.parse(raw);
+    return o && typeof o === 'object' && o.routes ? o : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getOpsStats(kv, now = new Date()) {
+  if (!kv) return { today: null, yesterday: null };
+  const today = new Date(now);
+  const yesterday = new Date(now.getTime() - 86400000);
+  const [t, y] = await Promise.all([
+    getOpsBlob(kv, opsDateKey(today)),
+    getOpsBlob(kv, opsDateKey(yesterday)),
+  ]);
+  return { today: t, yesterday: y };
+}
+
 // Record EVERY persisted scan into the per-domain timeline + the global stats,
 // regardless of whether the domain is monitored. This is what lets a public
 // /score/<domain> page chart history and rank against peers. Watch

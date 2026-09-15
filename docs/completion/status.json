@@ -1757,18 +1757,18 @@
     {
       "attempts": 0,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p4-ops-metrics",
       "commit": null,
       "depends_on": ["T-22"],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-24-ops.txt"],
       "gaps": ["G-05", "G-44"],
       "id": "T-24",
       "owner": "agent",
       "plan_phase": "P4",
-      "pr": null,
+      "pr": 159,
       "review": null,
       "size": "M",
-      "status": "todo"
+      "status": "in_review"
     },
     {
       "attempts": 0,

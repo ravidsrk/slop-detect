@@ -1,0 +1,78 @@
+T-24 — ops metrics on critical flows + stats surface (G-05 + G-44)
+Branch: ravidsrk/p4-ops-metrics
+
+ON-CALL QUESTIONS (asked first, per observability practice):
+1. Is the API serving successfully? -> per-route req + byStatus.
+2. Validation, blocks, or infra failing? -> 4xx vs 422+blocked-code vs 5xx.
+3. Are scans slower than usual? -> nav-latency BUCKETS (never averaged).
+Every signal below maps to one. Cardinality bounded: route (~10),
+status codes, 3 tiers, ~5 blocked codes, 5 latency buckets. No URLs,
+no user IDs, no error text in labels. Entry point: all server-visible
+scans flow through POST /api/scan (single entry; CLI-local never
+touches the server), so per-route labels attribute fully.
+
+CHANGE:
+- _data.ts: mergeOpsBlob (pure) + bumpOpsStats (daily stats:ops:DATE
+  blob, 30d TTL, read-corruption restart, never throws) + getOpsStats
+  (today + yesterday) + opsDateKey. navMs bucketed lt1s/lt3s/lt8s/
+  lt15s/ge15s (~8s typical scan). req increments ONLY when the patch
+  carries status: the middleware bumps req/byStatus uniformly; scan.ts
+  bumps tier/navMs/blocked detail WITHOUT status — provably no
+  double-count (merge test).
+- api/_middleware.ts: reject() closure bumps all 9 rejection sites;
+  GET+POST pass-throughs bump res.status; thrown handlers bump 500
+  via tracedFailure. All via waitUntil (detached fallback in tests).
+- api/scan.ts: success bumps {tier, navMs}; 422 bumps {blocked: code}.
+  Also stamped the persist_failed report() with requestId (T-22 miss).
+- api/stats.ts: +ops {today, yesterday} (2 KV reads on a 120s-cached
+  endpoint). docs/KV_TTL.md: stats:ops:<day> row (table demands it).
+
+PRIVACY: share:false skips even anonymous bumps in BOTH layers
+(middleware peeks share via clone; scan.ts checks body.share) — the
+"no KV writes" promise is absolute. Pinned by tests both sides.
+
+PEEK-FIRST FIX (found by the opt-out test): forwardWithId's
+new Request(request) disturbs the original body (undici marks it
+used), so any later request.clone() peek throws. Restructured to ONE
+top-of-middleware peek serving both consumers. This also repairs the
+latent pre-existing fix-prompt{url} gating peek, which had the same
+exposure with real Requests.
+
+TESTS: stats.test.js +5 (merge incl. no-double-count + bucketing,
+TTL + corruption restart, never-throws, getOpsStats); middleware +4
+(pass bump, rejection bump, missing-KV skip, share:false opt-out);
+scan-contract +1 (tier/navMs detail, req stays 0); api-stats +2 (ops
+surface, null-blessed). Full web suite green (see gates).
+=== FORMAT ===
+FORMAT_EXIT=0
+=== LINT ===
+LINT_EXIT=0
+=== TYPECHECK ===
+TYPECHECK_EXIT=2 (fixed: rerun 0)
+=== TEST ===
+TEST_EXIT=0
+@slop-detect/action:test:       Tests  7 passed (7)
+@slop-detect/core:test:       Tests  77 passed (77)
+slop-detect-mcp:test:       Tests  14 passed (14)
+slop-detect:test:       Tests  13 passed | 40 skipped (53)
+slop-detect-web:test:       Tests  400 passed (400)
+(typecheck fixup: annotated mergeOpsBlob patch param; dropped the 2
+stale trailing args at the 9 reject() sites — reject closes over
+origin/requestId. Reran: typecheck 0, 4 suites 77/77.)
+
+GREPTILE (4 threads, all fixed):
+- P1 read-modify-write race (middleware + scan bumps): restructured to
+  single-writer — scan.ts owns EVERY scan-route bump (status + detail,
+  one write per return path incl. all early 400s/500 and the 502
+  catch); middleware skips scan pass-throughs. Tests reworked to the
+  new ownership (+1 early-error bump test). TDZ note: `let body`
+  hoisted above deferOps (BROWSER-missing path runs pre-parse).
+- P1 tracedFailure bypassed opsOptOut: opt-out threaded in; pinned by
+  a share:false rejection test (real Request, store stays empty).
+- P1/security pre-admission parsing: peek now bounded (declared
+  content-length <= 64KB, chunked-unknown skipped) — abuse case
+  pinned by 2 tests asserting clone() is never reached + the
+  rejection still counts. Residual: oversized share:false bodies
+  count on middleware rejections (handler still honors share);
+  documented, accepted (unbounded pre-admission parse is worse).
+- P2 stats.ts sequential reads: Promise.all applied as suggested.

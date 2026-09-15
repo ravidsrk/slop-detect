@@ -14,6 +14,10 @@ import {
   summarizeStats,
   percentileFromDistribution,
   percentileForScore,
+  mergeOpsBlob,
+  bumpOpsStats,
+  getOpsStats,
+  opsDateKey,
 } from '../functions/_shared.ts';
 import { buildResultView } from '../functions/_result.tsx';
 
@@ -196,4 +200,74 @@ test('record-time clean fractions match buildResultView categories', () => {
   for (const c of view.categories) {
     expect(fracs[c.key]).toBe(c.cleanFraction);
   }
+});
+
+// ── Daily ops metrics (G-05/G-44 / T-24) ─────────────────────────────────────
+
+test('mergeOpsBlob counts req/byStatus only when status is present (no double-count)', () => {
+  let b = mergeOpsBlob(null, 'scan', { status: 200 });
+  expect(b.routes.scan.req).toBe(1);
+  expect(b.routes.scan.byStatus).toEqual({ 200: 1 });
+  // Detail-only patches (no status) grow tiers/buckets without touching req.
+  // navMs lands in latency buckets (120ms and 9s), never an average.
+  b = mergeOpsBlob(b, 'scan', { tier: 'Clean', navMs: 120 });
+  b = mergeOpsBlob(b, 'scan', { tier: 'Mild', navMs: 9000 });
+  expect(b.routes.scan.req).toBe(1);
+  expect(b.routes.scan.tiers).toEqual({ Clean: 1, Mild: 1 });
+  expect(b.routes.scan.navMs).toEqual({ lt1s: 1, lt15s: 1 });
+  b = mergeOpsBlob(b, 'scan', { blocked: 'empty_page' });
+  expect(b.routes.scan.req).toBe(1);
+  expect(b.routes.scan.blocked).toEqual({ empty_page: 1 });
+});
+
+test('mergeOpsBlob tolerates null/garbage blobs and unknown routes', () => {
+  const b = mergeOpsBlob('garbage', 'health', { status: 200 });
+  expect(b.routes.health.req).toBe(1);
+  const b2 = mergeOpsBlob({ routes: { scan: null } }, 'scan', { status: 503 });
+  expect(b2.routes.scan.byStatus).toEqual({ 503: 1 });
+});
+
+test('bumpOpsStats persists the blob with a 30d TTL and restarts corrupted days', async () => {
+  const puts = [];
+  const store = new Map([['stats:ops:2026-09-15', 'not-json{{{']]);
+  const kv = {
+    get: async (k) => (store.has(k) ? store.get(k) : null),
+    put: async (k, v, o = {}) => {
+      puts.push({ k, ttl: o.expirationTtl });
+      store.set(k, v);
+    },
+  };
+  await bumpOpsStats(kv, 'scan', { status: 200, tier: 'Mild' }, 'stats:ops:2026-09-15');
+  expect(puts).toHaveLength(1);
+  expect(puts[0].ttl).toBe(60 * 60 * 24 * 30);
+  const blob = JSON.parse(store.get('stats:ops:2026-09-15'));
+  expect(blob.date).toBe('2026-09-15');
+  expect(blob.routes.scan.req).toBe(1);
+});
+
+test('bumpOpsStats never throws (null KV, throwing KV)', async () => {
+  await bumpOpsStats(null, 'scan', { status: 200 });
+  await bumpOpsStats(
+    {
+      get: async () => {
+        throw new Error('KV down');
+      },
+      put: async () => {
+        throw new Error('KV down');
+      },
+    },
+    'scan',
+    { status: 200 }
+  );
+});
+
+test('getOpsStats returns today + yesterday blobs (nulls when absent)', async () => {
+  const today = new Date('2026-09-15T12:00:00Z');
+  const kv = makeKv({
+    [opsDateKey(today)]: JSON.stringify({ date: '2026-09-15', routes: { scan: { req: 3 } } }),
+  });
+  const ops = await getOpsStats(kv, today);
+  expect(ops.today.routes.scan.req).toBe(3);
+  expect(ops.yesterday).toBeNull();
+  expect(await getOpsStats(null)).toEqual({ today: null, yesterday: null });
 });

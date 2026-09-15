@@ -414,6 +414,84 @@ test('502 bodies carry the forwarded x-request-id', async () => {
   expect(r.requestId).toBe('trace-502');
 });
 
+test('a successful scan bumps status + tier + navMs in one write (single-writer)', async () => {
+  const store = new Map();
+  const opsKv = {
+    get: async (k) => (store.has(k) ? store.get(k) : null),
+    put: async (k, v) => {
+      store.set(k, v);
+    },
+    delete: async (k) => {
+      store.delete(k);
+    },
+    list: async () => ({ keys: [] }),
+  };
+  const pending = [];
+  const res = await onRequestPost({
+    request: postReq({ url: 'https://acme.example.com' }),
+    env: { BROWSER: {}, RESULTS: opsKv },
+    waitUntil: (p) => pending.push(p),
+  });
+  expect(res.status).toBe(200);
+  const r = await res.json();
+  await Promise.all(pending);
+  const key = `stats:ops:${new Date().toISOString().slice(0, 10)}`;
+  const blob = JSON.parse(store.get(key));
+  // Single write carries req + status + detail (middleware skips scan routes).
+  expect(blob.routes.scan.req).toBe(1);
+  expect(blob.routes.scan.byStatus).toEqual({ 200: 1 });
+  expect(blob.routes.scan.tiers[r.tier]).toBe(1);
+  expect(Object.values(blob.routes.scan.navMs).reduce((a, b) => a + b, 0)).toBe(1);
+});
+
+test('BROWSER-missing 500 bumps status, but not for share:false', async () => {
+  const store = new Map();
+  const kv = {
+    get: async (k) => (store.has(k) ? store.get(k) : null),
+    put: async (k, v) => {
+      store.set(k, v);
+    },
+  };
+  const pending = [];
+  const res = await onRequestPost({
+    request: postReq({ url: 'https://acme.example.com' }),
+    env: { RESULTS: kv },
+    waitUntil: (p) => pending.push(p),
+  });
+  expect(res.status).toBe(500);
+  const res2 = await onRequestPost({
+    request: postReq({ url: 'https://acme.example.com', share: false }),
+    env: { RESULTS: kv },
+    waitUntil: (p) => pending.push(p),
+  });
+  expect(res2.status).toBe(500);
+  await Promise.all(pending);
+  const blob = JSON.parse(store.get(`stats:ops:${new Date().toISOString().slice(0, 10)}`));
+  expect(blob.routes.scan.req).toBe(1);
+  expect(blob.routes.scan.byStatus).toEqual({ 500: 1 });
+});
+
+test('early scan errors bump status (single-writer covers every return path)', async () => {
+  const store = new Map();
+  const kv = {
+    get: async (k) => (store.has(k) ? store.get(k) : null),
+    put: async (k, v) => {
+      store.set(k, v);
+    },
+  };
+  const pending = [];
+  const res = await onRequestPost({
+    request: postReq({}),
+    env: { BROWSER: {}, RESULTS: kv },
+    waitUntil: (p) => pending.push(p),
+  });
+  expect(res.status).toBe(400);
+  await Promise.all(pending);
+  const blob = JSON.parse(store.get(`stats:ops:${new Date().toISOString().slice(0, 10)}`));
+  expect(blob.routes.scan.req).toBe(1);
+  expect(blob.routes.scan.byStatus).toEqual({ 400: 1 });
+});
+
 test('the 502 report log line carries the requestId', async () => {
   mock.gotoError = new Error('boom');
   const spy = vi.spyOn(console, 'error').mockImplementation(() => {});

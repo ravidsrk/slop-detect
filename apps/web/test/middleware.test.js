@@ -433,3 +433,181 @@ test('a throwing GET handler becomes a traced JSON 500', async () => {
   expect(j.requestId).toBe(res.headers.get('X-Request-Id'));
   expect(j.requestId).toBeTruthy();
 });
+
+// ── Ops metrics bumps (G-05 / T-24) ──────────────────────────────────────────
+// The middleware bumps per-route req/byStatus fire-and-forget (no waitUntil in
+// these doubles, so the write lands detached — flush before asserting).
+
+function makeOpsKv() {
+  const store = new Map();
+  return {
+    store,
+    get: async (k) => (store.has(k) ? store.get(k) : null),
+    put: async (k, v) => {
+      store.set(k, v);
+    },
+  };
+}
+
+const flush = () => new Promise((r) => setTimeout(r, 25));
+
+function todayOpsKey() {
+  return `stats:ops:${new Date().toISOString().slice(0, 10)}`;
+}
+
+test('pass-through POST bumps the route req/byStatus blob (non-scan route)', async () => {
+  // Single-writer rule: scan pass-throughs are owned by scan.ts, so this
+  // exercises a non-scan route (fix-prompt) for the middleware bump.
+  const opsKv = makeOpsKv();
+  const req = makeRequest({
+    path: '/api/fix-prompt',
+    headers: { Origin: ALLOWED, 'CF-Connecting-IP': '203.0.113.216' },
+    body: { result: { score: 1 } },
+  });
+  const res = await onRequest(makeContext(req, { RESULTS: opsKv }));
+  expect(res.status).toBe(200);
+  await flush();
+  const blob = JSON.parse(opsKv.store.get(todayOpsKey()));
+  expect(blob.routes['fix-prompt'].req).toBe(1);
+  expect(blob.routes['fix-prompt'].byStatus).toEqual({ 200: 1 });
+});
+
+test('scan pass-throughs are NOT bumped by the middleware (scan.ts owns them)', async () => {
+  const opsKv = makeOpsKv();
+  const req = makeRequest({
+    headers: { Origin: ALLOWED, 'CF-Connecting-IP': '203.0.113.222' },
+    body: { url: 'https://x.com' },
+  });
+  const res = await onRequest(makeContext(req, { RESULTS: opsKv }));
+  expect(res.status).toBe(200);
+  await flush();
+  expect(opsKv.store.size).toBe(0);
+});
+
+test('rejections bump byStatus (403 foreign origin)', async () => {
+  const opsKv = makeOpsKv();
+  const req = makeRequest({
+    headers: { Origin: 'https://evil.example.com', 'CF-Connecting-IP': '203.0.113.217' },
+    body: { url: 'https://x.com' },
+  });
+  const res = await onRequest(makeContext(req, { RESULTS: opsKv }));
+  expect(res.status).toBe(403);
+  await flush();
+  const blob = JSON.parse(opsKv.store.get(todayOpsKey()));
+  expect(blob.routes.scan.req).toBe(1);
+  expect(blob.routes.scan.byStatus).toEqual({ 403: 1 });
+});
+
+test('missing RESULTS binding skips the bump without breaking the request', async () => {
+  const req = makeRequest({
+    headers: { Origin: ALLOWED, 'CF-Connecting-IP': '203.0.113.218' },
+    body: { url: 'https://x.com' },
+  });
+  const res = await onRequest(makeContext(req, {}));
+  expect(res.status).toBe(200);
+  await flush();
+});
+
+test('share:false skips even anonymous ops bumps (privacy promise)', async () => {
+  const opsKv = makeOpsKv();
+  const req = new Request('https://slop-detect.com/api/scan', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Origin: ALLOWED,
+      'CF-Connecting-IP': '203.0.113.219',
+    },
+    body: JSON.stringify({ url: 'https://x.com', share: false }),
+  });
+  const ctx = {
+    request: req,
+    env: { RESULTS: opsKv },
+    next: async () => new Response(JSON.stringify({ ok: true }), { status: 200 }),
+  };
+  const res = await onRequest(ctx);
+  expect(res.status).toBe(200);
+  await flush();
+  expect(opsKv.store.size).toBe(0);
+});
+
+test('oversized declared bodies skip the pre-admission peek (rejection still counted)', async () => {
+  const opsKv = makeOpsKv();
+  // POJO double with an explicit huge content-length (real Requests forbid
+  // setting it by hand); clone would parse, but the cap skips the peek.
+  // Foreign origin forces a middleware rejection, which bumps (peek skipped
+  // means the opt-out is unknown — fail-counted, never fail-blind).
+  let cloned = false;
+  const req = {
+    method: 'POST',
+    url: 'https://slop-detect.com/api/scan',
+    headers: {
+      get: (k) => {
+        const h = {
+          origin: 'https://evil.example.com',
+          'cf-connecting-ip': '203.0.113.220',
+          'content-length': '100000',
+        };
+        return h[k.toLowerCase()] ?? null;
+      },
+    },
+    clone: () => {
+      cloned = true;
+      return { json: async () => ({ url: 'https://x.com', share: false }) };
+    },
+    json: async () => ({ url: 'https://x.com', share: false }),
+  };
+  const res = await onRequest(makeContext(req, { RESULTS: opsKv }));
+  expect(res.status).toBe(403);
+  expect(cloned).toBe(false);
+  await flush();
+  const blob = JSON.parse(opsKv.store.get(todayOpsKey()));
+  expect(blob.routes.scan.req).toBe(1);
+  expect(blob.routes.scan.byStatus).toEqual({ 403: 1 });
+});
+
+test('chunked bodies with unknown length skip the pre-admission peek', async () => {
+  const opsKv = makeOpsKv();
+  let cloned = false;
+  const req = {
+    method: 'POST',
+    url: 'https://slop-detect.com/api/scan',
+    headers: {
+      get: (k) => {
+        const h = {
+          origin: 'https://evil.example.com',
+          'cf-connecting-ip': '203.0.113.221',
+          'transfer-encoding': 'chunked',
+        };
+        return h[k.toLowerCase()] ?? null;
+      },
+    },
+    clone: () => {
+      cloned = true;
+      return { json: async () => ({ url: 'https://x.com' }) };
+    },
+    json: async () => ({ url: 'https://x.com' }),
+  };
+  const res = await onRequest(makeContext(req, { RESULTS: opsKv }));
+  expect(res.status).toBe(403);
+  expect(cloned).toBe(false);
+  await flush();
+  expect(JSON.parse(opsKv.store.get(todayOpsKey())).routes.scan.req).toBe(1);
+});
+
+test('share:false scan REJECTIONS are not bumped (peek drives the opt-out)', async () => {
+  // Real Request so the peek can actually parse the share:false flag.
+  const opsKv = makeOpsKv();
+  const req = new Request('https://slop-detect.com/api/scan', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Origin: 'https://evil.example.com',
+      'CF-Connecting-IP': '203.0.113.223',
+    },
+    body: JSON.stringify({ url: 'https://x.com', share: false }),
+  });
+  const res = await onRequest(makeContext(req, { RESULTS: opsKv }));
+  expect(res.status).toBe(403);
+  await flush();
+  expect(opsKv.store.size).toBe(0);
+});
