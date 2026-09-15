@@ -1508,10 +1508,10 @@
     {
       "attempts": 0,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p3-cli",
       "commit": null,
       "depends_on": [],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-14-cli.txt"],
       "gaps": ["G-02"],
       "id": "T-14",
       "owner": "agent",
@@ -1519,7 +1519,7 @@
       "pr": null,
       "review": null,
       "size": "M",
-      "status": "todo"
+      "status": "in_review"
     },
     {
       "attempts": 0,

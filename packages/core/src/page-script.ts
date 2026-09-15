@@ -84,9 +84,16 @@ export function detectBlocked(
   const noContent = !title && !h1;
   const sparseDom = visibleCount < 10 || patternsWithEvidence < 4;
   if (noContent || sparseDom) {
+    // A titled page can still be too thin to judge (e.g. example.com: title +
+    // H1 but 4 visible elements). Say so plainly instead of claiming "no
+    // title, no H1" while echoing both back to the caller.
+    const reason =
+      !noContent && sparseDom
+        ? 'Target page rendered too little content to judge reliably (sparse DOM despite a title/H1).'
+        : 'Target page rendered no scannable content (no title, no H1, or empty DOM).';
     return {
       code: 'empty_page',
-      reason: 'Target page rendered no scannable content (no title, no H1, or empty DOM).',
+      reason,
       hint: 'The site likely requires sign-in, uses heavy client-side hydration, or blocks headless browsers. Try a public marketing URL instead.',
     };
   }

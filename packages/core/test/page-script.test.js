@@ -97,4 +97,18 @@ describe('detectBlocked', () => {
     });
     expect(blocked?.code).toBe('empty_page');
   });
+
+  test('sparse-but-titled pages get an honest reason, not "no title, no H1" (T-14)', () => {
+    const blocked = detectBlocked({
+      title: 'Example Domain',
+      h1Text: 'Example Domain',
+      visibleCount: 4,
+      signals: richSignals,
+    });
+    expect(blocked?.code).toBe('empty_page');
+    expect(blocked.reason).toMatch(/too little content/);
+    expect(blocked.reason).not.toMatch(/no title/);
+    const blank = detectBlocked({ title: '', h1Text: '', visibleCount: 0, signals: {} });
+    expect(blank.reason).toMatch(/no title, no H1/);
+  });
 });

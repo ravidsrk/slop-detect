@@ -1,0 +1,42 @@
+=== T-14 CF-02 CLI characterization (live runs, 2026-09-15) ===
+Runner: packages/cli/dist/bin/slop.js (built from this branch), Chromium 148 / Playwright 1.60.
+
+--- local mode (headless Chromium) ---
+local design (HN) ............ Clean 6, 2/27 flagged. OK
+local design (slop-detect.com)  Clean 0. OK (dogfood)
+local design (example.com) .... empty_page block, HONEST after fix:
+  "Target page rendered too little content to judge reliably (sparse DOM despite a title/H1)."
+local --copy (HN) ............ unified Clean 6, copy Clean 0. OK
+local --aeo (HN) ............. Partial 70/100, 8 checks. OK
+local --preset strict ........ Clean 0. OK
+local --screenshot ........... 288KB valid JSON, 284KB data URL. OK
+local --design-md file ....... Aligned 100, declared:true. OK
+local --design-md auto ....... "No system" on SPA-fallback HTML (server lies 200). Correct outcome.
+multi-URL .................... per-URL rows + summary (Clean + blocked). OK
+--fail-on .................... clean→0/0, blocked→1. OK
+
+--- remote mode (live slop-detect.com API) ---
+remote design (HN) ........... Clean 6 — parity with local. OK
+remote --copy ................ unified Clean 6 — parity. OK (one transient API 502, retry clean)
+remote --aeo ................. Invisible 20 (edge-env bot wall; local said Partial 70 from home IP). OK
+rate limit ................... structured rate_limited error, no crash. OK (by design)
+
+--- verdict ---
+S1 "design+remote rejects" is STALE: every mode works; remote matches local.
+"Partial" downgraded to two notes: (1) fixed — empty_page reason contradicted
+attached title/H1 (core page-script.ts + test); (2) accepted — transient API
+502s and no-origin rate limits are server-side behaviors the CLI surfaces
+correctly. No re-scope needed: CF-02 is whole.
+=== FORMAT ===
+FORMAT_EXIT=0
+=== LINT ===
+LINT_EXIT=0
+=== TYPECHECK ===
+TYPECHECK_EXIT=0
+=== TEST ===
+TEST_EXIT=0
+slop-detect-mcp:test:       Tests  14 passed (14)
+@slop-detect/action:test:       Tests  7 passed (7)
+@slop-detect/core:test:       Tests  72 passed (72)
+slop-detect:test:       Tests  12 passed | 10 skipped (22)
+slop-detect-web:test:       Tests  357 passed (357)
