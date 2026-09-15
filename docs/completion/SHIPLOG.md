@@ -417,3 +417,18 @@
 - Prod remainder: H-07 (owner sets ERROR_WEBHOOK value in Pages).
 - Evidence: evidence/T-25-alert.txt.
 - resume_pointer: P4/T-26
+
+## 2026-09-15 S4/P4 T-26 retry/backoff (G-08) — DONE
+- branch ravidsrk/p4-retry → PR #163 → merged 1d072ed, no squash.
+- Shared withRetry (exp backoff + full jitter): Resend 3 attempts on
+  exceptions/429/5xx (4xx fast-fail, UUID Idempotency-Key stable
+  across retries, info retry lines, single final error report);
+  fetchAllowedUrl one retry on a true total deadline (retryIf +
+  abort-aware sleep); cold browser launch one retry. Deterministic
+  failures fail fast, contracts unchanged. 20 new tests. G-08 CLOSED.
+- Greptile P1 (email dupes) + P2 (deadline overshoot) — both valid,
+  fixed + replied in-thread. Negative controls: unwired code fails
+  exactly the 8 behavior tests; header/sleep sabotage fails exactly
+  the 2 pinning tests.
+- Evidence: evidence/T-26-retry.txt.
+- resume_pointer: P4/T-28
