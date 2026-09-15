@@ -12,9 +12,29 @@ import {
   backupNamespace,
   restoreNamespace,
   verifyNamespace,
+  validateManifest,
+  parseArgs,
+  sha256,
   readNamespaces,
   resolveNamespace,
 } from '../scripts/kv-backup.mjs';
+
+function entry(name, text, expiration = null) {
+  const base64 = Buffer.from(text).toString('base64');
+  return { name, expiration, sha256: sha256(Buffer.from(text)), base64 };
+}
+
+function manifestOf(entries, over = {}) {
+  return {
+    binding: 'RESULTS',
+    namespaceId: 'test-ns',
+    takenAt: new Date().toISOString(),
+    keys: entries.length,
+    missing: 0,
+    entries,
+    ...over,
+  };
+}
 
 const REF = { binding: 'RESULTS', id: 'test-ns' };
 const scratch = () => mkdtempSync(join(tmpdir(), 'kvbu-'));
@@ -59,39 +79,79 @@ test('restore is dry-run unless --apply: plans without writing', async () => {
 
 test('restore preserves expirations as TTLs and skips already-expired keys', async () => {
   const now = Math.floor(Date.now() / 1000);
-  const manifest = {
-    binding: 'RESULTS',
-    namespaceId: 'test-ns',
-    takenAt: new Date().toISOString(),
-    keys: 3,
-    missing: 0,
-    entries: [
-      {
-        name: 'fresh',
-        expiration: now + 3600,
-        sha256: 'x',
-        base64: Buffer.from('f').toString('base64'),
-      },
-      {
-        name: 'durable',
-        expiration: null,
-        sha256: 'x',
-        base64: Buffer.from('d').toString('base64'),
-      },
-      {
-        name: 'stale',
-        expiration: now - 10,
-        sha256: 'x',
-        base64: Buffer.from('s').toString('base64'),
-      },
-    ],
-  };
+  const manifest = manifestOf([
+    entry('fresh', 'f', now + 3600),
+    entry('durable', 'd'),
+    entry('stale', 's', now - 10),
+  ]);
   const dst = capturing(memoryKv());
   const plan = await restoreNamespace(dst, manifest, { apply: true });
   expect(plan).toMatchObject({ writes: 2, skippedExpired: 1 });
   expect(dst.puts.find((p) => p.name === 'fresh').ttl).toBeGreaterThan(3500);
   expect(dst.puts.find((p) => p.name === 'durable').ttl).toBeUndefined();
   expect(dst.store.has('stale')).toBe(false);
+});
+
+test('short-lived entries are skipped, never resurrected past their span', async () => {
+  const now = Math.floor(Date.now() / 1000);
+  const manifest = manifestOf([entry('dying', 'x', now + 30)]);
+  const dst = capturing(memoryKv());
+  const plan = await restoreNamespace(dst, manifest, { apply: true });
+  expect(plan).toMatchObject({ writes: 0, skippedExpired: 1 });
+  expect(dst.store.has('dying')).toBe(false);
+});
+
+test('damaged manifests abort before any write', async () => {
+  const good = entry('a', 'hello');
+  const bad = { ...entry('b', 'world'), base64: Buffer.from('EVIL').toString('base64') };
+  const manifest = manifestOf([good, bad]);
+  const dst = capturing(memoryKv());
+  await expect(restoreNamespace(dst, manifest, { apply: true })).rejects.toThrow(
+    'checksum mismatch'
+  );
+  expect(dst.store.size).toBe(0);
+});
+
+test('cross-namespace manifests are refused', async () => {
+  const manifest = manifestOf([entry('a', 'hello')], {
+    binding: 'RATE_LIMIT',
+    namespaceId: 'other',
+  });
+  const dst = memoryKv();
+  await expect(
+    restoreNamespace(dst, manifest, { apply: true, target: { binding: 'RESULTS', id: 'test-ns' } })
+  ).rejects.toThrow('cross-namespace');
+  expect(validateManifest(manifest, null)).toHaveLength(1);
+});
+
+test('vanished keys (CF 404) count as missing, not fatal', async () => {
+  const fetchImpl = async (url) => {
+    if (url.includes('/keys?')) {
+      return Response.json({
+        success: true,
+        result: [{ name: 'r:a' }, { name: 'r:gone' }],
+        result_info: { cursor: '', count: 2, list_complete: true },
+      });
+    }
+    if (url.includes('/values/r%3Aa')) return new Response('hello-A');
+    return new Response('not found', { status: 404 });
+  };
+  const kv = cfApiKv({ token: 't', accountId: 'a', namespaceId: 'n', fetchImpl });
+  const manifest = await backupNamespace(kv, REF, scratch());
+  expect(manifest.keys).toBe(1);
+  expect(manifest.missing).toBe(1);
+});
+
+test('arg parsing rejects empty values and unknown flags', () => {
+  expect(parseArgs(['backup', '--out', 'd', '--namespace', 'RESULTS'])).toEqual({
+    cmd: 'backup',
+    o: { out: 'd', namespace: 'RESULTS' },
+  });
+  expect(() => parseArgs(['restore', '--in', 'd', '--namespace'])).toThrow('needs a value');
+  expect(() => parseArgs(['restore', '--in', 'd', '--namespace', '--apply'])).toThrow(
+    'needs a value'
+  );
+  expect(() => parseArgs(['backup', '--bogus'])).toThrow('unknown argument');
 });
 
 test('verify reports missing and divergent keys', async () => {

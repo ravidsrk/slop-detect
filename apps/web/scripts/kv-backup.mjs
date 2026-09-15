@@ -68,7 +68,11 @@ export function cfApiKv({ token, accountId, namespaceId, fetchImpl = globalThis.
   const headers = { Authorization: `Bearer ${token}` };
   async function req(path, init = {}) {
     const res = await fetchImpl(base + path, { ...init, headers });
-    if (!res.ok) throw new Error(`CF API ${init.method || 'GET'} ${path}: ${res.status}`);
+    if (!res.ok) {
+      const err = new Error(`CF API ${init.method || 'GET'} ${path}: ${res.status}`);
+      err.status = res.status;
+      throw err;
+    }
     return res;
   }
   return {
@@ -89,9 +93,14 @@ export function cfApiKv({ token, accountId, namespaceId, fetchImpl = globalThis.
       return out;
     },
     async getRaw(name) {
-      const res = await req(`/values/${encodeURIComponent(name)}`);
-      if (res.status === 404) return null;
-      return Buffer.from(await res.arrayBuffer());
+      try {
+        const res = await req(`/values/${encodeURIComponent(name)}`);
+        return Buffer.from(await res.arrayBuffer());
+      } catch (e) {
+        // Vanished between list and get: count as missing, don't abort the backup.
+        if (e.status === 404) return null;
+        throw e;
+      }
     },
     async putRaw(name, buf, { expirationTtl } = {}) {
       const qs = expirationTtl
@@ -149,19 +158,55 @@ export async function backupNamespace(kv, { binding, id }, outDir) {
   return manifest;
 }
 
-export async function restoreNamespace(kv, manifest, { apply = false } = {}) {
-  const now = Math.floor(Date.now() / 1000);
+// Validate every entry BEFORE writing anything: schema, checksum, and target match.
+// Throws on the first problem; the caller writes nothing until this returns.
+export function validateManifest(manifest, target) {
+  if (!manifest || !Array.isArray(manifest.entries))
+    throw new Error('manifest has no entries array');
+  if (target) {
+    if (manifest.binding && manifest.binding !== target.binding) {
+      throw new Error(
+        `manifest is for ${manifest.binding}, target is ${target.binding} — refusing cross-namespace restore`
+      );
+    }
+    if (manifest.namespaceId && manifest.namespaceId !== target.id) {
+      throw new Error(
+        'manifest namespaceId does not match target — refusing cross-namespace restore'
+      );
+    }
+  }
+  return manifest.entries.map((e, i) => {
+    if (typeof e?.name !== 'string' || !e.name) throw new Error(`entry ${i}: bad name`);
+    if (typeof e?.base64 !== 'string') throw new Error(`entry ${i} (${e.name}): bad base64`);
+    let raw;
+    try {
+      raw = Buffer.from(e.base64, 'base64');
+    } catch {
+      throw new Error(`entry ${i} (${e.name}): undecodable base64`);
+    }
+    if (sha256(raw) !== e.sha256)
+      throw new Error(
+        `entry ${i} (${e.name}): checksum mismatch — manifest damaged, refusing to write`
+      );
+    return { ...e, raw };
+  });
+}
+
+export async function restoreNamespace(kv, manifest, { apply = false, target = null } = {}) {
+  const validated = validateManifest(manifest, target);
   const plan = { writes: 0, skippedExpired: 0, bytes: 0 };
-  for (const e of manifest.entries) {
-    if (e.expiration && e.expiration <= now) {
+  for (const e of validated) {
+    // Re-evaluate expiry per write: short-lived keys that would come back with
+    // less than a floor of life are skipped, never resurrected past their span.
+    const remaining = e.expiration ? e.expiration - Math.floor(Date.now() / 1000) : null;
+    if (remaining !== null && remaining < MIN_TTL) {
       plan.skippedExpired++;
       continue;
     }
     plan.writes++;
-    plan.bytes += Buffer.byteLength(e.base64, 'base64');
+    plan.bytes += e.raw.length;
     if (apply) {
-      const ttl = e.expiration ? e.expiration - now : null;
-      await kv.putRaw(e.name, Buffer.from(e.base64, 'base64'), ttl ? { expirationTtl: ttl } : {});
+      await kv.putRaw(e.name, e.raw, remaining !== null ? { expirationTtl: remaining } : {});
     }
   }
   return plan;
@@ -196,16 +241,23 @@ function usage(exit = 2) {
   process.exit(exit);
 }
 
-function args() {
-  const a = process.argv.slice(2);
-  const cmd = a[0];
-  const o = { _: [] };
-  for (let i = 1; i < a.length; i++) {
-    if (a[i] === '--apply') o.apply = true;
-    else if (a[i] === '--out') o.out = a[++i];
-    else if (a[i] === '--in') o.in = a[++i];
-    else if (a[i] === '--namespace') o.namespace = a[++i];
-    else o._.push(a[i]);
+class UsageError extends Error {}
+
+export function parseArgs(argv) {
+  const cmd = argv[0];
+  const o = {};
+  for (let i = 1; i < argv.length; i++) {
+    if (argv[i] === '--apply') o.apply = true;
+    else if (argv[i] === '--out' || argv[i] === '--in' || argv[i] === '--namespace') {
+      const v = argv[++i];
+      // A missing or flag-shaped value must fail loudly: silently treating
+      // `--namespace` with no value as "all namespaces" has written to the
+      // wrong place in every tool that allowed it.
+      if (v === undefined || v === '' || v.startsWith('--')) {
+        throw new UsageError(`${argv[i - 1]} needs a value`);
+      }
+      o[argv[i - 1].slice(2)] = v;
+    } else throw new UsageError(`unknown argument ${JSON.stringify(argv[i])}`);
   }
   return { cmd, o };
 }
@@ -221,7 +273,16 @@ function liveKv(namespaceId) {
 }
 
 async function main() {
-  const { cmd, o } = args();
+  let cmd, o;
+  try {
+    ({ cmd, o } = parseArgs(process.argv.slice(2)));
+  } catch (e) {
+    if (e instanceof UsageError) {
+      console.error(`kv-backup: ${e.message}`);
+      usage();
+    }
+    throw e;
+  }
   if (!['backup', 'restore', 'verify'].includes(cmd)) usage();
   const refs = o.namespace
     ? [resolveNamespace(o.namespace)]
@@ -235,15 +296,20 @@ async function main() {
     }
   } else {
     if (!o.in || !existsSync(o.in)) usage();
+    let processed = 0;
     for (const ref of refs) {
       const dir = join(resolve(o.in), ref.binding);
       if (!existsSync(join(dir, 'manifest.json'))) {
         console.error(`skip ${ref.binding}: no manifest in ${dir}`);
         continue;
       }
+      processed++;
       const manifest = JSON.parse(readFileSync(join(dir, 'manifest.json'), 'utf8'));
       if (cmd === 'restore') {
-        const plan = await restoreNamespace(liveKv(ref.id), manifest, { apply: !!o.apply });
+        const plan = await restoreNamespace(liveKv(ref.id), manifest, {
+          apply: !!o.apply,
+          target: ref,
+        });
         console.error(
           `restore ${ref.binding} ${o.apply ? 'APPLIED' : 'DRY-RUN'}: ${plan.writes} writes, ${plan.skippedExpired} skipped-expired, ${plan.bytes} bytes`
         );
@@ -255,6 +321,13 @@ async function main() {
         for (const m of v.mismatched.slice(0, 20)) console.error(`  ${m.reason} ${m.name}`);
         if (v.mismatched.length) process.exit(1);
       }
+    }
+    // An input dir with no usable manifests must fail, never report success.
+    if (!processed) {
+      console.error(
+        `kv-backup: no manifests found under ${resolve(o.in)} for the selected namespace(s)`
+      );
+      process.exit(1);
     }
   }
 }

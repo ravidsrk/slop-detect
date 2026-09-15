@@ -41,11 +41,13 @@ bun apps/web/scripts/kv-backup.mjs restore --in kv-backup-2026-09-14
 bun apps/web/scripts/kv-backup.mjs restore --in kv-backup-2026-09-14 --apply
 ```
 
-Semantics: every manifest entry is re-put (binary-safe); recorded expirations
-are restored as TTLs (60s floor); already-expired entries are skipped with a
-warning. Keys created after the backup are untouched. There is no delete path
-— if you need a key gone, delete it explicitly with
-`wrangler kv key delete`.
+Semantics: the manifest is fully validated first (schema, per-entry sha256,
+binding/namespace match) and restore aborts before any write on damage.
+Every valid entry is re-put (binary-safe); recorded expirations are restored
+as TTLs; entries already expired — or expiring within 60s — are skipped, never
+resurrected. Keys created after the backup are untouched. An input dir with no
+usable manifests fails loudly (exit 1). There is no delete path — if you need
+a key gone, delete it explicitly with `wrangler kv key delete`.
 
 ## Cadence
 

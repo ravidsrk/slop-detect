@@ -170,7 +170,11 @@
   backend-agnostic core; CF API backend (paginated list, raw bytes, TTL restore, 60s floor).
   8-test rehearsal: memory round-trip, dry-run safety, TTL preservation, expiry skip,
   mismatch detection, pagination + error paths, wrangler namespace parsing. Runbook docs/KV_BACKUP.md.
-- Evidence: evidence/T-08-restore.txt (all 0; web 326). Review: greptile local.
+- Evidence: evidence/T-08-restore.txt (all 0; web 331 with 13 backup tests). Review: greptile
+  local, 5 P1s — ALL fixed in-branch: 404-safe backup counting; pre-write manifest validation
+  (schema+checksum+target); per-write expiry with short-TTL skip (no resurrection); strict arg
+  parsing; empty-input failure. Tests added for each.
+- artifacts: /tmp/kvbu-empty (CLI guard probe; DELETE in S6).
 - second look: single-key PUT loop chosen over bulk endpoint for binary certainty at our
   scale; restore is upsert-only (no delete path) — both stated in the runbook.
 - resume_pointer: P2/T-09
