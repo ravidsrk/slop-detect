@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Northwind Traders — Wholesale dry goods since 1987</title>
+  <style>
+    /* Per-pattern golden for accent_stripe (T-18a): two card-sized blocks
+       with a thick colored top border and thin other borders. Deliberately
+       plain otherwise (system serif, no purple CTAs) so the stripe is the
+       only layout tell under test. */
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:Georgia, 'Times New Roman', serif; background:#ffffff;
+           color:#1a1a1a; padding:48px 24px; max-width:900px; margin:0 auto; }
+    header p { color:#555; margin-top:8px; }
+    h1 { font-size:40px; font-weight:700; margin:16px 0 12px; }
+    .lede { font-size:18px; color:#333; margin-bottom:32px; }
+    .card { width:100%; min-height:120px; padding:20px 24px; margin:0 0 20px;
+            border-top:4px solid #b3541e; border-right:1px solid #ddd;
+            border-bottom:1px solid #ddd; border-left:1px solid #ddd;
+            border-radius:6px; background:#fafafa; }
+    .card h2 { font-size:22px; margin-bottom:8px; }
+    .card p { font-size:16px; color:#333; }
+    footer { margin-top:32px; color:#555; font-size:14px; }
+  </style>
+</head>
+<body>
+  <header><p>Est. 1987 — Portland, OR</p></header>
+  <h1>Wholesale dry goods, honestly priced</h1>
+  <p class="lede">Flour, sugar, salt, and grains in bulk for bakeries and restaurants.</p>
+  <section class="card"><h2>Bakery program</h2><p>Weekly delivery, 50lb sacks, milled to order every Tuesday morning.</p></section>
+  <section class="card"><h2>Restaurant program</h2><p>Standing orders with net-30 terms and a dedicated account manager.</p></section>
+  <footer>Northwind Traders — 417 Front St — (503) 555-0119</footer>
+</body>
+</html>
