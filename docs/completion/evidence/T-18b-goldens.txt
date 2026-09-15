@@ -1,0 +1,32 @@
+T-18b — per-pattern golden coverage, batch 2 (IDs 10-18) (G-18/gh-92)
+Branch: ravidsrk/p3-goldens-b
+
+CHANGE (extends the T-18a registry in pattern-coverage.test.js):
+- 9 new CASES rows: all_caps_labels, perma_dark_mode (reuses
+  slop-vibecode: dark bg + grey text), icon_card_grid, numbered_steps,
+  stat_banner, faq_accordion, gradient_letter_avatars, bento_grid,
+  aurora_mesh_gradient.
+- 8 new pat-* fixtures (see git status); negative-anchor test renamed
+  (now covers all registered IDs, still 0 fired on clean-artisan).
+
+GOTCHA (fixture design rule): fixtures need >=10 visible elements or
+scanUrl returns blocked/empty_page. Four first-draft fixtures came in
+thin (6-9 els) and failed as blocked — padded with plain paragraphs;
+no extractor changes needed.
+
+LOCAL RUN (RUN_GOLDEN=1): 19 passed (19), ~11s.
+NEGATIVE CONTROL: bento span 2->1 (uniform grid, no span variety) =>
+  exactly bento_grid fails (1 failed | 18 passed); restored green.
+=== FORMAT ===
+FORMAT_EXIT=0
+=== LINT ===
+LINT_EXIT=0
+=== TYPECHECK ===
+TYPECHECK_EXIT=0
+=== TEST ===
+TEST_EXIT=0
+@slop-detect/action:test:       Tests  7 passed (7)
+@slop-detect/core:test:       Tests  77 passed (77)
+slop-detect-mcp:test:       Tests  14 passed (14)
+slop-detect-web:test:       Tests  367 passed (367)
+slop-detect:test:       Tests  12 passed | 31 skipped (43)

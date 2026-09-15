@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kiln &amp; Co — The autumn collection</title>
+  <style>
+    /* Per-pattern golden for bento_grid (T-18b): a 3-column grid of five
+       rounded cards with mixed column spans. Plain otherwise. */
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:Georgia, 'Times New Roman', serif; background:#fff;
+           color:#1a1a1a; padding:48px 24px; }
+    .wrap { max-width:1000px; margin:0 auto; }
+    h1 { font-size:38px; margin-bottom:8px; }
+    .lede { font-size:18px; color:#333; margin-bottom:28px; }
+    .bento { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    .tile { min-height:180px; padding:20px; border:1px solid #ddd;
+            border-radius:16px; background:#fafafa; }
+    .tile.wide { grid-column:span 2; }
+    .tile h2 { font-size:20px; margin-bottom:8px; }
+    .tile p { font-size:15px; color:#333; }
+    footer { margin-top:32px; color:#555; font-size:14px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>The autumn collection</h1>
+    <p class="lede">Five new stoneware lines, fired in small batches.</p>
+    <section class="bento">
+      <div class="tile wide"><h2>Hearth dinner set</h2><p>Sixteen pieces in speckled oat glaze.</p></div>
+      <div class="tile"><h2>Ember mugs</h2><p>Set of four, wood-fired finish.</p></div>
+      <div class="tile"><h2>Ash vases</h2><p>Three heights for dried stems.</p></div>
+      <div class="tile"><h2>Cinder bowls</h2><p>Stacking set of six.</p></div>
+      <div class="tile"><h2>Smoke plates</h2><p>Side plates with a matte rim.</p></div>
+    </section>
+    <footer>Kiln &amp; Co — Stoke-on-Trent</footer>
+  </div>
+</body>
+</html>
