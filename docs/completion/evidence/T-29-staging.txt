@@ -1,0 +1,59 @@
+T-29 — staging story + KV namespaces (G-10 + G-11) — DONE (agent part; live verify = H-01)
+Branch: ravidsrk/p4-staging
+
+CLAIM: the staging story is fully specified and every checkable part is
+verified; only the credential-gated live run remains (H-01), exactly the
+T-08 precedent ("DONE (agent part; prod run = H-01)", G-13 closed).
+
+CHANGE (docs + script + workflow + tests; zero prod-code changes):
+- docs/STAGING.md (new): environments table (production main/CI-gated,
+  PR previews, local sim), branch controls (main-only prod, previews
+  promote by merge only), the safety interlock, KV namespace strategy
+  table, kv-namespaces.mjs usage, 5-step H-01 finishing checklist,
+  staging secrets map (no webhook/Resend on previews, low daily cap).
+- .github/workflows/preview.yml (new): PR -> branch preview deploy,
+  mirroring deploy.yml's pinned actions, secrets, and build+test gates.
+  Concurrency per-PR with supersede. Self-skips with notice (never red)
+  unless secrets exist AND a live preview_id is in wrangler.toml — the
+  interlock that makes prod-KV-binding previews impossible. PR comment
+  via preinstalled gh (no new action pins).
+- apps/web/scripts/kv-namespaces.mjs (new, no deps): list / ensure
+  (idempotent by title, dry-run unless --apply) / check (wrangler prod
+  IDs exist). Mirrors kv-backup.mjs CLI conventions + main guard.
+- apps/web/wrangler.toml: commented preview_id template (placeholders
+  non-hex by construction). Mechanism verified by doc search:
+  preview_id (not env blocks) is what branch preview deployments bind.
+- apps/web/scripts/kv-backup.mjs: readNamespaces() now strips
+  full-line comments — found by inspection while adding the template:
+  without it the template's placeholder IDs would parse as live config
+  and corrupt the backup map. Real landmine, fixed + tested.
+
+TESTS (+8: kv-namespaces 7, kv-backup 1):
+- Titles, idempotent ensure (no POST), dry-run vs --apply, unknown
+  binding rejected pre-API, check ok/failures, 403 surfacing, parseArgs.
+- Commented examples never parse (reads the live wrangler.toml WITH
+  the new template as fixture — fails if stripping regresses).
+- docs-alignment guard extended to STAGING.md (routes + links).
+
+VERIFICATION WITHOUT H-01 (each checkable claim checked):
+- pyyaml parses preview.yml; all 3 action pins byte-match existing
+  repo pins (no new supply chain).
+- Interlock grep executed: 6 commented preview_id mentions, 0 live ->
+  workflow correctly self-skips today.
+- Script CLI smoke: list/ensure/check fail fast with the H-01 message
+  when creds are absent (no stack traces, no partial writes).
+- Full gates green (below); web 441 = 433 + 8 exact.
+
+LIVE REMAINDER (H-01 holder, all in STAGING.md checklist): set secrets,
+ensure both preview namespaces, add preview_id lines via PR, open a PR
+and watch preview.yml go green, verify preview health + scan + zero new
+production keys, run check.
+
+=== FORMAT ===
+FORMAT_EXIT=0
+=== TYPECHECK ===
+TYPECHECK_EXIT=0
+=== TEST ===
+BUN_TEST_EXIT=0
+slop-detect-web:test:       Tests  441 passed (441)
+(433 base + 8 new, exact.)
