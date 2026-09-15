@@ -531,7 +531,7 @@
       "issue_url": null,
       "severity": "S2",
       "source": ["gh-101"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-19a", "T-19b"]
     },
     {
@@ -867,7 +867,7 @@
       "issue_url": null,
       "severity": "S2",
       "source": ["gh-99"],
-      "status": "open",
+      "status": "partial",
       "tasks": ["T-19c"]
     },
     {
@@ -1638,7 +1638,8 @@
       "pr": 150,
       "review": null,
       "size": "S",
-      "status": "in_review"
+      "status": "done",
+      "merged": "cfdaf63"
     },
     {
       "attempts": 0,
@@ -1654,7 +1655,8 @@
       "pr": 150,
       "review": null,
       "size": "S",
-      "status": "in_review"
+      "status": "done",
+      "merged": "cfdaf63"
     },
     {
       "attempts": 0,
