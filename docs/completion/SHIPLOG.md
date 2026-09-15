@@ -532,3 +532,12 @@
   Live baseline red (3× ENOTFOUND, exit 1) as expected pre-H-03.
 - Evidence: evidence/T-37-emailauth.txt.
 - resume_pointer: P6/T-38
+
+## 2026-09-15 S3/P6 T-38 truthfulness pass (G-42) — DONE
+- branch ravidsrk/p6-truth → PR #181 → merged a0aa5dc, no squash.
+- Killed the live-false $29 line (trial copy + pricing link), qualified
+  README, verified daily/27/JSON-LD/links true. truth.test.js: 4 tests
+  (surface sweep, count parity, contract chain, href mapping). G-42 CLOSED.
+- Greptile 3 P2 — all fixed + replied in-thread.
+- Evidence: evidence/T-38-truth.txt.
+- resume_pointer: P6/T-35

@@ -1,0 +1,27 @@
+T-38 Landing/pricing truthfulness — evidence (run 20260914-S1)
+===========================================================
+Branch: ravidsrk/p6-truth → PR #181 → merged a0aa5dc (merge commit, no squash)
+Gap closed: G-42 (S2). No owner remainder.
+
+Audit (each claim checked against code):
+- FALSE, fixed: _ui.tsx monitor fine print quoted $29–$149/mo (live, wrong).
+  Monitoring is a free validation trial (plan:'trial', pricing.md); $29 is the
+  post-launch plan in #102. Now 'free during validation' + pricing link;
+  README 'paid layer' line qualified the same way.
+- TRUE, verified: 'daily sweep' (monitor-sweep.yml cron 17 8 * * *, skip-
+  with-notice without CRON_SECRET, RUNBOOKS caveat); '27-pattern'
+  (PATTERNS 27 / COPY 9 / AEO 8, verified live); JSON-LD price 0;
+  VALIDATION.md link target exists.
+
+Deliverables (all on main @ a0aa5dc):
+- _ui.tsx + README.md copy fixes.
+- truth.test.js (4 tests): full-surface price sweep (public/** + README +
+  _ui, audited $2M+ allowlist), engine count parity, sweep contract chain,
+  href→target mapping.
+
+Greptile: 3 P2, all fixed + replied in-thread (surface discovery, config-
+dependent contract, real href validation).
+
+Gates (local, pre-push): format:check exit 0; typecheck 6/6;
+web 499 passed (43 files).
+Final CI on 3f02d6e: all 6 checks pass (incl. Greptile Review).
