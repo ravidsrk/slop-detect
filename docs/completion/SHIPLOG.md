@@ -395,7 +395,9 @@
 - Daily ops blobs (per-route req/status, tiers, nav buckets, 30d
   TTL) via waitUntil; single-writer per route; /api/stats ops
   surface; share:false skips all bumps; peek-first + bounded
-  pre-admission parse. 15 new tests. G-05/G-44 CLOSED.
+  pre-admission parse. 18 new tests (stats 5, middleware 8,
+  scan-contract 3, api-stats 2, incl. greptile-fix additions).
+  G-05/G-44 CLOSED.
 - Greptile 4 P1/P2 + 1 follow-up P1 (race, opt-out×2, peek
   bound, parallel reads) — all fixed, replied in-thread.
 - Evidence: evidence/T-24-ops.txt.

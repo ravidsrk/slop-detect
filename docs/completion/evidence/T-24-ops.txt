@@ -38,11 +38,14 @@ top-of-middleware peek serving both consumers. This also repairs the
 latent pre-existing fix-prompt{url} gating peek, which had the same
 exposure with real Requests.
 
-TESTS: stats.test.js +5 (merge incl. no-double-count + bucketing,
-TTL + corruption restart, never-throws, getOpsStats); middleware +4
-(pass bump, rejection bump, missing-KV skip, share:false opt-out);
-scan-contract +1 (tier/navMs detail, req stays 0); api-stats +2 (ops
-surface, null-blessed). Full web suite green (see gates).
+TESTS (merged totals, incl. greptile-fix additions — the pre-fix
+draft of this paragraph listed 12; corrected in PR #160): stats +5
+(merge incl. no-double-count + bucketing, TTL + corruption restart,
+never-throws, getOpsStats); middleware +8 (pass bump, scan skip,
+rejection bump, missing-KV skip, share:false opt-out, 2 bounded-peek
+skips, share:false rejection); scan-contract +3 (single-writer
+success bump, BROWSER-missing 500, early-error bump); api-stats +2
+(ops surface, null-blessed). Total +18. Full web suite green.
 === FORMAT ===
 FORMAT_EXIT=0
 === LINT ===
