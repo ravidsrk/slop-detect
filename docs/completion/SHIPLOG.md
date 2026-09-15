@@ -488,3 +488,15 @@
   a reply corrected with a follow-up). Final CI all green.
 - Evidence: evidence/T-30-terms.txt.
 - resume_pointer: P5/T-31
+
+## 2026-09-15 S3/P5 T-31 mail compliance (G-16, G-46) — DONE (agent part; secrets = H-02)
+- branch ravidsrk/p5-mail → PR #173 → merged 7ad6ac7, no squash.
+- mailFooter on all 4 mails (false reply-to-unsub deleted); HMAC one-click
+  (GET confirms/POST performs/stale 403/replay 200); shared
+  performUnsubscribe; Svix bounce webhook + suppression gate; sweep
+  fail-closed without postal/secret (notified stays false, retry-safe).
+  G-16/G-46 CLOSED. H-02 extended (postal + webhook secret + registration).
+- Greptile 2 P1 + 1 P2 — all fixed + replied in-thread. COST-2 1→2 reads
+  surfaced with cost math; chain test pins List-Unsubscribe end to end.
+- Evidence: evidence/T-31-mail.txt.
+- resume_pointer: P5/T-32

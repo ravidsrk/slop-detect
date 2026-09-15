@@ -303,7 +303,7 @@
       "status": "works"
     }
   ],
-  "current_commit": "ce05b7c1c3a7cead8346ffd6bb9a597fe8c09547",
+  "current_commit": "7ad6ac7664f52237a274a346e6b689a222335799",
   "definition_frozen_at": "6770c58",
   "gaps": [
     {
@@ -495,7 +495,7 @@
       "issue_url": null,
       "severity": "S1",
       "source": ["F-15-04", "R-04"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-31"]
     },
     {
@@ -855,7 +855,7 @@
       "issue_url": null,
       "severity": "S2",
       "source": ["F-R-09"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-31"]
     },
     {
@@ -992,7 +992,7 @@
     {
       "gates_launch": true,
       "id": "H-02",
-      "instruction": "Set CRON_SECRET, Resend key, INTERNAL_API_KEY, SESSION_SECRET in Pages env (#96)",
+      "instruction": "Set CRON_SECRET, Resend key, INTERNAL_API_KEY, SESSION_SECRET in Pages env (#96); T-31 adds MAIL_POSTAL_ADDRESS (CAN-SPAM street address) + RESEND_WEBHOOK_SECRET and registering https://slop-detect.com/api/email/webhook for email.bounced/email.complained in the Resend dashboard (see docs/EMAIL.md)",
       "issue_url": null,
       "status": "open",
       "unblocks": ["CF-04-prod"],
@@ -1287,7 +1287,7 @@
       "url": "child-transcript:C1-C16"
     }
   ],
-  "resume_pointer": "P5/T-31",
+  "resume_pointer": "P5/T-32",
   "run_id": "20260914-S1",
   "stage": "S3",
   "tasks": [
@@ -1876,17 +1876,18 @@
     {
       "attempts": 0,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p5-mail",
       "depends_on": [],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-31-mail.txt"],
       "gaps": ["G-16", "G-46"],
       "id": "T-31",
       "owner": "agent",
       "plan_phase": "P5",
-      "pr": null,
+      "pr": 173,
       "review": null,
       "size": "M",
-      "status": "todo"
+      "status": "done",
+      "merged": "7ad6ac7"
     },
     {
       "attempts": 0,
