@@ -16,13 +16,24 @@ CHANGE:
   (new email_retry event: attempt/delayMs/status); only the FINAL
   outcome reports at error — one flaky send never pages 3x. Return
   shape byte-stable ({sent, reason|id}; http_NNN reasons preserved).
-  Callers (watch in-request, sweep cron, link waitUntil) untouched.
+  One UUID Idempotency-Key per logical send, stable across in-loop
+  retries (greptile P1: without it, accepted-but-lost attempt + retry
+  = duplicate email; verified against Resend's idempotency docs —
+  same key replays the response, no resend, 24h window). Random per
+  call is deliberate (same-key/different-body 422s); cross-CALL dupes
+  stay the caller's notified-flag job, as before retries. Callers
+  (watch in-request, sweep cron, link waitUntil) untouched.
   In-request worst case (watch verification): ~1s extra on failure
   path only; success path unchanged (zero sleeps).
 - _ssrf.ts fetchAllowedUrl (+attempts=2, sleep, jitter opts): one
   retry on network/timeout/429/5xx. Attempts share ONE deadline, so
   timeoutMs stays a TOTAL budget (retryIf fails fast once the
-  controller aborts — pinned by a 50ms/1ms-margin test). Blocks,
+  controller aborts — pinned by a 50ms/1ms-margin test — plus
+  sleepUntilAbort: the backoff sleep itself resolves early on abort,
+  so a sleep starting just before the deadline can't run ~200ms past
+  it and launch a doomed fetch (greptile P2; pinned by a
+  timeoutMs=20/elapsed<150 test using the real default sleep with a
+  signal-honoring stub). Blocks,
   other statuses, exhausted hops return normally, never retried.
   Retries restart the redirect chain (documented; safe: the only
   caller is the GET-only DESIGN.md fetch in scan.ts).
@@ -40,13 +51,17 @@ DELIBERATELY NOT retried (in _retry.ts header + here):
 - CLI browser (packages/cli): local tool, user re-runs; P4 operates
   the server. Different policy if ever wanted (follow-up, not taken).
 
-TESTS: apps/web/test/retry.test.js (+16, all fake-sleep):
+TESTS: apps/web/test/retry.test.js (+20: 17 fake-or-no-sleep,
+3 real-timer with wide margins — 50ms deadline, 5ms abort, 20ms sleep):
 withRetry x6 (first-try, exp schedule [250,500], last-error identity,
-retryIf fast-fail, cap+jitter bounds, attempts:1 single-shot); email
-x3 (500->ok, 429/exception->ok + 400 fast-fail, exhaust 503 w/ single
-final report); fetch x5 (blip->ok, 500->ok + 404 as-is, block =
-zero fetches, redirect-chain restart [md,/b,md,/b], total-budget
-deadline); browser x2 (launch blip->ok, exhaust surfaces 2nd error).
+retryIf fast-fail, cap+jitter bounds, attempts:1 single-shot);
+sleepUntilAbort x2 (already-aborted instant, mid-sleep abort early);
+email x4 (500->ok, 429/exception->ok + 400 fast-fail, exhaust 503 w/
+single final report, Idempotency-Key stable UUID across attempts);
+fetch x6 (blip->ok, 500->ok + 404 as-is, block = zero fetches,
+redirect-chain restart [md,/b,md,/b], total-budget deadline,
+backoff sleep ends at deadline w/ real default sleep); browser x2
+(launch blip->ok, exhaust surfaces 2nd error).
 
 NEGATIVE CONTROL: with _retry.ts + tests present but the three wiring
 edits reverted, exactly the 8 retry-behavior tests FAIL (3 email + 3
@@ -63,6 +78,6 @@ BUN_TEST_EXIT=0
 @slop-detect/core:test:       Tests  77 passed (77)
 slop-detect-mcp:test:       Tests  14 passed (14)
 slop-detect:test:       Tests  13 passed | 40 skipped (53)
-slop-detect-web:test:       Tests  426 passed (426)
-(410 base + 16 new, exact; full web suite 36 files green, no regressions
+slop-detect-web:test:       Tests  430 passed (430)
+(410 base + 20 new, exact; full web suite green, no regressions
 in existing email/ssrf/browser tests — the 422-fails-fast contract held.)

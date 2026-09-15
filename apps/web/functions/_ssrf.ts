@@ -10,7 +10,7 @@
 //
 // validateScanUrl returns a normalized https URL string on success, or
 // { error, status } to return verbatim to the caller.
-import { withRetry } from './_retry.js';
+import { withRetry, sleepUntilAbort } from './_retry.js';
 
 const PRIVATE_HOSTNAMES = new Set(['localhost', 'ip6-localhost', 'ip6-loopback']);
 
@@ -126,10 +126,13 @@ export function isAllowedUrl(raw) {
 //
 // Retry (T-26): one retry on network errors, timeouts, and 429/5xx. All
 // attempts share the single deadline above, so timeoutMs stays a TOTAL
-// budget — retrying past it fails fast via retryIf instead of sleeping.
-// Blocks, other statuses, and exhausted hops return normally and are never
-// retried. A retry restarts the redirect chain from the original URL: safe
-// for idempotent callers (today: the GET-only DESIGN.md fetch in scan.ts).
+// budget: retryIf fails fast once the controller aborts, and the backoff
+// sleep itself resolves early on abort (sleepUntilAbort) so a sleep that
+// starts just before the deadline can't run ~200ms past it and launch a
+// doomed fetch. Blocks, other statuses, and exhausted hops return normally
+// and are never retried. A retry restarts the redirect chain from the
+// original URL: safe for idempotent callers (today: the GET-only DESIGN.md
+// fetch in scan.ts).
 export async function fetchAllowedUrl(
   url,
   init = {},
@@ -161,7 +164,13 @@ export async function fetchAllowedUrl(
         }
         return null;
       },
-      { attempts, baseMs: 200, sleep, jitter, retryIf: () => !controller.signal.aborted }
+      {
+        attempts,
+        baseMs: 200,
+        sleep: sleep ?? ((ms) => sleepUntilAbort(ms, controller.signal)),
+        jitter,
+        retryIf: () => !controller.signal.aborted,
+      }
     );
   } catch (_) {
     return null;

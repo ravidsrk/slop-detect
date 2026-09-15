@@ -34,6 +34,26 @@ export type RetryOptions = {
 
 const defaultSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
+/**
+ * Sleep that resolves early when the signal aborts — for retries sharing a
+ * total deadline (fetchAllowedUrl): without this, a backoff that starts just
+ * before the deadline would run past it and launch a doomed attempt.
+ */
+export function sleepUntilAbort(ms: number, signal: AbortSignal): Promise<void> {
+  if (signal.aborted) return Promise.resolve();
+  return new Promise((resolve) => {
+    const t = setTimeout(() => {
+      signal.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(t);
+      resolve();
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
 export function backoffMs(attempt: number, baseMs: number, maxMs: number): number {
   return Math.min(maxMs, baseMs * 2 ** (attempt - 1));
 }

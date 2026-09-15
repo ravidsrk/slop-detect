@@ -32,6 +32,14 @@ export async function sendEmail(
     return { sent: false, reason: 'no_provider' };
   }
   try {
+    // One UUID per LOGICAL send, reused across in-loop retries: if Resend
+    // accepted an attempt but its response was lost, the retry replays the
+    // original response instead of sending a duplicate (keys live 24h).
+    // Random per call is deliberate — never reuse a key across distinct
+    // sends (Resend 422s same-key/different-body). Cross-CALL dupes (e.g.
+    // sweep crash after send, before the notified flag persists) remain
+    // the caller's job, exactly as before retries existed.
+    const idempotencyKey = crypto.randomUUID();
     // Retry network exceptions + 429/5xx (3 attempts); other 4xx fail fast —
     // a rejected address won't become valid on retry. Retries log at info
     // (log-only); only the FINAL outcome reports at error, so one flaky
@@ -43,6 +51,7 @@ export async function sendEmail(
           headers: {
             Authorization: `Bearer ${env.RESEND_API_KEY}`,
             'Content-Type': 'application/json',
+            'Idempotency-Key': idempotencyKey,
           },
           body: JSON.stringify({
             from: env.ALERT_FROM,

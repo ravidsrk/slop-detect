@@ -5,7 +5,7 @@
 
 import { test, expect, vi, beforeEach, afterEach } from 'vitest';
 
-import { withRetry, backoffMs } from '../functions/_retry.ts';
+import { withRetry, backoffMs, sleepUntilAbort } from '../functions/_retry.ts';
 import { sendEmail } from '../functions/_email.ts';
 import { fetchAllowedUrl } from '../functions/_ssrf.ts';
 
@@ -150,6 +150,21 @@ test('backoff schedule caps at maxMs; jitter stays within [0, cap]', async () =>
   expect(delays[0]).toBeLessThanOrEqual(1000);
 });
 
+test('sleepUntilAbort resolves immediately on an already-aborted signal', async () => {
+  const c = new AbortController();
+  c.abort();
+  // Would hang 10s with a naive sleep; must resolve now.
+  await sleepUntilAbort(10_000, c.signal);
+});
+
+test('sleepUntilAbort resolves early when abort fires mid-sleep', async () => {
+  const c = new AbortController();
+  setTimeout(() => c.abort(), 5);
+  const start = Date.now();
+  await sleepUntilAbort(10_000, c.signal);
+  expect(Date.now() - start).toBeLessThan(1000);
+});
+
 test('attempts: 1 is a single shot (escape hatch = old behavior)', async () => {
   const { sleeps, sleep } = fakeSleeper();
   let calls = 0;
@@ -227,6 +242,27 @@ test('sendEmail retries 429 and network exceptions, fails fast on 400', async ()
   );
   expect(r3).toEqual({ sent: false, reason: 'http_400' });
   expect(calls).toBe(1);
+});
+
+test('sendEmail reuses one Idempotency-Key across retries (no duplicate sends)', async () => {
+  const { sleep } = fakeSleeper();
+  const keys = [];
+  let calls = 0;
+  const r = await sendEmail(
+    mailEnv,
+    mail,
+    async (_url, init) => {
+      keys.push(init.headers['Idempotency-Key']);
+      return ++calls < 3 ? new Response('blip', { status: 500 }) : okMail();
+    },
+    { sleep, jitter: false }
+  );
+  expect(r.sent).toBe(true);
+  expect(keys).toHaveLength(3);
+  // Stable across attempts (fresh-per-attempt would defeat Resend's dedupe),
+  // UUID-shaped (Resend's recommended format, <= 256 chars).
+  expect(new Set(keys).size).toBe(1);
+  expect(keys[0]).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
 });
 
 test('sendEmail reports once after exhausting retries (no triple page)', async () => {
@@ -312,6 +348,28 @@ test('fetchAllowedUrl restarts the redirect chain on retry (idempotent GET)', as
   expect(res?.ok).toBe(true);
   // Attempt 1: md -> 302 -> /b throws. Attempt 2 restarts at md (not /b).
   expect(seen).toEqual([MD_URL, 'https://example.com/b', MD_URL, 'https://example.com/b']);
+});
+
+test('fetchAllowedUrl backoff sleep ends at the deadline (no 200ms overshoot)', async () => {
+  // Attempt 1 fails BEFORE the deadline (retryIf passes), so the 200ms
+  // backoff starts — but the abort at 20ms must cut it short. Uses the REAL
+  // default sleep wiring (no fake), with a stub that honors the signal like
+  // production fetch. Without sleepUntilAbort this returns at ~200ms+.
+  const seenAborted = [];
+  let calls = 0;
+  globalThis.fetch = async (_url, init) => {
+    calls++;
+    seenAborted.push(!!init?.signal?.aborted);
+    if (init?.signal?.aborted) throw new DOMException('aborted', 'AbortError');
+    throw new Error('blip before deadline');
+  };
+  const start = Date.now();
+  const res = await fetchAllowedUrl(MD_URL, {}, { timeoutMs: 20, jitter: false });
+  const elapsed = Date.now() - start;
+  expect(res).toBeNull();
+  expect(calls).toBe(2);
+  expect(seenAborted).toEqual([false, true]);
+  expect(elapsed).toBeLessThan(150);
 });
 
 test('fetchAllowedUrl treats timeoutMs as a TOTAL budget (no retry past deadline)', async () => {
