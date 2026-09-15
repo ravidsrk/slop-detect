@@ -320,3 +320,13 @@
   the new file (23 passed incl. 10 new). Zero review threads.
 - Evidence: evidence/T-18a-goldens.txt.
 - resume_pointer: P3/T-18b
+
+## 2026-09-15 S3/P3 T-18b per-pattern goldens batch 2 (G-18/gh-92) — DONE
+- branch ravidsrk/p3-goldens-b → PR #144 → merged 0f458fc, no squash.
+- Registry grows to 18 IDs: 8 new pat-* fixtures (perma_dark reuses
+  slop-vibecode); clean-artisan anchor still 0 fired. Fixture rule:
+  >=10 visible elements or the scan blocks as empty_page.
+- Teeth-checked: uniform-span bento fails exactly its case. Local
+  19/19; CI smoke green. Greptile P2 (missing pr link) fixed in-thread.
+- Evidence: evidence/T-18b-goldens.txt.
+- resume_pointer: P3/T-18c

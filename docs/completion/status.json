@@ -1604,7 +1604,8 @@
       "pr": 144,
       "review": null,
       "size": "S",
-      "status": "in_review"
+      "status": "done",
+      "merged": "0f458fc"
     },
     {
       "attempts": 0,
