@@ -48,6 +48,27 @@ test('an unrelated include (google) FAILS — only Resend infra passes', async (
   expect(r.checks.spf.reason).toMatch(/amazonses/);
 });
 
+test('SPF lookalikes FAIL: exp= modifier and -/~/? qualifiers are not passes', async () => {
+  // Greptile follow-up P1 on PR #179: mechanisms, not substrings.
+  for (const spf of [
+    'v=spf1 exp=include:amazonses.com -all',
+    'v=spf1 -include:amazonses.com ~all',
+    'v=spf1 ~include:amazonses.com -all',
+    'v=spf1 redirect=example.com',
+  ]) {
+    const r = await checkEmailAuth(
+      'slop-detect.com',
+      stub({ ...GOOD, 'slop-detect.com': [[spf]] })
+    );
+    expect(r.ok, spf).toBe(false);
+  }
+  const plus = await checkEmailAuth(
+    'slop-detect.com',
+    stub({ ...GOOD, 'slop-detect.com': [['v=spf1 +include:amazonses.com -all']] })
+  );
+  expect(plus.ok).toBe(true);
+});
+
 test('missing DKIM record FAILS with the Resend pointer', async () => {
   const { ['resend._domainkey.slop-detect.com']: _drop, ...rest } = GOOD;
   const r = await checkEmailAuth('slop-detect.com', stub(rest));
@@ -66,6 +87,19 @@ test('missing DMARC FAILS; p=none still passes (reported, not gated)', async () 
   );
   expect(nopolicy.ok).toBe(false);
   expect(nopolicy.checks.dmarc.reason).toMatch(/no valid p=/);
+  // Greptile follow-up P1 on PR #179: sp= must not satisfy the top-level p=.
+  const subonly = await checkEmailAuth(
+    'slop-detect.com',
+    stub({ ...GOOD, '_dmarc.slop-detect.com': [['v=DMARC1; sp=none']] })
+  );
+  expect(subonly.ok).toBe(false);
+  // Tags are case-insensitive per RFC 7489 §6.3.
+  const upper = await checkEmailAuth(
+    'slop-detect.com',
+    stub({ ...GOOD, '_dmarc.slop-detect.com': [['v=DMARC1; P=REJECT']] })
+  );
+  expect(upper.ok).toBe(true);
+  expect(upper.checks.dmarc.policy).toBe('reject');
   const none = await checkEmailAuth(
     'slop-detect.com',
     stub({ ...GOOD, '_dmarc.slop-detect.com': [['v=DMARC1; p=none']] })

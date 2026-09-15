@@ -29,12 +29,17 @@ export async function checkEmailAuth(domain, resolveTxt) {
 
   // SPF: v=spf1 authorizing Resend's sending infrastructure
   // (include:amazonses.com per the Resend domain-setup docs — Resend sends
-  // via SES). Any other include (e.g. _spf.google.com) or a bare -all would
-  // fail every Resend send, so it must not pass (greptile P1 on PR #179).
+  // via SES). Parsed as whitespace-separated MECHANISMS, not substring
+  // search (greptile P1s on PR #179): `exp=include:amazonses.com` is a
+  // modifier, not an authorization, and `-include:`/`~include:`/`?include:`
+  // are explicit non-pass qualifiers — only bare or `+` passes.
   const spf = await txt(domain);
   if (Array.isArray(spf)) {
     const rec = spf.find((r) => r.startsWith('v=spf1'));
-    const authorizesResend = rec && /include:amazonses\.com(\s|$)/.test(rec);
+    const mechanisms = rec ? rec.split(/\s+/) : [];
+    const authorizesResend = mechanisms.some(
+      (m) => m === 'include:amazonses.com' || m === '+include:amazonses.com'
+    );
     results.spf = authorizesResend
       ? { ok: true, record: rec }
       : {
@@ -58,13 +63,29 @@ export async function checkEmailAuth(domain, resolveTxt) {
     results.dkim = { ok: false, reason: `DNS lookup failed: ${dkim.error}` };
   }
 
-  // DMARC: v=DMARC1 with an EXPLICIT valid policy (greptile P1 on PR #179:
-  // a bare `v=DMARC1; rua=…` without p= must not pass). The policy value is
-  // reported, not gated — none/quarantine/reject all pass.
+  // DMARC: v=DMARC1 with an EXPLICIT top-level p= policy (greptile P1s on
+  // PR #179: a bare `v=DMARC1; rua=…` without p=, or `sp=none` matching a
+  // naive /p=/ regex, must not pass). Tags are parsed on `;` and matched
+  // case-insensitively per RFC 7489 §6.3; the value is reported, not gated.
   const dmarc = await txt(`_dmarc.${domain}`);
   if (Array.isArray(dmarc)) {
     const rec = dmarc.find((r) => r.startsWith('v=DMARC1'));
-    const policy = rec && (rec.match(/p=(none|quarantine|reject)/) || [])[1];
+    const policy =
+      rec &&
+      (() => {
+        for (const part of rec.split(';')) {
+          const eq = part.indexOf('=');
+          if (eq < 0) continue;
+          if (part.slice(0, eq).trim().toLowerCase() !== 'p') continue;
+          const v = part
+            .slice(eq + 1)
+            .trim()
+            .toLowerCase();
+          if (['none', 'quarantine', 'reject'].includes(v)) return v;
+          return null;
+        }
+        return null;
+      })();
     results.dmarc =
       rec && policy
         ? { ok: true, record: rec, policy }
