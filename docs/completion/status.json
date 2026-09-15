@@ -1419,23 +1419,24 @@
       "pr": "https://github.com/ravidsrk/slop-detect/pull/131",
       "review": "greptile",
       "size": "M",
-      "status": "done"
+      "status": "done",
+      "merged": "382d0f6"
     },
     {
       "attempts": 0,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p2-authz",
       "commit": null,
       "depends_on": [],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-09-authz.txt"],
       "gaps": ["G-22", "G-23"],
       "id": "T-09",
       "owner": "agent",
       "plan_phase": "P2",
-      "pr": null,
+      "pr": "https://github.com/ravidsrk/slop-detect/pull/132",
       "review": null,
       "size": "M",
-      "status": "todo"
+      "status": "in_review"
     },
     {
       "attempts": 3,
