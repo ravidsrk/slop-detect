@@ -42,6 +42,27 @@ describe('esbuildNamePolyfills', () => {
   });
 });
 
+// ── Assembler-level fixture: a helper-bearing extractor must be declared ────
+test('buildPageScript declares helpers referenced by bundled-style extractors', () => {
+  // Simulates esbuild-bundled extractor source (cf. the __name2 local-dev
+  // failure): toString carries a deduped helper ref the assembler must declare.
+  // try/finally: PATTERNS is module-shared; never leak the stub.
+  const victim = PATTERNS[0];
+  const orig = victim.extract;
+  const stub = () => ({});
+  stub.toString = () => '(ctx) => ({ triggered: false, probe: __name7(ctx) })';
+  victim.extract = stub;
+  try {
+    const script = buildPageScript();
+    expect(script).toContain('__name7(ctx)');
+    expect(script).toContain('const __name7 = (fn) => fn;');
+  } finally {
+    victim.extract = orig;
+  }
+  // The stub leaked nowhere: a clean rebuild carries no trace of it.
+  expect(buildPageScript()).not.toContain('__name7');
+});
+
 test('buildPageScript with includeSystem injects system axis extractor', () => {
   const script = buildPageScript({ includeSystem: true });
   expect(script).toMatchSnapshot();
