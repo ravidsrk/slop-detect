@@ -35,7 +35,17 @@ test('a bare v=spf1 -all FAILS (would reject every Resend send)', async () => {
     stub({ ...GOOD, 'slop-detect.com': [['v=spf1 -all']] })
   );
   expect(r.ok).toBe(false);
-  expect(r.checks.spf.reason).toMatch(/no include/);
+  expect(r.checks.spf.reason).toMatch(/does not authorize Resend/);
+});
+
+test('an unrelated include (google) FAILS — only Resend infra passes', async () => {
+  // Greptile P1 on PR #179: the gate must not go green on someone else's SPF.
+  const r = await checkEmailAuth(
+    'slop-detect.com',
+    stub({ ...GOOD, 'slop-detect.com': [['v=spf1 include:_spf.google.com -all']] })
+  );
+  expect(r.ok).toBe(false);
+  expect(r.checks.spf.reason).toMatch(/amazonses/);
 });
 
 test('missing DKIM record FAILS with the Resend pointer', async () => {
@@ -49,6 +59,13 @@ test('missing DMARC FAILS; p=none still passes (reported, not gated)', async () 
   const { ['_dmarc.slop-detect.com']: _drop, ...rest } = GOOD;
   const missing = await checkEmailAuth('slop-detect.com', stub(rest));
   expect(missing.ok).toBe(false);
+  // Greptile P1 on PR #179: a policy-less record must not pass either.
+  const nopolicy = await checkEmailAuth(
+    'slop-detect.com',
+    stub({ ...GOOD, '_dmarc.slop-detect.com': [['v=DMARC1; rua=mailto:x@y']] })
+  );
+  expect(nopolicy.ok).toBe(false);
+  expect(nopolicy.checks.dmarc.reason).toMatch(/no valid p=/);
   const none = await checkEmailAuth(
     'slop-detect.com',
     stub({ ...GOOD, '_dmarc.slop-detect.com': [['v=DMARC1; p=none']] })

@@ -26,8 +26,9 @@ post-verify gate the owner re-runs until green.
 `checkEmailAuth` (`apps/web/functions/_emailauth.ts`, tested in
 `test/email-auth.test.js` with a stub resolver):
 
-- **spf**: a `v=spf1` record with an `include:` mechanism exists. A bare
-  `v=spf1 -all` FAILS on purpose — it would reject every Resend send.
+- **spf**: a `v=spf1` record with `include:amazonses.com` exists (Resend
+  sends via SES — see the Resend domain-setup docs). Any other include or
+  a bare `-all` FAILS on purpose — it would reject every Resend send.
 - **dkim**: `resend._domainkey` resolves a `v=DKIM1` record.
 - **dmarc**: `_dmarc` resolves `v=DMARC1` with a `p=` policy. Any policy
   passes; the policy is reported so hardening (`none` → `quarantine` →

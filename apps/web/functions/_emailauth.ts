@@ -7,7 +7,7 @@
 //
 // What PASS means (shape, not exact strings — DKIM keys are tenant-specific,
 // copy them from the Resend dashboard):
-//   spf:   TXT @ contains a v=spf1 record with an `include:` mechanism
+//   spf:   TXT @ contains v=spf1 with include:amazonses.com (Resend's infra)
 //   dkim:  TXT resend._domainkey.<domain> starts with v=DKIM1
 //   dmarc: TXT _dmarc.<domain> starts with v=DMARC1 and carries a p= policy
 //          (any of none/quarantine/reject passes the check; the policy is
@@ -27,18 +27,22 @@ export async function checkEmailAuth(domain, resolveTxt) {
     }
   };
 
-  // SPF: any v=spf1 record with an include mechanism (bare `v=spf1 -all`
-  // would fail every Resend send, so it must not pass).
+  // SPF: v=spf1 authorizing Resend's sending infrastructure
+  // (include:amazonses.com per the Resend domain-setup docs — Resend sends
+  // via SES). Any other include (e.g. _spf.google.com) or a bare -all would
+  // fail every Resend send, so it must not pass (greptile P1 on PR #179).
   const spf = await txt(domain);
   if (Array.isArray(spf)) {
     const rec = spf.find((r) => r.startsWith('v=spf1'));
-    results.spf =
-      rec && /include:\S+/.test(rec)
-        ? { ok: true, record: rec }
-        : {
-            ok: false,
-            reason: rec ? 'no include mechanism (would fail all sends)' : 'no v=spf1 record',
-          };
+    const authorizesResend = rec && /include:amazonses\.com(\s|$)/.test(rec);
+    results.spf = authorizesResend
+      ? { ok: true, record: rec }
+      : {
+          ok: false,
+          reason: rec
+            ? 'SPF does not authorize Resend (need include:amazonses.com)'
+            : 'no v=spf1 record',
+        };
   } else {
     results.spf = { ok: false, reason: `DNS lookup failed: ${spf.error}` };
   }
@@ -54,14 +58,17 @@ export async function checkEmailAuth(domain, resolveTxt) {
     results.dkim = { ok: false, reason: `DNS lookup failed: ${dkim.error}` };
   }
 
-  // DMARC: v=DMARC1 with an explicit policy; the policy is reported, not gated.
+  // DMARC: v=DMARC1 with an EXPLICIT valid policy (greptile P1 on PR #179:
+  // a bare `v=DMARC1; rua=…` without p= must not pass). The policy value is
+  // reported, not gated — none/quarantine/reject all pass.
   const dmarc = await txt(`_dmarc.${domain}`);
   if (Array.isArray(dmarc)) {
     const rec = dmarc.find((r) => r.startsWith('v=DMARC1'));
     const policy = rec && (rec.match(/p=(none|quarantine|reject)/) || [])[1];
-    results.dmarc = rec
-      ? { ok: true, record: rec, policy: policy || 'unspecified' }
-      : { ok: false, reason: 'no v=DMARC1 record' };
+    results.dmarc =
+      rec && policy
+        ? { ok: true, record: rec, policy }
+        : { ok: false, reason: rec ? 'no valid p= policy' : 'no v=DMARC1 record' };
   } else {
     results.dmarc = { ok: false, reason: `DNS lookup failed: ${dmarc.error}` };
   }
