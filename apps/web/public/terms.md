@@ -27,8 +27,9 @@ professional advice.
   may be billed per the [pricing page](/pricing.md). During the current
   validation phase monitoring is free to try.
 - Free tiers are subject to per-IP rate limits, a Turnstile challenge on the
-  web form, and fail-closed scan routes under load. Paid monitoring gets its
-  documented quotas instead of begging the rate limiter.
+  web form, and fail-closed scan routes under load. Paid-plan quotas will be
+  documented on the pricing page when paid plans launch; during validation,
+  monitoring shares the free-tier abuse controls.
 
 ## 3. Acceptable use
 
@@ -52,10 +53,16 @@ that violate these terms, without notice.
 ## 4. Your content and scan results
 
 - Scan results (score, triggered patterns, title/H1 — never full page
-  content) are stored for ~90 days and may appear on public pages: the
-  shareable result permalink, per-domain score pages and history, and
-  aggregate statistics/leaderboard.
-- Pass `share: false` on a scan request to skip storage entirely.
+  content) are stored with three different retention periods:
+  - the result permalink/badge payload: ~90 days;
+  - the per-domain score history behind `/score/<domain>`: up to 1 year,
+    refreshed on each new scan of the domain;
+  - aggregate statistics (score distribution, category averages — no URLs,
+    no emails): retained indefinitely.
+  All three may appear on public pages (result permalink, per-domain score
+  pages, leaderboard).
+- Pass `share: false` on a scan request to skip all storage entirely — no
+  result, no history point, no aggregate contribution.
 - Domains appear in the public directory **only** with explicit opt-in
   (`list: true`); scanning never lists a site.
 - Email addresses are handled under the [privacy policy](/privacy.md):

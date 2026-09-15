@@ -47,12 +47,46 @@ test('terms acceptable-use matches the SSRF guard and abuse controls', () => {
 test('terms storage claims match the persistence code', () => {
   // scan.ts: body.share === false skips saveResult/recordScan entirely.
   expect(terms).toMatch(/share:\s*false/);
-  // _data.ts RESULT_TTL = 90 days; watch.ts reconciles list:true rows only.
-  expect(terms).toMatch(/90 days/);
+  // Three retention tiers, not one (greptile P1 on PR #171): RESULT_TTL =
+  // 90 days for the payload, WATCH_TTL = 1 year rolling for the h: history
+  // key, aggregates immortal. watch.ts reconciles list:true rows only.
+  expect(terms).toMatch(/~90 days/);
+  expect(terms).toMatch(/up to 1 year/);
+  expect(terms).toMatch(/retained indefinitely/);
+  expect(terms).toMatch(/no history point, no aggregate contribution/);
   expect(terms).toMatch(/list:\s*true/);
   expect(terms).toMatch(/never full page/i);
   // _email.ts has no delivery guarantee; the terms must not promise one.
   expect(terms).toMatch(/don't\s+guarantee every alert arrives/);
+});
+
+test('terms make no promise about paid quotas that pricing does not define', () => {
+  // Greptile P2 on PR #171: pricing.md only documents the validation trial,
+  // and watch.ts assigns plan:'trial' — so the terms must not claim paid
+  // monitoring gets "documented quotas" until pricing defines them.
+  expect(terms).not.toMatch(/documented quotas/);
+  expect(terms).toMatch(/when paid plans launch/);
+});
+
+test('legal claims are wired to implementation tripwires', () => {
+  // Greptile P2 on PR #171: text-only parity tests stay green if the
+  // control is deleted. Each named control below must still exist in the
+  // implementation, or this test fails alongside the behavioral suite
+  // (ssrf.test.js, middleware.test.js, kv-ttl.test.js, sweep tests).
+  const ssrf = fs.readFileSync(path.join(FUNCTIONS, '_ssrf.ts'), 'utf8');
+  expect(ssrf, 'SSRF guard still blocks private ranges').toContain('isPrivateIPv4');
+  expect(ssrf, 'SSRF guard still covers cloud metadata').toContain('169');
+  const mw = fs.readFileSync(path.join(FUNCTIONS, 'api', '_middleware.ts'), 'utf8');
+  expect(mw, 'per-IP rate limiting still enforced').toContain('RATE_LIMIT');
+  expect(mw, 'Turnstile challenge still referenced').toMatch(/turnstile/i);
+  const sweep = fs.readFileSync(path.join(FUNCTIONS, '_sweep.ts'), 'utf8');
+  expect(sweep, 'sweep still skips unverified watches').toContain('!w.verified');
+  expect(sweep, 'sweep re-checks verification on fresh reads').toContain('!fresh.verified');
+  const scan = fs.readFileSync(path.join(FUNCTIONS, 'api', 'scan.ts'), 'utf8');
+  expect(scan, 'share:false still skips persistence').toContain('body.share !== false');
+  expect(data, 'history key still carries the 1-year rolling TTL').toMatch(
+    /h:\$\{domain\}.*WATCH_TTL/
+  );
 });
 
 test('terms licensing matches LICENSE and pricing.md', () => {
@@ -104,6 +138,8 @@ test('privacy policy: retention table matches the TTL constants', () => {
   // every scan via putWatch in recordScanForWatch), VERIFY_TTL = 7d,
   // DASHBOARD_TOKEN_TTL = 15min; dashboard/link.ts sets a 30-day cookie.
   expect(privacy).toMatch(/90 days/);
+  expect(privacy).toMatch(/score-history point lives up to 1 year/);
+  expect(privacy).toMatch(/Anonymous aggregate statistics/);
   expect(privacy).toMatch(/up to 1 year/);
   expect(privacy).toMatch(/7 days/);
   expect(privacy).toMatch(/15 minutes/);
