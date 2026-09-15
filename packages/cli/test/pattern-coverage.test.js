@@ -8,11 +8,12 @@
 // Same gating as golden.test.js: needs Playwright + Chromium, so it runs under
 // RUN_GOLDEN=1 (locally + the CI "Smoke test CLI" job, which is required on
 // every PR — a regression in any extractor fails the PR). Batches: T-18a
-// added IDs 1–9, T-18b adds 10–18 below, T-18c adds 19–27 (the clean-anchor
-// negative at the bottom iterates CASES, so it grows with each batch).
+// added IDs 1–9, T-18b 10–18, T-18c 19–27 below (the clean-anchor negative
+// at the bottom iterates CASES, so it covers all 27).
 
 import { test, expect } from 'vitest';
 import { scanUrl } from '../src/index.ts';
+import { PATTERNS } from '@slop-detect/core';
 
 const RUN = process.env.RUN_GOLDEN === '1';
 const fixture = (name) => new URL(`./fixtures/${name}`, import.meta.url).href;
@@ -44,6 +45,16 @@ const CASES = [
   ['gradient_letter_avatars', 'pat-gradient_letter_avatars.html'],
   ['bento_grid', 'pat-bento_grid.html'],
   ['aurora_mesh_gradient', 'pat-aurora_mesh_gradient.html'],
+  // ── T-18c batch (IDs 19–27) ──
+  ['ai_sparkle_badges', 'pat-ai_sparkle_badges.html'],
+  ['cream_default_bg', 'pat-cream_default_bg.html'],
+  ['low_contrast_text', 'pat-low_contrast_text.html'],
+  ['crushed_tracking', 'pat-crushed_tracking.html'],
+  ['gray_on_color', 'pat-gray_on_color.html'],
+  ['oversized_hero_h1', 'pat-oversized_hero_h1.html'],
+  ['nested_cards', 'pat-nested_cards.html'],
+  ['wide_body_tracking', 'pat-wide_body_tracking.html'],
+  ['flat_type_hierarchy', 'pat-flat_type_hierarchy.html'],
 ];
 
 for (const [id, fx] of CASES) {
@@ -58,6 +69,12 @@ for (const [id, fx] of CASES) {
     expect(evKeys.length).toBeGreaterThan(0);
   });
 }
+
+test('registry covers every engine pattern id (no silent gaps)', () => {
+  // Unskipped on purpose: a future 28th pattern with no positive fixture
+  // must fail the DEFAULT suite, not just the golden run.
+  expect(CASES.map(([id]) => id).sort()).toEqual(PATTERNS.map((p) => p.id).sort());
+});
 
 test(
   'clean-artisan trips none of the registered patterns (negative anchor)',
