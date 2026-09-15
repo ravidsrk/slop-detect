@@ -1,0 +1,21 @@
+T-36 Support channel doc — evidence (run 20260914-S1)
+====================================================
+Branch: ravidsrk/p6-support → PR #177 → merged 03a091a (merge commit, no squash)
+Gap closed: G-41 (S3). G-57 stays open per ACCEPT convention (G-45 precedent):
+documented model (issues-only, no SLA), no expiry, not a risk.
+P6 phase active. No owner remainder.
+
+Deliverables (all on main @ 03a091a):
+- docs/SUPPORT.md: issues-only routing table, best-effort expectations,
+  scan-output sanitization steps, secret hygiene, private security
+  reporting pointer, scope (supported / best-effort / out of scope).
+- README.md Support section linking the doc.
+- .github/ISSUE_TEMPLATE/bug_report.md: 'paste full JSON' → sanitized
+  output instructions (same P1 fix as the doc).
+
+Greptile: 1 P1 (security) + 2 P2, all fixed + replied in-thread (output
+sanitization with detector.ts field verification; privacy deep link;
+CLI-no-auth narrowing with flag verification).
+
+Gates: format:check exit 0 (docs-only; full suite green in CI).
+Final CI on 87249c5: all 6 checks pass (incl. Greptile Review).

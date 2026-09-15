@@ -513,3 +513,12 @@
   null-body 400, counter disclosure/deletion + tripwire).
 - Evidence: evidence/T-32-rights.txt.
 - resume_pointer: P6/T-36
+
+## 2026-09-15 S3/P6 T-36 support channel (G-41) — DONE
+- branch ravidsrk/p6-support → PR #177 → merged 03a091a, no squash.
+- SUPPORT.md (routing, expectations, sanitization, hygiene, scope) +
+  README section + bug template fix. G-41 CLOSED; G-57 stays open per
+  ACCEPT convention (documented model, no expiry). P6 `active`.
+- Greptile 1 P1 + 2 P2 — all fixed + replied in-thread.
+- Evidence: evidence/T-36-support.txt.
+- resume_pointer: P6/T-37
