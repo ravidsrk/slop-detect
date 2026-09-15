@@ -296,3 +296,5 @@
 - Evidence: evidence/T-20-trap.txt (all 0; web 367). Greptile 2 P1 + 2
   P2s — all fixed, replied in-thread.
 - resume_pointer: P3/T-21
+
+# T-21 done — PR #140 merged (spec drift + sync guard, greptile P2 fixed in-thread fab64db)
