@@ -1,0 +1,68 @@
+T-26 — retry/backoff on external calls (G-08)
+Branch: ravidsrk/p4-retry
+
+CLAIM: Resend sends, SSRF-guarded fetches, and browser launches now
+retry transient failures with exponential backoff + full jitter, while
+deterministic failures (SSRF blocks, 4xx, exhausted hops) still fail
+fast with contracts unchanged.
+
+CHANGE:
+- apps/web/functions/_retry.ts (new): withRetry(fn, {attempts, baseMs,
+  maxMs, jitter, retryIf, sleep, random, onRetry}) + backoffMs. Final
+  error rethrown UNWRAPPED (identity preserved). Injectable sleep +
+  random keep tests deterministic.
+- _email.ts sendEmail (+4th param retry={}): 3 attempts on network
+  exceptions + 429/5xx; other 4xx fail fast. Retries log at info
+  (new email_retry event: attempt/delayMs/status); only the FINAL
+  outcome reports at error — one flaky send never pages 3x. Return
+  shape byte-stable ({sent, reason|id}; http_NNN reasons preserved).
+  Callers (watch in-request, sweep cron, link waitUntil) untouched.
+  In-request worst case (watch verification): ~1s extra on failure
+  path only; success path unchanged (zero sleeps).
+- _ssrf.ts fetchAllowedUrl (+attempts=2, sleep, jitter opts): one
+  retry on network/timeout/429/5xx. Attempts share ONE deadline, so
+  timeoutMs stays a TOTAL budget (retryIf fails fast once the
+  controller aborts — pinned by a 50ms/1ms-margin test). Blocks,
+  other statuses, exhausted hops return normally, never retried.
+  Retries restart the redirect chain (documented; safe: the only
+  caller is the GET-only DESIGN.md fetch in scan.ts).
+- _browser.ts acquireBrowser (+attempts=2, sleep, jitter opts): one
+  launch retry (base 500ms). connect() keeps fall-through (a dead
+  idle session isn't worth a backoff sleep). Final launch error
+  surfaces unchanged -> scan_failed as before.
+- docs/ALERTS.md: email_retry info row.
+
+DELIBERATELY NOT retried (in _retry.ts header + here):
+- ERROR_WEBHOOK posts: fire-and-forget by design; console line is the
+  durable record; retry risks duplicate pages.
+- page.goto: 25s timeout already generous; retry doubles user-visible
+  latency on targets that are usually just down.
+- CLI browser (packages/cli): local tool, user re-runs; P4 operates
+  the server. Different policy if ever wanted (follow-up, not taken).
+
+TESTS: apps/web/test/retry.test.js (+16, all fake-sleep):
+withRetry x6 (first-try, exp schedule [250,500], last-error identity,
+retryIf fast-fail, cap+jitter bounds, attempts:1 single-shot); email
+x3 (500->ok, 429/exception->ok + 400 fast-fail, exhaust 503 w/ single
+final report); fetch x5 (blip->ok, 500->ok + 404 as-is, block =
+zero fetches, redirect-chain restart [md,/b,md,/b], total-budget
+deadline); browser x2 (launch blip->ok, exhaust surfaces 2nd error).
+
+NEGATIVE CONTROL: with _retry.ts + tests present but the three wiring
+edits reverted, exactly the 8 retry-behavior tests FAIL (3 email + 3
+fetch + 2 browser) while the 6 unit + 2 fail-fast pins pass (old code
+trivially never retries). Wiring restored -> 16/16 green.
+
+=== FORMAT ===
+FORMAT_EXIT=0
+=== TYPECHECK ===
+TYPECHECK_EXIT=0
+=== TEST ===
+BUN_TEST_EXIT=0
+@slop-detect/action:test:       Tests  7 passed (7)
+@slop-detect/core:test:       Tests  77 passed (77)
+slop-detect-mcp:test:       Tests  14 passed (14)
+slop-detect:test:       Tests  13 passed | 40 skipped (53)
+slop-detect-web:test:       Tests  426 passed (426)
+(410 base + 16 new, exact; full web suite 36 files green, no regressions
+in existing email/ssrf/browser tests — the 422-fails-fast contract held.)

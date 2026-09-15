@@ -11,6 +11,7 @@
 // `fetchImpl` is injectable for tests.
 
 import { report } from './_report.js';
+import { withRetry, type RetryOptions } from './_retry.js';
 
 export function emailConfigured(env) {
   return !!(env && env.RESEND_API_KEY && env.ALERT_FROM);
@@ -19,7 +20,8 @@ export function emailConfigured(env) {
 export async function sendEmail(
   env,
   { to, subject, text, html }: { to: any; subject: any; text: any; html?: any },
-  fetchImpl = fetch
+  fetchImpl = fetch,
+  retry: RetryOptions = {}
 ) {
   if (!to || !subject || !(text || html)) {
     return { sent: false, reason: 'invalid_message' };
@@ -30,20 +32,49 @@ export async function sendEmail(
     return { sent: false, reason: 'no_provider' };
   }
   try {
-    const res = await fetchImpl('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
+    // Retry network exceptions + 429/5xx (3 attempts); other 4xx fail fast —
+    // a rejected address won't become valid on retry. Retries log at info
+    // (log-only); only the FINAL outcome reports at error, so one flaky
+    // send never pages three times.
+    const res = await withRetry(
+      async () => {
+        const res = await fetchImpl('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: env.ALERT_FROM,
+            to: [to],
+            subject,
+            text,
+            ...(html ? { html } : {}),
+          }),
+        });
+        if (!res.ok && (res.status === 429 || res.status >= 500)) {
+          const err: any = new Error(`resend http_${res.status}`);
+          err.resendStatus = res.status;
+          err.resendBody = await res.text().catch(() => '');
+          throw err;
+        }
+        return res;
       },
-      body: JSON.stringify({
-        from: env.ALERT_FROM,
-        to: [to],
-        subject,
-        text,
-        ...(html ? { html } : {}),
-      }),
-    });
+      {
+        attempts: 3,
+        baseMs: 250,
+        ...retry,
+        onRetry: (err, attempt, delayMs) => {
+          report(env, 'info', 'email_retry', {
+            attempt,
+            delayMs,
+            status: (err as any)?.resendStatus ?? null,
+            message: err && (err as any).message ? (err as any).message : String(err),
+          });
+          retry.onRetry?.(err, attempt, delayMs);
+        },
+      }
+    );
     if (!res.ok) {
       const body = await res.text().catch(() => '');
       // The provider echoes the recipient address back in error bodies, and this
@@ -57,6 +88,17 @@ export async function sendEmail(
     const data = await res.json().catch(() => ({}));
     return { sent: true, id: data.id || null };
   } catch (e) {
+    // Final failure after retries: a retryable status keeps its original
+    // http_NNN reason (same contract as the single-shot path); anything
+    // else is an exception.
+    const status = (e as any)?.resendStatus;
+    if (status) {
+      report(env, 'error', 'email_send_failed', {
+        status,
+        body: scrubEmails((e as any).resendBody || '').slice(0, 200),
+      });
+      return { sent: false, reason: `http_${status}` };
+    }
     report(env, 'error', 'email_send_error', { message: e && e.message ? e.message : String(e) });
     return { sent: false, reason: 'exception' };
   }
