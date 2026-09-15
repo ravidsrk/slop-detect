@@ -1,0 +1,46 @@
+S4 Stranger Test — evidence (run 20260914-S1)
+============================================
+Gate item 6: PASS. Fresh clone → first CF-01 scan via README alone
+in 92s (result permalink at 116s) against a 15-minute budget.
+
+Protocol: isolated subagent with no repo context, instructed to use
+only repo docs. Fresh clone of main to /tmp/s4-stranger-44509378
+(branch main @ 7008a98), README-only discipline, no repo writes.
+
+Task 1 (CF-01, timed):
+- Clone start 14:56:49 UTC → bun install done 14:57:24 (35s) →
+  first scan verdict 14:58:21 (92s) → permalink page 200 at
+  14:58:45 (116s). HN → score 6 Clean A-,
+  definitionsVersion 2026.09.
+- Independent corroboration (parent, second route): the reported
+  permalink https://slop-detect.com/r/1s2ck18t returns HTTP 200
+  with title "news.ycombinator.com scored A- (6/100) on the
+  AI-slop detector" (exact match); local artifact mtimes align
+  (scan.json 14:58:38 UTC).
+
+Task 2 (automated suite vs production, per scripts/s4/README.md):
+- `bun run s4 -- --target https://slop-detect.com` verbatim:
+  16:43:23 → 16:47:30 UTC (~4m07s), exit 0,
+  S4 RESULT: PASS — 22 pass / 6 skip (owner-named) / 0 fail,
+  per-flow tallies identical to the T-39 validation run.
+- Suite friction: none. Pre-build worked; every SKIP named
+  its owner.
+
+S4 friction findings (all fixed in PR #189, merged 6f526cb):
+1. Root quickstart omitted `bun run build` → web:dev failed fresh
+   (verified: 11× "Could not resolve @slop-detect/core"). Fixed.
+2. Stale "local dev can't scan" claims (apps/web/README.md,
+   CONTRIBUTING.md) — false since local Chromium works (stranger's
+   own :18888 scan returned a full verdict). Corrected.
+3. apps/web/README.md used npm commands in a bun repo. Bun-ified.
+4. Sample /api/scan response showed patternsTotal 16 (actual 27).
+5. Port-busy is environmental; added the verified --port hint.
+6. Suite undiscoverable from root README (zero hits). Pointer +
+   localhost recipe added (with required S4_SEED_URL).
++ Self-review in same PR: stale "17th pattern" → 28th.
+Greptile on #189: 2 P2 (broken relative link, overstated parity
+claim) — both fixed + replied in-thread.
+
+Residual S4 note: the isolated agent took ~2h wall-clock for both
+tasks (agent overhead + local-dev exploration), but the gate
+measures time-to-first-verdict (92s), not agent session length.

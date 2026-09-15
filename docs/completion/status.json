@@ -7,7 +7,9 @@
       "na_reason": null,
       "name": "product",
       "rag": "A",
-      "score": 2
+      "score": 2,
+      "s5_score": 3,
+      "s5_rationale": "flows E2E + stranger PASS; CF-04 mail H-gated"
     },
     {
       "evidence": [],
@@ -16,7 +18,9 @@
       "na_reason": null,
       "name": "functional",
       "rag": "A",
-      "score": 2
+      "score": 2,
+      "s5_score": 3,
+      "s5_rationale": "CF-02 characterized, CUT done; G-01/H + G-03/H-05 residuals"
     },
     {
       "evidence": [],
@@ -25,7 +29,9 @@
       "na_reason": null,
       "name": "code-quality",
       "rag": "A",
-      "score": 2
+      "score": 2,
+      "s5_score": 3,
+      "s5_rationale": "CI gates format+lint+type+test; big-file DEFER S3"
     },
     {
       "evidence": ["docs/completion/evidence/S1-coldstart-run.txt"],
@@ -34,7 +40,9 @@
       "na_reason": null,
       "name": "testing",
       "rag": "G",
-      "score": 3
+      "score": 3,
+      "s5_score": 4,
+      "s5_rationale": "E2E suite + goldens + mechanism proofs + stranger-verified"
     },
     {
       "evidence": ["docs/completion/evidence/S1-coldstart-run.txt"],
@@ -43,7 +51,9 @@
       "na_reason": null,
       "name": "security",
       "rag": "G",
-      "score": 3
+      "score": 3,
+      "s5_score": 3,
+      "s5_rationale": "authz/SSRF/limits/dep-baseline/hygiene; H-08 + sitekey residual open"
     },
     {
       "evidence": [],
@@ -52,7 +62,9 @@
       "na_reason": null,
       "name": "data",
       "rag": "A",
-      "score": 2
+      "score": 2,
+      "s5_score": 3,
+      "s5_rationale": "TTLs/counters/export/retention/backup-script; prod run = H-01"
     },
     {
       "evidence": ["docs/completion/evidence/S1-corroboration.txt"],
@@ -61,7 +73,9 @@
       "na_reason": null,
       "name": "infra-deploy",
       "rag": "A",
-      "score": 2
+      "score": 2,
+      "s5_score": 3,
+      "s5_rationale": "prod delivery PROVEN S5; staging coded, activation = H-01"
     },
     {
       "evidence": [],
@@ -70,7 +84,9 @@
       "na_reason": null,
       "name": "reliability",
       "rag": "A",
-      "score": 2
+      "score": 2,
+      "s5_score": 3,
+      "s5_rationale": "health live in prod, retries, runbooks, CAPACITY.md, kill switch"
     },
     {
       "evidence": [
@@ -82,7 +98,9 @@
       "na_reason": null,
       "name": "observability",
       "rag": "R",
-      "score": 1
+      "score": 1,
+      "s5_score": 3,
+      "s5_rationale": "request IDs, ops+flow metrics, alert proof; Logpush ACCEPT"
     },
     {
       "evidence": [],
@@ -91,7 +109,9 @@
       "na_reason": null,
       "name": "perf-cost",
       "rag": "A",
-      "score": 2
+      "score": 2,
+      "s5_score": 2,
+      "s5_rationale": "bounds + kill switch + tested counters; no load test (honest hold)"
     },
     {
       "evidence": [],
@@ -100,7 +120,9 @@
       "na_reason": null,
       "name": "integrations",
       "rag": "G",
-      "score": 3
+      "score": 3,
+      "s5_score": 3,
+      "s5_rationale": "fail-closed proven; staging keys = H-01"
     },
     {
       "evidence": ["docs/completion/evidence/S1-corroboration.txt"],
@@ -118,7 +140,9 @@
       "na_reason": null,
       "name": "ux-frontend",
       "rag": "G",
-      "score": 3
+      "score": 3,
+      "s5_score": 3,
+      "s5_rationale": "states, focus trap, stranger 92s real-path"
     },
     {
       "evidence": [],
@@ -127,7 +151,9 @@
       "na_reason": null,
       "name": "docs",
       "rag": "A",
-      "score": 2
+      "score": 2,
+      "s5_score": 3,
+      "s5_rationale": "runbooks, API+spec guard, REHEARSAL, S4-verified READMEs"
     },
     {
       "evidence": ["docs/completion/evidence/S1-corroboration.txt"],
@@ -136,7 +162,9 @@
       "na_reason": null,
       "name": "legal-compliance",
       "rag": "A",
-      "score": 2
+      "score": 2,
+      "s5_score": 3,
+      "s5_rationale": "terms, mail compliance, rights+retention, task-time verified"
     },
     {
       "evidence": ["docs/completion/evidence/S1-corroboration.txt"],
@@ -145,7 +173,9 @@
       "na_reason": null,
       "name": "gtm",
       "rag": "R",
-      "score": 1
+      "score": 1,
+      "s5_score": 2,
+      "s5_rationale": "support/pricing/analytics/email-auth/distribution closed; posts post-GO"
     },
     {
       "evidence": [],
@@ -154,7 +184,9 @@
       "na_reason": null,
       "name": "ownership-ops",
       "rag": "R",
-      "score": 1
+      "score": 1,
+      "s5_score": 2,
+      "s5_rationale": "runbooks/inventory/recovery; H-04 filed; bus-factor-1 remains"
     }
   ],
   "assumptions": [
@@ -237,12 +269,12 @@
   },
   "breakers_tripped": [],
   "cleanup": {
-    "branches_swept": 0,
-    "cleanup_pr": null,
+    "branches_swept": 42,
+    "cleanup_pr": 191,
     "manifest_undispositioned": 0,
     "orphan_evidence_removed": 0,
     "residue_consolidated": 0,
-    "scratch_dirs_removed": 0
+    "scratch_dirs_removed": 2
   },
   "completion_pct": 58.4,
   "critical_flows": [
@@ -303,7 +335,7 @@
       "status": "works"
     }
   ],
-  "current_commit": "8b2605729f5f2f512213844adc89805cd1469596",
+  "current_commit": "0140beaa6474b648ee506e26eb34d04dae004913",
   "definition_frozen_at": "6770c58",
   "gaps": [
     {
@@ -327,7 +359,7 @@
       "issue_url": null,
       "severity": "S0",
       "source": ["CF-02-partial"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-14"]
     },
     {
@@ -339,7 +371,7 @@
       "issue_url": null,
       "severity": "S1",
       "source": ["gh-100"],
-      "status": "open",
+      "status": "partial",
       "tasks": ["T-17"]
     },
     {
@@ -567,7 +599,7 @@
       "issue_url": null,
       "severity": "S1",
       "source": ["F-5-authz"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-09"]
     },
     {
@@ -579,7 +611,7 @@
       "issue_url": null,
       "severity": "S1",
       "source": ["F-11-02"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-09"]
     },
     {
@@ -625,9 +657,10 @@
       "decision": "FINISH",
       "id": "G-27",
       "issue_url": null,
+      "residual": "true cross-isolate atomicity accepted, tracked by OPEN #109 (T-11 bounded the same-isolate case + tests; see KV_LIMITS.md)",
       "severity": "S2",
       "source": ["gh-109", "F-R-11"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-11"]
     },
     {
@@ -639,7 +672,7 @@
       "issue_url": null,
       "severity": "S2",
       "source": ["F-R-12"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-11"]
     },
     {
@@ -651,7 +684,7 @@
       "issue_url": null,
       "severity": "S2",
       "source": ["F-R-08"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-12"]
     },
     {
@@ -663,7 +696,7 @@
       "issue_url": null,
       "severity": "S2",
       "source": ["F-13-03"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-20"]
     },
     {
@@ -675,7 +708,7 @@
       "issue_url": null,
       "severity": "S2",
       "source": ["F-14-04"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-21"]
     },
     {
@@ -879,7 +912,7 @@
       "issue_url": null,
       "severity": "S2",
       "source": ["F-2-05"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-16"]
     },
     {
@@ -968,8 +1001,8 @@
     }
   ],
   "gate": {
-    "reason": "Not evaluated until S5-A",
-    "status": "NOT_EVALUATED"
+    "status": "CONDITIONAL_GO",
+    "reason": "S5: items 1-3,5-8 met; item 4 (rollback live rehearsal) + CF-04 prod E2E + H-04/H-05 rest on launch-gating H-01/H-02/H-03/H-04/H-05. Evidence: S5-signoff.txt."
   },
   "history": [
     {
@@ -1088,8 +1121,8 @@
     {
       "exit_criteria": [
         {
-          "evidence": null,
-          "met": false,
+          "evidence": "T-08 restore core rehearsed (memory round-trip + dry-run safety, 13 tests green); CF transport = filed H-01 — S5-signoff.txt item 3",
+          "met": true,
           "text": "Backup restored (local rehearsal + prod H filed)"
         },
         {
@@ -1098,19 +1131,19 @@
           "text": "Secrets out of history/config"
         },
         {
-          "evidence": null,
-          "met": false,
+          "evidence": "T-09 authz matrix (16 tests + AUTHZ_MATRIX.md); G-22/G-23 closed in S5",
+          "met": true,
           "text": "Authz gaps closed"
         },
         {
-          "evidence": null,
-          "met": false,
+          "evidence": "T-06 fixed in-range (94→38); 2 remaining unreachable-in-prod → G-53 DEFER",
+          "met": true,
           "text": "Dependency criticals fixed or dispositioned (H/DEFER) with reachability analysis"
         }
       ],
       "id": "P2",
       "name": "Safety & kill switches",
-      "status": "active"
+      "status": "complete"
     },
     {
       "exit_criteria": [
@@ -1287,9 +1320,9 @@
       "url": "child-transcript:C1-C16"
     }
   ],
-  "resume_pointer": "S4",
+  "resume_pointer": "DONE",
   "run_id": "20260914-S1",
-  "stage": "S4",
+  "stage": "S6",
   "tasks": [
     {
       "attempts": 1,

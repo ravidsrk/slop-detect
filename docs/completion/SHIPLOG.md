@@ -570,3 +570,34 @@
 - Greptile 1 P2 — fixed (assembler fixture + mutation proof) + replied.
 - Evidence: evidence/T-40-env.txt.
 - resume_pointer: S4
+
+## 2026-09-15 S4 stranger test — PASS (gate item 6)
+- Isolated agent, fresh clone, README-only: first CF-01 verdict 92s,
+  permalink 116s (budget 15 min). Suite verbatim 22/6/0 in 4m07s.
+- Permalink independently re-verified (200 + exact title).
+- 6 friction findings → PR #189 (merged 6f526cb): build step, suite
+  pointer, can't-scan corrections, bun-ify, patternsTotal 27, port
+  hint. Greptile 2 P2 fixed + replied.
+- Evidence: evidence/S4-stranger.txt (+ run transcript
+  evidence/T-39-s4scripts.run.txt).
+
+## 2026-09-15 S5 sign-off — CONDITIONAL GO
+- Gate: items 1-3,5-8 met; item 4 (rollback live rehearsal) +
+  CF-04 prod E2E + H-04/H-05 rest on launch-gating H-01..H-05.
+- Scores re-derived: 1-9 all ≥3 (A4=4), 10-17 all ≥2 (A10 honest
+  hold at 2); frozen scores preserved, s5_* fields added.
+- S5-C: 0 open PRs; 11 issues → #129 triaged+closed (extract-zip
+  unreachable), #152 workflow half fixed+verified live (PR #190,
+  prod flipped: health JSON ok, post-T-14 wording), rest mapped
+  to H/G-DEFER/ACCEPT. 9 gap-closures of tracker lag (G-02 et al),
+  G-03 → partial (H-05), P2 → complete, P4 stays active (H-01).
+- Evidence: evidence/S5-signoff.txt. Gate: CONDITIONAL_GO.
+
+## 2026-09-15 S6 cleanup — DONE
+- 42 branches swept (2 remote by hand + 40 local; 13 remotes
+  pre-swept by repo auto-delete). Only this branch remains.
+- 14 /tmp scratch paths removed (T-06's 3 + S4/S5 run logs,
+  stranger clone, probe files); other agents' fg-* left intact.
+  apps/web/.wrangler/s4-local persist dir removed.
+- Orphan evidence: 0 (all files referenced). Manifest: N/A (none).
+- resume_pointer: DONE (run complete; final report = verdict).
