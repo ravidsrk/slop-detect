@@ -10,11 +10,12 @@ and how to remove it.
 
 | Data | When | Why | Retention |
 | --- | --- | --- | --- |
-| **Scanned URL + scan result** (score, triggered patterns, title/H1) | Every scan you run on the web/API | To render the result, the shareable permalink, and the per-domain badge | ~90 days (KV TTL) |
+| **Scanned URL + scan result** (score, triggered patterns, title/H1) | Every scan you run on the web/API | To render the result, the shareable permalink, and the per-domain badge | ~90 days for the result payload (KV TTL); the per-domain score-history point lives up to 1 year, refreshed on each new scan |
 | **Your email address** | Only if you start **monitoring** a domain (`POST /api/watch`) or request a dashboard sign-in link (`POST /api/dashboard/link`) | To send regression alerts ("your score dropped") and the sign-in link you asked for. We store it hashed (SHA-256) in the lookup index. | Until you unsubscribe; otherwise up to 1 year |
 | **Dashboard sign-in session** (`sd_session` cookie) | Only after you click an emailed sign-in link | To keep you signed in to the agency dashboard. It is a single HttpOnly, Secure, SameSite=Lax cookie holding a signed token, not an advertising/tracking ID. | 30 days, or until you sign out |
 | **Sign-in / confirmation link tokens** | When you request a dashboard link or start monitoring | Single-use tokens that verify the emailed link | 15 minutes (sign-in) / 7 days (monitoring confirmation) |
 | **Per-IP and per-email rate-limit counters** | Every API request / email send | Abuse, cost, and inbox-spam protection | 60 seconds to 1 hour |
+| **Anonymous aggregate statistics** (score distribution, category averages) | First stored scan per domain per year | Leaderboard and percentiles; each domain contributes once (re-scans within the year add history only) | Indefinite; contains no URLs or emails |
 
 We do **not** store full page content, screenshots (unless you explicitly request
 one in a scan, and even then it is not persisted to the directory), advertising or
