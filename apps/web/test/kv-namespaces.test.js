@@ -12,7 +12,7 @@ import {
   parseArgs,
 } from '../scripts/kv-namespaces.mjs';
 
-function mockApi({ namespaces = [], failWith = null } = {}) {
+function mockApi({ namespaces = [], failWith = null, perPage = 100 } = {}) {
   const calls = [];
   const store = new Map(namespaces.map((ns) => [ns.id, { ...ns }]));
   const fetchImpl = async (url, init = {}) => {
@@ -22,7 +22,14 @@ function mockApi({ namespaces = [], failWith = null } = {}) {
     }
     const u = new URL(url);
     if ((init.method || 'GET') === 'GET' && u.pathname.endsWith('/namespaces')) {
-      return { ok: true, json: async () => ({ success: true, result: [...store.values()] }) };
+      // Honor real pagination params like the Cloudflare API.
+      const all = [...store.values()];
+      const pp = parseInt(u.searchParams.get('per_page') || '100', 10);
+      const page = parseInt(u.searchParams.get('page') || '1', 10);
+      const slice = all.slice((page - 1) * pp, page * pp);
+      const total_pages = Math.max(1, Math.ceil(all.length / pp));
+      const result_info = { page, per_page: pp, total_pages, total_count: all.length };
+      return { ok: true, json: async () => ({ success: true, result: slice, result_info }) };
     }
     if (init.method === 'POST' && u.pathname.endsWith('/namespaces')) {
       const { title } = JSON.parse(init.body);
@@ -39,7 +46,7 @@ function mockApi({ namespaces = [], failWith = null } = {}) {
     }
     throw new Error(`unexpected call ${init.method} ${url}`);
   };
-  return { api: cfKvAdmin({ token: 't', accountId: 'a', fetchImpl }), calls, store };
+  return { api: cfKvAdmin({ token: 't', accountId: 'a', fetchImpl, perPage }), calls, store };
 }
 
 test('preview titles follow the slop-detector-<BINDING>-preview convention', () => {
@@ -73,6 +80,22 @@ test('ensure creates a missing namespace only with --apply (dry-run default)', a
   expect(r2.id).toBe('ns-1');
   expect(live.calls.map((c) => c.method)).toEqual(['GET', 'POST']);
   expect(JSON.parse(live.calls[1].body)).toEqual({ title: 'slop-detector-RESULTS-preview' });
+});
+
+test('ensure follows pagination: title on page 2 found, no duplicate created', async () => {
+  const { api, calls } = mockApi({
+    perPage: 2,
+    namespaces: [
+      { id: 'ns-1', title: 'other-a' },
+      { id: 'ns-2', title: 'other-b' },
+      { id: 'ns-3', title: 'slop-detector-RESULTS-preview' },
+    ],
+  });
+  const r = await ensureNamespace(api, 'RESULTS', { apply: true });
+  expect(r).toEqual({ title: 'slop-detector-RESULTS-preview', id: 'ns-3', created: false });
+  // Two GET pages traversed, zero POSTs — idempotence holds past page 1.
+  expect(calls.map((c) => c.method)).toEqual(['GET', 'GET']);
+  expect(calls[1].url).toContain('page=2');
 });
 
 test('ensure rejects unknown bindings before touching the API', async () => {

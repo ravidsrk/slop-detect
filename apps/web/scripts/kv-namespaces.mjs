@@ -22,7 +22,7 @@ export function previewTitle(binding) {
   return `slop-detector-${binding}-preview`;
 }
 
-export function cfKvAdmin({ token, accountId, fetchImpl = globalThis.fetch }) {
+export function cfKvAdmin({ token, accountId, fetchImpl = globalThis.fetch, perPage = 100 }) {
   const base = `${API}/accounts/${accountId}/storage/kv/namespaces`;
   const headers = { Authorization: `Bearer ${token}` };
   async function call(method, url, body) {
@@ -38,8 +38,30 @@ export function cfKvAdmin({ token, accountId, fetchImpl = globalThis.fetch }) {
     }
     return data.result;
   }
+  // List follows result_info pagination: callers (ensure) need the FULL
+  // inventory, not just page 1, or idempotence breaks past 100 namespaces.
+  async function listAll() {
+    const out = [];
+    let page = 1;
+    for (;;) {
+      const res = await fetchImpl(`${base}?per_page=${perPage}&page=${page}`, {
+        method: 'GET',
+        headers,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.success === false) {
+        const detail = (data.errors || []).map((e) => e.message || e.code).join('; ') || res.status;
+        throw new Error(`cloudflare api GET failed: ${detail}`);
+      }
+      out.push(...(data.result || []));
+      const info = data.result_info || {};
+      if (!info.total_pages || info.page >= info.total_pages || !(data.result || []).length) break;
+      if (++page > 50) throw new Error('namespace list exceeded 50 pages; refusing to continue');
+    }
+    return out;
+  }
   return {
-    list: () => call('GET', `${base}?per_page=100`),
+    list: listAll,
     create: (title) => call('POST', base, { title }),
     get: (id) => call('GET', `${base}/${id}`),
   };

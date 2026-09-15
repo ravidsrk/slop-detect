@@ -16,6 +16,10 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+# Minimal scope: the final step posts the preview pointer via gh pr comment.
+permissions:
+  pull-requests: write
+
 concurrency:
   group: preview-${{ github.ref }}
   cancel-in-progress: true
@@ -29,15 +33,30 @@ jobs:
 
       - name: Preflight — staging ready
         id: preflight
+        # HEAD_REF arrives via env (never interpolated): branch names may
+        # contain shell metacharacters, so nothing below expands it raw.
+        env:
+          HEAD_REF: ${{ github.head_ref }}
         run: |
+          # Fail closed on hostile branch names BEFORE anything consumes the
+          # ref (the wrangler command below takes it as data; this gate is
+          # what makes that safe regardless of downstream shell behavior).
+          if ! printf '%s' "$HEAD_REF" | grep -qE '^[A-Za-z0-9/_.~-]+$'; then
+            echo "::error::Refusing preview: branch name outside [A-Za-z0-9/_.~-]. Rename the branch."
+            exit 1
+          fi
           if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ] || [ -z "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then
             echo "ready=false" >> "$GITHUB_OUTPUT"
             echo "::notice::Preview skipped: CLOUDFLARE_* repo secrets missing (H-01)."
             exit 0
           fi
-          if ! grep -qE '^[[:space:]]*preview_id[[:space:]]*=' apps/web/wrangler.toml; then
+          # EVERY kv_namespaces block needs its live preview_id: one missing
+          # ID would silently bind that binding to PRODUCTION data.
+          blocks=$(grep -c '^\[\[kv_namespaces\]\]' apps/web/wrangler.toml)
+          ids=$(grep -cE '^[[:space:]]*preview_id[[:space:]]*=' apps/web/wrangler.toml)
+          if [ "$ids" -lt "$blocks" ]; then
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Preview skipped: no live preview_id in wrangler.toml (staging not wired)."
+            echo "::notice::Preview skipped: ${ids}/${blocks} kv_namespaces blocks have a live preview_id (staging not wired)."
             exit 0
           fi
           echo "ready=true" >> "$GITHUB_OUTPUT"
@@ -71,6 +90,9 @@ jobs:
         if: steps.preflight.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_SHA: ${{ github.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          gh pr comment "${{ github.event.pull_request.number }}" --body \
-            "Preview deployed for \`${{ github.head_ref }}\` @ \`${{ github.sha }}\` (branch preview binding preview KV only — see docs/STAGING.md). Find the build under the slop-detector Pages project deployments in the Cloudflare dashboard."
+          gh pr comment "$PR_NUMBER" --body \
+            "Preview deployed for \`$HEAD_REF\` @ \`$HEAD_SHA\` (branch preview binding preview KV only — see docs/STAGING.md). Find the build under the slop-detector Pages project deployments in the Cloudflare dashboard."

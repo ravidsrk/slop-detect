@@ -28,7 +28,7 @@ CHANGE (docs + script + workflow + tests; zero prod-code changes):
   without it the template's placeholder IDs would parse as live config
   and corrupt the backup map. Real landmine, fixed + tested.
 
-TESTS (+8: kv-namespaces 7, kv-backup 1):
+TESTS (+9: kv-namespaces 8, kv-backup 1):
 - Titles, idempotent ensure (no POST), dry-run vs --apply, unknown
   binding rejected pre-API, check ok/failures, 403 surfacing, parseArgs.
 - Commented examples never parse (reads the live wrangler.toml WITH
@@ -49,11 +49,27 @@ ensure both preview namespaces, add preview_id lines via PR, open a PR
 and watch preview.yml go green, verify preview health + scan + zero new
 production keys, run check.
 
+GREPTILE ROUND (2 P1 + 2 P2, all fixed):
+- P1/security branch injection: head_ref/sha/pr-number now pass via env
+  (quoted) in run blocks, AND preflight fail-closes (exit 1) on branch
+  names outside [A-Za-z0-9/_.~-] before the wrangler command consumes
+  the ref as data — safe regardless of downstream shell behavior.
+  Verified: normal branches allowed, `$(...)` + quote-breakout rejected.
+- P1 partial isolation: interlock now requires live-preview_id count >=
+  kv_namespaces block count (scales to N bindings), not merely >= 1.
+  Verified on fixtures: 0/2 + 1/2 skip, 2/2 proceeds. STAGING.md updated.
+- P2 comment permission: top-level `permissions: pull-requests: write`
+  declared (minimal scope for the gh comment step).
+- P2 pagination: list() follows result_info pages (50-page safety cap);
+  perPage injectable. New test: title on page 2 found with zero POSTs.
+  (Bonus live validation: preview.yml's self-skip ran green on PR #167
+  itself — pull_request event, preflight success, overall success.)
+
 === FORMAT ===
 FORMAT_EXIT=0
 === TYPECHECK ===
 TYPECHECK_EXIT=0
 === TEST ===
 BUN_TEST_EXIT=0
-slop-detect-web:test:       Tests  441 passed (441)
-(433 base + 8 new, exact.)
+slop-detect-web:test:       Tests  442 passed (442)
+(433 base + 9 new, exact.)

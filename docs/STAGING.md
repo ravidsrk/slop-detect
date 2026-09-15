@@ -35,10 +35,10 @@ the PR with a pointer.
 unless BOTH hold:
 
 1. `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` repo secrets (H-01).
-2. At least one live (uncommented) `preview_id` line in
-   `apps/web/wrangler.toml` — checked by `grep -qE
-   '^[[:space:]]*preview_id[[:space:]]*='` (template lines start with
-   `#`, so they can't satisfy it).
+2. EVERY `[[kv_namespaces]]` block has a live (uncommented)
+   `preview_id` — checked by comparing block count vs live-`preview_id`
+   count (one missing ID would silently bind that binding to
+   production). Template lines start with `#`, so they can't satisfy it.
 
 Without `preview_id`, a branch deployment would bind production `id` —
 that must be impossible, not merely undocumented.
