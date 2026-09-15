@@ -303,7 +303,7 @@
       "status": "works"
     }
   ],
-  "current_commit": "7ad6ac7664f52237a274a346e6b689a222335799",
+  "current_commit": "4784a1f3c7d3671181a0e10f68fbfdae89015f9a",
   "definition_frozen_at": "6770c58",
   "gaps": [
     {
@@ -507,7 +507,7 @@
       "issue_url": null,
       "severity": "S1",
       "source": ["F-6-04", "F-R-03"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-32"]
     },
     {
@@ -723,7 +723,7 @@
       "issue_url": null,
       "severity": "S2",
       "source": ["F-15-ret"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-32"]
     },
     {
@@ -1159,19 +1159,19 @@
           "text": "Legal pages live"
         },
         {
-          "evidence": null,
-          "met": false,
+          "evidence": "docs/completion/evidence/T-32-rights.txt (PR #175 4784a1f)",
+          "met": true,
           "text": "Export/delete works"
         },
         {
-          "evidence": null,
-          "met": false,
+          "evidence": "docs/completion/evidence/T-32-rights.txt (RETENTION.md) + H-02 extension in T-31 docs (PR #174)",
+          "met": true,
           "text": "Retention set; regulatory H filed"
         }
       ],
       "id": "P5",
       "name": "Compliance & legal",
-      "status": "active"
+      "status": "complete"
     },
     {
       "exit_criteria": [
@@ -1287,7 +1287,7 @@
       "url": "child-transcript:C1-C16"
     }
   ],
-  "resume_pointer": "P5/T-32",
+  "resume_pointer": "P6/T-36",
   "run_id": "20260914-S1",
   "stage": "S3",
   "tasks": [
@@ -1892,17 +1892,18 @@
     {
       "attempts": 0,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p5-rights",
       "depends_on": [],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-32-rights.txt"],
       "gaps": ["G-17", "G-35"],
       "id": "T-32",
       "owner": "agent",
       "plan_phase": "P5",
-      "pr": null,
+      "pr": 175,
       "review": null,
       "size": "M",
-      "status": "todo"
+      "status": "done",
+      "merged": "4784a1f"
     },
     {
       "attempts": 0,
