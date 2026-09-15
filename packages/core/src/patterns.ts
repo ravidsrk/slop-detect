@@ -317,13 +317,19 @@ export const PATTERNS = [
         if (pcs.textAlign === 'center') centered = true;
       }
       if (!centered) {
-        // Geometric check: bbox center within 12% of parent container center
+        // Geometric check: a block narrower than its container, centered
+        // within it (bbox center within 12% of parent center). The width
+        // guard matters: a full-width left-aligned H1 (Linear's 64px hero)
+        // is trivially "centered" by bbox math, which false-positived until
+        // T-17. text-align:center on full-width blocks still hits the checks
+        // above; this path is only for geometrically centered narrow blocks.
         try {
           const r = h1.getBoundingClientRect();
           const pr = (h1.parentElement || document.body).getBoundingClientRect();
           const elCx = r.left + r.width / 2;
           const prCx = pr.left + pr.width / 2;
-          if (pr.width > 0 && Math.abs(elCx - prCx) / pr.width < 0.12) centered = true;
+          if (pr.width > 0 && r.width < pr.width * 0.85 && Math.abs(elCx - prCx) / pr.width < 0.12)
+            centered = true;
         } catch {}
       }
       // Lowered from 36 → 28 to catch v0.dev (32px) and modern smaller AI-tool heroes.

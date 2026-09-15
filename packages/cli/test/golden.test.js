@@ -96,3 +96,21 @@ test(
     expect(ids).toContain('colors.cta');
   }
 );
+
+test(
+  'centered_hero: full-width left H1 is not centered; narrow margin-centered H1 is (T-17)',
+  { skip: !RUN, timeout: 90_000 },
+  async () => {
+    // Linear repro: full-width left-aligned Inter hero must NOT fire.
+    const wide = await scanUrl(fixture('hero-fullwidth-left.html'), { axes: ['design'] });
+    expect(wide.blocked).toBeFalsy();
+    expect(triggered(wide, 'centered_hero')).toBe(false);
+    // Geometric fallback still works for genuinely centered narrow blocks.
+    const narrow = await scanUrl(fixture('hero-narrow-centered.html'), { axes: ['design'] });
+    expect(narrow.blocked).toBeFalsy();
+    expect(triggered(narrow, 'centered_hero')).toBe(true);
+    // Text-align path untouched: the slop fixture's centered hero still fires.
+    const slop = await scanUrl(fixture('slop-vibecode.html'), { axes: ['design'] });
+    expect(triggered(slop, 'centered_hero')).toBe(true);
+  }
+);

@@ -1,0 +1,42 @@
+=== T-17 #100 over-flagging repro + bounded fix ===
+--- repro (local CLI, defs 2026.09, Chromium 148) ---
+              Jun (#100)   Sep pre-fix        Sep post-fix
+Linear        36 Heavy     23 Mild            19 Mild (slop_fonts,perma_dark,numbered_steps,nested_cards)
+Vercel        29 Heavy     21 Mild            17 Mild (slop_fonts,gradient_backgrounds,crushed_tracking)
+Stripe        23 Mild      19 Mild            19 Mild (purple_accent,gradient_backgrounds,icon_card_grid,stat_banner)
+Class-1 fixes already moved all three Heavy→Mild. Spec/conformance.md still
+cites them as Clean-tier examples — gap remains (see residual).
+--- bounded fix: centered_hero geometric false positive ---
+Pixel truth (screenshot): Linear's 64px hero is LEFT-aligned, yet the
+extractor reported centered:true. Root cause: the geometric fallback
+(bbox center within 12% of parent) fires on ANY full-width H1 — a block
+spanning the container is trivially "centered" by bbox math.
+Fix (patterns.ts): geometric path requires block width < 85% of parent.
+text-align:center (full-width or not) still hits the alignment checks.
+Regression test (golden, RUN_GOLDEN): fullwidth-left fixture must NOT fire;
+narrow margin-centered fixture MUST fire (fallback alive); slop-vibecode
+MUST fire (text-align path intact). Live: Linear 23→19, Vercel 21→17.
+No DEFINITIONS_VERSION bump: rule set + weights unchanged (precision fix,
+not re-weighting); the corpus PR owns the next bump.
+--- residual → BLOCKED on H-05 (labeled corpus) ---
+Remaining Mild points are factually-true tells (Inter/Geist fonts, dark-only,
+purple, gradients, cards — the sites genuinely exhibit them) + weak
+structural signals (numbered_steps, stat_banner, icon_card_grid,
+crushed_tracking). Re-weighting / co-occurrence without the 50–100 URL
+corpus is guesswork that risks true-positive power — exactly what #100
+defers. #100 stays OPEN (launch-blocker + needs-human); T-17 DONE agent part.
+=== FORMAT ===
+FORMAT_EXIT=0
+=== LINT ===
+LINT_EXIT=0
+=== TYPECHECK ===
+TYPECHECK_EXIT=0
+=== TEST ===
+TEST_EXIT=0
+slop-detect-mcp:test:       Tests  14 passed (14)
+@slop-detect/action:test:       Tests  7 passed (7)
+@slop-detect/core:test:       Tests  73 passed (73)
+slop-detect:test:       Tests  12 passed | 11 skipped (23)
+slop-detect-web:test:       Tests  365 passed (365)
+=== GOLDEN (RUN_GOLDEN=1, real Chromium) ===
+slop-detect-golden:       Tests  8 passed (8)

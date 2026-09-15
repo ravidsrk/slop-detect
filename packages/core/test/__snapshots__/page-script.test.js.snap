@@ -422,7 +422,8 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
           const pr = (h1.parentElement || document.body).getBoundingClientRect();
           const elCx = r.left + r.width / 2;
           const prCx = pr.left + pr.width / 2;
-          if (pr.width > 0 && Math.abs(elCx - prCx) / pr.width < 0.12) centered = true;
+          if (pr.width > 0 && r.width < pr.width * 0.85 && Math.abs(elCx - prCx) / pr.width < 0.12)
+            centered = true;
         } catch {
         }
       }
@@ -1560,7 +1561,8 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
           const pr = (h1.parentElement || document.body).getBoundingClientRect();
           const elCx = r.left + r.width / 2;
           const prCx = pr.left + pr.width / 2;
-          if (pr.width > 0 && Math.abs(elCx - prCx) / pr.width < 0.12) centered = true;
+          if (pr.width > 0 && r.width < pr.width * 0.85 && Math.abs(elCx - prCx) / pr.width < 0.12)
+            centered = true;
         } catch {
         }
       }

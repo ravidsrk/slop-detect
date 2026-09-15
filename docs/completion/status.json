@@ -1558,10 +1558,10 @@
     {
       "attempts": 0,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p3-calibration",
       "commit": null,
       "depends_on": [],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-17-calibration.txt"],
       "gaps": ["G-03"],
       "id": "T-17",
       "owner": "agent",
@@ -1569,7 +1569,7 @@
       "pr": null,
       "review": null,
       "size": "M",
-      "status": "todo"
+      "status": "in_review"
     },
     {
       "attempts": 0,

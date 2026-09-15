@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Northwind — project tracking</title>
+  <style>
+    /* Linear repro (T-17): full-width LEFT-aligned hero in Inter. The old
+       geometric fallback called any full-width H1 "centered" by bbox math.
+       centered_hero must NOT fire here. Enough content to dodge empty_page. */
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: Inter, -apple-system, sans-serif; color:#eee; background:#0a0a0a; }
+    nav { display:flex; gap:24px; padding:20px 40px; border-bottom:1px solid #222; }
+    nav a { color:#aaa; text-decoration:none; font-size:15px; }
+    main { padding:64px 40px; }
+    h1 { font-size:64px; font-weight:700; text-align:left; line-height:1.05;
+         margin-bottom:20px; letter-spacing:-0.02em; }
+    .lead { font-size:20px; color:#999; max-width:60ch; margin-bottom:48px; }
+    section { margin-bottom:40px; }
+    h2 { font-size:26px; margin-bottom:12px; }
+    p { font-size:17px; color:#999; line-height:1.6; max-width:70ch; margin-bottom:12px; }
+    footer { border-top:1px solid #222; padding:24px 40px; color:#666; font-size:14px; }
+  </style>
+</head>
+<body>
+  <nav><strong>Northwind</strong><a href="/p">Product</a><a href="/r">Resources</a><a href="/c">Customers</a></nav>
+  <main>
+    <h1>The project tracking tool your whole team will actually use daily</h1>
+    <p class="lead">Northwind keeps every project, document, and decision in one
+      place your team already lives. No migration project, no training videos.</p>
+    <section><h2>Plan together</h2><p>Roadmaps, sprints, and backlogs share one
+      data model, so a change in planning shows up in execution immediately and
+      nobody pastes screenshots into chat to stay aligned.</p></section>
+    <section><h2>Ship faster</h2><p>Automations move work forward while you sleep:
+      triage, assignment, status rollups, and release notes draft themselves from
+      the work your team already recorded.</p></section>
+    <section><h2>Stay aligned</h2><p>Every goal links to the projects behind it,
+      so progress updates write themselves and leadership sees the same numbers
+      as the people doing the work.</p></section>
+  </main>
+  <footer>Made in Oslo. Contact north@wind.example for details.</footer>
+</body>
+</html>
