@@ -58,12 +58,27 @@ verified test sender). Exactly one test domain; delete the watch after.
 BASE=https://<preview>.pages.dev
 curl -s -X POST $BASE/api/watch -H 'content-type: application/json' \
   -d '{"domain":"<test-domain>","email":"<owner>"}'          # → 201, mail out
-# Click confirm in the inbox (or fetch the token from staging KV), then:
+# Click confirm in the inbox (this mail already proves Resend end-to-end),
+# then scan once to set the baseline:
+curl -s -X POST $BASE/api/scan -H 'content-type: application/json' \
+  -d '{"url":"https://<test-domain>"}'                       # → 200, baseline set
+# CONTROLLED REGRESSION: drop the staging baseline below the live score so
+# the next sweep has a genuine regression to report (staging KV only —
+# never production). Find the preview namespace id first:
+#   wrangler kv namespace list   (preview_id of the preview deploy)
+NS=<staging-preview-namespace-id>
+wrangler kv:key get "w:<test-domain>" --namespace-id=$NS > /tmp/watch.json
+jq '.baselineScore = 1 | .baselineTier = "Clean"' /tmp/watch.json > /tmp/watch-low.json
+wrangler kv:key put "w:<test-domain>" --namespace-id=$NS --path=/tmp/watch-low.json
 curl -s -X POST $BASE/api/cron/sweep \
-  -H "authorization: Bearer $STAGING_CRON"                    # → alerted per state
-# Expect: first sweep after a regressing scan delivers ONE alert; a repeat
-# sweep delivers none. Then unsubscribe the test domain.
+  -H "authorization: Bearer $STAGING_CRON"                    # → alerted:1, ONE mail
+curl -s -X POST $BASE/api/cron/sweep \
+  -H "authorization: Bearer $STAGING_CRON"                    # → alerted:0 (once only)
+# Then unsubscribe the test domain and delete /tmp/watch*.json.
 ```
+If staging KV is unreachable from your shell, skip the surgery: the sweep
+still proves scheduler auth + re-scan + listing, the confirm mail proves
+delivery, and the regression-decision leg stays covered by Level 0.
 
 This is the H-02 verify procedure: watch-register → forced sweep →
 single alert observed, no spam. DNS/SPF/DKIM (H-03) gates real delivery.

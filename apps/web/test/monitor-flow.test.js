@@ -64,7 +64,7 @@ const slim = (domain, score, tier, grade, id) => ({
 // sweep's internal POST /api/scan. The scan stub replays the real scan
 // handler's watch side effect (recordScanForWatch) with the next scripted
 // score, so the sweep observes genuine state transitions.
-function installFlowFetch({ results, sent, scanPlan }) {
+function installFlowFetch({ results, sent, scanPlan, expectKey }) {
   globalThis.fetch = async (url, init) => {
     const u = String(url);
     if (u.includes('api.resend.com')) {
@@ -72,7 +72,14 @@ function installFlowFetch({ results, sent, scanPlan }) {
       return new Response(JSON.stringify({ id: `em_${sent.length}` }), { status: 200 });
     }
     if (u.endsWith('/api/scan')) {
+      // The stub is not a free pass: it enforces the sweep→scan contract —
+      // the unlimited internal key presented, the design axis requested —
+      // and throws (→ summary.errors) on any deviation.
+      if (init?.headers?.['X-API-Key'] !== expectKey)
+        throw new Error('sweep did not present the internal API key');
       const body = JSON.parse(init.body);
+      if (!body.url?.startsWith('https://') || !body.axes?.includes('design'))
+        throw new Error(`bad internal scan payload: ${init.body.slice(0, 120)}`);
       const domain = new URL(body.url).hostname;
       const [score, tier, grade] = scanPlan.length > 1 ? scanPlan.shift() : scanPlan[0];
       await recordScanForWatch(
@@ -113,7 +120,7 @@ test('CF-04 chain: subscribe → confirm → regress → exactly-once alert → 
     [4, 'Clean', 'A'],
     [31, 'Heavy', 'D'],
   ];
-  installFlowFetch({ results, sent, scanPlan });
+  installFlowFetch({ results, sent, scanPlan, expectKey: 'unlimited-test-key' });
 
   // 1. Subscribe: 201, verification email out, watch stored unverified.
   const { res: sub, env } = await subscribe(results, rateLimit, 'flow.test', 'owner@flow.test');
@@ -181,7 +188,7 @@ test('sweep without a provider retries safe: 200, alerted 0, notified stays fals
   const results = makeKv();
   const rateLimit = makeKv();
   const sent = [];
-  installFlowFetch({ results, sent, scanPlan: [[30, 'Heavy', 'D']] });
+  installFlowFetch({ results, sent, scanPlan: [[30, 'Heavy', 'D']], expectKey: 'k' });
   // No RESEND_API_KEY / ALERT_FROM (test values for the non-email config only).
   const env = {
     RESULTS: results,

@@ -209,6 +209,30 @@ test('a healthy scan returns the design-axis scoring contract', async () => {
   expect(fonts.evidence.heroIsSlop).toBe(true);
 });
 
+test('a scan of a watched domain refreshes its watch (sweep→scan boundary, T-15)', async () => {
+  // Pins the production side of the monitor-flow stub: the real scan handler
+  // calls recordScanForWatch, so the sweep's internal re-scan genuinely moves
+  // watch state (the stub in monitor-flow.test.js only replays this effect).
+  const kv = makeKv();
+  await shared.putWatch(kv, {
+    domain: 'acme.example.com',
+    email: 'o@x.io',
+    verified: true,
+    regressed: false,
+    notified: false,
+  });
+  const res = await onRequestPost({
+    request: postReq({ url: 'https://acme.example.com' }),
+    env: { BROWSER: {}, RESULTS: kv },
+  });
+  expect(res.status).toBe(200);
+  const r = await res.json();
+  expect(r.monitoring).toBeTruthy();
+  const w = await shared.getWatch(kv, 'acme.example.com');
+  expect(w.lastScore).toBe(r.score);
+  expect(w.baselineScore).toBe(r.score);
+});
+
 test('axes:[design,copy] adds the multi-axis shape + unified headline', async () => {
   const res = await onRequestPost({
     request: postReq({ url: 'https://acme.example.com', axes: ['design', 'copy'] }),
