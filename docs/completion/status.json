@@ -303,7 +303,7 @@
       "status": "works"
     }
   ],
-  "current_commit": "a0aa5dc8831b7d457b0e38ea52ea57354423e39e",
+  "current_commit": "d11e51d2bb05622a4fdcd5d04e36862a63af0569",
   "definition_frozen_at": "6770c58",
   "gaps": [
     {
@@ -687,7 +687,7 @@
       "issue_url": null,
       "severity": "S2",
       "source": ["F-16-03"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-35"]
     },
     {
@@ -1176,8 +1176,8 @@
     {
       "exit_criteria": [
         {
-          "evidence": null,
-          "met": false,
+          "evidence": "docs/completion/evidence/T-35-analytics.txt (PR #183 d11e51d)",
+          "met": true,
           "text": "Analytics fire on critical flows"
         },
         {
@@ -1188,7 +1188,7 @@
       ],
       "id": "P6",
       "name": "Launch surfaces",
-      "status": "active"
+      "status": "complete"
     },
     {
       "exit_criteria": [
@@ -1287,7 +1287,7 @@
       "url": "child-transcript:C1-C16"
     }
   ],
-  "resume_pointer": "P6/T-35",
+  "resume_pointer": "P7/T-39",
   "run_id": "20260914-S1",
   "stage": "S3",
   "tasks": [
@@ -1908,18 +1908,19 @@
     {
       "attempts": 0,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p6-analytics",
       "commit": null,
       "depends_on": ["T-24"],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-35-analytics.txt"],
       "gaps": ["G-32"],
       "id": "T-35",
       "owner": "agent",
       "plan_phase": "P6",
-      "pr": null,
+      "pr": 183,
       "review": null,
       "size": "M",
-      "status": "todo"
+      "status": "done",
+      "merged": "d11e51d"
     },
     {
       "attempts": 0,

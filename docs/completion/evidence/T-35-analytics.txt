@@ -1,0 +1,30 @@
+T-35 Flow analytics — evidence (run 20260914-S1)
+================================================
+Branch: ravidsrk/p6-analytics → PR #183 → merged d11e51d (merge commit, no squash)
+Gap closed: G-32 (S2). P6 AGENT-COMPLETE: both exit criteria met
+(analytics fires T-35; email auth via H-outstanding T-37). Owner remainder
+open: H-03 (Resend domain + DNS + gate-PASS paste), launch-gating.
+
+Deliverables (all on main @ d11e51d):
+- _data.ts flow core: stats:flows daily blobs, allowlisted merge/bump/get,
+  deferFlowBump (context waitUntil, never throws), malformed-blob reset
+  with key-derived dates.
+- 8 emitters: scan classifier (completed/failed/blocked, share:false skips),
+  fixprompt assembled/scanned (scanImpl seam), watch subscribed (new only,
+  re-POSTs excluded)/confirmed/unsubscribed (API + one-click, gated on
+  removal) + batched alerted/drift_alerted, dashboard link_sent (inside
+  deferred send)/session_minted.
+- /api/stats flows exposure; RUNBOOKS funnel guide; RETENTION row.
+- 13 analytics tests: core matrix, classifier, route-level emitters,
+  sweep batch, stats exposure, no-PII blob proof, malformed/date repair.
+
+Greptile: 5 P2 (3 + 2 follow-up): 4 fixed (unsub gating + one-click funnel,
+array-blob hardening, date preservation + key-forcing), 1 declined with
+reason (concurrent-subscribe dedup needs CAS; KV has none — sequential
+retries excluded and tested, race residual documented).
+
+Surfaced contract change: COST-2 2→3 reads (named O(1) point-gets).
+
+Gates (local, pre-push): format:check exit 0; typecheck 6/6 (waitUntil is
+context param, not global — fixed); web 513 passed (44 files).
+Final CI on 64c1473: all 6 checks pass (incl. Greptile Review).
