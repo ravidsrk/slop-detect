@@ -52,3 +52,6 @@ core.[0-9]*
 # Pika MCP token (secret — never commit)
 .mogra/pika/tok.json
 .gstack/
+
+# S4 stranger-test run report (regenerated per run; evidence lives in the S4 report)
+scripts/s4/results.json

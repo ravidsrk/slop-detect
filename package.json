@@ -31,6 +31,7 @@
     "version-packages": "changeset version && bun install --lockfile-only",
     "release": "echo 'Do not npm-publish from here. Cut a vX.Y.Z tag after versions match; .github/workflows/publish.yml publishes core then cli then mcp.' && exit 1",
     "clean": "turbo run clean && rm -rf node_modules",
+    "s4": "bun scripts/s4/run.ts",
     "scan": "npm run --workspace slop-detect scan --",
     "demo": "npm run --workspace slop-detect demo",
     "web:dev": "bun run --filter slop-detect-web dev",
