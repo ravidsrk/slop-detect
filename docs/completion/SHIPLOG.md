@@ -215,4 +215,16 @@
   (over-cap budget leak) — fixed in f3f98d3, replied in-thread.
 - second look: 60s-gate attempt-counting (middleware/og) left as-is, documented
   as fail-closed/verdict-neutral; hot path untouched.
-- resume_pointer: P2/T-12
+- resume_pointer: P2/T-12 (T-11 merged ea676ab)
+
+## 2026-09-14 S3/P2 T-12 image version (G-29) — DONE (verify-first: no issue)
+- branch ravidsrk/p2-img-version → PR #134 → merged 6095067, no squash.
+- Verdict: NO exposure. Sweep finds zero version identifiers in badge/og
+  handlers + badge renderer; sole token anywhere is the intentional,
+  already-tested OG `defs <DEFINITIONS_VERSION>` label (mirrors public
+  /api/patterns); cardHtml screenshot-only. No prod change; 2 tripwires.
+- F-R-08 finding text unrecoverable (gap title only) — verified from title.
+- Evidence: evidence/T-12-img.txt (all 0; web 357). Greptile 1 P2 (evidence
+  wording) — fixed, replied in-thread.
+- P2 COMPLETE (T-10, T-13, T-08, T-09, T-11, T-12).
+- resume_pointer: P3/T-14
