@@ -23,8 +23,9 @@ bunx wrangler pages dev public
 Local `wrangler pages dev` scans for real: wrangler provisions a local
 Chromium for the `BROWSER` binding (first scan downloads it), with
 simulator KV namespaces. Production and previews use Cloudflare's edge
-Browser Rendering instead; verdicts match (verified parity on reference
-URLs — see `docs/REHEARSAL.md`).
+Browser Rendering instead; the local S4 rehearsal produced the same
+22-pass / 6-skip / 0-fail tally as production (see
+`../../docs/REHEARSAL.md`).
 
 Local env: copy the root `.env.example` to `apps/web/.dev.vars` (gitignored) and fill in values. Production values live as Cloudflare Pages env vars / secrets, never in the repo.
 
