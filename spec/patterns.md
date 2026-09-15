@@ -24,7 +24,7 @@
 | `stat_banner` | Big-number stat banner ("10k+", "99.9%", "$2M+") | 3 | layout | ≥3 large-font numeric tokens clustered on one row |
 | `faq_accordion` | FAQ accordion in the lower half | 2 | layout | ≥3 `<details>` below 40% page height, or FAQ heading + details |
 | `gradient_letter_avatars` | Gradient-letter avatars (testimonial slop) | 5 | images | ≥2 round gradient/solid elements with 1–3 letter initials, no photo |
-| `bento_grid` | Bento-grid wall — mixed-span rounded card grid | 4 | layout | CSS grid with ≥5 rounded children and ≥2 distinct column spans |
+| `bento_grid` | Bento-grid wall — mixed-span rounded card grid | 4 | layout | CSS grid (≥2 cols) with ≥5 sized children, ≥4 rounded (r≥12px), ≥2 distinct column spans |
 | `aurora_mesh_gradient` | Aurora / mesh gradient blobs (blurred glowing backdrop) | 5 | css | ≥2 large blurred radial/conic gradient blobs (hero backdrop tell) |
 | `ai_sparkle_badges` | AI-sparkle badges (✨ / Sparkles "magic" tells) | 3 | images | Sparkle emoji or Sparkles SVG/icon near AI/magic copy |
 | `cream_default_bg` | Cream / beige default page background | 7 | colors | Warm off-white page surface (light, R≥G≥B, warmth gap 6–48) |
