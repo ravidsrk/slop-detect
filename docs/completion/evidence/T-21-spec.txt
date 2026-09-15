@@ -39,3 +39,11 @@ slop-detect:test:       Tests  12 passed | 12 skipped (24)
 slop-detect-web:test:       Tests  367 passed (367)
 === FORMAT rerun (after prettier --write spec-sync.test.js) ===
 FORMAT_EXIT=0 (see FMT2)
+
+=== GREPTILE P2 (PR #140): stale catalogue rows pass ===
+Valid: guard was engine->spec one-directional. Fixed: replaced
+id-presence test with bidirectional catalogue-table ID-set comparison
+(parses backticked-ID rows, compares sorted sets both ways, all 3 files).
+Green: 4/4. Negative control: renamed one catalogue id to stale_old_id
+(count unchanged) -> 2 failed (id-set + weights), restored green.
+No engine/spec behavior change; guard-only fix.

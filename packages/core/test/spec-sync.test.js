@@ -36,13 +36,18 @@ test('spec design tiers match engine behavior at the boundaries', () => {
   expect(at(t.heavy.min)).toBe('Heavy');
 });
 
-test('every engine pattern/check id is documented in its spec catalogue', () => {
-  const design = spec('patterns.md');
-  for (const p of PATTERNS) expect(design.includes(p.id)).toBe(true);
-  const copy = spec('copy-axis.md');
-  for (const p of COPY_PATTERNS) expect(copy.includes(p.id)).toBe(true);
-  const aeo = spec('aeo.md');
-  for (const c of AEO_CHECKS) expect(aeo.includes(c.id)).toBe(true);
+test('spec catalogue id sets match the engine id sets exactly (both directions)', () => {
+  // Parses the backticked-ID catalogue rows (`| \`id\` | ...`) so a stale
+  // spec row (engine id removed/renamed) fails too, not just a missing one.
+  const tableIds = (doc) =>
+    doc
+      .split('\n')
+      .map((line) => line.match(/^\|\s*`([A-Za-z0-9_.]+)`/)?.[1])
+      .filter(Boolean)
+      .sort();
+  expect(tableIds(spec('patterns.md'))).toEqual(PATTERNS.map((p) => p.id).sort());
+  expect(tableIds(spec('copy-axis.md'))).toEqual(COPY_PATTERNS.map((p) => p.id).sort());
+  expect(tableIds(spec('aeo.md'))).toEqual(AEO_CHECKS.map((c) => c.id).sort());
 });
 
 test('spec catalogue weights match engine weights', () => {
