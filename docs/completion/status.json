@@ -459,7 +459,7 @@
       "issue_url": null,
       "severity": "S1",
       "source": ["F-6-06", "R-02"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-08"]
     },
     {
@@ -1275,7 +1275,7 @@
       "url": "child-transcript:C1-C16"
     }
   ],
-  "resume_pointer": "P2/T-08",
+  "resume_pointer": "P2/T-09",
   "run_id": "20260914-S1",
   "stage": "S3",
   "tasks": [
@@ -1406,20 +1406,20 @@
       "status": "done"
     },
     {
-      "attempts": 0,
+      "attempts": 2,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p2-kv-backup",
       "commit": null,
       "depends_on": [],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-08-restore.txt"],
       "gaps": ["G-13"],
       "id": "T-08",
       "owner": "agent",
       "plan_phase": "P2",
-      "pr": null,
-      "review": null,
+      "pr": "https://github.com/ravidsrk/slop-detect/pull/131",
+      "review": "greptile",
       "size": "M",
-      "status": "todo"
+      "status": "done"
     },
     {
       "attempts": 0,
@@ -1489,7 +1489,7 @@
       "attempts": 1,
       "block_signature": null,
       "branch": "ravidsrk/p2-sec-headers",
-      "commit": null,
+      "commit": "eda079d",
       "depends_on": [],
       "evidence": ["docs/completion/evidence/T-13-gate.txt"],
       "gaps": ["G-39", "G-40"],
