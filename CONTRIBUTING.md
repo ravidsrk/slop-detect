@@ -177,7 +177,7 @@ bun run --filter slop-detect scan https://www.aura.build         # should be Hea
 bun run --filter slop-detect scan https://news.ycombinator.com   # should be Clean
 bun run --filter slop-detect scan https://example.com -- --copy  # design + copy axes
 
-# 4) Run the web app locally (won't actually scan without Cloudflare):
+# 4) Run the web app locally (scans work; first scan downloads a browser):
 bun run web:dev
 ```
 

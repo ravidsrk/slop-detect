@@ -32,10 +32,11 @@ The seed URL each flow scans defaults to the target's own homepage (always a
 real, scannable landing page); override with `S4_SEED_URL=` if needed.
 `example.com` is NOT a valid seed — the engine 422s it as an empty page.
 
-Every script writes its steps to stdout and the runner appends the full report
-to `scripts/s4/results.json` (gitignored — evidence lives in the S4 report,
-not the repo). Exit code is non-zero on any FAIL; SKIP steps name the owner
-(step text + reason) so a stranger knows exactly what was not exercised.
+Every script writes its steps to stdout and the runner writes the full report
+to `scripts/s4/results.json` (overwritten each run, gitignored — evidence
+lives in the S4 report, not the repo). Exit code is non-zero on any FAIL;
+SKIP steps name the owner (step text + reason) so a stranger knows exactly
+what was not exercised.
 
 Scan-budget pacing is built in: no-origin callers get 3 scan-bucket hits per
 60s, even 400s consume budget (the gate runs pre-validation), and each hit
