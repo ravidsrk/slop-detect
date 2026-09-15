@@ -17,7 +17,7 @@ URL scanned: `https://...`
 
 ## Got
 
-<!-- Paste the full JSON output from `slop-detect <url> --json` -->
+<!-- Sanitized JSON output from `slop-detect <url> --json`: strip query strings/fragments from URLs, delete the `screenshot` field, keep score/patterns/version (see docs/SUPPORT.md) -->
 
 ```json
 ```
