@@ -11,22 +11,28 @@ Static HTML + two Pages Functions:
 
 ```bash
 # From the repo root:
-npm install
-npm run web:dev          # http://localhost:8788
+bun install
+bun run build              # required before first run (builds @slop-detect/core)
+bun run web:dev            # http://localhost:8788 (add -- --port <n> if busy)
 
 # Or from this package:
 cd apps/web
-npx wrangler pages dev public
+bunx wrangler pages dev public
 ```
 
-Note: Browser Rendering only runs on Cloudflare's edge — local `wrangler pages dev` won't be able to actually scan URLs. Deploy to a preview environment to test the scanner.
+Local `wrangler pages dev` scans for real: wrangler provisions a local
+Chromium for the `BROWSER` binding (first scan downloads it), with
+simulator KV namespaces. Production and previews use Cloudflare's edge
+Browser Rendering instead; the local S4 rehearsal produced the same
+22-pass / 6-skip / 0-fail tally as production (see
+`../../docs/REHEARSAL.md`).
 
 Local env: copy the root `.env.example` to `apps/web/.dev.vars` (gitignored) and fill in values. Production values live as Cloudflare Pages env vars / secrets, never in the repo.
 
 ## Deploy
 
 ```bash
-npm run web:deploy
+bun run web:deploy
 ```
 
 Requires a Cloudflare account with **Workers Paid** enabled (Browser Rendering is gated on the paid tier in 2026).
@@ -59,7 +65,7 @@ Returns:
   "score": 24,
   "tier": "Mild",
   "patternsFlagged": 5,
-  "patternsTotal": 16,
+  "patternsTotal": 27,
   "patterns": [ /* per-pattern { id, label, weight, triggered, evidence } */ ],
   "screenshot": "<base64 viewport PNG>",
   "navMs": 4231

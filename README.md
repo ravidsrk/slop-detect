@@ -302,16 +302,25 @@ runtime adapters around it.
 git clone https://github.com/ravidsrk/slop-detect.git
 cd slop-detect
 bun install                              # installs all workspaces
+bun run build                            # required before first run (builds @slop-detect/core)
 
 # Run the CLI locally
 bun run --filter slop-detect demo        # scans 3 example sites
 bun run --filter slop-detect scan -- https://your-url.com
 
-# Run the web app locally
+# Run the web app locally (scans work; first scan downloads a browser)
 bun run web:dev                          # http://localhost:8788
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full contributor guide, including how to propose a 17th pattern or improve a fix recipe.
+End-to-end verification against your local stack (needs a public seed URL,
+since the SSRF guard rejects loopback scan targets — see
+[docs/REHEARSAL.md](docs/REHEARSAL.md) for local / preview / production targets):
+
+```bash
+S4_SEED_URL=https://slop-detect.com/ bun run s4 -- --target http://localhost:8788
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full contributor guide, including how to propose a 28th pattern or improve a fix recipe.
 
 ## The "fix prompt" feature
 
