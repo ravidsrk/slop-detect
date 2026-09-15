@@ -1,0 +1,36 @@
+T-23 — health/readiness endpoint + ping wiring (G-07)
+Branch: ravidsrk/p4-health
+
+CHANGE:
+- New GET /api/health (apps/web/functions/api/health.ts): 200 {status
+  ok, checks, version, time} when BROWSER binding present + both KV
+  namespaces answer one cheap read; 503 {status degraded, ...} when
+  anything is missing/broken. Browser is presence-only (no launch per
+  ping — depth stays with the canary). Cache-Control: no-store.
+  Passes through the api middleware, so responses also carry
+  X-Request-Id (T-22) for free.
+- New .github/workflows/health-ping.yml: curl --fail every 30 min +
+  asserts status==ok; 503/network/degraded fails the run (Actions
+  notifies). HEALTH_URL secret override, defaults to production.
+  "Health wired" (P4 exit) is this workflow; the URL is also the
+  first triage step in the T-28 runbooks.
+
+TESTS: apps/web/test/health.test.js, 5/5 — healthy 200 shape
+(version == DEFINITIONS_VERSION, latencies, no-store), missing
+BROWSER 503, throwing KV 503 with reason, missing KVs 503, missing
+env entirely 503 (no throw).
+TEETH: endpoint is new (no old behavior to regress); ping parse
+logic validated offline (ok passes, degraded detected).
+=== FORMAT ===
+FORMAT_EXIT=0
+=== LINT ===
+LINT_EXIT=0
+=== TYPECHECK ===
+TYPECHECK_EXIT=0
+=== TEST ===
+TEST_EXIT=0
+slop-detect-mcp:test:       Tests  14 passed (14)
+@slop-detect/core:test:       Tests  77 passed (77)
+@slop-detect/action:test:       Tests  7 passed (7)
+slop-detect:test:       Tests  13 passed | 40 skipped (53)
+slop-detect-web:test:       Tests  387 passed (387)

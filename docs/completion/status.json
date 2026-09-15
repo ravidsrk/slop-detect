@@ -1740,10 +1740,10 @@
     {
       "attempts": 0,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p4-health",
       "commit": null,
       "depends_on": [],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-23-health.txt"],
       "gaps": ["G-07"],
       "id": "T-23",
       "owner": "agent",
@@ -1751,7 +1751,7 @@
       "pr": null,
       "review": null,
       "size": "S",
-      "status": "todo"
+      "status": "in_review"
     },
     {
       "attempts": 0,
