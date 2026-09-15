@@ -62,18 +62,29 @@ jobs:
       # a tag contained in it) — otherwise a manual run from a feature branch
       # would ship unreviewed code straight to production (P1 on PR #190).
       - name: Preflight — ref is production-eligible
+        # Refs travel via env (never ${{ }} in run:) — tag/branch names may
+        # contain shell metacharacters, which would inject into the script.
         env:
           GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          REF_NAME: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.ref }}" != "refs/heads/main" ]; then
-            echo "::error::manual production deploys must run from main (selected: ${{ github.ref }})."
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ "$REF" != "refs/heads/main" ]; then
+            echo "::error::manual production deploys must run from main (selected: $REF)."
             exit 1
           fi
-          if [ "${{ github.event_name }}" = "push" ]; then
-            tag="${{ github.ref_name }}"
-            status=$(gh api "repos/${{ github.repository }}/compare/main...${tag}" --jq '.status' 2>/dev/null) || status="error"
+          if [ "$EVENT_NAME" = "push" ]; then
+            case "$REF_NAME" in
+              ''|*[!A-Za-z0-9._-]*)
+                echo "::error::refusing to deploy tag with unexpected characters: $REF_NAME"
+                exit 1
+                ;;
+            esac
+            status=$(gh api "repos/$REPO/compare/main...${REF_NAME}" --jq '.status' 2>/dev/null) || status="error"
             if [ "$status" != "identical" ] && [ "$status" != "behind" ]; then
-              echo "::error::release tag ${tag} is not contained in main (compare status: ${status}); cut release tags from main."
+              echo "::error::release tag ${REF_NAME} is not contained in main (compare status: ${status}); cut release tags from main."
               exit 1
             fi
           fi
