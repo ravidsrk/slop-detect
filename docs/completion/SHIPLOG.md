@@ -359,3 +359,14 @@
 - Greptile P1 (same-day branch collision) fixed in-thread.
 - Evidence: evidence/T-19a-leaderboard.txt + T-19b-leaderboard.txt.
 - resume_pointer: P3 exit (T-19a+b merged cfdaf63)
+
+## 2026-09-15 S3/P3 T-33 nullish-502 fix + P3 EXIT (G-58) — DONE
+- branch ravidsrk/p3-exit-502 → PR #153 → merged f0f1d33, no squash.
+- Live bare edge 502 on DNS failure: nullish rejection crashed the
+  catch (TypeError escape). Null-safe 3-way message + 2 contract
+  tests (nullish + string detail). Greptile P2 fixed in-thread.
+- P3 EXIT: all 7 flows happy+failure evidenced (P3-exit.txt); CUT
+  criterion met (T-16). #152 production freshness filed (human,
+  gates S5 GO). P3 status done.
+- Evidence: evidence/P3-exit.txt.
+- resume_pointer: P4/T-22

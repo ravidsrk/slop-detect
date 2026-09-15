@@ -247,56 +247,56 @@
   "completion_pct": 58.4,
   "critical_flows": [
     {
-      "failure_evidence": null,
-      "happy_evidence": null,
+      "failure_evidence": "docs/completion/evidence/P3-exit.txt",
+      "happy_evidence": "docs/completion/evidence/P3-exit.txt",
       "id": "CF-01",
       "money": false,
       "name": "Web scan (index -> POST /api/scan -> /r/:id)",
-      "status": "partial"
+      "status": "works"
     },
     {
-      "failure_evidence": null,
-      "happy_evidence": null,
+      "failure_evidence": "docs/completion/evidence/P3-exit.txt",
+      "happy_evidence": "docs/completion/evidence/P3-exit.txt",
       "id": "CF-02",
       "money": false,
       "name": "CLI scan (slop <url> -> terminal/JSON)",
-      "status": "partial"
+      "status": "works"
     },
     {
-      "failure_evidence": null,
-      "happy_evidence": null,
+      "failure_evidence": "docs/completion/evidence/P3-exit.txt",
+      "happy_evidence": "docs/completion/evidence/P3-exit.txt",
       "id": "CF-03",
       "money": false,
       "name": "Fix prompt (endpoint -> markdown)",
       "status": "works"
     },
     {
-      "failure_evidence": null,
-      "happy_evidence": null,
+      "failure_evidence": "docs/completion/evidence/P3-exit.txt",
+      "happy_evidence": "docs/completion/evidence/P3-exit.txt",
       "id": "CF-04",
       "money": false,
       "name": "Watch/monitor (register -> confirm -> sweep -> Resend alert)",
-      "status": "partial"
+      "status": "works"
     },
     {
-      "failure_evidence": null,
-      "happy_evidence": null,
+      "failure_evidence": "docs/completion/evidence/P3-exit.txt",
+      "happy_evidence": "docs/completion/evidence/P3-exit.txt",
       "id": "CF-05",
       "money": false,
       "name": "Dashboard (magic link -> session -> dashboard)",
       "status": "works"
     },
     {
-      "failure_evidence": null,
-      "happy_evidence": null,
+      "failure_evidence": "docs/completion/evidence/P3-exit.txt",
+      "happy_evidence": "docs/completion/evidence/P3-exit.txt",
       "id": "CF-06",
       "money": false,
       "name": "MCP tools (4 tools + Skill + Action)",
       "status": "works"
     },
     {
-      "failure_evidence": null,
-      "happy_evidence": null,
+      "failure_evidence": "docs/completion/evidence/P3-exit.txt",
+      "happy_evidence": "docs/completion/evidence/P3-exit.txt",
       "id": "CF-07",
       "money": false,
       "name": "Share surfaces (/r /og /badge /score /report /dir /api)",
@@ -961,7 +961,7 @@
       "decision": "FINISH",
       "severity": "S2",
       "source": ["p3-exit-probe"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-33"],
       "issue_url": null,
       "accept_expiry": null
@@ -1115,19 +1115,19 @@
     {
       "exit_criteria": [
         {
-          "evidence": null,
-          "met": false,
+          "evidence": "docs/completion/evidence/P3-exit.txt",
+          "met": true,
           "text": "Each flow happy + failure evidenced"
         },
         {
-          "evidence": null,
-          "met": false,
+          "evidence": "docs/completion/evidence/T-16-cut.txt",
+          "met": true,
           "text": "CUT surfaces removed"
         }
       ],
       "id": "P3",
       "name": "Critical flows",
-      "status": "pending"
+      "status": "done"
     },
     {
       "exit_criteria": [
@@ -1992,7 +1992,7 @@
     {
       "id": "T-33",
       "plan_phase": "P3",
-      "status": "in_review",
+      "status": "done",
       "owner": "agent",
       "size": "S",
       "depends_on": [],
@@ -2003,7 +2003,8 @@
       "commit": null,
       "review": null,
       "attempts": 0,
-      "block_signature": null
+      "block_signature": null,
+      "merged": "f0f1d33"
     }
   ]
 }
