@@ -1486,7 +1486,8 @@
       "pr": "https://github.com/ravidsrk/slop-detect/pull/134",
       "review": null,
       "size": "S",
-      "status": "in_review"
+      "status": "done",
+      "merged": "6095067"
     },
     {
       "attempts": 1,
