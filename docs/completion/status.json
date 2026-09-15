@@ -1670,7 +1670,8 @@
       "pr": 148,
       "review": null,
       "size": "S",
-      "status": "in_review"
+      "status": "done",
+      "merged": "9a5e745"
     },
     {
       "attempts": 0,
