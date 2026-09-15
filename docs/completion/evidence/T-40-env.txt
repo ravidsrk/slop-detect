@@ -1,0 +1,42 @@
+T-40 Rehearsal env ready — evidence (run 20260914-S1)
+=================================================
+Branch: ravidsrk/p7-rehearsal → PR #187 → merged 8b26057 (merge commit, no squash)
+No gap (plan: "Gaps gate"). P7 COMPLETE: exit criterion met (S4 can
+begin without setup). Run advances S3 → S4.
+
+Deliverables (all on main @ 8b26057):
+- docs/REHEARSAL.md: the three S4 targets. (1) Local: `wrangler pages
+  dev public --port 8788 --persist-to .wrangler/s4-local` + simulator
+  KV, then S4_SEED_URL=<public page> bun run s4 -- --target
+  http://localhost:8788 (S4_SEED_URL required: loopback seeds trip
+  the SSRF guard by design). (2) PR preview post-H-01: hash + branch-
+  alias URL shapes with Cloudflare docs source; dashboard deployments
+  authoritative until the first H-01 preview confirms the alias.
+  (3) Production fallback (T-39 transcript).
+- core fix the rehearsal surfaced: EVERY local scan 500'd with
+  `__name2 is not defined`. buildPageScript serializes bundled
+  extractor source; esbuild's helper is __name in the prod bundle
+  but __name2 under `wrangler pages dev`, and the page script
+  hardcoded one name. esbuildNamePolyfills (new export) derives
+  the names from the serialized source; zero behavior change when
+  only __name appears.
+
+Validation:
+- Local S4 vs http://localhost:8788: 22 pass, 6 skip
+  (owner-named), 0 fail — identical to production.
+- Regression tests: esbuildNamePolyfills unit tests + assembler
+  fixture (helper-bearing stub extractor, try/finally restored).
+  Mutation-checked: dropping patternCalls from the helper scan
+  fails exactly the fixture test.
+- Snapshots updated (wrapper lines only; no extractor drift).
+
+Greptile: 1 P2 (assembler fixture vacuous in vitest) — fixed with
+the helper-bearing stub test + mutation proof, replied in-thread.
+
+Gates (local, pre-push): format:check exit 0; typecheck 6/6;
+test 7/7 (web 513/513).
+Final CI: all 6 checks pass on the fix commit (incl. Greptile Review).
+
+Owner remainder (unchanged): H-01 (preview wiring), H-02 (mail
+secrets), H-03 (Resend verify) gate the preview path and the
+dashboard-sign-in steps, which skip honestly until then.

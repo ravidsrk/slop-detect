@@ -303,7 +303,7 @@
       "status": "works"
     }
   ],
-  "current_commit": "ca632ce8cb845fc40f6fc339515e13b2c874e27d",
+  "current_commit": "8b2605729f5f2f512213844adc89805cd1469596",
   "definition_frozen_at": "6770c58",
   "gaps": [
     {
@@ -1193,14 +1193,14 @@
     {
       "exit_criteria": [
         {
-          "evidence": null,
-          "met": false,
+          "evidence": "docs/completion/evidence/T-40-env.txt (PR #187 8b26057)",
+          "met": true,
           "text": "S4 can begin without setup"
         }
       ],
       "id": "P7",
       "name": "Rehearsal prep",
-      "status": "active"
+      "status": "complete"
     }
   ],
   "product": "Slop Detector — AI-design-slop fingerprint scanner",
@@ -1287,9 +1287,9 @@
       "url": "child-transcript:C1-C16"
     }
   ],
-  "resume_pointer": "P7/T-40",
+  "resume_pointer": "S4",
   "run_id": "20260914-S1",
-  "stage": "S3",
+  "stage": "S4",
   "tasks": [
     {
       "attempts": 1,
@@ -1992,18 +1992,19 @@
     {
       "attempts": 0,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p7-rehearsal",
       "commit": null,
       "depends_on": ["T-29"],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-40-env.txt"],
       "gaps": [],
       "id": "T-40",
       "owner": "agent",
       "plan_phase": "P7",
-      "pr": null,
+      "pr": 187,
       "review": null,
       "size": "S",
-      "status": "todo"
+      "status": "done",
+      "merged": "8b26057"
     },
     {
       "id": "T-33",

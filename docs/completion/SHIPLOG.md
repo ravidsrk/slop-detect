@@ -560,3 +560,13 @@
 - Greptile 3 P1 + 2 P2 — all fixed + replied in-thread.
 - Evidence: evidence/T-39-s4scripts.txt.
 - resume_pointer: P7/T-40
+
+## 2026-09-15 S3/P7 T-40 rehearsal env ready (no gap) — DONE
+- branch ravidsrk/p7-rehearsal → PR #187 → merged 8b26057, no squash.
+- docs/REHEARSAL.md (local/preview/prod S4 targets) + core __name2
+  polyfill fix (every local scan 500'd; derived names + regression
+  tests). Local S4 22/6/0, identical to production. P7 COMPLETE —
+  exit criterion met. Run advances S3 → S4.
+- Greptile 1 P2 — fixed (assembler fixture + mutation proof) + replied.
+- Evidence: evidence/T-40-env.txt.
+- resume_pointer: S4
