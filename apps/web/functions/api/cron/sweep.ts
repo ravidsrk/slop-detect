@@ -15,7 +15,8 @@
 import { listWatches, getWatch, putWatch } from '../../_shared.js';
 import { monitorSweep } from '../../_sweep.js';
 import { sendEmail } from '../../_email.js';
-import { buildRegressionAlert, buildDriftAlert } from '../../_alerts.js';
+import { buildRegressionAlert, buildDriftAlert, mailFooter } from '../../_alerts.js';
+import { signUnsubscribe, unsubscribeUrl } from '../../_session.js';
 import { report } from '../../_report.js';
 
 function json(data, status = 200) {
@@ -74,6 +75,25 @@ export async function onRequestPost({ request, env }) {
     }
   };
 
+  // One-click unsubscribe (RFC 8058) for this recipient: signed URL in the
+  // footer + List-Unsubscribe headers. No SESSION_SECRET ⇒ no signed URL
+  // (same configured-off shape as the dashboard); the footer still carries
+  // the postal address + privacy link and the API unsubscribe path works.
+  const unsubFor = async (watch) => {
+    const token = await signUnsubscribe(watch.domain, watch.email, env.SESSION_SECRET);
+    const unsubUrl = token ? unsubscribeUrl(origin, token) : null;
+    if (!env.MAIL_POSTAL_ADDRESS) report(env, 'warn', 'mail_postal_missing', {});
+    return {
+      footer: mailFooter({ postal: env.MAIL_POSTAL_ADDRESS, unsubUrl }),
+      headers: unsubUrl
+        ? {
+            'List-Unsubscribe': `<${unsubUrl}>`,
+            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+          }
+        : undefined,
+    };
+  };
+
   const sendAlert = async (watch) => {
     const baseline = {
       score: watch.baselineScore,
@@ -82,8 +102,9 @@ export async function onRequestPost({ request, env }) {
     };
     const current = { score: watch.lastScore, grade: watch.lastGrade, tier: watch.lastTier };
     const resultUrl = watch.lastId ? `${origin}/r/${watch.lastId}` : null;
-    const msg = buildRegressionAlert(watch.domain, baseline, current, { resultUrl });
-    return sendEmail(env, { to: watch.email, subject: msg.subject, text: msg.text });
+    const { footer, headers } = await unsubFor(watch);
+    const msg = buildRegressionAlert(watch.domain, baseline, current, { resultUrl, footer });
+    return sendEmail(env, { to: watch.email, subject: msg.subject, text: msg.text, headers });
   };
 
   // System-drift alert (P2a) — fires once per drift event, recovery re-arms.
@@ -91,10 +112,12 @@ export async function onRequestPost({ request, env }) {
     const baseline = { score: watch.baselineSystemScore, tier: watch.baselineSystemTier };
     const current = { score: watch.lastSystemScore, tier: watch.lastSystemTier };
     const resultUrl = watch.lastId ? `${origin}/r/${watch.lastId}` : null;
+    const { footer, headers } = await unsubFor(watch);
     const msg = buildDriftAlert(watch.domain, baseline, current, watch.lastSystemDrift || [], {
       resultUrl,
+      footer,
     });
-    return sendEmail(env, { to: watch.email, subject: msg.subject, text: msg.text });
+    return sendEmail(env, { to: watch.email, subject: msg.subject, text: msg.text, headers });
   };
 
   const watches = await listWatches(env.RESULTS, { limit: 1000 });

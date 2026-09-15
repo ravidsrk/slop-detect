@@ -11,7 +11,7 @@ import {
   getHistory,
 } from '../functions/_shared.ts';
 import { monitorSweep } from '../functions/_sweep.ts';
-import { buildDriftAlert } from '../functions/_alerts.ts';
+import { buildDriftAlert, mailFooter } from '../functions/_alerts.ts';
 import { onRequestPost as watchPost } from '../functions/api/watch.ts';
 import { onRequestGet as reportGet } from '../functions/report/[domain].tsx';
 
@@ -285,12 +285,17 @@ test('sweep without a sendDriftAlert callback skips drift silently (backward com
 
 // ── drift email copy ─────────────────────────────────────────────────────────
 test('buildDriftAlert names the drift, frames signals-not-verdicts, offers unsubscribe', () => {
+  // T-31: same footer contract as the regression alert (see alerts.test.js).
+  const footer = mailFooter({
+    postal: '123 Example St',
+    unsubUrl: 'https://slop-detect.com/api/watch/unsubscribe?token=t',
+  });
   const m = buildDriftAlert(
     'example.com',
     { score: 95, tier: 'Aligned' },
     { score: 55, tier: 'Drifting' },
     [{ id: 'fonts.declared', message: 'font(s) in use but not in the system: inter' }],
-    { resultUrl: 'https://slop-detect.com/r/abc' }
+    { resultUrl: 'https://slop-detect.com/r/abc', footer }
   );
   expect(m.subject).toMatch(/example\.com/);
   expect(m.subject).toMatch(/Aligned → Drifting/);
@@ -298,6 +303,7 @@ test('buildDriftAlert names the drift, frames signals-not-verdicts, offers unsub
   expect(m.text).toMatch(/not a verdict/i);
   expect(m.text).toMatch(/unsubscribe/i);
   expect(m.text).toMatch(/\/r\/abc/);
+  expect(m.text).toContain('/api/watch/unsubscribe?token=t');
 });
 
 // ── /api/watch { system: true } opt-in ──────────────────────────────────────

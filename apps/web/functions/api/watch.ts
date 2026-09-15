@@ -20,7 +20,7 @@ import {
   isValidEmail,
   getWatch,
   putWatch,
-  deleteWatch,
+  performUnsubscribe,
   getHistory,
   getLatestForDomain,
   publicWatch,
@@ -28,11 +28,11 @@ import {
   deleteListing,
   issueWatchToken,
   addToEmailIndex,
-  removeFromEmailIndex,
   watchVerifyAllowed,
 } from '../_shared.js';
 import { emailConfigured, sendEmail } from '../_email.js';
-import { buildVerificationEmail } from '../_alerts.js';
+import { buildVerificationEmail, mailFooter } from '../_alerts.js';
+import { report } from '../_report.js';
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -82,13 +82,7 @@ export async function onRequestPost({ request, env }) {
     if (existing.email !== email) {
       return json({ error: 'email does not match the subscriber for this domain' }, 403);
     }
-    // Delist BEFORE removing the watch: if the listing delete throws we keep the
-    // watch, so the state stays consistent ("still monitored + listed") and
-    // retryable rather than orphaning a public row with no owner. Always attempt
-    // cleanup even if the watch shows listed:false, to recover from failed deletes.
-    await deleteListing(env.RESULTS, domain);
-    await removeFromEmailIndex(env.RESULTS, email, domain);
-    await deleteWatch(env.RESULTS, domain);
+    await performUnsubscribe(env.RESULTS, domain, email);
     return json({ domain, monitoring: false, unsubscribed: true });
   }
 
@@ -217,7 +211,12 @@ export async function onRequestPost({ request, env }) {
       const token = await issueWatchToken(env.RESULTS, domain);
       if (token) {
         const confirmUrl = `${origin}/api/watch/confirm?token=${token}`;
-        const msg = buildVerificationEmail(domain, confirmUrl);
+        // Transactional footer: postal + privacy, no unsubscribe line (a
+        // single confirmation mail has nothing to unsubscribe from).
+        if (!env.MAIL_POSTAL_ADDRESS) report(env, 'warn', 'mail_postal_missing', {});
+        const msg = buildVerificationEmail(domain, confirmUrl, {
+          footer: mailFooter({ postal: env.MAIL_POSTAL_ADDRESS }),
+        });
         const res = await sendEmail(env, { to: email, subject: msg.subject, text: msg.text });
         verificationSent = !!(res && res.sent);
       }

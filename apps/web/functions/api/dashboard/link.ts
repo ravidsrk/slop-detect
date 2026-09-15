@@ -8,7 +8,8 @@
 
 import { isValidEmail, getEmailDomains, issueDashboardToken, emailHash } from '../../_shared.js';
 import { emailConfigured, sendEmail } from '../../_email.js';
-import { buildDashboardLinkEmail } from '../../_alerts.js';
+import { buildDashboardLinkEmail, mailFooter } from '../../_alerts.js';
+import { report } from '../../_report.js';
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -115,7 +116,11 @@ export async function onRequestPost({ request, env, waitUntil }) {
         if (!(await dashLinkAllowed(env.RATE_LIMIT, email))) return;
         const token = await issueDashboardToken(env.RESULTS, email);
         const loginUrl = `${new URL(request.url).origin}/dashboard?token=${token}`;
-        const msg = buildDashboardLinkEmail(loginUrl, domains.length);
+        // Transactional footer: postal + privacy, no unsubscribe line.
+        if (!env.MAIL_POSTAL_ADDRESS) report(env, 'warn', 'mail_postal_missing', {});
+        const msg = buildDashboardLinkEmail(loginUrl, domains.length, {
+          footer: mailFooter({ postal: env.MAIL_POSTAL_ADDRESS }),
+        });
         await sendEmail(env, { to: email, subject: msg.subject, text: msg.text });
       };
       if (typeof waitUntil === 'function') {

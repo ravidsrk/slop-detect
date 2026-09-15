@@ -76,6 +76,44 @@ export async function verifySession(token, secret, { now = Date.now() } = {}) {
   }
 }
 
+// ── One-click unsubscribe tokens (RFC 8058) ──────────────────────────────────
+// Stateless like sessions: "payload.signature", signed with SESSION_SECRET but
+// domain-separated ('unsub-v1' prefix in the signed input) so a session cookie
+// can never verify as an unsubscribe token and vice versa. No expiry — the
+// token dies with the watch (unsubscribing twice is a harmless no-op), which
+// is exactly the RFC's "the URL must keep working" expectation. A token binds
+// ONE (domain, email) pair, so a leaked URL can't stop anyone else's alerts.
+const UNSUB_PREFIX = 'unsub-v1';
+
+export async function signUnsubscribe(domain, email, secret) {
+  if (!domain || !email || !secret) return null;
+  const payload = b64urlEncode(JSON.stringify({ d: domain, e: email }));
+  const sig = await hmacHex(`${UNSUB_PREFIX}.${payload}`, secret);
+  return `${payload}.${sig}`;
+}
+
+// "payload.signature" → { domain, email }, or null (bad shape / bad signature).
+export async function verifyUnsubscribe(token, secret) {
+  if (!token || !secret) return null;
+  const dot = token.lastIndexOf('.');
+  if (dot <= 0) return null;
+  const payload = token.slice(0, dot);
+  const sig = token.slice(dot + 1);
+  const expected = await hmacHex(`${UNSUB_PREFIX}.${payload}`, secret);
+  if (!safeEqual(sig, expected)) return null;
+  try {
+    const { d, e } = JSON.parse(b64urlDecode(payload));
+    if (typeof d !== 'string' || typeof e !== 'string' || !d || !e) return null;
+    return { domain: d, email: e };
+  } catch {
+    return null;
+  }
+}
+
+export function unsubscribeUrl(origin, token) {
+  return `${origin}/api/watch/unsubscribe?token=${encodeURIComponent(token)}`;
+}
+
 // ── Cookie plumbing ──────────────────────────────────────────────────────────
 export function sessionCookie(token, { maxAgeSec = DEFAULT_TTL_MS / 1000 } = {}) {
   return `${COOKIE_NAME}=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${Math.floor(maxAgeSec)}`;

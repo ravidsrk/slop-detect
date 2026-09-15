@@ -2,7 +2,7 @@
 
 import { test, expect } from 'vitest';
 import { sendEmail, emailConfigured } from '../functions/_email.ts';
-import { buildVerificationEmail, buildRegressionAlert } from '../functions/_alerts.ts';
+import { buildVerificationEmail, buildRegressionAlert, mailFooter } from '../functions/_alerts.ts';
 import { monitorSweep } from '../functions/_sweep.ts';
 import { issueWatchToken, consumeWatchToken, getWatch } from '../functions/_shared.ts';
 import { onRequestGet as confirmGet } from '../functions/api/watch/confirm.tsx';
@@ -88,11 +88,18 @@ test('verification email carries the confirm link and a privacy line', () => {
 });
 
 test('regression alert shows baseline vs now, tier drop, and unsubscribe', () => {
+  // T-31: unsubscribe copy is caller-provided footer (a real one-click URL),
+  // not the old hardcoded "reply, or POST" line that promised a path which
+  // never existed (no inbound handler).
+  const footer = mailFooter({
+    postal: '123 Example St',
+    unsubUrl: 'https://slop-detect.com/api/watch/unsubscribe?token=t',
+  });
   const m = buildRegressionAlert(
     'example.com',
     { score: 8, grade: 'A-', tier: 'Clean' },
     { score: 30, grade: 'C', tier: 'Heavy' },
-    { resultUrl: 'https://slop-detect.com/r/abc' }
+    { resultUrl: 'https://slop-detect.com/r/abc', footer }
   );
   expect(m.subject).toMatch(/example\.com/);
   expect(m.text).toMatch(/A-/);
@@ -100,6 +107,8 @@ test('regression alert shows baseline vs now, tier drop, and unsubscribe', () =>
   expect(m.text).toMatch(/Clean → Heavy/);
   expect(m.text).toMatch(/\/r\/abc/);
   expect(m.text).toMatch(/unsubscribe/i);
+  expect(m.text).toContain('/api/watch/unsubscribe?token=t');
+  expect(m.text).toContain('123 Example St');
 });
 
 // ── sweep logic ──────────────────────────────────────────────────────────────
