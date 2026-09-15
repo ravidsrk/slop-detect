@@ -473,3 +473,18 @@
   prerequisite) — all fixed + replied in-thread.
 - Evidence: evidence/T-27-rollback.txt.
 - resume_pointer: P5/T-30
+
+## 2026-09-15 S3/P5 T-30 terms of service (G-15, G-34) — DONE
+- branch ravidsrk/p5-terms → PR #171 → merged ce05b7c, no squash.
+- terms.md (10 sections, every clause code-grounded), privacy.md retention
+  split (90d payload / 1y rolling history / indefinite anonymous
+  aggregates, first-scan-per-domain-per-year), /terms.md in both footers.
+  legal.test.js: 13 tests incl. implementation tripwires + negative pins.
+  G-15/G-34 CLOSED. P5 `active`; "Legal pages live" criterion MET.
+- S1 privacy audit: 12/12 claims verified pre-change (consent stamp,
+  SHA-256 index, cookie flags, slim persistence, opt-in gating,
+  verified-gated alerts, Fonts disclosure, TTLs, contact).
+- Greptile 2 P1 + 2 P2 — all fixed + replied in-thread (one hash typo in
+  a reply corrected with a follow-up). Final CI all green.
+- Evidence: evidence/T-30-terms.txt.
+- resume_pointer: P5/T-31
