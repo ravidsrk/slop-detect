@@ -317,18 +317,29 @@ export const PATTERNS = [
         if (pcs.textAlign === 'center') centered = true;
       }
       if (!centered) {
-        // Geometric check: a block narrower than its container, centered
-        // within it (bbox center within 12% of parent center). The width
-        // guard matters: a full-width left-aligned H1 (Linear's 64px hero)
-        // is trivially "centered" by bbox math, which false-positived until
-        // T-17. text-align:center on full-width blocks still hits the checks
-        // above; this path is only for geometrically centered narrow blocks.
+        // Geometric check: a block strictly narrower than its parent's
+        // CONTENT box, centered within it (real gaps both sides + bbox
+        // center within 12% of content center). The content box matters
+        // twice: a full-width left-aligned H1 (Linear's 64px hero) is
+        // trivially "centered" by border-box math, and symmetric parent
+        // padding defeats any border-box width ratio (a padded container's
+        // full-width child looks narrow against the border box). Gaps
+        // against the content box are immune to both. text-align:center
+        // still hits the checks above; this path is geometric only.
         try {
+          const parent = h1.parentElement || document.body;
           const r = h1.getBoundingClientRect();
-          const pr = (h1.parentElement || document.body).getBoundingClientRect();
+          const pr = parent.getBoundingClientRect();
+          const pbox = getComputedStyle(parent);
+          const num = (v) => parseFloat(v) || 0;
+          const cL = pr.left + num(pbox.paddingLeft) + num(pbox.borderLeftWidth);
+          const cR = pr.right - num(pbox.paddingRight) - num(pbox.borderRightWidth);
+          const contentW = cR - cL;
+          const gapL = r.left - cL;
+          const gapR = cR - r.right;
           const elCx = r.left + r.width / 2;
-          const prCx = pr.left + pr.width / 2;
-          if (pr.width > 0 && r.width < pr.width * 0.85 && Math.abs(elCx - prCx) / pr.width < 0.12)
+          const cCx = (cL + cR) / 2;
+          if (contentW > 0 && gapL > 2 && gapR > 2 && Math.abs(elCx - cCx) / contentW < 0.12)
             centered = true;
         } catch {}
       }

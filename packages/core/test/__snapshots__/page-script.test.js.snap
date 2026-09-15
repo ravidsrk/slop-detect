@@ -418,11 +418,19 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
       }
       if (!centered) {
         try {
+          const parent = h1.parentElement || document.body;
           const r = h1.getBoundingClientRect();
-          const pr = (h1.parentElement || document.body).getBoundingClientRect();
+          const pr = parent.getBoundingClientRect();
+          const pbox = getComputedStyle(parent);
+          const num = (v) => parseFloat(v) || 0;
+          const cL = pr.left + num(pbox.paddingLeft) + num(pbox.borderLeftWidth);
+          const cR = pr.right - num(pbox.paddingRight) - num(pbox.borderRightWidth);
+          const contentW = cR - cL;
+          const gapL = r.left - cL;
+          const gapR = cR - r.right;
           const elCx = r.left + r.width / 2;
-          const prCx = pr.left + pr.width / 2;
-          if (pr.width > 0 && r.width < pr.width * 0.85 && Math.abs(elCx - prCx) / pr.width < 0.12)
+          const cCx = (cL + cR) / 2;
+          if (contentW > 0 && gapL > 2 && gapR > 2 && Math.abs(elCx - cCx) / contentW < 0.12)
             centered = true;
         } catch {
         }
@@ -1557,11 +1565,19 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
       }
       if (!centered) {
         try {
+          const parent = h1.parentElement || document.body;
           const r = h1.getBoundingClientRect();
-          const pr = (h1.parentElement || document.body).getBoundingClientRect();
+          const pr = parent.getBoundingClientRect();
+          const pbox = getComputedStyle(parent);
+          const num = (v) => parseFloat(v) || 0;
+          const cL = pr.left + num(pbox.paddingLeft) + num(pbox.borderLeftWidth);
+          const cR = pr.right - num(pbox.paddingRight) - num(pbox.borderRightWidth);
+          const contentW = cR - cL;
+          const gapL = r.left - cL;
+          const gapR = cR - r.right;
           const elCx = r.left + r.width / 2;
-          const prCx = pr.left + pr.width / 2;
-          if (pr.width > 0 && r.width < pr.width * 0.85 && Math.abs(elCx - prCx) / pr.width < 0.12)
+          const cCx = (cL + cR) / 2;
+          if (contentW > 0 && gapL > 2 && gapR > 2 && Math.abs(elCx - cCx) / contentW < 0.12)
             centered = true;
         } catch {
         }

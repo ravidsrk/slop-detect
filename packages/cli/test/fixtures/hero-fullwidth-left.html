@@ -7,12 +7,15 @@
   <style>
     /* Linear repro (T-17): full-width LEFT-aligned hero in Inter. The old
        geometric fallback called any full-width H1 "centered" by bbox math.
-       centered_hero must NOT fire here. Enough content to dodge empty_page. */
+       centered_hero must NOT fire here. The 200px main padding ALSO pins the
+       padded-container defeat: a border-box width ratio calls this 880px
+       child "narrow" against the 1280px border box — only content-box gaps
+       see it fills its container. Enough content to dodge empty_page. */
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family: Inter, -apple-system, sans-serif; color:#eee; background:#0a0a0a; }
     nav { display:flex; gap:24px; padding:20px 40px; border-bottom:1px solid #222; }
     nav a { color:#aaa; text-decoration:none; font-size:15px; }
-    main { padding:64px 40px; }
+    main { padding:64px 200px; }
     h1 { font-size:64px; font-weight:700; text-align:left; line-height:1.05;
          margin-bottom:20px; letter-spacing:-0.02em; }
     .lead { font-size:20px; color:#999; max-width:60ch; margin-bottom:48px; }
