@@ -82,9 +82,9 @@ test('exactly one domainOf helper (no shadowed duplicate)', () => {
 });
 
 test('fix modal traps focus, moves it in, and returns it (T-20)', () => {
-  // Presence pin — the behavior itself is proven by the Playwright keyboard
-  // probe in T-20-trap.txt (trap + wrap + Escape + return, with a revert
-  // control showing 8/8 escapes without the fix).
+  // Presence pin for the browser-free unit job — the behavior itself is
+  // proven executably by cli/test/modal-trap.test.js (RUN_GOLDEN) plus the
+  // Playwright keyboard probe recorded in T-20-trap.txt.
   expect(html).toMatch(/role="dialog" aria-modal="true"/);
   expect(html).toMatch(/e\.key !== 'Tab' \|\| !modalBg\.classList\.contains\('show'\)/);
   expect(html).toMatch(/modalOpener = document\.getElementById\('fixPromptBtn'\)/);

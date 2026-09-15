@@ -2,6 +2,9 @@
 Frozen surface: fix-prompt modal (open state) on / × WCAG 2.1.2/2.4.3/4.1.2.
 Oracle: scripted Playwright keyboard probe (real UI path: mocked /api/scan →
 render → fixPromptBtn → mocked /api/fix-prompt) + axe-core 4.10.2 in-page.
+Committed executable regression: cli/test/modal-trap.test.js (RUN_GOLDEN,
+in the CI golden line) — trap cycle, Shift+Tab wrap, outside-focus
+pullback, Escape return, stray-Escape silence. Fails on reverted code.
 --- DETECT (pre-fix baseline) ---
 initial focus: body, OUTSIDE modal. 8/8 Tab stops ESCAPED to background
 (nav links, watch form). Escape closed but focus stranded (no return).

@@ -1266,11 +1266,15 @@ document.addEventListener('keydown', (e) => {
   const items = modalFocusable();
   if (!items.length) return;
   const first = items[0], last = items[items.length - 1];
-  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  // Focus may already be outside (e.g. the clipboard fallback selects then
+  // removes a temp textarea): pull it back instead of only wrapping edges.
+  if (!items.includes(document.activeElement)) { e.preventDefault(); (e.shiftKey ? last : first).focus(); }
+  else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
   else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
 });
 
 function closeModal() {
+  if (!modalBg.classList.contains('show')) return;
   modalBg.classList.remove('show');
   // Return focus to the invoker; if it is mid-load disabled, fall back to
   // the Scan button so focus never strands on a hidden element.
