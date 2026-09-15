@@ -3,10 +3,10 @@
 // agrees with human labels — the thing you need to state a defensible accuracy
 // number (the deep-review gap #8).
 //
-//   node packages/cli/calibration/run.mjs            # scan via the public API (no browser)
-//   node packages/cli/calibration/run.mjs --local    # scan locally (needs Playwright)
-//   node packages/cli/calibration/run.mjs --check     # exit 1 if any CONFIRMED label mismatches
-//   node packages/cli/calibration/run.mjs --json out.json
+//   bun run calibrate                 # scan via the public API (no browser)
+//   bun run calibrate -- --local    # scan locally (needs Playwright)
+//   bun run calibrate -- --check     # exit 1 if any CONFIRMED label mismatches
+//   bun run calibrate -- --json out.json
 //
 // Accuracy is computed ONLY over rows with a confirmed `label`. Rows with
 // label:null are printed as predictions for a human to confirm and promote.

@@ -1,0 +1,39 @@
+T-19c — calibration harness runs + Sept baseline (G-47/gh-99, agent part)
+Branch: ravidsrk/p3-cal-harness
+
+FINDING: the harness did not run at all. `bun run calibrate` shelled to
+`node --import tsx` (tsx never a dependency: ERR_MODULE_NOT_FOUND) and
+calibrate.yml ran bare `node` against a `.ts` import. Both paths died
+before scanning. Fixed by running the runner under `bun` (resolves the
+source import natively; no new dep). Files: package.json script,
+calibrate.yml step, run.mjs header docs.
+
+HARNESS RUN (fixed): bun run calibrate -- --local --json /tmp/cal-local.json
+EXIT=0. 13 labeled rows, 5 correct, accuracy 38.5%.
+Confusion: Clean->{Clean 3, Mild 6}, Mild->{Mild 2, Heavy 1}, Heavy->{}.
+Full table + June-vs-Sept analysis committed in CALIBRATION.md
+("Findings — 2026-09-15"). Headlines: Linear 36->19 / Vercel 29->17
+(shipped fixes working, still Mild on structural cluster); Supabase
+8->20 / Lovable 9->15 crossed Clean->Mild (flagged for H-05 eyes);
+example.com abstains as empty_page and counts as MISS (kept: excluding
+abstentions would flatter accuracy).
+NO THRESHOLD TOUCHED (13 rows = overfit trap, per the doc).
+
+SCOPE HONESTY: gh-99's 50-100 human labels + second rater is human work
+(H-05, open, gates launch). Agent part per H-05 verification ("runs
+harness + commits corpus"): harness runs, baseline recorded in
+CALIBRATION.md. corpus.json itself UNCHANGED (labels carried forward;
+definitionsVersion stays 2026.08 until H-05 labels land).
+=== FORMAT ===
+FORMAT_EXIT=0
+=== LINT ===
+LINT_EXIT=0
+=== TYPECHECK ===
+TYPECHECK_EXIT=0
+=== TEST ===
+TEST_EXIT=0
+slop-detect-mcp:test:       Tests  14 passed (14)
+@slop-detect/action:test:       Tests  7 passed (7)
+@slop-detect/core:test:       Tests  77 passed (77)
+slop-detect:test:       Tests  13 passed | 40 skipped (53)
+slop-detect-web:test:       Tests  367 passed (367)

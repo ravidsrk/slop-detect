@@ -6,9 +6,10 @@ This is the harness for that — and the honest answer to "what's your accuracy?
 ## What's here
 
 - **Deterministic golden fixtures** — `packages/cli/test/fixtures/*.html`, scanned
-  in a real headless browser by `packages/cli/test/golden.test.js`. These pin
-  detector behavior on a hand-built clean page and a maximal-slop page so a
-  refactor or threshold tweak can't silently break detection. They run in CI's
+  in a real headless browser by `packages/cli/test/golden.test.js` (whole-page
+  behavior) and `packages/cli/test/pattern-coverage.test.js` (one positive
+  fixture per pattern ID, gh-92). These pin detector behavior so a refactor or
+  threshold tweak can't silently break detection. They run in CI's
   "Smoke test CLI" job (`RUN_GOLDEN=1`), which has Chromium.
 - **A labeled corpus** — `packages/cli/calibration/corpus.json`. Each row has a
   URL, a human-confirmed expected tier (`label`), and provenance. `label: null`
@@ -92,4 +93,58 @@ run `bun run calibrate`, and tune class-2/3 patterns until the premium-custom se
 clears**, with the golden fixtures guarding that real slop still scores Heavy.
 The evidence and labels above are the starting point; the tuning is the next
 session's work, ideally with a second pair of eyes on the boundary labels.
+
+## Findings — 2026-09-15 (harness repaired, seed re-run)
+
+The harness itself was broken: `bun run calibrate` shelled to
+`node --import tsx` but `tsx` was never a dependency, and
+`calibrate.yml` ran bare `node` against a `.ts` import — both paths failed
+before scanning anything. Fixed (T-19c) by running the runner under `bun`,
+which resolves the source import natively; no new dependency.
+
+Re-ran the unchanged 13-row seed locally (`--local`, engine 2026.09):
+
+| Site | Should be | Detector said (June → Sept) |
+|---|---|---|
+| news.ycombinator.com | Clean | Clean ✓ → Clean (6) ✓ |
+| example.com | Clean | (not scanned in June) → **null (blocked: empty_page)** ✗ |
+| motherfuckingwebsite.com | Clean | Clean ✓ → Clean (0) ✓ |
+| berkshirehathaway.com | Clean | Clean ✓ → Clean (3) ✓ |
+| gnu.org | Clean | (not scanned in June) → Mild (10) ✗ |
+| supabase.com | Clean | Clean (8) ✓ → **Mild (20)** ✗ |
+| bolt.new | Mild | Mild ✓ → Heavy (31) ✗ |
+| aura.build | Mild | Heavy (30) ✗ → Mild (25) ✓ |
+| v0.dev | Mild | Mild (17) ✓ → Mild (17) ✓ |
+| lovable.dev | Clean | Clean (9) ✓ → **Mild (15)** ✗ |
+| stripe.com | Clean | Mild (23) ✗ → Mild (19) ✗ |
+| linear.app | Clean | Heavy (36) ✗ → Mild (19) ✗ |
+| vercel.com | Clean | Heavy (29) ✗ → Mild (17) ✗ |
+
+**5/13 (38.5%)**, confusion Clean→{Clean 3, Mild 6}, Mild→{Mild 2, Heavy 1}.
+No Heavy labels exist in the seed — another reason the number is not a claim.
+
+What moved since June, and why:
+
+1. **Genuine fixes pulled the premium sites down.** Linear 36→19 and Vercel
+   29→17 reflect the shipped eyebrow-pill keyword requirement, the
+   glassmorphism ≥2 threshold, and the centered_hero geometry fix (T-17).
+   They still read Mild on the class-2 structural cluster — the debt the
+   June section names, still correctly unfixed without a bigger corpus.
+2. **Two regressions need eyes during H-05 labeling.** Supabase 8→20 and
+   Lovable 9→15 crossed Clean→Mild. Nine patterns were added since June
+   (17–27); the added weight lands on real pages too. Whether the new
+   fires are true tells or over-fires is a label-then-tune question, not a
+   revert question — but the re-run caught it, which is the point of the
+   harness.
+3. **example.com exposes a harness semantic, not a detector bug.** The page
+   is too thin to judge (title + H1, 4 visible elements), so the detector
+   honestly abstains (`empty_page`, score null) — and the harness counts
+   the abstention as a MISS. Kept as-is deliberately: silently excluding
+   abstentions would flatter accuracy. A human relabeling pass (H-05) may
+   drop thin pages from the corpus instead.
+
+No thresholds were touched: tuning off 13 rows is still overfitting. The
+corpus grows to 50–100 human labels + second rater under H-05 (gh-99,
+launch-gating); this run is the pre-growth baseline it will be judged
+against. Corpus `definitionsVersion` stays 2026.08 until those labels land.
 

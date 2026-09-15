@@ -27,7 +27,7 @@ jobs:
         env:
           SLOP_API_KEY: ${{ secrets.SLOP_API_KEY }}
         run: |
-          node packages/cli/calibration/run.mjs --json cal-report.json | tee cal-out.txt
+          bun packages/cli/calibration/run.mjs --json cal-report.json | tee cal-out.txt
           {
             echo '## Calibration report'
             echo '```'
