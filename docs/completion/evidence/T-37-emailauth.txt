@@ -12,7 +12,7 @@ Deliverables (all on main @ e058705):
   only), DKIM v=DKIM1 at resend._domainkey, DMARC ;-parsed explicit p= with
   reported value; DNS errors fail with reason, never throw.
 - scripts/email-auth-check.ts: bun wrapper, exit 0/1.
-- 6 tests (stub resolver): PASS, bare-SPF/unrelated-include/lookalike FAILs,
+- 7 tests (stub resolver): PASS, bare-SPF/unrelated-include/lookalike FAILs,
   DKIM+DMARC missing/policy-less FAILs, p=none-reported, DNS-error path.
 
 Greptile: 4 P1 (2 + 2 follow-up), all fixed + replied in-thread (Resend-
