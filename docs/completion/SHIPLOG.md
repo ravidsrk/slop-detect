@@ -297,4 +297,14 @@
   P2s — all fixed, replied in-thread.
 - resume_pointer: P3/T-21
 
-# T-21 done — PR #140 merged (spec drift + sync guard, greptile P2 fixed in-thread fab64db)
+## 2026-09-15 S3/P3 T-21 spec-vs-engine drift (G-31) — DONE
+- branch ravidsrk/p3-spec-drift → PR #140 → merged ac361f6, no squash.
+- Audit diffed every machine-checkable spec claim vs the engine: 2 real
+  drifts fixed (bento summary-row wording; conformance flagship-clean
+  claim now target + #100 pointer). New core spec-sync guard pins
+  counts, versions, tiers, catalogue id-sets (bidirectional), weights.
+- Teeth-checked: drifted-copy + stale-row negatives fail, restored
+  green (core 77; all gates 0 after one prettier fixup).
+- Evidence: evidence/T-21-spec.txt. Greptile P2 (one-directional
+  guard) + P2 (this entry's structure) — both fixed, replied in-thread.
+- resume_pointer: P3/T-18a (T-21 merged ac361f6)
