@@ -82,7 +82,11 @@ test("CSP pins form-action 'self' (every form posts same-origin)", async () => {
 
 test('security.txt exists with a contact and a future expiry', () => {
   const text = readFileSync(new URL('../public/.well-known/security.txt', import.meta.url), 'utf8');
-  expect(text).toMatch(/^Contact: https:/m);
+  const contacts = text.match(/^Contact: .+$/gm) ?? [];
+  expect(contacts).toHaveLength(1);
+  expect(contacts[0]).toBe(
+    'Contact: https://github.com/ravidsrk/slop-detect/security/advisories/new'
+  );
   const expires = text.match(/^Expires: (.+)$/m)?.[1];
   expect(expires, 'Expires field present').toBeTruthy();
   const exp = new Date(expires).getTime();
