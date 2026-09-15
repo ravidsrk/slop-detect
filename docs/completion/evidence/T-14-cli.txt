@@ -22,11 +22,14 @@ remote --aeo ................. Invisible 20 (edge-env bot wall; local said Parti
 rate limit ................... structured rate_limited error, no crash. OK (by design)
 
 --- verdict ---
-S1 "design+remote rejects" is STALE: every mode works; remote matches local.
+S1 "design+remote rejects" is STALE: every mode works. Remote matches local
+EXACTLY on design/copy (score, tier, unified); the AEO axis is the stated
+exception (Partial 70 home-IP vs Invisible 20 edge-IP — environmental, the
+checks probe the caller's network position, not a product divergence).
 "Partial" downgraded to two notes: (1) fixed — empty_page reason contradicted
-attached title/H1 (core page-script.ts + test); (2) accepted — transient API
-502s and no-origin rate limits are server-side behaviors the CLI surfaces
-correctly. No re-scope needed: CF-02 is whole.
+attached title/H1 (core page-script.ts + tests, 3 honest variants); (2)
+accepted — transient API 502s and no-origin rate limits are server-side
+behaviors the CLI surfaces correctly. No re-scope needed: CF-02 is whole.
 === FORMAT ===
 FORMAT_EXIT=0
 === LINT ===

@@ -82,15 +82,18 @@ export function detectBlocked(
   // the page never finished rendering inside the headless runtime, OR the site
   // is gating content behind a JS auth wall. ChatGPT/Cursor/etc do this.
   const noContent = !title && !h1;
-  const sparseDom = visibleCount < 10 || patternsWithEvidence < 4;
-  if (noContent || sparseDom) {
-    // A titled page can still be too thin to judge (e.g. example.com: title +
-    // H1 but 4 visible elements). Say so plainly instead of claiming "no
-    // title, no H1" while echoing both back to the caller.
-    const reason =
-      !noContent && sparseDom
+  const thinDom = visibleCount < 10;
+  const thinSignals = patternsWithEvidence < 4;
+  if (noContent || thinDom || thinSignals) {
+    // Three honest variants of "cannot judge": nothing rendered; a titled
+    // page too thin to judge (example.com: title + H1, 4 visible elements);
+    // or a dense page the fingerprint couldn't characterize (plenty of DOM,
+    // too few pattern signals). Never claim "sparse" when the DOM is dense.
+    const reason = noContent
+      ? 'Target page rendered no scannable content (no title, no H1, or empty DOM).'
+      : thinDom
         ? 'Target page rendered too little content to judge reliably (sparse DOM despite a title/H1).'
-        : 'Target page rendered no scannable content (no title, no H1, or empty DOM).';
+        : 'Target page rendered content the detector could not characterize (too few pattern signals to judge reliably).';
     return {
       code: 'empty_page',
       reason,

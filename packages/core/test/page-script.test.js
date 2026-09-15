@@ -111,4 +111,16 @@ describe('detectBlocked', () => {
     const blank = detectBlocked({ title: '', h1Text: '', visibleCount: 0, signals: {} });
     expect(blank.reason).toMatch(/no title, no H1/);
   });
+
+  test('dense-but-uncharacterizable pages are not called "sparse" (T-14)', () => {
+    const blocked = detectBlocked({
+      title: 'Hello',
+      h1Text: 'World',
+      visibleCount: 50,
+      signals: { one: { triggered: false, n: 1 } },
+    });
+    expect(blocked?.code).toBe('empty_page');
+    expect(blocked.reason).toMatch(/could not characterize/);
+    expect(blocked.reason).not.toMatch(/sparse/i);
+  });
 });
