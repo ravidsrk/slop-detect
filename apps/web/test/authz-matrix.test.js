@@ -11,6 +11,7 @@
 import { test, expect } from 'vitest';
 import { onRequest as apiGate } from '../functions/api/_middleware.ts';
 import { onRequestPost as sweepPost } from '../functions/api/cron/sweep.ts';
+import { onRequestGet as patternsGet } from '../functions/api/patterns.ts';
 import { onRequestGet as dashGet } from '../functions/dashboard.tsx';
 import { signSession } from '../functions/_session.ts';
 
@@ -229,6 +230,27 @@ test('fix-prompt {url} is gated AS a scan; {result} stays cheap', async () => {
     next: passThrough,
   });
   expect(r3.status).toBe(429);
+});
+
+test('fix-prompt {result} assembles cheap but still 429s past 20/min', async () => {
+  const req = makeRequest({
+    path: '/api/fix-prompt',
+    headers: { 'CF-Connecting-IP': '9.9.9.3' },
+    body: { result: { score: 1 } },
+  });
+  const kv = makeKv({ 'rl:fix-prompt:9.9.9.3': '20' });
+  const res = await apiGate({ request: req, env: { RATE_LIMIT: kv }, next: passThrough });
+  expect(res.status).toBe(429);
+  expect((await res.json()).error).toBe('rate_limited');
+});
+
+test('GET /api/patterns is public and serves the live catalogue', async () => {
+  const res = await patternsGet();
+  expect(res.status).toBe(200);
+  const j = await res.json();
+  expect(typeof j.version).toBe('string');
+  expect(j.count).toBe(j.patterns.length);
+  expect(j.count).toBeGreaterThan(0);
 });
 
 test('aeo POST is gated AS a scan (Turnstile + shared bucket)', async () => {
