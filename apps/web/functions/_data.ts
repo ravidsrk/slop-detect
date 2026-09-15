@@ -247,6 +247,48 @@ export async function addSuppression(kv, email, reason): Promise<void> {
   );
 }
 
+// Erasure (T-32): dropping the suppression re-arms delivery, which is what
+// "forget me" means — a re-subscribe starts clean. The next bounce
+// re-suppresses, so this can't be used to launder a dead address for long.
+export async function deleteSuppression(kv, email): Promise<void> {
+  if (!kv || !email) return;
+  await kv.delete(await suppressionKey(email));
+}
+
+// Per-email abuse counters keyed by email hash (greptile P2 on PR #175:
+// erasure must not silently leave email-derived records behind). BOTH live
+// in the RATE_LIMIT namespace: rl:watchverify (watchVerifyAllowed below, 1h
+// window) and rl:dashlink (dashLinkAllowed in api/dashboard/link.ts — that
+// literal is mirrored here and pinned by a tripwire in rights.test.js so a
+// rename breaks loudly instead of orphaning counters on erase).
+export async function emailCountersPresent(rateKv, email) {
+  if (!rateKv || !email) return { watchVerify: false, dashLink: false };
+  const hash = await emailHash(String(email).trim().toLowerCase());
+  const [wv, dl] = await Promise.all([
+    rateKv.get(`rl:watchverify:${hash}`),
+    rateKv.get(`rl:dashlink:${hash}`),
+  ]);
+  return { watchVerify: wv != null, dashLink: dl != null };
+}
+
+// Returns how many counter keys actually existed (erase is rare; the reads
+// keep the response honest instead of claiming unconditional deletes).
+export async function deleteEmailCounters(rateKv, email): Promise<number> {
+  const present = await emailCountersPresent(rateKv, email);
+  if (!rateKv || !email) return 0;
+  const hash = await emailHash(String(email).trim().toLowerCase());
+  let n = 0;
+  if (present.watchVerify) {
+    await rateKv.delete(`rl:watchverify:${hash}`);
+    n++;
+  }
+  if (present.dashLink) {
+    await rateKv.delete(`rl:dashlink:${hash}`);
+    n++;
+  }
+  return n;
+}
+
 // ── Per-recipient confirmation-email cap (anti email-bomb) ────────────────────
 // /api/watch issues a double-opt-in email to a CALLER-SUPPLIED address, so the
 // per-IP middleware limit alone lets one IP mail an arbitrary victim ~20×/min

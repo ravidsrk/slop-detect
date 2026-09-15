@@ -104,6 +104,17 @@ test('terms carries the AS-IS warranty disclaimer and liability cap', () => {
   expect(terms).toMatch(/preceding 12 months/i);
 });
 
+test('both legal pages document the self-serve export/erasure endpoints', () => {
+  // T-32: G-17 closes only if users can FIND the rights path.
+  for (const [name, doc] of [
+    ['privacy.md', privacy],
+    ['terms.md', terms],
+  ]) {
+    expect(doc, `${name} documents export`).toContain('/api/me/export');
+    expect(doc, `${name} documents erasure`).toContain('/api/me/erase');
+  }
+});
+
 test('both legal pages name the GitHub contact channel', () => {
   for (const [name, doc] of [
     ['privacy.md', privacy],
