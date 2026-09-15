@@ -953,6 +953,18 @@
       "source": ["F-16-04"],
       "status": "open",
       "tasks": ["T-36"]
+    },
+    {
+      "id": "G-58",
+      "angle": 8,
+      "critical_flow": "CF-01",
+      "decision": "FINISH",
+      "severity": "S2",
+      "source": ["p3-exit-probe"],
+      "status": "open",
+      "tasks": ["T-33"],
+      "issue_url": null,
+      "accept_expiry": null
     }
   ],
   "gate": {
@@ -1976,6 +1988,22 @@
       "review": null,
       "size": "S",
       "status": "todo"
+    },
+    {
+      "id": "T-33",
+      "plan_phase": "P3",
+      "status": "in_review",
+      "owner": "agent",
+      "size": "S",
+      "depends_on": [],
+      "gaps": ["G-58"],
+      "branch": "ravidsrk/p3-exit-502",
+      "evidence": ["docs/completion/evidence/P3-exit.txt"],
+      "pr": null,
+      "commit": null,
+      "review": null,
+      "attempts": 0,
+      "block_signature": null
     }
   ]
 }

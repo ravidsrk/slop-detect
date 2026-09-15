@@ -288,7 +288,11 @@ export async function onRequestPost({ request, env, waitUntil }) {
       },
       waitUntil
     );
-    return json({ error: err.message || String(err) }, 502);
+    // Null-safe: binding-level failures can reject with no error value, and
+    // reading .message off that threw a TypeError out of the handler (live:
+    // bare Cloudflare edge 502 instead of this JSON contract).
+    const message = err && err.message ? err.message : 'Scan failed (browser error)';
+    return json({ error: message }, 502);
   } finally {
     await releaseBrowser(browser);
   }

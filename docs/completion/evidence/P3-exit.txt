@@ -1,0 +1,59 @@
+T-33 — P3 exit: nullish-502 fix + per-flow happy/failure evidence (G-58)
+Branch: ravidsrk/p3-exit-502
+
+G-58 FOUND LIVE: POST /api/scan {url:"not-a-url"} (unresolvable host)
+returned a BARE Cloudflare edge 502 ("error code: 502", text/plain,
+server: cloudflare) instead of the JSON 502 contract — twice, 25s apart.
+Root cause: scan.ts catch did `err.message || String(err)`; binding-level
+failures can reject with NO error value, so a TypeError escaped the
+handler. (The report() line directly above IS null-safe — the crash was
+one line below it.) Fix: null-safe message with 'Scan failed (browser
+error)' fallback. Only unguarded err.message in web+cli (grep-verified).
+Test: '502 JSON (not a bare edge 502) when navigation rejects with no
+error value' — FAILS on old code with the exact TypeError
+("Cannot read properties of undefined (reading 'message')"), passes fixed.
+scan-contract.test.js: 21 passed (21).
+
+PER-FLOW HAPPY + FAILURE (2026-09-15, times UTC):
+- CF-01 web scan: HAPPY POST /api/scan HN -> 200 Clean 6 A- (2/27).
+  FAILURE example.com -> 422 JSON {code empty_page, hint} (contract holds;
+  WORDING is pre-T-14 single-message -> production stale, see #152).
+  FAILURE unresolvable host -> bare edge 502 -> G-58, fixed here.
+- CF-02 CLI scan: HAPPY local HN -> Clean 6 A-. FAILURE example.com ->
+  blocked:true empty_page + honest sparse-DOM message + hint (current code).
+  (Confirms T-14 on today's tree.)
+- CF-03 fix prompt: HAPPY POST /api/fix-prompt {result} -> 200 markdown
+  ("scored 6/100 ... tier Clean ... Issues to fix"). FAILURE {} -> 400
+  "Provide either a `result` ... or a `url` to scan."
+- CF-04 watch/monitor: committed monitor-flow.test.js re-run green as part
+  of 43/43 (with dashboard+authz-matrix); T-15 evidence has the E2E +
+  fail-closed matrix. No live fire (would send real alerts).
+- CF-05 dashboard: dashboard.test.js + authz-matrix.test.js re-run green
+  (43/43 with monitor-flow); T-09 evidence has the 74-test authz matrix.
+- CF-06 MCP: 14/14 green. Happy: scanPage success, scan_page format,
+  fix_prompt text. Failure: 429/502/timeout ApiErrors, missing-url tool
+  error, unknown-tool error (named tests, not just codes).
+- CF-07 share: badge HN -> 200 image/svg+xml "A- · 6" (happy, KV-backed);
+  badge unknown domain -> 200 neutral "no scan" SVG (graceful, by design).
+  /leaderboard -> 200 but FALLBACK state ("being generated") — the T-19
+  dataset is committed but production predates it (same #152 staleness;
+  page correctly degrades when leaderboard.json is absent).
+
+PRODUCTION FRESHNESS (#152, human-owned): live shows pre-T-14 wording
+(merged 04:31 UTC) despite 06:48-07:18 UTC deploy successes; deploy.yml
+lacks --branch so wrangler uploads go to preview. P3 exit does NOT wait
+for the dashboard answer, but S5 sign-off must confirm production == main
+before GO. The /leaderboard fallback above is the visible symptom.
+=== FORMAT ===
+FORMAT_EXIT=0
+=== LINT ===
+LINT_EXIT=0
+=== TYPECHECK ===
+TYPECHECK_EXIT=0
+=== TEST ===
+TEST_EXIT=0
+@slop-detect/core:test:       Tests  77 passed (77)
+slop-detect-mcp:test:       Tests  14 passed (14)
+@slop-detect/action:test:       Tests  7 passed (7)
+slop-detect:test:       Tests  13 passed | 40 skipped (53)
+slop-detect-web:test:       Tests  368 passed (368)
