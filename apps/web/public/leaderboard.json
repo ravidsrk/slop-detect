@@ -1,0 +1,331 @@
+{
+  "generatedAt": "2026-09-15T07:08:35.691Z",
+  "definitionsVersion": "2026.09",
+  "count": 24,
+  "scored": 20,
+  "stats": {
+    "avgScore": 15.7,
+    "slopShare": 65,
+    "cleanCount": 7,
+    "mildCount": 9,
+    "heavyCount": 4
+  },
+  "byBuilder": {
+    "v0": {
+      "count": 1,
+      "avgScore": 17
+    },
+    "bolt": {
+      "count": 1,
+      "avgScore": 31
+    },
+    "framer": {
+      "count": 1,
+      "avgScore": 10
+    },
+    "aura": {
+      "count": 1,
+      "avgScore": 25
+    },
+    "custom": {
+      "count": 12,
+      "avgScore": 17.9
+    },
+    "static": {
+      "count": 4,
+      "avgScore": 4
+    }
+  },
+  "byCategory": {
+    "ai-builder": {
+      "count": 4,
+      "avgScore": 20.8
+    },
+    "saas": {
+      "count": 8,
+      "avgScore": 25.8
+    },
+    "bigtech": {
+      "count": 3,
+      "avgScore": 1
+    },
+    "classic": {
+      "count": 5,
+      "avgScore": 4.4
+    }
+  },
+  "sites": [
+    {
+      "domain": "notion.so",
+      "url": "https://www.notion.so",
+      "builtWith": "custom",
+      "category": "bigtech",
+      "scored": true,
+      "score": 0,
+      "grade": "A+",
+      "tier": "Clean",
+      "patternsFlagged": 0,
+      "resultUrl": "https://slop-detect.com/r/ocf1abbs"
+    },
+    {
+      "domain": "anthropic.com",
+      "url": "https://www.anthropic.com",
+      "builtWith": "custom",
+      "category": "bigtech",
+      "scored": true,
+      "score": 0,
+      "grade": "A+",
+      "tier": "Clean",
+      "patternsFlagged": 0,
+      "resultUrl": "https://slop-detect.com/r/s6u7l06u"
+    },
+    {
+      "domain": "motherfuckingwebsite.com",
+      "url": "https://motherfuckingwebsite.com",
+      "builtWith": "static",
+      "category": "classic",
+      "scored": true,
+      "score": 0,
+      "grade": "A+",
+      "tier": "Clean",
+      "patternsFlagged": 0,
+      "resultUrl": "https://slop-detect.com/r/7y9ada5y"
+    },
+    {
+      "domain": "figma.com",
+      "url": "https://www.figma.com",
+      "builtWith": "custom",
+      "category": "bigtech",
+      "scored": true,
+      "score": 3,
+      "grade": "A",
+      "tier": "Clean",
+      "patternsFlagged": 1,
+      "resultUrl": "https://slop-detect.com/r/nz3p8gef"
+    },
+    {
+      "domain": "berkshirehathaway.com",
+      "url": "https://berkshirehathaway.com",
+      "builtWith": "static",
+      "category": "classic",
+      "scored": true,
+      "score": 3,
+      "grade": "A",
+      "tier": "Clean",
+      "patternsFlagged": 1,
+      "resultUrl": "https://slop-detect.com/r/a45seyk5"
+    },
+    {
+      "domain": "craigslist.org",
+      "url": "https://craigslist.org",
+      "builtWith": "static",
+      "category": "classic",
+      "scored": true,
+      "score": 3,
+      "grade": "A",
+      "tier": "Clean",
+      "patternsFlagged": 1,
+      "resultUrl": "https://slop-detect.com/r/ukn66wcr"
+    },
+    {
+      "domain": "news.ycombinator.com",
+      "url": "https://news.ycombinator.com",
+      "builtWith": "custom",
+      "category": "classic",
+      "scored": true,
+      "score": 6,
+      "grade": "A-",
+      "tier": "Clean",
+      "patternsFlagged": 2,
+      "resultUrl": "https://slop-detect.com/r/6wc3upug"
+    },
+    {
+      "domain": "framer.com",
+      "url": "https://www.framer.com",
+      "builtWith": "framer",
+      "category": "ai-builder",
+      "scored": true,
+      "score": 10,
+      "grade": "B+",
+      "tier": "Mild",
+      "patternsFlagged": 2,
+      "resultUrl": "https://slop-detect.com/r/02ucll3a"
+    },
+    {
+      "domain": "gnu.org",
+      "url": "https://www.gnu.org",
+      "builtWith": "static",
+      "category": "classic",
+      "scored": true,
+      "score": 10,
+      "grade": "B+",
+      "tier": "Mild",
+      "patternsFlagged": 2,
+      "resultUrl": "https://slop-detect.com/r/24721hpv"
+    },
+    {
+      "domain": "v0.dev",
+      "url": "https://v0.dev",
+      "builtWith": "v0",
+      "category": "ai-builder",
+      "scored": true,
+      "score": 17,
+      "grade": "B",
+      "tier": "Mild",
+      "patternsFlagged": 3,
+      "resultUrl": "https://slop-detect.com/r/kg6lhryi"
+    },
+    {
+      "domain": "stripe.com",
+      "url": "https://stripe.com",
+      "builtWith": "custom",
+      "category": "saas",
+      "scored": true,
+      "score": 19,
+      "grade": "B",
+      "tier": "Mild",
+      "patternsFlagged": 4,
+      "resultUrl": "https://slop-detect.com/r/440s0iu6"
+    },
+    {
+      "domain": "posthog.com",
+      "url": "https://posthog.com",
+      "builtWith": "custom",
+      "category": "saas",
+      "scored": true,
+      "score": 19,
+      "grade": "B",
+      "tier": "Mild",
+      "patternsFlagged": 4,
+      "resultUrl": "https://slop-detect.com/r/c2mup8n3"
+    },
+    {
+      "domain": "supabase.com",
+      "url": "https://supabase.com",
+      "builtWith": "custom",
+      "category": "saas",
+      "scored": true,
+      "score": 20,
+      "grade": "B-",
+      "tier": "Mild",
+      "patternsFlagged": 4,
+      "resultUrl": "https://slop-detect.com/r/m3im04qv"
+    },
+    {
+      "domain": "linear.app",
+      "url": "https://linear.app",
+      "builtWith": "custom",
+      "category": "saas",
+      "scored": true,
+      "score": 23,
+      "grade": "B-",
+      "tier": "Mild",
+      "patternsFlagged": 5,
+      "resultUrl": "https://slop-detect.com/r/rf82qfd8"
+    },
+    {
+      "domain": "railway.app",
+      "url": "https://railway.app",
+      "builtWith": "custom",
+      "category": "saas",
+      "scored": true,
+      "score": 24,
+      "grade": "C",
+      "tier": "Mild",
+      "patternsFlagged": 4,
+      "resultUrl": "https://slop-detect.com/r/29ne61qd"
+    },
+    {
+      "domain": "aura.build",
+      "url": "https://www.aura.build",
+      "builtWith": "aura",
+      "category": "ai-builder",
+      "scored": true,
+      "score": 25,
+      "grade": "C",
+      "tier": "Mild",
+      "patternsFlagged": 5,
+      "resultUrl": "https://slop-detect.com/r/23eftljp"
+    },
+    {
+      "domain": "bolt.new",
+      "url": "https://bolt.new",
+      "builtWith": "bolt",
+      "category": "ai-builder",
+      "scored": true,
+      "score": 31,
+      "grade": "D+",
+      "tier": "Heavy",
+      "patternsFlagged": 7,
+      "resultUrl": "https://slop-detect.com/r/m2b2hi0k"
+    },
+    {
+      "domain": "cal.com",
+      "url": "https://cal.com",
+      "builtWith": "custom",
+      "category": "saas",
+      "scored": true,
+      "score": 31,
+      "grade": "D+",
+      "tier": "Heavy",
+      "patternsFlagged": 6,
+      "resultUrl": "https://slop-detect.com/r/l2ubx1dr"
+    },
+    {
+      "domain": "resend.com",
+      "url": "https://resend.com",
+      "builtWith": "custom",
+      "category": "saas",
+      "scored": true,
+      "score": 34,
+      "grade": "D",
+      "tier": "Heavy",
+      "patternsFlagged": 7,
+      "resultUrl": "https://slop-detect.com/r/dencpn1z"
+    },
+    {
+      "domain": "clerk.com",
+      "url": "https://clerk.com",
+      "builtWith": "custom",
+      "category": "saas",
+      "scored": true,
+      "score": 36,
+      "grade": "D",
+      "tier": "Heavy",
+      "patternsFlagged": 8,
+      "resultUrl": "https://slop-detect.com/r/pid7px8m"
+    },
+    {
+      "domain": "lovable.dev",
+      "url": "https://lovable.dev",
+      "builtWith": "lovable",
+      "category": "ai-builder",
+      "scored": false,
+      "reason": "cloudflare_challenge"
+    },
+    {
+      "domain": "replit.com",
+      "url": "https://replit.com",
+      "builtWith": "replit",
+      "category": "ai-builder",
+      "scored": false,
+      "reason": "cloudflare_challenge"
+    },
+    {
+      "domain": "vercel.com",
+      "url": "https://vercel.com",
+      "builtWith": "next",
+      "category": "saas",
+      "scored": false,
+      "reason": "HTTP 502"
+    },
+    {
+      "domain": "openai.com",
+      "url": "https://openai.com",
+      "builtWith": "custom",
+      "category": "bigtech",
+      "scored": false,
+      "reason": "cloudflare_challenge"
+    }
+  ]
+}
