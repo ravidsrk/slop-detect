@@ -15,7 +15,8 @@
 import { listWatches, getWatch, putWatch } from '../../_shared.js';
 import { monitorSweep } from '../../_sweep.js';
 import { sendEmail } from '../../_email.js';
-import { buildRegressionAlert, buildDriftAlert } from '../../_alerts.js';
+import { buildRegressionAlert, buildDriftAlert, mailFooter } from '../../_alerts.js';
+import { signUnsubscribe, unsubscribeUrl } from '../../_session.js';
 import { report } from '../../_report.js';
 
 function json(data, status = 200) {
@@ -74,6 +75,30 @@ export async function onRequestPost({ request, env }) {
     }
   };
 
+  // One-click unsubscribe (RFC 8058) for this recipient: signed URL in the
+  // footer + List-Unsubscribe headers. FAILS CLOSED (greptile P1 on PR #173):
+  // without SESSION_SECRET (unsigned URL) or MAIL_POSTAL_ADDRESS (postal
+  // line) there is no compliant mail to send — and a degraded send would
+  // return sent:true, consuming the event (notified) with no retry. So the
+  // sender skips (sent:false, notified stays false) and the next configured
+  // sweep delivers. The warn names the missing piece for the owner (H-02).
+  const unsubFor = async (watch) => {
+    if (!env.SESSION_SECRET || !env.MAIL_POSTAL_ADDRESS) {
+      if (!env.MAIL_POSTAL_ADDRESS) report(env, 'warn', 'mail_postal_missing', {});
+      return null;
+    }
+    const token = await signUnsubscribe(watch.domain, watch.email, env.SESSION_SECRET);
+    if (!token) return null; // Unreachable (inputs guaranteed) — never emit `<null>`.
+    const unsubUrl = unsubscribeUrl(origin, token);
+    return {
+      footer: mailFooter({ postal: env.MAIL_POSTAL_ADDRESS, unsubUrl }),
+      headers: {
+        'List-Unsubscribe': `<${unsubUrl}>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
+    };
+  };
+
   const sendAlert = async (watch) => {
     const baseline = {
       score: watch.baselineScore,
@@ -82,8 +107,18 @@ export async function onRequestPost({ request, env }) {
     };
     const current = { score: watch.lastScore, grade: watch.lastGrade, tier: watch.lastTier };
     const resultUrl = watch.lastId ? `${origin}/r/${watch.lastId}` : null;
-    const msg = buildRegressionAlert(watch.domain, baseline, current, { resultUrl });
-    return sendEmail(env, { to: watch.email, subject: msg.subject, text: msg.text });
+    const u = await unsubFor(watch);
+    if (!u) return { sent: false, reason: 'not_configured' };
+    const msg = buildRegressionAlert(watch.domain, baseline, current, {
+      resultUrl,
+      footer: u.footer,
+    });
+    return sendEmail(env, {
+      to: watch.email,
+      subject: msg.subject,
+      text: msg.text,
+      headers: u.headers,
+    });
   };
 
   // System-drift alert (P2a) — fires once per drift event, recovery re-arms.
@@ -91,10 +126,18 @@ export async function onRequestPost({ request, env }) {
     const baseline = { score: watch.baselineSystemScore, tier: watch.baselineSystemTier };
     const current = { score: watch.lastSystemScore, tier: watch.lastSystemTier };
     const resultUrl = watch.lastId ? `${origin}/r/${watch.lastId}` : null;
+    const u = await unsubFor(watch);
+    if (!u) return { sent: false, reason: 'not_configured' };
     const msg = buildDriftAlert(watch.domain, baseline, current, watch.lastSystemDrift || [], {
       resultUrl,
+      footer: u.footer,
     });
-    return sendEmail(env, { to: watch.email, subject: msg.subject, text: msg.text });
+    return sendEmail(env, {
+      to: watch.email,
+      subject: msg.subject,
+      text: msg.text,
+      headers: u.headers,
+    });
   };
 
   const watches = await listWatches(env.RESULTS, { limit: 1000 });

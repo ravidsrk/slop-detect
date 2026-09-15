@@ -2,10 +2,22 @@
 // they're trivially testable and the wording lives in one place. No PII beyond
 // the recipient's own domain; copy is plain-text-first (best deliverability).
 
+// CAN-SPAM footer, shared by all four mails: physical postal address (from
+// MAIL_POSTAL_ADDRESS), one-click unsubscribe for recurring alerts, privacy
+// link. Returns footer LINES; callers spread them at the end of the body.
+// `postal` missing ⇒ the Slop Detector line ships without an address and the
+// caller reports mail_postal_missing (owner must set it — see docs/EMAIL.md).
+export function mailFooter({ postal, unsubUrl }: { postal?: string; unsubUrl?: string }) {
+  const lines = ['—', postal ? `Slop Detector · ${postal}` : 'Slop Detector'];
+  if (unsubUrl) lines.push(`Stop these alerts (one click, immediate): ${unsubUrl}`);
+  lines.push('Privacy: https://slop-detect.com/privacy.md');
+  return lines;
+}
+
 // Double-opt-in confirmation. We never send alerts to an address until the owner
 // clicks this — it's the consent gate (and stops anyone attaching a victim's
 // email to a domain).
-export function buildVerificationEmail(domain, confirmUrl) {
+export function buildVerificationEmail(domain, confirmUrl, opts: any = {}) {
   const subject = `Confirm monitoring for ${domain}`;
   const text = [
     `You (or someone) asked slop-detect to monitor ${domain} and email you when`,
@@ -16,7 +28,7 @@ export function buildVerificationEmail(domain, confirmUrl) {
     ``,
     `If you didn't request this, ignore this email — no monitoring starts and`,
     `your address is removed automatically. We never share or sell your email.`,
-    `Privacy: https://slop-detect.com/privacy.md`,
+    ...(opts.footer ? ['', ...opts.footer] : [`Privacy: https://slop-detect.com/privacy.md`]),
   ].join('\n');
   return { subject, text };
 }
@@ -36,11 +48,9 @@ export function buildRegressionAlert(domain, baseline, current, opts: any = {}) 
   ];
   if (opts.resultUrl) lines.push('', `Full scan: ${opts.resultUrl}`);
   if (opts.fixUrl) lines.push(`Fix prompt: ${opts.fixUrl}`);
-  lines.push(
-    '',
-    `Stop these alerts: reply, or POST { unsubscribe: true } with this email to`,
-    `https://slop-detect.com/api/watch`
-  );
+  // The old "reply, or POST" line promised an unsubscribe path that never
+  // existed (no inbound handler). The footer carries the real one-click URL.
+  if (opts.footer) lines.push('', ...opts.footer);
   return { subject, text: lines.join('\n') };
 }
 
@@ -70,17 +80,14 @@ export function buildDriftAlert(domain, baseline, current, driftItems = [], opts
     'fingerprint of drift, not a verdict on the design.'
   );
   if (opts.resultUrl) lines.push('', `Full scan: ${opts.resultUrl}`);
-  lines.push(
-    '',
-    `Stop these alerts: reply, or POST { unsubscribe: true } with this email to`,
-    `https://slop-detect.com/api/watch`
-  );
+  // Same as the regression alert: the footer carries the real one-click URL.
+  if (opts.footer) lines.push('', ...opts.footer);
   return { subject, text: lines.join('\n') };
 }
 
 // Dashboard magic-link login email (P2b). Single-use, 15-minute link; ignoring
 // it is always safe.
-export function buildDashboardLinkEmail(loginUrl, domainCount) {
+export function buildDashboardLinkEmail(loginUrl, domainCount, opts: any = {}) {
   const subject = 'Your slop-detect dashboard link';
   const text = [
     `Sign in to your slop-detect dashboard (${domainCount} monitored domain${domainCount === 1 ? '' : 's'}):`,
@@ -89,7 +96,7 @@ export function buildDashboardLinkEmail(loginUrl, domainCount) {
     '',
     'The link is single-use and expires in 15 minutes. If you did not request',
     'it, ignore this email — nothing happens without the click.',
-    'Privacy: https://slop-detect.com/privacy.md',
+    ...(opts.footer ? ['', ...opts.footer] : ['Privacy: https://slop-detect.com/privacy.md']),
   ].join('\n');
   return { subject, text };
 }

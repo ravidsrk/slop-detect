@@ -12,6 +12,7 @@
 
 import { report } from './_report.js';
 import { withRetry, type RetryOptions } from './_retry.js';
+import { isSuppressed } from './_data.js';
 
 export function emailConfigured(env) {
   return !!(env && env.RESEND_API_KEY && env.ALERT_FROM);
@@ -19,7 +20,13 @@ export function emailConfigured(env) {
 
 export async function sendEmail(
   env,
-  { to, subject, text, html }: { to: any; subject: any; text: any; html?: any },
+  {
+    to,
+    subject,
+    text,
+    html,
+    headers,
+  }: { to: any; subject: any; text: any; html?: any; headers?: Record<string, string> },
   fetchImpl = fetch,
   retry: RetryOptions = {}
 ) {
@@ -30,6 +37,24 @@ export async function sendEmail(
     // No provider yet — record intent so it's visible, but don't fail the caller.
     report(env, 'info', 'email_skipped_no_provider', { to: redact(to), subject });
     return { sent: false, reason: 'no_provider' };
+  }
+  // Bounced/complained addresses stay silent (G-46): the webhook records the
+  // suppression, this gate honors it. No KV bound ⇒ can't know ⇒ send (the
+  // local-dev shape; production always binds RESULTS). A REJECTING KV fails
+  // closed with a reported reason (greptile P1 on PR #173) — inside
+  // sendEmail's contract ({sent, reason}), never a throw past the caller:
+  // mailing a complainer during a storage blip is worse than a missed mail
+  // the next sweep retries (notified only sets on sent:true).
+  try {
+    if (await isSuppressed(env.RESULTS, to)) {
+      report(env, 'info', 'email_suppressed_skip', { to: redact(to), subject });
+      return { sent: false, reason: 'suppressed' };
+    }
+  } catch (e) {
+    report(env, 'error', 'email_suppression_error', {
+      message: e && e.message ? e.message : String(e),
+    });
+    return { sent: false, reason: 'suppression_unknown' };
   }
   try {
     // One UUID per LOGICAL send, reused across in-loop retries: if Resend
@@ -59,6 +84,9 @@ export async function sendEmail(
             subject,
             text,
             ...(html ? { html } : {}),
+            // Custom headers (List-Unsubscribe / List-Unsubscribe-Post for
+            // RFC 8058 one-click). Resend forwards `headers` verbatim.
+            ...(headers ? { headers } : {}),
           }),
         });
         if (!res.ok && (res.status === 429 || res.status >= 500)) {

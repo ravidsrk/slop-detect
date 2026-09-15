@@ -221,6 +221,32 @@ export async function emailIndexKey(email: string): Promise<string> {
   return `${EMAIL_INDEX_PREFIX}${await emailHash(email)}`;
 }
 
+// ── Bounce/complaint suppression (G-46) ──────────────────────────────────────
+// Resend webhooks (POST /api/email/webhook) record hard bounces + spam
+// complaints here; sendEmail refuses to send to suppressed addresses.
+// Keyed by the same normalized email hash as the index (distinct `sup:`
+// prefix), so no plaintext address sits in a key. 1-year TTL: a repeat
+// bounce re-suppresses, and a stale suppression self-heals.
+const SUPPRESSION_TTL = 60 * 60 * 24 * 365; // 1 year
+
+export async function suppressionKey(email: string): Promise<string> {
+  return `sup:${await emailHash(email)}`;
+}
+
+export async function isSuppressed(kv, email): Promise<boolean> {
+  if (!kv || !email) return false;
+  return (await kv.get(await suppressionKey(email))) != null;
+}
+
+export async function addSuppression(kv, email, reason): Promise<void> {
+  if (!kv || !email) return;
+  await kv.put(
+    await suppressionKey(email),
+    JSON.stringify({ reason: reason || 'bounced', at: new Date().toISOString() }),
+    { expirationTtl: SUPPRESSION_TTL }
+  );
+}
+
 // ── Per-recipient confirmation-email cap (anti email-bomb) ────────────────────
 // /api/watch issues a double-opt-in email to a CALLER-SUPPLIED address, so the
 // per-IP middleware limit alone lets one IP mail an arbitrary victim ~20×/min
@@ -419,6 +445,25 @@ export async function listWatches(kv, { limit = 200 } = {}) {
 export async function deleteWatch(kv, domain) {
   if (!kv || !domain) return;
   await kv.delete(`w:${domain}`);
+}
+
+// Full unsubscribe: delist + drop the email index + delete the watch, in that
+// order. Shared by the API flow (POST /api/watch {unsubscribe:true}, which
+// authenticates via email-match) and the one-click flow (POST
+// /api/watch/unsubscribe, which authenticates via HMAC token) so the two can
+// never diverge into "unsubscribed but still listed" states.
+// Delist BEFORE removing the watch: if the listing delete throws we keep the
+// watch, so the state stays consistent ("still monitored + listed") and
+// retryable rather than orphaning a public row with no owner. Always attempt
+// cleanup even if the watch shows listed:false, to recover from failed deletes.
+export async function performUnsubscribe(kv, domain, email) {
+  if (!kv || !domain || !email) return false;
+  const existing = await getWatch(kv, domain);
+  if (!existing) return false;
+  await deleteListing(kv, domain);
+  await removeFromEmailIndex(kv, email, domain);
+  await deleteWatch(kv, domain);
+  return true;
 }
 
 export async function getHistory(kv, domain) {
