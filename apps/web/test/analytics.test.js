@@ -79,6 +79,8 @@ test('merge is pure: accumulates per flow/event, batches counts', () => {
     date: '2026-09-15',
     flows: { scan: { completed: 1 } },
   });
+  // …while a garbage date resets (second follow-up P2).
+  expect(mergeFlowBlob({ date: 'x', flows: [] }, 'scan', 'completed').date).toBeNull();
   expect(mergeFlowBlob({ flows: { scan: [] } }, 'scan', 'completed').flows).toEqual({
     scan: { completed: 1 },
   });
@@ -96,6 +98,12 @@ test('bump validates names and counts; rejects without writing', async () => {
   expect(await bumpFlowStats(kv, 'watch', 'subscribed', -2)).toBe(false);
   expect(await bumpFlowStats(null, 'watch', 'subscribed')).toBe(false);
   expect(await flowBlob(kv)).toEqual({ watch: { subscribed: 1 } });
+  // Persisted date always equals the key's date, even over garbage stored.
+  kv.store.set(flowDateKey(), JSON.stringify({ date: 'x', flows: [] }));
+  expect(await bumpFlowStats(kv, 'watch', 'subscribed')).toBe(true);
+  const repaired = JSON.parse(await kv.get(flowDateKey()));
+  expect(repaired.date).toBe(flowDateKey().slice('stats:flows:'.length));
+  expect(repaired.flows).toEqual({ watch: { subscribed: 1 } });
 });
 
 test('getFlowStats returns today + yesterday; corrupt day reads null', async () => {

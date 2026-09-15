@@ -798,10 +798,12 @@ export function mergeFlowBlob(blob, flow, event, count = 1) {
   // pass typeof checks but swallow named props in JSON.stringify, so a
   // `"flows":[]` blob would eat events while reporting success.
   const plainObject = (v) => v && typeof v === 'object' && !Array.isArray(v);
-  // A malformed `flows` resets the counters but keeps a valid date (greptile
-  // follow-up P2 on PR #183) — otherwise /api/stats would serve date:null
-  // until the next event repaired it.
-  const keepDate = plainObject(blob) && typeof blob.date === 'string' ? blob.date : null;
+  // A malformed `flows` resets the counters but keeps a VALID date (greptile
+  // follow-ups on PR #183) — otherwise /api/stats would serve date:null
+  // until the next event repaired it. Shape-checked: garbage strings reset.
+  const rawDate = plainObject(blob) && blob.date;
+  const keepDate =
+    typeof rawDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : null;
   const b = plainObject(blob) && plainObject(blob.flows) ? blob : { date: keepDate, flows: {} };
   if (!plainObject(b.flows[flow])) b.flows[flow] = {};
   const prev = b.flows[flow][event];
@@ -829,8 +831,11 @@ export async function bumpFlowStats(kv, flow, event, count = 1, dateKey = null) 
     } catch {
       blob = null; // corrupted blob: restart the day rather than crash
     }
-    if (!blob || !blob.date) blob = { date: key.slice(FLOW_PREFIX.length), flows: {} };
-    await kv.put(key, JSON.stringify(mergeFlowBlob(blob, flow, event, count)), {
+    // The persisted date ALWAYS equals the key's date (greptile follow-up P2
+    // on PR #183): a stored garbage date ("x") must not survive a merge.
+    const merged = mergeFlowBlob(blob, flow, event, count);
+    merged.date = key.slice(FLOW_PREFIX.length);
+    await kv.put(key, JSON.stringify(merged), {
       expirationTtl: OPS_TTL,
     });
     return true;
