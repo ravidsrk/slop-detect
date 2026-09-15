@@ -25,8 +25,7 @@ test('spec config counts and versions match the engine', () => {
 });
 
 test('spec design tiers match engine behavior at the boundaries', () => {
-  const at = (score) =>
-    scorePatterns([{ id: 'x', weight: score, triggered: true }]).tier;
+  const at = (score) => scorePatterns([{ id: 'x', weight: score, triggered: true }]).tier;
   const t = config.tiers.design;
   expect(t.clean).toEqual({ min: 0, max: 9 });
   expect(t.mild).toEqual({ min: 10, max: 27 });

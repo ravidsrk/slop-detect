@@ -25,7 +25,7 @@ design tiers at boundaries via scorePatterns, id presence in catalogues,
 catalogue weights = engine weights. Teeth-checked: bento weight 4→5 in
 spec fails 5-vs-4. Prose summaries stay human-review territory (noted).
 === FORMAT ===
-FORMAT_EXIT=1
+FORMAT_EXIT=1 (fixed: rerun 0)
 === LINT ===
 LINT_EXIT=0
 === TYPECHECK ===
@@ -37,3 +37,5 @@ slop-detect-mcp:test:       Tests  14 passed (14)
 @slop-detect/core:test:       Tests  77 passed (77)
 slop-detect:test:       Tests  12 passed | 12 skipped (24)
 slop-detect-web:test:       Tests  367 passed (367)
+=== FORMAT rerun (after prettier --write spec-sync.test.js) ===
+FORMAT_EXIT=0 (see FMT2)
