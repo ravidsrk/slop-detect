@@ -1566,7 +1566,7 @@
       "id": "T-17",
       "owner": "agent",
       "plan_phase": "P3",
-      "pr": null,
+      "pr": "https://github.com/ravidsrk/slop-detect/pull/137",
       "review": null,
       "size": "M",
       "status": "in_review"
