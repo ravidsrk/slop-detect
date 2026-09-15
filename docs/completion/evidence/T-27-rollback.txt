@@ -1,0 +1,61 @@
+T-27 — rollback runbook + rehearsal script (G-12) — DONE (agent part; live rehearsal = H-01)
+Branch: ravidsrk/p4-rollback
+
+CLAIM: the rollback procedure is written, grounded, and rehearsable —
+but NOT yet rehearsed (needs H-01 credentials for a live preview).
+T-08 precedent: agent part done, G-12 closed with the live run as the
+tracked remainder. The rehearsal script fails safe (preview-only).
+
+CHANGE (docs + guard extension; zero prod-code changes):
+- docs/ROLLBACK.md (new): mitigate-vs-rollback-vs-forward-fix decision
+  (kill switch first), trigger conditions adapted to observable signals
+  (ops.byStatus, health, tail), 3 rollback paths (A: instant API
+  re-promote ~1min; B: tag old SHA ~10min via deploy.yml; C:
+  revert-merge, slowest but truthful history), data considerations
+  (KV untouched AND un-undone — poisoned timelines need RECOVERY.md),
+  6-step post-rollback verification, and the H-01 rehearsal script
+  (marker -> preview -> roll back -> verify -> delete, with pass
+  criteria + zero-prod-impact assertions).
+- docs-alignment.test.js (+1): every `*.yml` referenced in ops docs
+  must exist; ROLLBACK.md added to the route + link coverage.
+
+GROUNDING (each load-bearing claim verified, not assumed):
+- Rollback endpoint POST .../deployments/{id}/rollback: Cloudflare API
+  docs (primary source) + SDK corroboration.
+- Dashboard promote-a-previous-deployment: multiple independent sources.
+- Path B mechanics: deploy.yml `push: tags: v*` trigger + checkout ref
+  fallback (`workflow_run.head_sha || github.ref` => tag on tag-push) +
+  if-gate passing non-workflow_run events — read in full, logic traced.
+  Tag hygiene (v0.0.0-rbN) is convention, stated as such.
+- Marker file apps/web/public/index.html confirmed to exist.
+- Kill-switch + health + ops signals: all established in T-23/T-24/T-28
+  (linked, not re-derived).
+
+NOT RUN (honest remainder): the rehearsal itself — no H-01 credentials
+in the agent shell (CLOUDFLARE_API_TOKEN/ACCOUNT_ID both missing,
+wrangler not installed). The script is written to be executed verbatim
+by the H-01 holder; its first live run validates the runbook (any step
+failing means fix the runbook).
+
+GREPTILE ROUND (2 P1 + 1 P2, all fixed):
+- P1 preview never starts: rehearsal pushed a bare branch, but
+  preview.yml runs on pull_request only. Fixed: rehearsal opens a
+  draft PR (gh pr create) right after pushing.
+- P1 preview rollback unsupported: confirmed decisive from the API
+  docs ("Rollback the production deployment... only ... succesful
+  builds on production") — the designed step was impossible. Rehearsal
+  redesigned into Part 1 (preview redeploy loop, zero prod impact) +
+  Part 2 (rollback-to-current no-op promote, near-zero impact, low
+  window), with the honest residual that promoting an OLD build stays
+  unrehearsed until a production game-day.
+- P2 guard blind spot: workflow regex now matches with or without
+  backticks (proven: unbackticked bogus ref fails naming it).
+
+=== FORMAT ===
+FORMAT_EXIT=0
+=== TYPECHECK ===
+TYPECHECK_EXIT=0
+=== TEST ===
+BUN_TEST_EXIT=0
+slop-detect-web:test:       Tests  443 passed (443)
+(442 base + 1 new, exact.)

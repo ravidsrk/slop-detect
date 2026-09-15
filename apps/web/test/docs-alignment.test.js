@@ -97,7 +97,7 @@ test('every report() event in code is documented in docs/ALERTS.md', () => {
 });
 
 test('every /api/* route in the ops docs maps to a route file', () => {
-  const runbooks = ['RUNBOOKS.md', 'STAGING.md']
+  const runbooks = ['RUNBOOKS.md', 'STAGING.md', 'ROLLBACK.md']
     .map((p) => fs.readFileSync(path.join(DOCS_ROOT, p), 'utf8'))
     .join('\n');
   const routes = [...new Set([...runbooks.matchAll(/\/api\/[a-z0-9/_-]+/g)].map((m) => m[0]))];
@@ -113,8 +113,28 @@ test('every /api/* route in the ops docs maps to a route file', () => {
   }
 });
 
+test('every workflow referenced in the ops docs exists', () => {
+  const pages = ['RUNBOOKS.md', 'STAGING.md', 'ROLLBACK.md'];
+  const bodies = pages.map((p) => fs.readFileSync(path.join(DOCS_ROOT, p), 'utf8')).join('\n');
+  // With or without backticks: a bare `preview.yml` mention is still an
+  // operational reference, and must still resolve (or be reworded).
+  const workflows = [...new Set([...bodies.matchAll(/([a-z0-9-]+\.yml)/g)].map((m) => m[1]))];
+  expect(workflows.length).toBeGreaterThan(0);
+  for (const w of workflows) {
+    const p = path.join(DOCS_ROOT, '..', '.github', 'workflows', w);
+    expect(fs.existsSync(p), `ops docs reference missing workflow ${w}`).toBe(true);
+  }
+});
+
 test('every .md link in the ops docs resolves to a file', () => {
-  const pages = ['ALERTS.md', 'RUNBOOKS.md', 'CAPACITY.md', 'RECOVERY.md', 'STAGING.md'];
+  const pages = [
+    'ALERTS.md',
+    'RUNBOOKS.md',
+    'CAPACITY.md',
+    'RECOVERY.md',
+    'STAGING.md',
+    'ROLLBACK.md',
+  ];
   let checked = 0;
   for (const page of pages) {
     const body = fs.readFileSync(path.join(DOCS_ROOT, page), 'utf8');
