@@ -551,3 +551,12 @@
   reason (no-KV-CAS subscribe race; sequential dedup tested).
 - Evidence: evidence/T-35-analytics.txt.
 - resume_pointer: P7/T-39
+
+## 2026-09-15 S3/P7 T-39 S4 stranger-test scripts (G-26) — DONE
+- branch ravidsrk/p7-s4scripts → PR #185 → merged ca632ce, no squash.
+- 7 flow scripts + harness + runner + README; live-validated 22 pass,
+  6 skip (owner-named), 0 fail vs production. G-26 CLOSED. P7 ACTIVE —
+  T-40 remains.
+- Greptile 3 P1 + 2 P2 — all fixed + replied in-thread.
+- Evidence: evidence/T-39-s4scripts.txt.
+- resume_pointer: P7/T-40
