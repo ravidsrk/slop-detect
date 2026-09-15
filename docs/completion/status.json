@@ -303,7 +303,7 @@
       "status": "works"
     }
   ],
-  "current_commit": "03a091a6aca70896f737e0d5a7669a6f9bf7e997",
+  "current_commit": "e058705bce34ad54f822b878f01fdfbf05bc3f1d",
   "definition_frozen_at": "6770c58",
   "gaps": [
     {
@@ -819,7 +819,7 @@
       "issue_url": null,
       "severity": "S2",
       "source": ["F-R-09"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-37"]
     },
     {
@@ -1181,8 +1181,8 @@
           "text": "Analytics fire on critical flows"
         },
         {
-          "evidence": null,
-          "met": false,
+          "evidence": "docs/completion/evidence/T-37-emailauth.txt (PR #179 e058705; agent part — H-03 live verify outstanding per criterion)",
+          "met": true,
           "text": "Email auth passes (or H outstanding)"
         }
       ],
@@ -1287,7 +1287,7 @@
       "url": "child-transcript:C1-C16"
     }
   ],
-  "resume_pointer": "P6/T-37",
+  "resume_pointer": "P6/T-38",
   "run_id": "20260914-S1",
   "stage": "S3",
   "tasks": [
@@ -1941,18 +1941,19 @@
     {
       "attempts": 0,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p6-emailauth",
       "commit": null,
       "depends_on": [],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-37-emailauth.txt"],
       "gaps": ["G-43"],
       "id": "T-37",
       "owner": "agent",
       "plan_phase": "P6",
-      "pr": null,
+      "pr": 179,
       "review": null,
       "size": "S",
-      "status": "todo"
+      "status": "done",
+      "merged": "e058705"
     },
     {
       "attempts": 0,
