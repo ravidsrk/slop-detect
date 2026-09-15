@@ -350,3 +350,12 @@
   Human 50-100 labels + second rater stay on H-05 (gates launch).
 - Evidence: evidence/T-19c-harness.txt.
 - resume_pointer: P3/T-19a (leaderboard build running)
+
+## 2026-09-15 S3/P3 T-19a+b leaderboard dataset (G-19/gh-101) — DONE
+- branch ravidsrk/p3-leaderboard-data → PR #150 → merged cfdaf63, no squash.
+- First leaderboard.json: 20/24 scored via live API (7/9/4, avg 15.7),
+  4 honest skips; verified shape/defs/sort/stats/consumers; monthly
+  refresh made PR-based (unique run-id branch). gh-101/G-19 CLOSED.
+- Greptile P1 (same-day branch collision) fixed in-thread.
+- Evidence: evidence/T-19a-leaderboard.txt + T-19b-leaderboard.txt.
+- resume_pointer: P3 exit (T-19a+b merged cfdaf63)
