@@ -447,7 +447,7 @@
       "issue_url": null,
       "severity": "S1",
       "source": ["F-7-05", "R-01"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-27"]
     },
     {
@@ -1819,7 +1819,8 @@
       "pr": 169,
       "review": null,
       "size": "M",
-      "status": "in_review"
+      "status": "done",
+      "merged": "1993c73"
     },
     {
       "attempts": 0,
