@@ -1496,7 +1496,7 @@
       "id": "T-13",
       "owner": "agent",
       "plan_phase": "P2",
-      "pr": "TBD-post-create",
+      "pr": "https://github.com/ravidsrk/slop-detect/pull/130",
       "review": "greptile",
       "size": "S",
       "status": "done"
