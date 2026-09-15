@@ -460,3 +460,16 @@
   green on PR #167 itself.
 - Evidence: evidence/T-29-staging.txt.
 - resume_pointer: P4/T-27
+
+## 2026-09-15 S4/P4 T-27 rollback runbook (G-12) — DONE (agent part; live rehearsal = H-01)
+- branch ravidsrk/p4-rollback → PR #169 → merged 1993c73, no squash.
+- ROLLBACK.md (decision table, triggers, 3 paths, data notes,
+  verification, two-part rehearsal), guard extended to workflow refs.
+  Zero prod-code changes. 1 new test. G-12 CLOSED (T-08 precedent).
+  P4 agent work complete — all 8 tasks done (T-22..T-29); phase stays
+  `active` (rollback criterion needs the H-01 live rehearsal).
+- Greptile 2 P1 + 1 P2 + 1 follow-up P1 (PR step, preview-rollback
+  impossibility confirmed from API docs, guard blindness, staging
+  prerequisite) — all fixed + replied in-thread.
+- Evidence: evidence/T-27-rollback.txt.
+- resume_pointer: P5/T-30

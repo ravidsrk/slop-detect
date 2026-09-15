@@ -303,7 +303,7 @@
       "status": "works"
     }
   ],
-  "current_commit": "50f79df4d51ff02117884ff26d528dd09d6e8329",
+  "current_commit": "1993c73cae8e8b0279ebde439ec65a8ebaa41133",
   "definition_frozen_at": "6770c58",
   "gaps": [
     {
@@ -447,7 +447,7 @@
       "issue_url": null,
       "severity": "S1",
       "source": ["F-7-05", "R-01"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-27"]
     },
     {
@@ -1132,24 +1132,24 @@
     {
       "exit_criteria": [
         {
-          "evidence": null,
-          "met": false,
+          "evidence": "docs/completion/evidence/T-25-alert.txt (PR #161, live stub webhook)",
+          "met": true,
           "text": "One alert proven to fire"
         },
         {
-          "evidence": null,
+          "evidence": "agent part only: docs/ROLLBACK.md + rehearsal script (PR #169); live rehearsal = H-01",
           "met": false,
           "text": "Rollback rehearsed"
         },
         {
-          "evidence": null,
-          "met": false,
+          "evidence": "docs/completion/evidence/T-23-health.txt (PR #157) + T-28-runbooks.txt (PR #165)",
+          "met": true,
           "text": "Runbooks top-5 + health wired"
         }
       ],
       "id": "P4",
       "name": "Operability",
-      "status": "pending"
+      "status": "active"
     },
     {
       "exit_criteria": [
@@ -1287,7 +1287,7 @@
       "url": "child-transcript:C1-C16"
     }
   ],
-  "resume_pointer": "P2/T-09",
+  "resume_pointer": "P5/T-30",
   "run_id": "20260914-S1",
   "stage": "S3",
   "tasks": [
@@ -1808,18 +1808,19 @@
     {
       "attempts": 0,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p4-rollback",
       "commit": null,
       "depends_on": ["T-29"],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-27-rollback.txt"],
       "gaps": ["G-12"],
       "id": "T-27",
       "owner": "agent",
       "plan_phase": "P4",
-      "pr": null,
+      "pr": 169,
       "review": null,
       "size": "M",
-      "status": "todo"
+      "status": "done",
+      "merged": "1993c73"
     },
     {
       "attempts": 0,
