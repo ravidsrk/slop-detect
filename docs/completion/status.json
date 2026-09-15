@@ -1748,7 +1748,7 @@
       "id": "T-23",
       "owner": "agent",
       "plan_phase": "P4",
-      "pr": null,
+      "pr": 157,
       "review": null,
       "size": "S",
       "status": "in_review"
