@@ -23,6 +23,21 @@ id = "c5aad4cb07e7405e86c3cf1aebcae772"
 binding = "RESULTS"
 id = "f8bbc9f7a16948a2995215321e679115"
 
+# ── Preview KV (T-29 staging story; see docs/STAGING.md) ──────────────────────
+# PR previews MUST NOT share production KV. After H-01 lands, create the
+# preview namespaces (`bun apps/web/scripts/kv-namespaces.mjs ensure
+# --binding RESULTS --apply`, same for RATE_LIMIT), then add one
+# preview_id line per block below with the printed IDs. `preview_id` is
+# what branch preview deployments bind; `id` stays production.
+# Until the IDs exist, preview.yml is held from running by the same H-01
+# gate (a preview without preview_id would bind PRODUCTION data).
+# NOTE to tooling: readNamespaces() strips full-line comments and only
+# matches a bare `id =` (never `preview_id`), so template lines below
+# can never parse as live config — and real preview_ids stay invisible
+# to the backup script (backups are production-scoped by design).
+# RATE_LIMIT preview:  preview_id = "<preview-rate-limit-id>"
+# RESULTS preview:     preview_id = "<preview-results-id>"
+
 # Public Turnstile sitekey (safe to commit; the matching secret lives in
 # Pages env vars and is never written to disk).
 [vars]

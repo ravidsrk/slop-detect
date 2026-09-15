@@ -22,7 +22,12 @@ const CONCURRENCY = 5;
 const MIN_TTL = 60;
 
 export function readNamespaces() {
-  const text = readFileSync(join(WEBROOT, 'wrangler.toml'), 'utf8');
+  // Strip full-line comments first: a commented [[kv_namespaces]] example
+  // (e.g. the [env.preview] template) must never parse as live config.
+  const text = readFileSync(join(WEBROOT, 'wrangler.toml'), 'utf8')
+    .split('\n')
+    .filter((l) => !l.trimStart().startsWith('#'))
+    .join('\n');
   const out = {};
   const blocks = text.split('[[kv_namespaces]]').slice(1);
   for (const b of blocks) {
