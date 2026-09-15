@@ -777,7 +777,7 @@ Acceptance criteria:
 - Design fidelity: builds the Brand sections in design "Screen inventory > 5. Brand"
   with `1120px` numbered ledger sections: hero ("A detector that refuses to look like
   the thing it detects." + "this page scores 0/100 . A+ . Clean"), `01 the mark`
-  (reticle light + dark from `apps/web/public/landing/design/mark*.svg`), `02 the
+  (reticle light + dark from `apps/web/design/mark*.svg`), `02 the
   wordmark` (the lowercase/hyphenated/monospace rule), `03 color` (the five-swatch
   palette, "no purple anywhere" per design "Color swatch card"), `04 typography`
   (three type specimens, design "Type specimen card"), `05 voice` (three tier voice
@@ -864,7 +864,7 @@ Slug: `favicon-assets`
 Treatment: REDESIGN (swap to the new reticle favicon).
 
 Files: `apps/web/public/favicon.svg` (replace with the new reticle from
-`apps/web/public/landing/design/favicon.svg`), `apps/web/public/favicon.png`,
+`apps/web/design/favicon.svg`), `apps/web/public/favicon.png`,
 `apps/web/public/favicon-512.png` (regenerate from the SVG).
 
 Depends on: 00 (palette only; otherwise independent, can run in parallel with screens).

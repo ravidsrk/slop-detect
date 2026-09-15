@@ -460,7 +460,7 @@ Mono 700, `letter-spacing:-0.01em`, `white-space:nowrap`. Always lowercase, alwa
 hyphenated, always monospace: "it's a command you type." Clear space equals one
 bracket length. Light variant: ink `#181815` brackets, `#1FA85E` dot. Dark
 variant: `#F4F5F2` brackets, `#3FBE7A` dot. Assets in
-`apps/web/public/landing/design/` (`mark.svg`, `mark-dark.svg`, `favicon.svg`).
+`apps/web/design/` (`mark.svg`, `mark-dark.svg`, `favicon.svg`).
 
 ## Scan input (the primary action)
 
@@ -873,7 +873,7 @@ To adopt this design, rewrite `_brand.ts`, do not add to it:
   scan input, leaderboard row, badge, and cards. The export duplicates them inline;
   the rebuild should not.
 - Replace the favicon: the current `apps/web/public/favicon.svg` is the old dark
-  scan-line mark. Swap to the new reticle (`landing/design/favicon.svg`) and
+  scan-line mark. Swap to the new reticle (`apps/web/design/favicon.svg`) and
   regenerate `favicon.png` / `favicon-512.png` from it.
 - Regenerate the OG card (`landing/og.svg` / `og.png` and the `og/` function) in
   the new palette and type, since the existing ones match the old theme.
@@ -905,14 +905,14 @@ any value chosen downstream is an addition, not an extraction:
 
 # Asset manifest
 
-Committed under `apps/web/public/landing/design/` so the build can reach them:
+Committed under `apps/web/design/` so the build can reach them:
 
 | Path                                          | Description                                  |
 |-----------------------------------------------|----------------------------------------------|
-| `apps/web/public/landing/design/mark.svg`     | Scan-reticle mark, light surfaces.           |
-| `apps/web/public/landing/design/mark-dark.svg`| Scan-reticle mark, dark surfaces.            |
-| `apps/web/public/landing/design/favicon.svg`  | Reticle in a rounded paper tile.             |
-| `apps/web/public/landing/design/README.md`    | Asset notes for the builder.                 |
+| `apps/web/design/mark.svg`     | Scan-reticle mark, light surfaces.           |
+| `apps/web/design/mark-dark.svg`| Scan-reticle mark, dark surfaces.            |
+| `apps/web/design/favicon.svg`  | Reticle in a rounded paper tile.             |
+| `apps/web/design/README.md`    | Asset notes for the builder.                 |
 
 Not committed, by design: the export's `uploads/*.png` are screenshots of a
 third-party reference product, not slop-detect assets. The three families

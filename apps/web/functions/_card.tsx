@@ -14,7 +14,7 @@ import { tierColors } from './_theme.js';
 import { BRAND_FONTS_HEAD } from './_brand.js';
 
 // The scan-reticle mark (light variant: ink brackets, Clean-green dot). Inlined so
-// the rasterized card needs no extra asset fetch. Source: landing/design/mark.svg.
+// the rasterized card needs no extra asset fetch. Source: apps/web/design/mark.svg.
 const RETICLE = `<svg width="34" height="34" viewBox="0 0 24 24" fill="none" aria-hidden="true">
   <path d="M3 8 V3.5 H7.5" stroke="#181815" stroke-width="1.6" stroke-linecap="square"/>
   <path d="M16.5 3.5 H21 V8" stroke="#181815" stroke-width="1.6" stroke-linecap="square"/>

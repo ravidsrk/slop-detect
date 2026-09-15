@@ -3,7 +3,7 @@
 // these assertions stop that class of drift from recurring.
 
 import { test, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { onRequestGet as directoryGet } from '../functions/directory.tsx';
 import { onRequestGet as leaderboardGet } from '../functions/leaderboard.tsx';
 import { onRequestGet as reportGet } from '../functions/report/[domain].tsx';
@@ -79,6 +79,12 @@ test('monitor opt-ins are additive — an unchecked box never delists on resubmi
 
 test('exactly one domainOf helper (no shadowed duplicate)', () => {
   expect((html.match(/function domainOf/g) || []).length).toBe(1);
+});
+
+test('the retired /landing stub stays cut: tombstone redirect, no shipped files (T-16)', () => {
+  const redirects = readFileSync(new URL('../public/_redirects', import.meta.url), 'utf8');
+  expect(redirects).toMatch(/^\/landing\/\* \/ 301$/m);
+  expect(existsSync(new URL('../public/landing', import.meta.url))).toBe(false);
 });
 
 // ── agent-discovery files list the full tool surface ─────────────────────────
