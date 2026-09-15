@@ -378,6 +378,12 @@ primitives) shipped in v0.2.0:
 - **[Meng To](https://x.com/MengTo)**: Aura tutorial that codified the gradient-letter avatar pattern
 - All the **AI tools we're detecting** (Cursor, v0, Lovable, Bolt), which generated the corpus that taught us what slop looks like
 
+## Support
+
+GitHub issues only — no helpdesk, no SLA. See [docs/SUPPORT.md](docs/SUPPORT.md)
+for where each kind of request goes. Security vulnerabilities: private
+reporting only (see [docs/SECURITY.md](docs/SECURITY.md)), never a public issue.
+
 ## License
 
 [MIT](LICENSE) © Ravindra Kumar
