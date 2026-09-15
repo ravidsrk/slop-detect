@@ -69,4 +69,8 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: apps/web
-          command: pages deploy public --project-name=slop-detector
+          # --branch main is load-bearing: without it `pages deploy` creates a
+          # PREVIEW deployment and production never moves (S5 finding for
+          # #152 — prod served pre-T-14 wording with /api/health missing for
+          # 12h+ across 20 green main merges while health-ping stayed red).
+          command: pages deploy public --project-name=slop-detector --branch main
