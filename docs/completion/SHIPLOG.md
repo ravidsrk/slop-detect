@@ -227,4 +227,16 @@
 - Evidence: evidence/T-12-img.txt (all 0; web 357). Greptile 1 P2 (evidence
   wording) — fixed, replied in-thread.
 - P2 COMPLETE (T-10, T-13, T-08, T-09, T-11, T-12).
-- resume_pointer: P3/T-14
+- resume_pointer: P3/T-14 (T-12 merged 6095067; P2 COMPLETE)
+
+## 2026-09-14 S3/P3 T-14 CF-02 CLI (G-02, S0) — DONE
+- branch ravidsrk/p3-cli → PR #135 → merged 38a2af8, no squash.
+- Live matrix, all green: local design/copy/AEO/system(file+auto)/screenshot/
+  strict/multi/fail-on; remote design/copy/AEO with local parity on
+  design+copy (AEO env-divergence stated, not a bug). S1 'remote rejects'
+  stale; transient 502 + rate limits are correctly-surfaced server behavior.
+- Fix: empty_page reasons split 3 ways (nothing / thin-but-titled /
+  dense-but-uncharacterizable); code unchanged; 2 core tests; live-verified.
+- Evidence: evidence/T-14-cli.txt (all 0; core 73). Greptile 2 P2s —
+  fixed in 8767b80, replied in-thread. PR body corrected for parity scope.
+- resume_pointer: P3/T-15
