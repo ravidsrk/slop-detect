@@ -419,6 +419,22 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
       if (!centered) {
         try {
           const parent = h1.parentElement || document.body;
+          let scaled = false;
+          for (let el = h1, d = 0; el && d < 25; el = el.parentElement, d++) {
+            const acs = getComputedStyle(el);
+            if (acs.transform && acs.transform !== "none") scaled = true;
+            if (acs.zoom !== void 0 && acs.zoom !== "" && String(acs.zoom) !== "1")
+              scaled = true;
+            if (scaled) break;
+          }
+          if (scaled)
+            return {
+              triggered: false,
+              fontSize,
+              centered,
+              slopFont: isSlopFont2(cs.fontFamily),
+              family: cs.fontFamily
+            };
           const r = h1.getBoundingClientRect();
           const pr = parent.getBoundingClientRect();
           const pbox = getComputedStyle(parent);
@@ -1566,6 +1582,22 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
       if (!centered) {
         try {
           const parent = h1.parentElement || document.body;
+          let scaled = false;
+          for (let el = h1, d = 0; el && d < 25; el = el.parentElement, d++) {
+            const acs = getComputedStyle(el);
+            if (acs.transform && acs.transform !== "none") scaled = true;
+            if (acs.zoom !== void 0 && acs.zoom !== "" && String(acs.zoom) !== "1")
+              scaled = true;
+            if (scaled) break;
+          }
+          if (scaled)
+            return {
+              triggered: false,
+              fontSize,
+              centered,
+              slopFont: isSlopFont2(cs.fontFamily),
+              family: cs.fontFamily
+            };
           const r = h1.getBoundingClientRect();
           const pr = parent.getBoundingClientRect();
           const pbox = getComputedStyle(parent);

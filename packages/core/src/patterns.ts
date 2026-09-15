@@ -326,8 +326,29 @@ export const PATTERNS = [
         // full-width child looks narrow against the border box). Gaps
         // against the content box are immune to both. text-align:center
         // still hits the checks above; this path is geometric only.
+        //
+        // Abstain under ancestor transforms/zoom: getBoundingClientRect is
+        // scaled viewport geometry while computed padding/border stay CSS
+        // px, so mixing them skews both ways. Better to miss a centered
+        // hero here (text-align still catches most) than to misfire.
         try {
           const parent = h1.parentElement || document.body;
+          let scaled = false;
+          for (let el = h1, d = 0; el && d < 25; el = el.parentElement, d++) {
+            const acs = getComputedStyle(el);
+            if (acs.transform && acs.transform !== 'none') scaled = true;
+            if (acs.zoom !== undefined && acs.zoom !== '' && String(acs.zoom) !== '1')
+              scaled = true;
+            if (scaled) break;
+          }
+          if (scaled)
+            return {
+              triggered: false,
+              fontSize,
+              centered,
+              slopFont: isSlopFont(cs.fontFamily),
+              family: cs.fontFamily,
+            };
           const r = h1.getBoundingClientRect();
           const pr = parent.getBoundingClientRect();
           const pbox = getComputedStyle(parent);

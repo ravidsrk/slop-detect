@@ -112,5 +112,9 @@ test(
     // Text-align path untouched: the slop fixture's centered hero still fires.
     const slop = await scanUrl(fixture('slop-vibecode.html'), { axes: ['design'] });
     expect(triggered(slop, 'centered_hero')).toBe(true);
+    // Scaled ancestors make geometry unreliable: abstain, don't guess.
+    const scaled = await scanUrl(fixture('hero-scaled-parent.html'), { axes: ['design'] });
+    expect(scaled.blocked).toBeFalsy();
+    expect(triggered(scaled, 'centered_hero')).toBe(false);
   }
 );
