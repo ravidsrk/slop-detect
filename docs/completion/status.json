@@ -1618,7 +1618,7 @@
       "id": "T-18c",
       "owner": "agent",
       "plan_phase": "P3",
-      "pr": null,
+      "pr": 146,
       "review": null,
       "size": "S",
       "status": "in_review"
