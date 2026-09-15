@@ -1791,18 +1791,18 @@
     {
       "attempts": 0,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p4-retry",
       "commit": null,
       "depends_on": [],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-26-retry.txt"],
       "gaps": ["G-08"],
       "id": "T-26",
       "owner": "agent",
       "plan_phase": "P4",
-      "pr": null,
+      "pr": 163,
       "review": null,
       "size": "M",
-      "status": "todo"
+      "status": "in_review"
     },
     {
       "attempts": 0,
