@@ -432,3 +432,16 @@
   the 2 pinning tests.
 - Evidence: evidence/T-26-retry.txt.
 - resume_pointer: P4/T-28
+
+## 2026-09-15 S4/P4 T-28 runbooks + capacity + recovery (G-09/G-33) — DONE
+- branch ravidsrk/p4-runbooks → PR #165 → merged b5d9ce2, no squash.
+- RB-1..RB-5 runbooks + 3-liner, file:line-sourced capacity budgets,
+  store inventory with honest backup status, docs-alignment guard
+  test (every report() event documented, routes + links resolve).
+  Zero prod-code changes. 3 new tests. G-09/G-33 CLOSED.
+- Greptile 3 P1 + 2 P2 (health shape, settle budget, daily-key loss,
+  extractor evasion, subrequest math) — all verified against code,
+  fixed + replied in-thread (one mechanism corrected: catch/success
+  webhook paths are mutually exclusive).
+- Evidence: evidence/T-28-runbooks.txt.
+- resume_pointer: P4/T-29
