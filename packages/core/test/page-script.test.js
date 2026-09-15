@@ -3,7 +3,7 @@
 // the shared implementation drifts, this snapshot + unit suite fails.
 
 import { test, expect, describe } from 'vitest';
-import { buildPageScript, detectBlocked, PATTERNS } from '@slop-detect/core';
+import { buildPageScript, esbuildNamePolyfills, detectBlocked, PATTERNS } from '@slop-detect/core';
 
 // ── buildPageScript snapshots ────────────────────────────────────────────────
 test('buildPageScript default (design + copy, no system axis)', () => {
@@ -12,13 +12,34 @@ test('buildPageScript default (design + copy, no system axis)', () => {
   // Structural invariants both runners rely on.
   expect(script.startsWith('(() => {')).toBe(true);
   expect(script.endsWith('})();')).toBe(true);
-  expect(script).toContain('const __name = (fn) => fn;');
+  // Every esbuild __name helper referenced by serialized extractors must be
+  // declared (bundlers dedup the name: __name in prod, __name2 in dev — T-40).
+  for (const ref of script.match(/\b__name\d*\b/g) ?? []) {
+    expect(script).toContain(`const ${ref} = (fn) => fn;`);
+  }
   expect(script).toContain('const ctx = {');
   expect(script).toContain('extractTextContext');
   expect(script).not.toContain('extractSystemContext');
   for (const p of PATTERNS) {
     expect(script).toContain(`signals[${JSON.stringify(p.id)}]`);
   }
+});
+
+// ── esbuildNamePolyfills (T-40: `wrangler pages dev` broke scans) ────────────
+describe('esbuildNamePolyfills', () => {
+  test('derives every deduplicated helper name from bundled source', () => {
+    const bundled =
+      'var x = __name2((c) => c.a, "x"); var y = __name((c) => c.b, "y"); var z = __name2((c) => c.c, "z");';
+    const out = esbuildNamePolyfills(bundled);
+    expect(out).toContain('const __name = (fn) => fn;');
+    expect(out).toContain('const __name2 = (fn) => fn;');
+    // Deduped: one declaration per name even when referenced twice.
+    expect(out.match(/const __name2 = /g)).toHaveLength(1);
+  });
+
+  test('emits nothing when the source references no helpers', () => {
+    expect(esbuildNamePolyfills('(() => { return 1; })();')).toBe('');
+  });
 });
 
 test('buildPageScript with includeSystem injects system axis extractor', () => {

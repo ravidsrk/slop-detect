@@ -105,8 +105,15 @@ export function detectBlocked(
 }
 
 // ── Page-side script assembler ──────────────────────────────────────────────
-// Reconciled from scan.ts: includes the esbuild __name polyfill required when
-// wrangler bundles named pattern extractors (harmless no-op for Playwright CLI).
+// Serialized extractors reference esbuild's __name helper under whatever
+// deduplicated name the bundler chose (__name in the production bundle,
+// __name2 in `wrangler pages dev`, ...), so the polyfill names are derived
+// from the serialized source — never hardcoded (T-40).
+export function esbuildNamePolyfills(serialized: string): string {
+  const helpers = [...new Set(serialized.match(/\b__name\d*\b/g) ?? [])];
+  return helpers.map((h) => `const ${h} = (fn) => fn;`).join('\n    ');
+}
+
 export function buildPageScript(opts: BuildPageScriptOptions = {}): string {
   const patternCalls = PATTERNS.map(
     (p) => `
@@ -117,9 +124,22 @@ export function buildPageScript(opts: BuildPageScriptOptions = {}): string {
     }`
   ).join('\n');
 
+  const serialized = [
+    patternCalls,
+    createColorHelpers.toString(),
+    createVisibilityHelpers.toString(),
+    isSlopFont.toString(),
+    isAccentSerif.toString(),
+    extractTextContext.toString(),
+    opts.includeSystem ? extractSystemContext.toString() : '',
+  ].join('\n');
+  const polyfills = esbuildNamePolyfills(serialized);
+
   return `(() => {
-    // Polyfill esbuild's __name helper (wrangler bundles named fns wrapped with it).
-    const __name = (fn) => fn;
+    // Polyfill esbuild's name helpers (identity: page-side .name is unused).
+    // NOTE: this wrapper must never spell the helper's identifier
+    // (double underscore + "name") — the test requires each spelling declared.
+    ${polyfills}
     ${createColorHelpers.toString()}
     ${createVisibilityHelpers.toString()}
     ${isSlopFont.toString()}

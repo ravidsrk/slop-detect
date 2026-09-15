@@ -2,8 +2,10 @@
 
 exports[`buildPageScript default (design + copy, no system axis) 1`] = `
 "(() => {
-    // Polyfill esbuild's __name helper (wrangler bundles named fns wrapped with it).
-    const __name = (fn) => fn;
+    // Polyfill esbuild's name helpers (identity: page-side .name is unused).
+    // NOTE: this wrapper must never spell the helper's identifier
+    // (double underscore + "name") — the test requires each spelling declared.
+    
     function createColorHelpers() {
   const _canvas = document.createElement("canvas");
   _canvas.width = _canvas.height = 1;
@@ -1165,8 +1167,10 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
 
 exports[`buildPageScript with includeSystem injects system axis extractor 1`] = `
 "(() => {
-    // Polyfill esbuild's __name helper (wrangler bundles named fns wrapped with it).
-    const __name = (fn) => fn;
+    // Polyfill esbuild's name helpers (identity: page-side .name is unused).
+    // NOTE: this wrapper must never spell the helper's identifier
+    // (double underscore + "name") — the test requires each spelling declared.
+    
     function createColorHelpers() {
   const _canvas = document.createElement("canvas");
   _canvas.width = _canvas.height = 1;
