@@ -81,9 +81,10 @@ test(
           seen.add(await activeId());
         }
         expect([...seen].sort()).toEqual([...MODAL_BTNS].sort());
-        // Backward Tab wraps too.
+        // Backward Tab from the first button wraps to the last.
+        await page.evaluate(() => document.getElementById('openChatGPT').focus());
         await page.keyboard.press('Shift+Tab');
-        expect(await insideModal()).toBe(true);
+        expect(await activeId()).toBe('closeBtn');
         // Focus lost outside (clipboard-fallback shape) is pulled back in.
         await page.evaluate(() => document.activeElement.blur());
         await page.keyboard.press('Tab');
