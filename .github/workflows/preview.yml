@@ -1,0 +1,107 @@
+name: preview
+
+# PR previews for apps/web on Cloudflare Pages (T-29 staging story).
+#
+# Every pull request gets a branch preview deployment — EXCEPT the workflow
+# self-skips (with a notice, never red) until staging is actually wired:
+#   1. CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID repo secrets (H-01), and
+#   2. live (uncommented) preview_id lines in apps/web/wrangler.toml.
+# Gate 2 is the safety interlock: a preview without preview_id would bind
+# PRODUCTION KV, which must be impossible, not merely undocumented.
+#
+# Branch controls: main → production (deploy.yml, CI-gated). PR branches →
+# here. Previews never promote except by merging to main. See docs/STAGING.md.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+# Minimal scope: the final step posts the preview pointer via gh pr comment.
+permissions:
+  pull-requests: write
+
+concurrency:
+  group: preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    name: Deploy PR preview
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          # Don't persist the write-scoped token into git config: install /
+          # build / test execute PR-controlled code before the comment step,
+          # and must have no credential to steal. The comment step gets
+          # GH_TOKEN via its own env only.
+          persist-credentials: false
+
+      - name: Preflight — staging ready
+        id: preflight
+        # HEAD_REF arrives via env (never interpolated): branch names may
+        # contain shell metacharacters, so nothing below expands it raw.
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          # Fail closed on hostile branch names BEFORE anything consumes the
+          # ref (the wrangler command below takes it as data; this gate is
+          # what makes that safe regardless of downstream shell behavior).
+          if ! printf '%s' "$HEAD_REF" | grep -qE '^[A-Za-z0-9/_.~-]+$'; then
+            echo "::error::Refusing preview: branch name outside [A-Za-z0-9/_.~-]. Rename the branch."
+            exit 1
+          fi
+          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ] || [ -z "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Preview skipped: CLOUDFLARE_* repo secrets missing (H-01)."
+            exit 0
+          fi
+          # EVERY kv_namespaces block needs its live preview_id: one missing
+          # ID would silently bind that binding to PRODUCTION data.
+          # `|| true`: grep -c exits 1 on zero matches, and these steps run
+          # under bash -e — without it, the unwired state fails red instead
+          # of skipping green (caught live on PR #167).
+          blocks=$(grep -c '^\[\[kv_namespaces\]\]' apps/web/wrangler.toml || true)
+          ids=$(grep -cE '^[[:space:]]*preview_id[[:space:]]*=' apps/web/wrangler.toml || true)
+          if [ "$ids" -lt "$blocks" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Preview skipped: ${ids}/${blocks} kv_namespaces blocks have a live preview_id (staging not wired)."
+            exit 0
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        if: steps.preflight.outputs.ready == 'true'
+        with:
+          bun-version: 1.4.2
+
+      - run: bun install
+        if: steps.preflight.outputs.ready == 'true'
+
+      # Same gates as production: never preview a build that doesn't
+      # compile or a suite that's red.
+      - run: bun run build
+        if: steps.preflight.outputs.ready == 'true'
+
+      - run: bun run test
+        if: steps.preflight.outputs.ready == 'true'
+
+      - name: Publish preview (wrangler pages deploy --branch)
+        if: steps.preflight.outputs.ready == 'true'
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/web
+          command: pages deploy public --project-name=slop-detector --branch=${{ github.head_ref }}
+
+      - name: Comment preview pointer
+        if: steps.preflight.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_SHA: ${{ github.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr comment "$PR_NUMBER" --body \
+            "Preview deployed for \`$HEAD_REF\` @ \`$HEAD_SHA\` (branch preview binding preview KV only — see docs/STAGING.md). Find the build under the slop-detector Pages project deployments in the Cloudflare dashboard."

@@ -274,3 +274,15 @@ test('namespaces resolve from wrangler.toml by binding or id', () => {
   expect(resolveNamespace(map.RATE_LIMIT)).toEqual({ binding: 'RATE_LIMIT', id: map.RATE_LIMIT });
   expect(() => resolveNamespace('NOPE')).toThrow('unknown namespace');
 });
+
+test('commented namespace examples never parse as config (T-29)', () => {
+  // wrangler.toml carries a commented preview_id template with placeholder
+  // IDs. readNamespaces() must return exactly the two live production IDs —
+  // if comment-stripping regresses, placeholders leak into the backup map.
+  const map = readNamespaces();
+  expect(Object.keys(map).sort()).toEqual(['RATE_LIMIT', 'RESULTS']);
+  for (const id of Object.values(map)) {
+    expect(id).toMatch(/^[0-9a-f]{32}$/);
+    expect(id).not.toContain('<');
+  }
+});

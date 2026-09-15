@@ -96,8 +96,10 @@ test('every report() event in code is documented in docs/ALERTS.md', () => {
   }
 });
 
-test('every /api/* route in docs/RUNBOOKS.md maps to a route file', () => {
-  const runbooks = fs.readFileSync(path.join(DOCS_ROOT, 'RUNBOOKS.md'), 'utf8');
+test('every /api/* route in the ops docs maps to a route file', () => {
+  const runbooks = ['RUNBOOKS.md', 'STAGING.md']
+    .map((p) => fs.readFileSync(path.join(DOCS_ROOT, p), 'utf8'))
+    .join('\n');
   const routes = [...new Set([...runbooks.matchAll(/\/api\/[a-z0-9/_-]+/g)].map((m) => m[0]))];
   expect(routes.length).toBeGreaterThan(0);
   for (const route of routes) {
@@ -112,7 +114,7 @@ test('every /api/* route in docs/RUNBOOKS.md maps to a route file', () => {
 });
 
 test('every .md link in the ops docs resolves to a file', () => {
-  const pages = ['ALERTS.md', 'RUNBOOKS.md', 'CAPACITY.md', 'RECOVERY.md'];
+  const pages = ['ALERTS.md', 'RUNBOOKS.md', 'CAPACITY.md', 'RECOVERY.md', 'STAGING.md'];
   let checked = 0;
   for (const page of pages) {
     const body = fs.readFileSync(path.join(DOCS_ROOT, page), 'utf8');
