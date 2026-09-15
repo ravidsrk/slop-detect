@@ -2,10 +2,25 @@
 // (which public/_headers does NOT cover) but not to JSON / image responses.
 
 import { test, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { onRequest } from '../functions/_middleware.ts';
 
 function ctx(response) {
   return { next: async () => response };
+}
+
+function htmlResponse() {
+  return new Response('<!doctype html><title>x</title>', {
+    status: 200,
+    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+  });
+}
+
+function headersFileCsp() {
+  const text = readFileSync(new URL('../public/_headers', import.meta.url), 'utf8');
+  const block = text.split(/^\//m).find((b) => b.startsWith('*\n'));
+  const line = block.split('\n').find((l) => l.trim().startsWith('Content-Security-Policy:'));
+  return line.split(':').slice(1).join(':').trim();
 }
 
 test('text/html Function responses get CSP, X-Frame-Options, nosniff, and HSTS', async () => {
@@ -53,4 +68,28 @@ test('a header a route set itself is not overridden', async () => {
   expect(res.headers.get('X-Frame-Options')).toBe('DENY');
   // ...but the headers the route did NOT set are still added.
   expect(res.headers.get('Content-Security-Policy')).toBeTruthy();
+});
+
+test('middleware CSP is identical to the /* CSP in public/_headers (no drift)', async () => {
+  const res = await onRequest(ctx(htmlResponse()));
+  expect(res.headers.get('Content-Security-Policy')).toBe(headersFileCsp());
+});
+
+test("CSP pins form-action 'self' (every form posts same-origin)", async () => {
+  const res = await onRequest(ctx(htmlResponse()));
+  expect(res.headers.get('Content-Security-Policy')).toContain("form-action 'self'");
+});
+
+test('security.txt exists with a contact and a future expiry', () => {
+  const text = readFileSync(new URL('../public/.well-known/security.txt', import.meta.url), 'utf8');
+  const contacts = text.match(/^Contact: .+$/gm) ?? [];
+  expect(contacts).toHaveLength(1);
+  expect(contacts[0]).toBe(
+    'Contact: https://github.com/ravidsrk/slop-detect/security/advisories/new'
+  );
+  const expires = text.match(/^Expires: (.+)$/m)?.[1];
+  expect(expires, 'Expires field present').toBeTruthy();
+  const exp = new Date(expires).getTime();
+  expect(Number.isNaN(exp)).toBe(false);
+  expect(exp).toBeGreaterThan(Date.now() + 30 * 24 * 3600 * 1000);
 });

@@ -303,7 +303,7 @@
       "status": "works"
     }
   ],
-  "current_commit": "8582b8fc06b72e120bd6970897771fb044c60f50",
+  "current_commit": "50f79df4d51ff02117884ff26d528dd09d6e8329",
   "definition_frozen_at": "6770c58",
   "gaps": [
     {
@@ -771,7 +771,7 @@
       "issue_url": null,
       "severity": "S2",
       "source": ["F-R-14"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-13"]
     },
     {
@@ -783,7 +783,7 @@
       "issue_url": null,
       "severity": "S2",
       "source": ["F-R-15"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-13"]
     },
     {
@@ -1030,6 +1030,15 @@
       "status": "open",
       "unblocks": ["T-25-prod"],
       "verification": "agent test alert + cap check in staging"
+    },
+    {
+      "id": "H-08",
+      "instruction": "Walk the five edge/dashboard checkboxes in docs/SECURITY.md (TLS, WAF rule for POST /api/scan, bots, private reporting, security.txt freshness)",
+      "unblocks": [],
+      "gates_launch": false,
+      "verification": "agent re-checks reporting API + security.txt Expires",
+      "status": "open",
+      "issue_url": null
     }
   ],
   "issues": {
@@ -1266,7 +1275,7 @@
       "url": "child-transcript:C1-C16"
     }
   ],
-  "resume_pointer": "P2/T-13",
+  "resume_pointer": "P2/T-08",
   "run_id": "20260914-S1",
   "stage": "S3",
   "tasks": [
@@ -1432,7 +1441,7 @@
       "attempts": 3,
       "block_signature": null,
       "branch": "ravidsrk/p2-kv-ttl",
-      "commit": null,
+      "commit": "50f79df",
       "depends_on": [],
       "evidence": ["docs/completion/evidence/T-10-gate.txt"],
       "gaps": ["G-14"],
@@ -1477,20 +1486,20 @@
       "status": "todo"
     },
     {
-      "attempts": 0,
+      "attempts": 1,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p2-sec-headers",
       "commit": null,
       "depends_on": [],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-13-gate.txt"],
       "gaps": ["G-39", "G-40"],
       "id": "T-13",
       "owner": "agent",
       "plan_phase": "P2",
-      "pr": null,
-      "review": null,
+      "pr": "https://github.com/ravidsrk/slop-detect/pull/130",
+      "review": "greptile",
       "size": "S",
-      "status": "todo"
+      "status": "done"
     },
     {
       "attempts": 0,
