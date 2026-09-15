@@ -1475,10 +1475,10 @@
     {
       "attempts": 0,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p2-img-version",
       "commit": null,
       "depends_on": [],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-12-img.txt"],
       "gaps": ["G-29"],
       "id": "T-12",
       "owner": "agent",
@@ -1486,7 +1486,7 @@
       "pr": null,
       "review": null,
       "size": "S",
-      "status": "todo"
+      "status": "in_review"
     },
     {
       "attempts": 1,

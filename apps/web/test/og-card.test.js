@@ -87,6 +87,12 @@ test('the card shows the live reading: domain, score, grade, tier, flagged count
   expect(html).toMatch(/AI-default font stack/);
 });
 
+test('the only version token on the card is the defs provenance label (T-12)', () => {
+  const html = cardHtml(slim());
+  expect(html.match(/20\d{2}\.\d{2}/g)).toEqual(['2026.09']);
+  expect(html).not.toMatch(/\d+\.\d+\.\d+/);
+});
+
 test('it stays a 1200×630 document with a doctype', () => {
   const html = cardHtml(slim());
   expect(html.startsWith('<!doctype html>')).toBe(true);

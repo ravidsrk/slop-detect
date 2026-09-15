@@ -66,6 +66,16 @@ test('right-segment colors come from _theme.badgeColors for every tier', () => {
   }
 });
 
+test('the badge carries no version strings, scored or not (T-12)', () => {
+  // Even when the snapshot knows its definitions version, the badge must not
+  // repeat it: grade · score only, no provenance/version tokens.
+  for (const s of [slim({ definitionsVersion: '2026.09' }), null]) {
+    const svg = badgeSvg('ex.com', s);
+    // (`<defs>` is the SVG element — the label form is `defs <version>`.)
+    expect(svg).not.toMatch(/defs \d|2026\.09|\d+\.\d+\.\d+/);
+  }
+});
+
 test('no-scan fallback: neutral grey badge, "no scan", no grade · score', () => {
   const svg = badgeSvg('never.dev', null);
   const neutral = badgeColors('Unknown');
