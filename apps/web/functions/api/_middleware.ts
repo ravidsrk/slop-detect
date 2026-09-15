@@ -293,7 +293,12 @@ export async function onRequest(context) {
   // ── Optional API-key resolution ────────────────────────────────────────────
   // A presented-but-invalid key is a hard error (so clients notice typos /
   // revoked keys); no key at all is fine and stays anonymous.
-  const apiKey = extractApiKey(request);
+  //
+  // EXEMPT: /api/cron/sweep authenticates its own `Authorization: Bearer
+  // <CRON_SECRET>` in the handler (constant-time compare, 503-off default).
+  // Resolving that Bearer as an API key here 401s every scheduled run, since
+  // a cron secret is not a KV key record (T-15: found live on pages dev).
+  const apiKey = route === 'cron/sweep' ? null : extractApiKey(request);
   const keyCache = new Map(); // per-request cache for resolveApiKey
   let keyTier = null; // null === anonymous
   if (apiKey && env.RATE_LIMIT) {

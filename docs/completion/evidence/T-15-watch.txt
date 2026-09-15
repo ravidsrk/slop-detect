@@ -1,0 +1,43 @@
+=== T-15 CF-04 monitor flow (G-01 agent part) ===
+--- E2E chain + fail-closed (test/monitor-flow.test.js, 5 tests) ---
+subscribe → confirm → baseline → regress → exactly-once alert →
+recovery re-arms → re-regression re-alerts (real handlers, faked net).
+Sans-secrets matrix: no-provider subscribe 201 honest; no-provider sweep
+200/alerted-0/retry-safe; no-storage confirm+watch 503s.
+--- S0 FIX: sweep Bearer vs API-key collision (middleware) ---
+FOUND LIVE on pages dev: POST /api/cron/sweep + Authorization: Bearer
+<CRON_SECRET> → 401 {"error":"invalid_api_key"}. The middleware resolved
+the cron Bearer as an API key; a cron secret is not a KV key record, so
+EVERY scheduled run (monitor-sweep.yml) died before the handler. No
+middleware exemption existed (grep: zero cron mentions).
+FIX: route === 'cron/sweep' skips API-key resolution; handler judges the
+Bearer (constant-time, 503-off, 401). Cheap rate limit retained.
+PROOF:
+- 2 new authz-matrix tests fail 401 on old code, pass on new (in evidence run).
+- LIVE pages dev after fix: subscribe 201; sweep+right secret →
+  {"ok":true,"skippedUnverified":2,"errors":0}; sweep+wrong secret →
+  {"error":"unauthorized"} (handler 401 — middleware passed through).
+--- sandbox guide ---
+docs/MONITOR_SANDBOX.md: L0 vitest E2E / L1 pages dev (verified above) /
+L2 preview + H-02 staging (the H-02 verify procedure).
+--- flow suites ---
+ ✓ test/alerts.test.js (13 tests) 6ms
+ ✓ test/monitor-flow.test.js (5 tests) 8ms
+ ✓ test/authz-matrix.test.js (18 tests) 9ms
+ ✓ test/watch.test.js (17 tests) 24ms
+ ✓ test/dashboard.test.js (20 tests) 427ms
+ Test Files  5 passed (5)
+      Tests  73 passed (73)
+=== FORMAT ===
+FORMAT_EXIT=0
+=== LINT ===
+LINT_EXIT=0
+=== TYPECHECK ===
+TYPECHECK_EXIT=0
+=== TEST ===
+TEST_EXIT=0
+slop-detect-mcp:test:       Tests  14 passed (14)
+@slop-detect/action:test:       Tests  7 passed (7)
+@slop-detect/core:test:       Tests  73 passed (73)
+slop-detect:test:       Tests  12 passed | 10 skipped (22)
+slop-detect-web:test:       Tests  364 passed (364)
