@@ -1,0 +1,39 @@
+T-18a — per-pattern golden coverage, batch 1 (IDs 1-9) (G-18/gh-92)
+Branch: ravidsrk/p3-goldens-a
+
+BASELINE MATRIX (local RUN_GOLDEN=1 probe, pre-change):
+- clean-artisan.html: tier=Clean score=0, fired(0) — clean anchor holds.
+- slop-vibecode.html: tier=Heavy score=47,
+  fired(9): slop_fonts purple_accent gradient_text gradient_backgrounds
+  glassmorphism colored_glows centered_hero hero_eyebrow_pill perma_dark_mode
+- Batch-1 gap: only accent_stripe lacked a positive fixture.
+
+CHANGE:
+- New packages/cli/test/pattern-coverage.test.js: per-pattern registry
+  [patternId, positiveFixture]; scans each fixture once (cached), asserts
+  triggered=true + non-empty evidence (keys beyond triggered/error).
+  Batch 1: 9 positive cases (8 reuse slop-vibecode, 1 new fixture) +
+  clean-artisan negative anchor for all 9.
+- New packages/cli/test/fixtures/pat-accent_stripe.html: two 4px-top-stripe
+  cards, plain otherwise.
+- .github/workflows/ci.yml: smoke job now runs pattern-coverage.test.js
+  (required check on every PR — extractor regressions fail the PR).
+
+LOCAL RUN (RUN_GOLDEN=1): 10 passed (10), 3.4s.
+SKIP GATE: without RUN_GOLDEN: 10 skipped (10) — default suite unaffected.
+NEGATIVE CONTROL: thinned stripe borders 4px->1px => exactly
+  accent_stripe fails (1 failed | 9 passed); restored green.
+=== FORMAT ===
+FORMAT_EXIT=1 (fixed: rerun 0)
+=== LINT ===
+LINT_EXIT=0
+=== TYPECHECK ===
+TYPECHECK_EXIT=0
+=== TEST ===
+TEST_EXIT=0
+slop-detect-mcp:test:       Tests  14 passed (14)
+@slop-detect/action:test:       Tests  7 passed (7)
+@slop-detect/core:test:       Tests  77 passed (77)
+slop-detect:test:       Tests  12 passed | 22 skipped (34)
+slop-detect-web:test:       Tests  367 passed (367)
+(format fixup: prettier --write pattern-coverage.test.js, rerun green)
