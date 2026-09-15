@@ -198,4 +198,21 @@
   review-fix tests; merge-commit CI green). Greptile 3 P2s on doc accuracy —
   ALL fixed in 301bcd1, replied in-thread.
 - second look: no scope creep into fixing the sitekey injection; filed as follow-up.
-- resume_pointer: P2/T-11
+- resume_pointer: P2/T-11 (T-09 merged 70edc0e)
+
+## 2026-09-14 S3/P2 T-11 KV counters (G-27, G-28) — DONE
+- branch ravidsrk/p2-kv-limits → PR #133 → merged ea676ab, no squash.
+- Fix: dashLinkAllowed + watchVerifyAllowed get in-isolate mem counters (ogMem
+  pattern) — same-isolate bursts hold 3/hour on stale KV reads; over-cap and
+  KV denies both release budget (mem tracks admissions). 5 new tests: 2 burst,
+  1 sequential leak, 2 concurrent full-budget regression. Negative controls:
+  burst fails 10-vs-3 on pre-T-11 code; race test fails without the release.
+- docs/KV_LIMITS.md: counter inventory, accepted cross-isolate residual (#109
+  stays open, commented), platform limits (cited) vs per-flow usage. Key
+  finding: free tier write-bound ≈125 first-scans/day; SCAN_DAILY_CAP=10000
+  unreachable without paid plan.
+- Evidence: evidence/T-11-kv.txt (all 0; web 353+2 at merge). Greptile 1 P1
+  (over-cap budget leak) — fixed in f3f98d3, replied in-thread.
+- second look: 60s-gate attempt-counting (middleware/og) left as-is, documented
+  as fail-closed/verdict-neutral; hot path untouched.
+- resume_pointer: P2/T-12
