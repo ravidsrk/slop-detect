@@ -375,7 +375,7 @@
       "issue_url": null,
       "severity": "S1",
       "source": ["F-9-03"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-25"]
     },
     {
@@ -1774,18 +1774,19 @@
     {
       "attempts": 0,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p4-alert-proof",
       "commit": null,
       "depends_on": ["T-22"],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-25-alert.txt"],
       "gaps": ["G-06"],
       "id": "T-25",
       "owner": "agent",
       "plan_phase": "P4",
-      "pr": null,
+      "pr": 161,
       "review": null,
       "size": "M",
-      "status": "todo"
+      "status": "done",
+      "merged": "e15c398"
     },
     {
       "attempts": 0,

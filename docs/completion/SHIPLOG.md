@@ -402,3 +402,18 @@
   bound, parallel reads) — all fixed, replied in-thread.
 - Evidence: evidence/T-24-ops.txt.
 - resume_pointer: P4/T-25
+
+## 2026-09-15 S4/P4 T-25 alert proof (G-06) — DONE
+- branch ravidsrk/p4-alert-proof → PR #161 → merged e15c398, no squash.
+- scan_failed proven end-to-end: induced failure POSTs to a live stub
+  webhook (Slack {text} envelope, requestId, POST+JSON transport, all
+  riding waitUntil); console-line contract locked. docs/ALERTS.md
+  runbook inventories every report() event + severity + wiring.
+  Zero prod-code changes. 4 new tests. G-06 CLOSED (code side).
+- Greptile 2 P2 (invalid trigger, transport unchecked) — both valid,
+  fixed + replied in-thread. Negative control: anchored waitUntil
+  sabotage fails 2→1, restore green (first blind sabotage hit the
+  wrong line — lesson recorded in evidence).
+- Prod remainder: H-07 (owner sets ERROR_WEBHOOK value in Pages).
+- Evidence: evidence/T-25-alert.txt.
+- resume_pointer: P4/T-26
