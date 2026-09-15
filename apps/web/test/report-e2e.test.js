@@ -47,7 +47,12 @@ beforeEach(async () => {
     let body = '';
     req.on('data', (c) => (body += c));
     req.on('end', () => {
-      received.push({ url: req.url, body });
+      received.push({
+        url: req.url,
+        method: req.method,
+        contentType: req.headers['content-type'],
+        body,
+      });
       res.writeHead(200);
       res.end('ok');
     });
@@ -80,6 +85,10 @@ test('an induced scan failure POSTs to the configured webhook (alert proven to f
   await Promise.all(pending);
   expect(received).toHaveLength(1);
   expect(received[0].url).toBe('/hook');
+  // Transport contract, not just the payload: Slack-compatible receivers
+  // need a POST with a JSON content type.
+  expect(received[0].method).toBe('POST');
+  expect(received[0].contentType).toBe('application/json');
   const payload = JSON.parse(received[0].body);
   // Slack-style envelope: `text` carries `level`, `event`, and redacted data.
   expect(payload.text).toMatch(/slop-detect error: scan_failed/);

@@ -48,5 +48,10 @@ someone); `warn` = degraded but serving (ticket, next business day).
   `docs/completion/evidence/T-25-alert.txt`.
 
 To trigger a test alert against a deployed preview: set `ERROR_WEBHOOK` to a
-request-catcher URL on the preview, then POST an unscannable target (e.g. an
-unroutable IP) to `/api/scan` and watch the catcher.
+request-catcher URL on the preview, then POST a target that passes SSRF
+validation but fails navigation — e.g. `https://example.com:81/` (public
+host, closed port: `goto` throws connection-refused, or times out past the
+25s navigation budget — either way `scan_failed` fires). Private/loopback
+IPs will NOT work as triggers: `_ssrf.ts` rejects them with 400 before the
+browser is ever reached. The deterministic trigger remains the E2E test
+above (no deployment needed).
