@@ -16,14 +16,14 @@ stranger with no repo knowledge against any deployment target:
 ## Run
 
 ```bash
-# against a preview deployment
-bun scripts/s4/run.ts --target https://<preview>.pages.dev
+# against a preview deployment (builds the CLI + MCP bins first)
+bun run s4 -- --target https://<preview>.pages.dev
 
 # against production
-bun scripts/s4/run.ts --target https://slop-detect.com
+bun run s4 -- --target https://slop-detect.com
 
-# a single flow
-bun scripts/s4/run.ts --target <url> --only=cf01
+# a single flow (--target/--only accept both `--flag value` and `--flag=value`)
+bun run s4 -- --target <url> --only cf01
 # or a single script directly (target via S4_BASE, default https://slop-detect.com):
 S4_BASE=<url> bun scripts/s4/cf01-webscan.ts
 ```

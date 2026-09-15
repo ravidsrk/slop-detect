@@ -115,6 +115,10 @@ export function createCtx(flow: string, base = baseUrl()): Ctx {
     skip(reason: string): never {
       throw new SkipSignal(reason);
     },
+    // A failed step records FAIL and the flow CONTINUES with the next step:
+    // later independent checks are evidence too, and results.json must show
+    // what ran, not just the prefix before the first failure. (Cascade fails
+    // from dependent steps are honest — they record what actually happened.)
     async step<T>(name: string, fn: () => Promise<T>): Promise<T> {
       const t0 = Date.now();
       log(`▸ ${name}`);
@@ -131,8 +135,8 @@ export function createCtx(flow: string, base = baseUrl()): Ctx {
         }
         const detail = e instanceof Error ? e.message : String(e);
         steps.push({ flow, step: name, status: 'fail', ms: Date.now() - t0, detail });
-        log(`  ✗ ${name} FAIL: ${detail}`);
-        throw e;
+        log(`  ✗ ${name} FAIL: ${detail} (continuing)`);
+        return undefined as T;
       }
     },
     async fetch(p: string, init: RequestInit = {}): Promise<Response> {

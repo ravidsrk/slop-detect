@@ -5,12 +5,15 @@
 // --fail-on value is a usage error (exit 2). (Plain garbage exits 0 with an
 // {error} payload by design — errors fail gates, not invocations.)
 
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { createCtx, paceScan, seed, type Ctx } from './lib.ts';
 
 const BIN = path.join(process.cwd(), 'packages', 'cli', 'dist', 'bin', 'slop.js');
 
 export async function run(ctx: Ctx) {
+  // Fail fast on direct runs (`bun run s4` builds first; raw bun does not).
+  ctx.assert(existsSync(BIN), `CLI build missing at ${BIN} — run: bun run build`);
   const env = { SLOP_API: ctx.base };
 
   await ctx.step('happy: remote JSON scan exits 0 with a scored result', async () => {

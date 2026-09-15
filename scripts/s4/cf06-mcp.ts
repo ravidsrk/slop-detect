@@ -3,6 +3,7 @@
 // Happy: initialize → tools/list shows the 4 tools; scan_page scans.
 // Failure: unknown tool → JSON-RPC error (isError).
 
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { createCtx, paceScan, seed, type Ctx } from './lib.ts';
@@ -69,6 +70,8 @@ async function session(
 }
 
 export async function run(ctx: Ctx) {
+  // Fail fast on direct runs (`bun run s4` builds first; raw bun does not).
+  ctx.assert(existsSync(BIN), `MCP build missing at ${BIN} — run: bun run build`);
   await ctx.step('happy: tools/list exposes the 4 tools', async () => {
     const out = await session(ctx, [{ method: 'tools/list' }]);
     const tools = out.get(1)?.result?.tools ?? [];

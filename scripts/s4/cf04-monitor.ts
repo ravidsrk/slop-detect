@@ -25,16 +25,24 @@ export async function run(ctx: Ctx) {
   });
 
   await ctx.step('happy: unsubscribe (email match) cleans up → true', async () => {
-    const res = await post({ domain, email, unsubscribe: true });
-    const body = await res.json();
-    ctx.assert(body.unsubscribed === true, 'unsubscribed true (self-cleaning)');
+    // try/finally: a failed assertion must not leave the watch record behind.
+    try {
+      const res = await post({ domain, email, unsubscribe: true });
+      const body = await res.json();
+      ctx.assert(body.unsubscribed === true, 'unsubscribed true (self-cleaning)');
+    } finally {
+      await post({ domain, email, unsubscribe: true }).catch(() => {});
+    }
   });
 
   await ctx.step('failure: unsubscribe with wrong email → 403', async () => {
-    await post({ domain, email });
-    const res = await post({ domain, email: 'stranger@evil.example.com', unsubscribe: true });
-    ctx.assert(res.status === 403, `expected 403, got ${res.status}`);
-    await post({ domain, email, unsubscribe: true }); // self-clean
+    try {
+      await post({ domain, email });
+      const res = await post({ domain, email: 'stranger@evil.example.com', unsubscribe: true });
+      ctx.assert(res.status === 403, `expected 403, got ${res.status}`);
+    } finally {
+      await post({ domain, email, unsubscribe: true }).catch(() => {}); // self-clean
+    }
   });
 
   await ctx.step(
