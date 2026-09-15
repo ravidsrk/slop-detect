@@ -380,3 +380,12 @@
   Greptile 2 P2s fixed in-thread. G-04 CLOSED.
 - Evidence: evidence/T-22-reqids.txt.
 - resume_pointer: P4/T-23
+
+## 2026-09-15 S4/P4 T-23 health endpoint + ping (G-07) — DONE
+- branch ravidsrk/p4-health → PR #157 → merged d3fb0cd, no squash.
+- GET /api/health: 200/503 readiness (browser+KVs+kill-switch),
+  redacted KV errors; 30-min ping workflow fails the run when down.
+- 6 endpoint tests green; ping logic validated offline. Greptile
+  P1+P2+P2 (kill-switch, redaction, evidence staleness) fixed in-thread.
+- Evidence: evidence/T-23-health.txt.
+- resume_pointer: P4/T-24
