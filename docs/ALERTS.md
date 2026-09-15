@@ -1,0 +1,52 @@
+# ALERTS.md — error alerting + on-call runbook
+
+One alert path, proven to fire (T-25): `report()` in
+`apps/web/functions/_report.ts` writes a structured console line (picked up
+by `wrangler tail` / Logpush) and — when `ERROR_WEBHOOK` is set — POSTs a
+Slack-compatible `{ text }` envelope via `waitUntil`, so the alert survives
+the response in the Workers runtime. Only `error` and `warn` levels POST;
+`info` is log-only.
+
+## Wiring (one dashboard step)
+
+Set `ERROR_WEBHOOK` on the Pages project to a Slack/Discord incoming-webhook
+URL (or any endpoint that accepts a JSON `{ text }` POST). The production
+value is tracked as **H-07** in `docs/completion/HUMAN_ACTIONS.md` — the
+code side is proven; only the secret value needs a human.
+
+Envelope shape (asserted byte-for-byte by the E2E test):
+
+```json
+{ "text": "slop-detect error: scan_failed {\"url\":\"…\",\"requestId\":\"…\"}" }
+```
+
+## Events (what fires, what to do)
+
+| Event | Level | Source | Meaning | First response |
+|---|---|---|---|---|
+| `scan_failed` | error | `api/scan.ts` | Browser/scan threw; caller got a 502 + `requestId` | `wrangler tail` the `requestId`; if every scan fails, check Browser Rendering binding / `SCAN_DISABLED` via `/api/health` |
+| `handler_threw` | error | `api/_middleware.ts` | Uncaught throw in another handler; traced 500 | Same `requestId` in the 500 body; fix forward, the route is in the line |
+| `health_kv_probe_failed` | error | `api/health.ts` | Readiness probe couldn't read a KV namespace | Check the named binding in the Pages dashboard; `/api/health` will be 503 meanwhile |
+| `persist_failed` | warn | `api/scan.ts` | Scan succeeded but the KV share/monitoring write failed | Storage outage, not a scan outage; check KV, results still returned to callers |
+| `pattern_errors` | warn | `api/scan.ts` | Scan completed with `patternsErrored > 0` | Degraded fidelity, not downtime; check which patterns errored |
+| `email_send_failed` / `email_send_error` | error | `_email.ts` | Resend send failed | Check Resend key/domain; **known gap:** these two are detached promises (no `waitUntil` at the call site), so delivery is best-effort — the console line is the reliable record |
+| `email_skipped_no_provider`, `monitor_sweep` | info | `_email.ts`, `cron/sweep.ts` | Routine; log-only, never POSTs | None unless volume spikes |
+
+Severity rule: `error` = a request failed or a dependency is down (page
+someone); `warn` = degraded but serving (ticket, next business day).
+
+## Proof it fires
+
+- `apps/web/test/report-e2e.test.js` — induces a real scan failure through
+  `onRequestPost` and asserts the POST bytes a live stub webhook receives,
+  including the `requestId` and the requirement that the POST rides
+  `waitUntil` (a detached POST can die with the response).
+- `apps/web/test/scan-failure-alert.test.js` — locks the `scan_failed` line
+  contract (`url`, `message`, `navMs`, `patternsErrored`, `requestId`).
+- Negative control: dropping the `scan_failed` `waitUntil` makes the E2E
+  test fail (`pending` drops 2 → 1); restoring it goes green. Evidence:
+  `docs/completion/evidence/T-25-alert.txt`.
+
+To trigger a test alert against a deployed preview: set `ERROR_WEBHOOK` to a
+request-catcher URL on the preview, then POST an unscannable target (e.g. an
+unroutable IP) to `/api/scan` and watch the catcher.
