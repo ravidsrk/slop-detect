@@ -12,11 +12,12 @@
 
 import {
   getEmailDomains,
-  getWatch,
+  listWatchesByEmail,
   performUnsubscribe,
   removeFromEmailIndex,
   deleteSuppression,
   isSuppressed,
+  deleteEmailCounters,
 } from '../../_shared.js';
 import { sessionEmail, isForeignOrigin, clearSessionCookie } from '../../_session.js';
 import { report } from '../../_report.js';
@@ -48,6 +49,11 @@ export async function onRequestPost({ request, env }) {
   } catch {
     return json({ error: 'body must be JSON { email }' }, 400);
   }
+  // A JSON `null` parses fine but has no .email — validate the shape before
+  // reading it (greptile P2 on PR #175), or authed callers get a 500.
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return json({ error: 'body must be JSON { email }' }, 400);
+  }
   if (
     String(body.email || '')
       .trim()
@@ -56,22 +62,28 @@ export async function onRequestPost({ request, env }) {
     return json({ error: 'body.email must match the signed-in address' }, 400);
   }
 
+  // Snapshot the index BEFORE recovery: listWatchesByEmail rebuilds a missing
+  // index via full scan, so the stale sweep below must diff against the
+  // pre-rebuild entries (greptile P1 on PR #175 — a missing index used to
+  // report success while retaining live watches).
+  const indexedBefore = await getEmailDomains(env.RESULTS, email);
+  const owned = await listWatchesByEmail(env.RESULTS, email);
   let erased = 0;
+  for (const w of owned) {
+    if (w && w.domain && (await performUnsubscribe(env.RESULTS, w.domain, email))) erased++;
+  }
+  const ownedDomains = new Set(owned.map((w) => w && w.domain).filter(Boolean));
   let stale = 0;
-  for (const domain of await getEmailDomains(env.RESULTS, email)) {
-    const w = await getWatch(env.RESULTS, domain);
-    // Ownership re-check per domain: a stale index entry must never delete
-    // a watch that moved to another email — clean the entry, keep the watch
-    // (same rule as listWatchesByEmail).
-    if (!w || w.email !== email) {
-      await removeFromEmailIndex(env.RESULTS, email, domain);
-      stale++;
-      continue;
-    }
-    if (await performUnsubscribe(env.RESULTS, domain, email)) erased++;
+  for (const domain of indexedBefore) {
+    if (ownedDomains.has(domain)) continue;
+    // Stale entry (watch gone or re-owned): clean it, never delete the
+    // other owner's watch.
+    await removeFromEmailIndex(env.RESULTS, email, domain);
+    stale++;
   }
   const hadSuppression = await isSuppressed(env.RESULTS, email);
   if (hadSuppression) await deleteSuppression(env.RESULTS, email);
+  const countersCleared = await deleteEmailCounters(env.RATE_LIMIT, email);
 
   report(env, 'info', 'data_erased', { to: redact(email), erased, stale });
   return json(
@@ -79,6 +91,7 @@ export async function onRequestPost({ request, env }) {
       erased,
       staleDomains: stale,
       suppressionCleared: hadSuppression,
+      countersCleared,
       note: 'Anonymous scan artifacts are not tied to your email and were left alone (see /api/me/export notes).',
     },
     200,

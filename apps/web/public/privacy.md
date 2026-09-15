@@ -60,10 +60,12 @@ site — no email is ever shown. You can delist at any time (see below).
 
 - **Export everything tied to your email:** sign in to the
   [dashboard](/dashboard) (magic link), then `GET /api/me/export` — a JSON
-  download of your watches, listings, index entry, and suppression record.
+  download of your watches, listings, index entry, suppression record, and
+  abuse-counter presence.
 - **Erase everything tied to your email:** same sign-in, then
   `POST /api/me/erase` with `{ "email": "<your-email>" }`. Immediate and
-  complete for email-bound records; anonymous scan artifacts can't be
+  complete for email-bound records (watches, listings, index, suppression,
+  per-email abuse counters); anonymous scan artifacts can't be
   attributed and are left alone (see above).
 - **Stop monitoring & delist a single domain:**
   `POST /api/watch` with `{ "domain": "<your-domain>", "email": "<your-email>", "unsubscribe": true }`.

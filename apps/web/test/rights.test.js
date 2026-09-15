@@ -4,6 +4,9 @@
 // unattributable and must survive an erase untouched.
 
 import { test, expect } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { onRequestGet as exportGet } from '../functions/api/me/export.ts';
 import { onRequestPost as erasePost } from '../functions/api/me/erase.ts';
 import {
@@ -15,6 +18,7 @@ import {
   addSuppression,
   isSuppressed,
   getEmailDomains,
+  emailHash,
 } from '../functions/_shared.ts';
 import { signSession, isForeignOrigin } from '../functions/_session.ts';
 
@@ -63,7 +67,17 @@ async function authed(email, secret = SECRET, extraHeaders = {}) {
   return { headers, url: 'https://slop-detect.com/api/me/x', json: async () => ({ email }) };
 }
 
-const env = (kv) => ({ RESULTS: kv, SESSION_SECRET: SECRET });
+const env = (kv, rateKv = makeKv()) => ({
+  RESULTS: kv,
+  RATE_LIMIT: rateKv,
+  SESSION_SECRET: SECRET,
+});
+
+async function seedCounter(rateKv, prefix, email) {
+  const hash = await emailHash(email);
+  rateKv.store.set(`${prefix}:${hash}`, '2');
+  return `${prefix}:${hash}`;
+}
 
 // ── Export ───────────────────────────────────────────────────────────────────
 
@@ -196,6 +210,53 @@ test('erase leaves anonymous scan artifacts and other users untouched', async ()
   expect(kv.store.get('h:gone.example.com')).toBeTruthy();
   expect(await getWatch(kv, 'stays.example.com')).toBeTruthy();
   expect(await getEmailDomains(kv, OTHER)).toEqual(['stays.example.com']);
+});
+
+test('erase recovers owned watches when the email index is missing (no silent retain)', async () => {
+  // Greptile P1 on PR #175: index TTLs refresh independently of watches, so
+  // a live watch with a missing index must still be found and erased.
+  const kv = makeKv();
+  await putWatch(kv, { domain: 'orphan.example.com', email: EMAIL, verified: true });
+  await setListing(kv, { domain: 'orphan.example.com', score: 20, grade: 'C', tier: 'Mild' });
+  expect(await getEmailDomains(kv, EMAIL)).toEqual([]); // no index entry
+  const res = await erasePost({ request: await authed(EMAIL), env: env(kv) });
+  expect(await res.json()).toMatchObject({ erased: 1, staleDomains: 0 });
+  expect(await getWatch(kv, 'orphan.example.com')).toBeNull();
+  expect(await getListing(kv, 'orphan.example.com')).toBeNull();
+});
+
+test('erase treats a JSON null body as a 400, not a 500', async () => {
+  // Greptile P2 on PR #175: `null` parses but has no .email.
+  const kv = makeKv();
+  await seedAccount(kv, EMAIL, ['a.example.com']);
+  const req = await authed(EMAIL);
+  req.json = async () => null;
+  const res = await erasePost({ request: req, env: env(kv) });
+  expect(res.status).toBe(400);
+  expect(await getWatch(kv, 'a.example.com')).toBeTruthy();
+});
+
+test('export discloses and erasure deletes the per-email abuse counters', async () => {
+  // Greptile P2 on PR #175: hashed-key counters are email-derived records —
+  // export reports them, erasure removes them, nothing is silently kept.
+  const kv = makeKv();
+  const rateKv = makeKv();
+  await seedAccount(kv, EMAIL, ['a.example.com']);
+  const wvKey = await seedCounter(rateKv, 'rl:watchverify', EMAIL);
+  const dlKey = await seedCounter(rateKv, 'rl:dashlink', EMAIL);
+  const exp = await exportGet({ request: await authed(EMAIL), env: env(kv, rateKv) });
+  expect((await exp.json()).ephemeralCounters).toEqual({ watchVerify: true, dashLink: true });
+  const res = await erasePost({ request: await authed(EMAIL), env: env(kv, rateKv) });
+  expect(await res.json()).toMatchObject({ erased: 1, countersCleared: 2 });
+  expect(rateKv.store.has(wvKey)).toBe(false);
+  expect(rateKv.store.has(dlKey)).toBe(false);
+  // The dashlink literal is mirrored in _data.ts — pin the source of truth.
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  const linkSrc = fs.readFileSync(
+    path.join(here, '..', 'functions', 'api', 'dashboard', 'link.ts'),
+    'utf8'
+  );
+  expect(linkSrc).toContain('rl:dashlink:');
 });
 
 test('erase rejects anonymous, foreign-origin, and unconfigured requests', async () => {

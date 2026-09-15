@@ -10,7 +10,13 @@
 // middleware foreign-origin rejection); the payload is unreadable
 // cross-origin anyway (no CORS allow).
 
-import { listWatchesByEmail, getEmailDomains, getListing, suppressionKey } from '../../_shared.js';
+import {
+  listWatchesByEmail,
+  getEmailDomains,
+  getListing,
+  suppressionKey,
+  emailCountersPresent,
+} from '../../_shared.js';
 import { sessionEmail, isForeignOrigin } from '../../_session.js';
 import { report } from '../../_report.js';
 
@@ -53,6 +59,9 @@ export async function onRequestGet({ request, env }) {
     listings,
     emailIndex: await getEmailDomains(env.RESULTS, email),
     suppression: supRaw ? JSON.parse(supRaw) : null,
+    // Ephemeral per-email abuse counters (hashed keys, ≤1h TTL) — presence
+    // only, since a bare count is the whole record. Erasure deletes these.
+    ephemeralCounters: await emailCountersPresent(env.RATE_LIMIT, email),
     notes: [
       'Anonymous scan results (result permalinks, per-domain history, aggregate statistics) are not tied to any email and cannot be attributed to you — see docs/RETENTION.md. To remove a specific public scan result, open an issue (privacy.md).',
       'Single-use magic-link and confirmation tokens (15 min / 7 day TTL) are unenumerable by design and expire on their own; nothing to export.',

@@ -17,6 +17,7 @@ opt-in, `consentAt` + `policyVersion` stamped per record).
 | `wv:<token>` | Double-opt-in confirmation token → domain | 7d (`VERIFY_TTL`), single-use | Burns on use; expires alone |
 | `dt:<token>` | Dashboard magic-link token → email | 15min (`DASHBOARD_TOKEN_TTL`), single-use | Burns on use; expires alone |
 | `sd_session` cookie | Stateless HMAC session (email + expiry, server holds nothing) | 30d / sign-out | Sign out, or erase clears it |
+| `rl:watchverify`, `rl:dashlink` | Per-email abuse counters (hashed keys, bare counts) in RATE_LIMIT | ≤1h windows | Erasure deletes both; export reports presence |
 
 ## Anonymous records (not attributable — no per-person erase possible)
 
@@ -26,7 +27,7 @@ opt-in, `consentAt` + `policyVersion` stamped per record).
 | `h:<domain>` | Per-domain score history (public on `/score/<domain>`) | 1y rolling (`WATCH_TTL`) | One point per stored scan |
 | aggregates | Score distribution, category averages (no URLs, no emails) | Indefinite; one contribution per domain per year (`STATS_CONTRIB_TTL`) | Anonymous by construction |
 | ops stats | Per-route counters | 30d (`OPS_TTL`) | No PII |
-| rate-limit counters | Per-IP (60s), per-email verify (1h), global scan budget (48h) | 60s–48h | Anti-abuse only |
+| rate-limit counters (IP/global) | Per-IP scan/OG counters (60s), global scan budget (48h) | 60s–48h | Anti-abuse only; not email-derived. Per-email counters are email-bound (row above), not anonymous |
 
 Removal of a specific public scan artifact (permalink, badge, history
 point) stays maintainer-mediated: open an issue (see `privacy.md`), as
