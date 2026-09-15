@@ -541,3 +541,13 @@
 - Greptile 3 P2 — all fixed + replied in-thread.
 - Evidence: evidence/T-38-truth.txt.
 - resume_pointer: P6/T-35
+
+## 2026-09-15 S3/P6 T-35 flow analytics (G-32) — DONE
+- branch ravidsrk/p6-analytics → PR #183 → merged d11e51d, no squash.
+- Flow blob + 8 emitters + /api/stats flows + runbook/retention docs;
+  13 analytics tests incl. no-PII proof. G-32 CLOSED. P6
+  AGENT-COMPLETE — both criteria met; owner remainder H-03 open.
+- Greptile 5 P2 (3+2 follow-up): 4 fixed + replied, 1 declined with
+  reason (no-KV-CAS subscribe race; sequential dedup tested).
+- Evidence: evidence/T-35-analytics.txt.
+- resume_pointer: P7/T-39
