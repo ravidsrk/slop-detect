@@ -1,0 +1,38 @@
+T-19b — verify + commit leaderboard.json; fix monthly refresh (G-19/gh-101)
+Branch: ravidsrk/p3-leaderboard-data (shared with T-19a; one PR)
+
+VERIFICATION (node probes, all pass):
+- Shape: keys generatedAt,definitionsVersion,count,scored,stats,
+  byBuilder,byCategory,sites — all present.
+- definitionsVersion 2026.09 == engine DEFINITIONS_VERSION.
+- count 24, scored 20; stats {avgScore 15.7, slopShare 65, clean 7,
+  mild 9, heavy 4} recompute-consistent with rows.
+- sites sorted cleanest-first (scored asc, unscored last).
+- Consumer compat: leaderboard.tsx uses data.scored/sites/generatedAt/
+  byBuilder (all present; unscored filtered before histogram);
+  score/[domain].tsx buildNeighbors filters s.scored, needs
+  domain/category/score/grade/tier (all present on scored rows).
+- prettier --check on the JSON: PASS (exit 0).
+
+WORKFLOW FIX (same pipeline, would have failed next run):
+leaderboard.yml pushed the refresh straight to main, which branch
+protection rejects (proven: human-equivalent push declined by the
+same hook on T-21 docs). Converted to PR-based refresh
+(bot/leaderboard-YYYYMMDD + gh pr create), added pull-requests:write.
+YAML validated with python yaml.safe_load.
+
+gh-101 CLOSED by this PR (dataset generated + verified + committed;
+refresh made durable). SLOP_API_KEY remains an optional human speedup.
+=== FORMAT ===
+FORMAT_EXIT=0
+=== LINT ===
+LINT_EXIT=0
+=== TYPECHECK ===
+TYPECHECK_EXIT=0
+=== TEST ===
+TEST_EXIT=0
+@slop-detect/core:test:       Tests  77 passed (77)
+@slop-detect/action:test:       Tests  7 passed (7)
+slop-detect-mcp:test:       Tests  14 passed (14)
+slop-detect-web:test:       Tests  367 passed (367)
+slop-detect:test:       Tests  13 passed | 40 skipped (53)

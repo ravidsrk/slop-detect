@@ -1,0 +1,26 @@
+T-19a — generate leaderboard.json via the live API (G-19/gh-101 step 1-2)
+Branch: ravidsrk/p3-leaderboard-data (shared with T-19b; one PR)
+
+RUN: bun apps/web/leaderboard/build.mjs (repo root, no SLOP_API_KEY —
+secret does not exist; anon throttle). EXIT=0, ~25 min wall.
+24/24 corpus sites attempted, 20 scored, 4 skipped with honest reasons:
+  lovable.dev: cloudflare_challenge
+  replit.com: cloudflare_challenge
+  openai.com: cloudflare_challenge
+  vercel.com: HTTP 502
+Six 429 backoffs absorbed by the builder's retry (60s each); no site
+needed more than one retry. Incremental writes observed throughout.
+
+SCORED TIERS: Clean 7 (notion.so 0, anthropic.com 0,
+motherfuckingwebsite.com 0, figma.com 3, berkshirehathaway.com 3,
+craigslist.org 3, news.ycombinator.com 6) / Mild 9 / Heavy 4
+(bolt.new 31, cal.com 31, resend.com 34, clerk.com 36). avgScore 15.7.
+Classics read Clean; AI-builder marketing leans Heavy — passes smell.
+Output: apps/web/public/leaderboard.json (7,842 bytes).
+
+DEVIATION from gh-101 step 1: ran the builder locally instead of
+leaderboard.yml workflow_dispatch (identical code path, same live API;
+dispatch would additionally have failed its direct push to protected
+main — fixed in T-19b).
+FOLLOW-UP (human): create SLOP_API_KEY repo secret to speed future
+runs (optional; anon throttle works, just slow).

@@ -1,7 +1,10 @@
 name: leaderboard
 
-# Regenerate public/leaderboard.json by scanning the curated corpus, then commit
-# it if it changed. Manual + monthly. Uses the live API (no browser needed).
+# Regenerate public/leaderboard.json by scanning the curated corpus, then open
+# a PR if it changed. Manual + monthly. Uses the live API (no browser needed).
+#
+# A PR (not a direct push) because main is branch-protected: the bot cannot
+# push to it, so the old direct-push step failed on every run.
 #
 # Set repo secret SLOP_API_KEY (an API key) to lift the anonymous per-IP scan
 # throttle so the run finishes fast; without it the run still works but is slow.
@@ -13,6 +16,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   build:
@@ -26,14 +30,21 @@ jobs:
         env:
           SLOP_API_KEY: ${{ secrets.SLOP_API_KEY }}
         run: bun apps/web/leaderboard/build.mjs
-      - name: Commit if changed
+      - name: Open refresh PR if changed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if ! git diff --quiet -- apps/web/public/leaderboard.json; then
-            git config user.name "slop-detect-bot"
-            git config user.email "bot@users.noreply.github.com"
-            git add apps/web/public/leaderboard.json
-            git commit -m "data: refresh leaderboard dataset"
-            git push
-          else
+          if git diff --quiet -- apps/web/public/leaderboard.json; then
             echo "No change in leaderboard dataset."
+            exit 0
           fi
+          BR="bot/leaderboard-$(date -u +%Y%m%d)-${{ github.run_id }}"
+          git config user.name "slop-detect-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git checkout -b "$BR"
+          git add apps/web/public/leaderboard.json
+          git commit -m "data: refresh leaderboard dataset"
+          git push -u origin "$BR"
+          gh pr create --title "data: refresh leaderboard dataset" \
+            --body "Automated monthly refresh from the curated corpus (leaderboard.yml). Scored via the live API; review the diff, then merge." \
+            --base main --head "$BR"
