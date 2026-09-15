@@ -423,7 +423,7 @@
       "issue_url": null,
       "severity": "S1",
       "source": ["F-7-03"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-29"]
     },
     {
@@ -435,7 +435,7 @@
       "issue_url": null,
       "severity": "S1",
       "source": ["F-7-04"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-29"]
     },
     {
@@ -1841,18 +1841,19 @@
     {
       "attempts": 0,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p4-staging",
       "commit": null,
       "depends_on": [],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-29-staging.txt"],
       "gaps": ["G-10", "G-11"],
       "id": "T-29",
       "owner": "agent",
       "plan_phase": "P4",
-      "pr": null,
+      "pr": 167,
       "review": null,
       "size": "M",
-      "status": "todo"
+      "status": "done",
+      "merged": "dcac497"
     },
     {
       "attempts": 0,

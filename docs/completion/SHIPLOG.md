@@ -445,3 +445,18 @@
   webhook paths are mutually exclusive).
 - Evidence: evidence/T-28-runbooks.txt.
 - resume_pointer: P4/T-29
+
+## 2026-09-15 S4/P4 T-29 staging + preview KV (G-10/G-11) — DONE (agent part; live verify = H-01)
+- branch ravidsrk/p4-staging → PR #167 → merged dcac497, no squash.
+- STAGING.md (environments, branch controls, interlock, checklist),
+  preview.yml PR previews (self-skip unless secrets + full
+  preview_ids), kv-namespaces.mjs list/ensure/check, preview_id
+  template, readNamespaces comment-strip fix. 9 new tests. Zero
+  prod-code changes. G-10/G-11 CLOSED (T-08 precedent).
+- Greptile 2 P1 + 2 P2 + 1 follow-up P1 (injection gate, full
+  interlock, permissions, pagination, token exposure) — all fixed +
+  replied in-thread. Live catch: bash -e grep -c red preflight,
+  fixed + all 4 paths executed under bash -e. Preview self-skip ran
+  green on PR #167 itself.
+- Evidence: evidence/T-29-staging.txt.
+- resume_pointer: P4/T-27
