@@ -1542,10 +1542,10 @@
     {
       "attempts": 0,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p3-cut",
       "commit": null,
       "depends_on": [],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-16-cut.txt"],
       "gaps": ["G-48"],
       "id": "T-16",
       "owner": "agent",
@@ -1553,7 +1553,7 @@
       "pr": null,
       "review": null,
       "size": "S",
-      "status": "todo"
+      "status": "in_review"
     },
     {
       "attempts": 0,
