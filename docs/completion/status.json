@@ -1680,7 +1680,7 @@
       "id": "T-20",
       "owner": "agent",
       "plan_phase": "P3",
-      "pr": null,
+      "pr": "https://github.com/ravidsrk/slop-detect/pull/139",
       "review": null,
       "size": "S",
       "status": "in_review"
