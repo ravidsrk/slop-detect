@@ -1,0 +1,37 @@
+name: health-ping
+
+# Poll GET /api/health (T-23) so a dead scan API pages the repo instead of
+# sitting broken. curl --fail exits non-zero on 503/5xx or network failure,
+# which fails the run — and a failed scheduled run notifies (Actions mails
+# the committer by default; wire ERROR_WEBHOOK later for chat paging).
+# Every 30 minutes: one cheap KV-read ping, negligible cost.
+# NOTE: /api/health reports degraded while SCAN_DISABLED is set, so this
+# ping fails through intentional maintenance windows too — treat that as
+# the re-enable reminder (or pause the workflow for the window).
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Poll production health
+        env:
+          HEALTH_URL: ${{ secrets.HEALTH_URL }}
+        run: |
+          url="${HEALTH_URL:-https://slop-detect.com/api/health}"
+          echo "GET $url"
+          body=$(curl -sf -m 25 "$url") || {
+            echo "::error::health ping failed (non-2xx or unreachable): $url"
+            exit 1
+          }
+          echo "$body"
+          status=$(echo "$body" | node -e "console.log(JSON.parse(require('fs').readFileSync(0)).status)")
+          if [ "$status" != "ok" ]; then
+            echo "::error::health status is '$status', expected 'ok'"
+            exit 1
+          fi
+          echo "health: ok"
