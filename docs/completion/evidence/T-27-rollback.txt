@@ -37,6 +37,20 @@ wrangler not installed). The script is written to be executed verbatim
 by the H-01 holder; its first live run validates the runbook (any step
 failing means fix the runbook).
 
+GREPTILE ROUND (2 P1 + 1 P2, all fixed):
+- P1 preview never starts: rehearsal pushed a bare branch, but
+  preview.yml runs on pull_request only. Fixed: rehearsal opens a
+  draft PR (gh pr create) right after pushing.
+- P1 preview rollback unsupported: confirmed decisive from the API
+  docs ("Rollback the production deployment... only ... succesful
+  builds on production") — the designed step was impossible. Rehearsal
+  redesigned into Part 1 (preview redeploy loop, zero prod impact) +
+  Part 2 (rollback-to-current no-op promote, near-zero impact, low
+  window), with the honest residual that promoting an OLD build stays
+  unrehearsed until a production game-day.
+- P2 guard blind spot: workflow regex now matches with or without
+  backticks (proven: unbackticked bogus ref fails naming it).
+
 === FORMAT ===
 FORMAT_EXIT=0
 === TYPECHECK ===

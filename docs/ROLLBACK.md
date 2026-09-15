@@ -86,27 +86,54 @@ state, safe. If the bad deploy WROTE garbage at scale, that's a
 5. Unset `SCAN_DISABLED` if you set it; confirm the ping goes green.
 6. Post the incident 3-liner resolution ([RUNBOOKS.md](RUNBOOKS.md)).
 
-## Rehearsal script (H-01 holder, on preview — zero prod impact)
+## Rehearsal script (H-01 holder — preview zero-impact, API near-zero)
 
 Never rehearsed — this script is the rehearsal. Run it end to end,
 then record the date + result in `SHIPLOG.md`.
 
+The rollback API only promotes PRODUCTION deployments ("You can only
+rollback to succesful builds on production" — Cloudflare API docs,
+verified), and preview branches move forward only (push = new
+deployment). So the rehearsal has two parts instead of one impossible
+preview-rollback step:
+
+**Part 1 — preview redeploy loop (zero prod impact).** Proves the
+preview pipeline + redeploy mechanics end to end. Push the marker
+branch AND open a draft PR (`preview.yml` runs on `pull_request`
+only — a bare branch push deploys nothing):
+
 ```bash
-export CLOUDFLARE_API_TOKEN='...' CLOUDFLARE_ACCOUNT_ID='...'
-P=slop-detector
-# 1. Deploy a canary marker to a scratch preview branch.
 git checkout -qb rehearse/rollback-$(date +%F) && \
   echo "<!-- rollback rehearsal $(date -u +%FT%TZ) -->" >> apps/web/public/index.html && \
   git commit -am "rehearse: rollback marker (reverted same session)" && \
-  git push -u origin HEAD
-# 2. Confirm preview.yml goes green and loads the marker; record URL + time.
-# 3. Roll the PREVIEW back via API: list branch deployments, rollback to the
-#    previous one, confirm the marker is gone and /api/health is 200.
-# 4. Delete the branch (gh + git), confirm production /api/health + one scan
-#    untouched throughout (compare ops.byStatus before/after: zero delta).
+  git push -u origin HEAD && \
+  gh pr create --draft --title "rehearse: rollback marker" --body "Rollback rehearsal — closes unmerged."
 ```
 
-Pass criteria: marker deployed → rolled back → gone; preview health
-green throughout; production `ops` shows zero rehearsal keys; total
-time recorded. Any step failing means the runbook is wrong — fix the
-runbook, not the rehearsal.
+Then: confirm `preview.yml` goes green and the preview loads the
+marker (record URL + time); confirm preview `/api/health` is 200;
+revert-push (`git revert HEAD`, push — Path C in miniature) and
+confirm the marker is gone; close the PR unmerged, delete the branch;
+confirm production `/api/health` + one scan untouched and production
+`ops` shows zero rehearsal keys (preview KV isolation holds).
+
+**Part 2 — rollback API no-op promote (near-zero prod impact, low
+traffic window).** Proves token scope + endpoint + listing parsing by
+re-promoting the CURRENT production deployment (identical content):
+
+1. List production deployments (Path A command); record the CURRENT
+   production deployment id (eyeball environment + branch + time).
+2. `POST .../deployments/<CURRENT_ID>/rollback`. Expect success.
+3. Verify: production `/api/health` 200, one scan 200, `ops.byStatus`
+   flat.
+
+Pass criteria: Part 1 marker live → gone via redeploy, preview health
+green, prod ops zero-delta; Part 2 API success with no user-visible
+change; total time recorded.
+
+Honest residual: Part 2 does NOT prove promoting an OLD build — the
+first real production rollback stays partially unrehearsed. Schedule
+a production game-day (rollback to previous + roll forward) within 30
+days of H-01, in a maintenance window, with the 3-liner posted. Any
+step failing means the runbook is wrong — fix the runbook, not the
+rehearsal.

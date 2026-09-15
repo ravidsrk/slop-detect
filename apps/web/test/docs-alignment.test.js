@@ -116,7 +116,9 @@ test('every /api/* route in the ops docs maps to a route file', () => {
 test('every workflow referenced in the ops docs exists', () => {
   const pages = ['RUNBOOKS.md', 'STAGING.md', 'ROLLBACK.md'];
   const bodies = pages.map((p) => fs.readFileSync(path.join(DOCS_ROOT, p), 'utf8')).join('\n');
-  const workflows = [...new Set([...bodies.matchAll(/`([a-z0-9-]+\.yml)`/g)].map((m) => m[1]))];
+  // With or without backticks: a bare `preview.yml` mention is still an
+  // operational reference, and must still resolve (or be reworded).
+  const workflows = [...new Set([...bodies.matchAll(/([a-z0-9-]+\.yml)/g)].map((m) => m[1]))];
   expect(workflows.length).toBeGreaterThan(0);
   for (const w of workflows) {
     const p = path.join(DOCS_ROOT, '..', '.github', 'workflows', w);
