@@ -31,6 +31,7 @@ Envelope shape (asserted byte-for-byte by the E2E test):
 | `pattern_errors` | warn | `api/scan.ts` | Scan completed with `patternsErrored > 0` | Degraded fidelity, not downtime; check which patterns errored |
 | `email_send_failed` / `email_send_error` | error | `_email.ts` | Resend send failed | Check Resend key/domain; **known gap:** these two are detached promises (no `waitUntil` at the call site), so delivery is best-effort — the console line is the reliable record |
 | `email_skipped_no_provider`, `monitor_sweep` | info | `_email.ts`, `cron/sweep.ts` | Routine; log-only, never POSTs | None unless volume spikes |
+| `email_retry` | info | `_email.ts` | Resend attempt failed, backing off (attempt/delay/status) | None — only the final outcome pages; a burst means Resend is flaky |
 
 Severity rule: `error` = a request failed or a dependency is down (page
 someone); `warn` = degraded but serving (ticket, next business day).

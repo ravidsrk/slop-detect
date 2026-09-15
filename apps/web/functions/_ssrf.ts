@@ -10,6 +10,8 @@
 //
 // validateScanUrl returns a normalized https URL string on success, or
 // { error, status } to return verbatim to the caller.
+import { withRetry, sleepUntilAbort } from './_retry.js';
+
 const PRIVATE_HOSTNAMES = new Set(['localhost', 'ip6-localhost', 'ip6-loopback']);
 
 function isPrivateIPv4(host) {
@@ -121,27 +123,55 @@ export function isAllowedUrl(raw) {
 // Mirrors packages/core/src/aeo.ts fetchWithTimeout so a public DESIGN.md URL
 // cannot 302 to cloud metadata or RFC-1918. Returns null when blocked, timed
 // out, or too many hops — callers treat that as "unreachable".
-export async function fetchAllowedUrl(url, init = {}, { timeoutMs = 8000, maxHops = 6 } = {}) {
+//
+// Retry (T-26): one retry on network errors, timeouts, and 429/5xx. All
+// attempts share the single deadline above, so timeoutMs stays a TOTAL
+// budget: retryIf fails fast once the controller aborts, and the backoff
+// sleep itself resolves early on abort (sleepUntilAbort) so a sleep that
+// starts just before the deadline can't run ~200ms past it and launch a
+// doomed fetch. Blocks, other statuses, and exhausted hops return normally
+// and are never retried. A retry restarts the redirect chain from the
+// original URL: safe for idempotent callers (today: the GET-only DESIGN.md
+// fetch in scan.ts).
+export async function fetchAllowedUrl(
+  url,
+  init = {},
+  { timeoutMs = 8000, maxHops = 6, attempts = 2, sleep, jitter }: any = {}
+) {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    let current = String(url);
-    for (let hop = 0; hop < maxHops; hop++) {
-      if (!isAllowedUrl(current)) return null;
-      const res = await fetch(current, {
-        ...init,
-        signal: controller.signal,
-        redirect: 'manual',
-      });
-      if (res.status >= 300 && res.status < 400) {
-        const loc = res.headers.get('location');
-        if (!loc) return res;
-        current = new URL(loc, current).toString();
-        continue;
+    return await withRetry(
+      async () => {
+        let current = String(url);
+        for (let hop = 0; hop < maxHops; hop++) {
+          if (!isAllowedUrl(current)) return null;
+          const res = await fetch(current, {
+            ...init,
+            signal: controller.signal,
+            redirect: 'manual',
+          });
+          if (res.status >= 300 && res.status < 400) {
+            const loc = res.headers.get('location');
+            if (!loc) return res;
+            current = new URL(loc, current).toString();
+            continue;
+          }
+          if (res.status === 429 || res.status >= 500) {
+            throw new Error(`fetchAllowedUrl retryable status ${res.status}`);
+          }
+          return res;
+        }
+        return null;
+      },
+      {
+        attempts,
+        baseMs: 200,
+        sleep: sleep ?? ((ms) => sleepUntilAbort(ms, controller.signal)),
+        jitter,
+        retryIf: () => !controller.signal.aborted,
       }
-      return res;
-    }
-    return null;
+    );
   } catch (_) {
     return null;
   } finally {

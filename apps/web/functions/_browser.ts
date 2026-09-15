@@ -5,6 +5,7 @@
 // before cold-launching; release via disconnect() so the session stays warm.
 
 import puppeteer from '@cloudflare/puppeteer';
+import { withRetry, type RetryOptions } from './_retry.js';
 
 const DEFAULT_KEEP_ALIVE_MS = 60_000;
 
@@ -24,10 +25,17 @@ export { isScanDisabled };
 /**
  * Connect to a free warm session when one exists, otherwise launch a new one.
  * Requires @cloudflare/puppeteer sessions()/connect() (v1.1.0+).
+ *
+ * Retry (T-26): the cold launch gets one retry — session-limit and startup
+ * blips are transient, and a launch is already seconds slow, so exactly one
+ * more attempt is the sane budget. connect() keeps its fall-through-to-launch
+ * (a dead idle session is not worth a backoff sleep).
  */
 export async function acquireBrowser(
   binding: Parameters<typeof puppeteer.launch>[0],
-  options: { keep_alive?: number } = {}
+  options: { keep_alive?: number } & Pick<RetryOptions, 'sleep' | 'jitter'> & {
+      attempts?: number;
+    } = {}
 ): Promise<AcquiredBrowser> {
   const keepAlive = options.keep_alive ?? DEFAULT_KEEP_ALIVE_MS;
 
@@ -44,7 +52,12 @@ export async function acquireBrowser(
     }
   }
 
-  const browser = await puppeteer.launch(binding, { keep_alive: keepAlive });
+  const browser = await withRetry(() => puppeteer.launch(binding, { keep_alive: keepAlive }), {
+    attempts: options.attempts ?? 2,
+    baseMs: 500,
+    sleep: options.sleep,
+    jitter: options.jitter,
+  });
   return { browser, reused: false };
 }
 
