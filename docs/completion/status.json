@@ -1808,18 +1808,18 @@
     {
       "attempts": 0,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p4-rollback",
       "commit": null,
       "depends_on": ["T-29"],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-27-rollback.txt"],
       "gaps": ["G-12"],
       "id": "T-27",
       "owner": "agent",
       "plan_phase": "P4",
-      "pr": null,
+      "pr": 169,
       "review": null,
       "size": "M",
-      "status": "todo"
+      "status": "in_review"
     },
     {
       "attempts": 0,
