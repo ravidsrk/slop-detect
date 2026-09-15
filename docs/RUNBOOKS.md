@@ -16,6 +16,13 @@ good Pages deployment from the dashboard" with no rehearsed script.
    switch is on). Tells you which system is down in one call.
 2. `GET /api/stats` (120s cache) → `ops` — per-route req/byStatus for
    today + yesterday. Tells you when it started and how wide it is.
+   Same response → `flows` — the funnel view: `watch.subscribed` vs
+   `.confirmed` (double-opt-in completion), `.subscribed` vs
+   `.unsubscribed` (churn), `fixprompt.assembled` vs `.scanned` (mode
+   split), `dashboard.link_sent` vs `.session_minted` (magic-link
+   completion = deliverability signal), `scan.completed/failed/blocked`. A funnel step at zero
+   while its predecessor climbs is the shape of a broken step, not an
+   outage — check that handler's 4xx/5xx in `ops` next.
 3. `wrangler tail` filtered by event (`scan_failed`, `handler_threw`,
    …) — the structured lines carry `requestId`s that match the error
    bodies callers saw.

@@ -26,7 +26,7 @@ opt-in, `consentAt` + `policyVersion` stamped per record).
 | `r:<id>` / `d:<domain>` | Slim scan result (score, patterns, title/H1 — never page content) | 90d (`RESULT_TTL`/`DOMAIN_TTL`) | `share:false` skips storage entirely |
 | `h:<domain>` | Per-domain score history (public on `/score/<domain>`) | 1y rolling (`WATCH_TTL`) | One point per stored scan |
 | aggregates | Score distribution, category averages (no URLs, no emails) | Indefinite; one contribution per domain per year (`STATS_CONTRIB_TTL`) | Anonymous by construction |
-| ops stats | Per-route counters | 30d (`OPS_TTL`) | No PII |
+| ops + flow stats | Per-route counters + per-flow funnel events (aggregate counts, fixed allowlist, no identifiers) | 30d (`OPS_TTL`) | No PII; first-party telemetry, not profiling |
 | rate-limit counters (IP/global) | Per-IP scan/OG counters (60s), global scan budget (48h) | 60s–48h | Anti-abuse only; not email-derived. Per-email counters are email-bound (row above), not anonymous |
 
 Removal of a specific public scan artifact (permalink, badge, history

@@ -11,9 +11,11 @@
 
 import { buildFixPrompt } from '@slop-detect/core';
 import { onRequestPost as scanHandler } from './scan.js';
+import { deferFlowBump } from '../_shared.js';
 
 // CORS + rate-limit handled by functions/api/_middleware.js.
-export async function onRequestPost({ request, env, waitUntil }) {
+// `scanImpl` is injectable for tests (same seam as _email's fetchImpl).
+export async function onRequestPost({ request, env, waitUntil, scanImpl = scanHandler }) {
   let body;
   try {
     body = await request.json();
@@ -22,16 +24,17 @@ export async function onRequestPost({ request, env, waitUntil }) {
   }
 
   let result = body?.result;
+  const scannedMode = !result && !!body?.url;
 
   // Mode 2: scan first. Forward axes/preset so a multi-axis fix prompt is
   // possible via { url, axes: ['design','copy'] }.
-  if (!result && body?.url) {
+  if (scannedMode) {
     const scanReq = new Request(request.url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: body.url, axes: body.axes, preset: body.preset, share: false }),
     });
-    const scanRes = await scanHandler({ request: scanReq, env, waitUntil });
+    const scanRes = await scanImpl({ request: scanReq, env, waitUntil });
     result = await scanRes.json();
     if (result.error) return text(`Scan failed: ${result.error}`, 502);
   }
@@ -41,6 +44,8 @@ export async function onRequestPost({ request, env, waitUntil }) {
   }
 
   const prompt = buildFixPrompt(result);
+  // The inner scan runs share:false (no scan flow bump) — this event owns it.
+  deferFlowBump(env, 'fixprompt', scannedMode ? 'scanned' : 'assembled', 1, waitUntil);
   const asJson =
     body?.format === 'json' || (request.headers.get('accept') || '').includes('application/json');
 

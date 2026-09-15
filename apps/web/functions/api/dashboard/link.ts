@@ -6,7 +6,13 @@
 // middleware (cheap rate limit, CORS, foreign-origin rejection; no Turnstile).
 // Configured-off without an email provider + SESSION_SECRET, like alerts.
 
-import { isValidEmail, getEmailDomains, issueDashboardToken, emailHash } from '../../_shared.js';
+import {
+  isValidEmail,
+  getEmailDomains,
+  issueDashboardToken,
+  emailHash,
+  bumpFlowStats,
+} from '../../_shared.js';
 import { emailConfigured, sendEmail } from '../../_email.js';
 import { buildDashboardLinkEmail, mailFooter } from '../../_alerts.js';
 import { report } from '../../_report.js';
@@ -121,7 +127,12 @@ export async function onRequestPost({ request, env, waitUntil }) {
         const msg = buildDashboardLinkEmail(loginUrl, domains.length, {
           footer: mailFooter({ postal: env.MAIL_POSTAL_ADDRESS }),
         });
-        await sendEmail(env, { to: email, subject: msg.subject, text: msg.text });
+        const sent = await sendEmail(env, { to: email, subject: msg.subject, text: msg.text });
+        // Funnel event rides the existing deferred send (T-35): no new
+        // waitUntil shape, no timing change. Fires only for known emails
+        // that passed rate-limit + suppression — link_sent → session_minted
+        // is the magic-link completion funnel (deliverability signal).
+        if (sent && sent.sent) await bumpFlowStats(env.RESULTS, 'dashboard', 'link_sent');
       };
       if (typeof waitUntil === 'function') {
         // Microtask-defer so the async body does not start (and touch RATE_LIMIT)
