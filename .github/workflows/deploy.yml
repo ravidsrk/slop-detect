@@ -6,8 +6,12 @@ name: deploy
 #   • workflow_run — auto-deploys after the `ci` workflow succeeds on main
 #                    (CI is the gate; a red build never ships). This is the
 #                    continuous-deploy path.
-#   • workflow_dispatch — deploy on demand from the Actions tab.
-#   • tags v*           — deploy when you cut a release tag (v0.6.0, …).
+#   • workflow_dispatch — deploy on demand from the Actions tab. Main only:
+#                    the ref guard below refuses manual runs from any other
+#                    branch (publishing uses --branch main, so anything else
+#                    would ship unreviewed code to production).
+#   • tags v*           — deploy when you cut a release tag (v0.6.0, …) from
+#                    main. The ref guard verifies tag containment in main.
 #
 # Required repository secrets (Settings → Secrets and variables → Actions):
 #   CLOUDFLARE_API_TOKEN   — a scoped token with "Pages: Write".
@@ -54,6 +58,37 @@ jobs:
             exit 1
           fi
 
+      # Publishing uses --branch main, so the checked-out ref MUST be main (or
+      # a tag contained in it) — otherwise a manual run from a feature branch
+      # would ship unreviewed code straight to production (P1 on PR #190).
+      - name: Preflight — ref is production-eligible
+        # Refs travel via env (never ${{ }} in run:) — tag/branch names may
+        # contain shell metacharacters, which would inject into the script.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          REF_NAME: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ "$REF" != "refs/heads/main" ]; then
+            echo "::error::manual production deploys must run from main (selected: $REF)."
+            exit 1
+          fi
+          if [ "$EVENT_NAME" = "push" ]; then
+            case "$REF_NAME" in
+              ''|*[!A-Za-z0-9._-]*)
+                echo "::error::refusing to deploy tag with unexpected characters: $REF_NAME"
+                exit 1
+                ;;
+            esac
+            status=$(gh api "repos/$REPO/compare/main...${REF_NAME}" --jq '.status' 2>/dev/null) || status="error"
+            if [ "$status" != "identical" ] && [ "$status" != "behind" ]; then
+              echo "::error::release tag ${REF_NAME} is not contained in main (compare status: ${status}); cut release tags from main."
+              exit 1
+            fi
+          fi
+
       - run: bun install
 
       # Compile @slop-detect/core to dist — the web functions import it, so
@@ -69,4 +104,8 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: apps/web
-          command: pages deploy public --project-name=slop-detector
+          # --branch main is load-bearing: without it `pages deploy` creates a
+          # PREVIEW deployment and production never moves (S5 finding for
+          # #152 — prod served pre-T-14 wording with /api/health missing for
+          # 12h+ across 20 green main merges while health-ping stayed red).
+          command: pages deploy public --project-name=slop-detector --branch main
