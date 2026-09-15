@@ -1458,10 +1458,10 @@
     {
       "attempts": 0,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p2-kv-limits",
       "commit": null,
       "depends_on": [],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-11-kv.txt"],
       "gaps": ["G-27", "G-28"],
       "id": "T-11",
       "owner": "agent",
@@ -1469,7 +1469,7 @@
       "pr": null,
       "review": null,
       "size": "M",
-      "status": "todo"
+      "status": "in_review"
     },
     {
       "attempts": 0,

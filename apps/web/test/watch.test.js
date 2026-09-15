@@ -274,6 +274,19 @@ test('watchVerifyAllowed caps confirmation emails per recipient and fails closed
   expect(await watchVerifyAllowed(null, 'victim@x.io')).toBe(false);
 });
 
+test('watchVerifyAllowed: a same-isolate burst cannot overshoot 3/hour (T-11)', async () => {
+  const kv = makeKv();
+  const slowPut = kv.put.bind(kv);
+  kv.put = async (...a) => {
+    await new Promise((r) => setTimeout(r, 15));
+    return slowPut(...a);
+  };
+  const results = await Promise.all(
+    Array.from({ length: 10 }, () => watchVerifyAllowed(kv, 'burst-wv@x.io'))
+  );
+  expect(results.filter(Boolean).length).toBe(3);
+});
+
 test('POST /api/watch stops emailing one address after the per-recipient cap', async () => {
   let sends = 0;
   globalThis.fetch = async (url) => {
@@ -297,7 +310,8 @@ test('POST /api/watch stops emailing one address after the per-recipient cap', a
   const results = [];
   for (let i = 0; i < 5; i++) {
     const res = await onRequestPost({
-      request: makePostReq({ domain: 'attacker-chosen.com', email: 'victim@x.io' }),
+      // Own address: the isolate counter persists across tests in this file.
+      request: makePostReq({ domain: 'attacker-chosen.com', email: 'target@x.io' }),
       env,
     });
     results.push((await res.json()).verificationSent);

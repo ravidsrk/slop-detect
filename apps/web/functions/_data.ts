@@ -231,15 +231,42 @@ export async function emailIndexKey(email: string): Promise<string> {
 // here is the outbound mail itself, so "store down" must mean "don't mail".
 const WATCH_VERIFY_LIMIT = 3;
 const WATCH_VERIFY_WINDOW_SEC = 60 * 60; // 3 confirmation emails per address per hour
+// In-isolate counter so same-isolate bursts can't overshoot on a stale KV read
+// (same pattern as ogMem below; the KV key stays the cross-isolate backstop,
+// residual race documented on #109).
+const wvMem = new Map();
+function wvMemIncrement(email) {
+  const now = Date.now();
+  if (wvMem.size > 256) {
+    for (const [k, v] of wvMem) if (now >= v.resetAt) wvMem.delete(k);
+  }
+  const cur = wvMem.get(email);
+  if (!cur || now >= cur.resetAt) {
+    wvMem.set(email, { count: 1, resetAt: now + WATCH_VERIFY_WINDOW_SEC * 1000 });
+    return 1;
+  }
+  cur.count += 1;
+  return cur.count;
+}
+function wvMemDecrement(email) {
+  const cur = wvMem.get(email);
+  if (!cur || cur.count <= 0) return;
+  cur.count -= 1;
+}
 export async function watchVerifyAllowed(kv, email) {
   if (!kv || !email) return false;
+  if (wvMemIncrement(email) > WATCH_VERIFY_LIMIT) return false;
   try {
     const key = `rl:watchverify:${await emailHash(email)}`;
     const n = parseInt(await kv.get(key), 10) || 0;
-    if (n >= WATCH_VERIFY_LIMIT) return false;
+    if (n >= WATCH_VERIFY_LIMIT) {
+      wvMemDecrement(email);
+      return false;
+    }
     await kv.put(key, String(n + 1), { expirationTtl: WATCH_VERIFY_WINDOW_SEC });
     return true;
   } catch {
+    wvMemDecrement(email);
     return false;
   }
 }
