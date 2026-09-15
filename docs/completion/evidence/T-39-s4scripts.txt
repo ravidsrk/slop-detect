@@ -1,0 +1,36 @@
+T-39 S4 stranger-test scripts — evidence (run 20260914-S1)
+======================================================
+Branch: ravidsrk/p7-s4scripts → PR #185 → merged ca632ce (merge commit, no squash)
+Gap closed: G-26 (S2). P7 ACTIVE: scripts delivered, T-40 remains.
+
+Deliverables (all on main @ ca632ce):
+- scripts/s4/: lib.ts (evidence ctx: named steps, hard asserts, reasoned
+  skips, scan-bucket pacer), cf01-webscan, cf02-cli, cf03-fixprompt,
+  cf04-monitor, cf05-dashboard, cf06-mcp, cf07-share, run.ts (strict
+  --target/--only parsing, harness errors recorded as FAIL), README.
+- package.json: `bun run s4` builds CLI+MCP bins first, then runs the
+  suite against --target (S4_BASE default https://slop-detect.com).
+- Live-validated vs production: 22 pass, 6 skip (all owner-named:
+  mailbox-gated confirm/alert/mint + H-02 fail-closed dashboard),
+  0 fail. Production realities baked in: example.com unscannable
+  (seed = target homepage), 3 scan hits/60s with TTL-reset counting
+  (burst pacer mirroring the KV counter), CLI exits 0 with {error}
+  payloads (gate --fail-on for exit 1, bad flag for exit 2).
+
+Greptile: 3 P1 + 2 P2, all fixed + replied in-thread (strict arg
+parsing + unknown-flag rejection, build-before-run + BIN fail-fast,
+harness errors counted, continue-on-failure evidence, try/finally
+watch cleanup).
+
+Gates (local, pre-push): format:check exit 0; strict tsc --noEmit
+clean on scripts/s4 (outside turbo references); full live suite
+22/6/0 on 2026-09-15T13:40Z.
+Final CI on 7e2313c: all 6 checks pass (incl. Greptile Review):
+https://github.com/ravidsrk/slop-detect/actions/runs/34977937109
+
+Auditable rerun (post-merge, main @ ca632ce): full transcript in
+evidence/T-39-s4scripts.run.txt — 22 pass, 6 skip (owner-named),
+0 fail, exit 0, 2026-09-15T14:08:47Z → 14:13:17Z. (An earlier rerun
+attempt failed 11 steps on transient local DNS ENOTFOUND mid-run,
+cf07 recovering 5/5 after — environmental, not a product signal;
+the committed transcript is the clean rerun.)
