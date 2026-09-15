@@ -2,9 +2,10 @@ T-32 Export/erasure + retention — evidence (run 20260914-S1)
 ===========================================================
 Branch: ravidsrk/p5-rights → PR #175 → merged 4784a1f (merge commit, no squash)
 Gaps closed: G-17 (S1, no export/delete path), G-35 (S2, retention unwritten).
-P5 COMPLETE: all 3 exit criteria met (legal pages T-30, export/delete T-32,
-retention + H filed T-32/T-31). No owner remainder (H-02 mail secrets
-already filed under T-31).
+P5 AGENT-COMPLETE: all 3 exit criteria met (legal pages T-30, export/delete
+T-32, retention + H filed T-32/T-31). Owner remainder open: H-02 mail
+secrets (MAIL_POSTAL_ADDRESS + RESEND_WEBHOOK_SECRET + webhook
+registration), launch-gating — see T-31 evidence.
 
 Deliverables (all on main @ 4784a1f):
 - GET /api/me/export: session-authed JSON download (watches, listings,

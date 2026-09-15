@@ -507,7 +507,8 @@
   (index-recovering, ownership-checked, echo-guarded, idempotent,
   counters deleted, cookie cleared); isForeignOrigin backstop;
   RETENTION.md; audit events; policy wiring. G-17/G-35 CLOSED.
-  P5 COMPLETE — all 3 exit criteria met, no owner remainder.
+  P5 AGENT-COMPLETE — all 3 exit criteria met; owner remainder H-02 open
+  (mail secrets + webhook registration, launch-gating).
 - Greptile 1 P1 + 2 P2 — all fixed + replied in-thread (index recovery,
   null-body 400, counter disclosure/deletion + tripwire).
 - Evidence: evidence/T-32-rights.txt.
