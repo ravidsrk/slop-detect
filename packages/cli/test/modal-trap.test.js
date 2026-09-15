@@ -5,6 +5,7 @@
 // user takes: scan → open modal → Tab/Shift+Tab/Escape. Gated behind
 // RUN_GOLDEN=1 like the other Chromium tests (see golden.test.js); the
 // browser-free unit job skips it, and landing.test.js keeps a presence pin.
+/* global document: readonly */
 import { test, expect } from 'vitest';
 import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
