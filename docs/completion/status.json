@@ -1593,18 +1593,18 @@
     {
       "attempts": 0,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p3-goldens-b",
       "commit": null,
       "depends_on": [],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-18b-goldens.txt"],
       "gaps": ["G-18"],
       "id": "T-18b",
       "owner": "agent",
       "plan_phase": "P3",
-      "pr": null,
+      "pr": 144,
       "review": null,
       "size": "S",
-      "status": "todo"
+      "status": "in_review"
     },
     {
       "attempts": 0,
