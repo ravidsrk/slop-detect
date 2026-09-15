@@ -38,7 +38,7 @@ jobs:
             echo "No change in leaderboard dataset."
             exit 0
           fi
-          BR="bot/leaderboard-$(date -u +%Y%m%d)"
+          BR="bot/leaderboard-$(date -u +%Y%m%d)-${{ github.run_id }}"
           git config user.name "slop-detect-bot"
           git config user.email "bot@users.noreply.github.com"
           git checkout -b "$BR"
