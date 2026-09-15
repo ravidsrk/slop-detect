@@ -1,0 +1,32 @@
+T-31 Mail compliance — evidence (run 20260914-S1)
+================================================
+Branch: ravidsrk/p5-mail → PR #173 → merged 7ad6ac7 (merge commit, no squash)
+Gaps closed: G-16 (S1, postal + 1-click + honor path), G-46 (S2, bounces).
+Owner remainder filed as H-02 extension (MAIL_POSTAL_ADDRESS +
+RESEND_WEBHOOK_SECRET + Resend dashboard webhook registration).
+
+Deliverables (all on main @ 7ad6ac7):
+- _alerts.ts mailFooter() on all four mails; deleted the false "reply to
+  unsubscribe" line (no inbound handler ever existed).
+- One-click: stateless HMAC tokens (_session.ts, unsub-v1 domain-separated,
+  one domain+email pair, no expiry) + api/watch/unsubscribe.tsx (GET
+  confirms, only POST performs; stale-email 403; replays 200 no-op).
+- _data.ts performUnsubscribe() shared by API + one-click; sup: helpers.
+- api/email/webhook.ts: Svix-verified Resend ingestion (5-min tolerance,
+  401 bad sig, 503 configured-off); bounced/complained suppress, rest
+  acked+ignored. _email.ts suppression gate + headers passthrough.
+- sweep.ts/watch.ts/link.ts threading; sweep FAILS CLOSED without
+  SESSION_SECRET or MAIL_POSTAL_ADDRESS (sent:false/not_configured,
+  notified stays false, next sweep delivers).
+- docs/EMAIL.md + 5 new report() events in docs/ALERTS.md.
+
+Greptile: 2 P1 + 1 follow-up P2, all fixed + replied in-thread (fail-closed
+sends with notified-consumption analysis; suppression lookup inside the
+sendEmail contract with suppression_unknown; retry-claim scoping).
+Surfaced contract changes: COST-2 1→2 reads (O(1) preserved, cost math in
+test); alert-copy tests assert the real one-click URL via caller footer.
+
+Gates (local, pre-push): format:check exit 0; typecheck 6/6;
+test green — web 475 passed (40 files; 17 mail-compliance + 1 fail-closed
+sweep + chain header assertions), core 77, action 7, mcp 14, cli 13.
+Final CI on 1df047a: all 6 checks pass (incl. Greptile Review).
