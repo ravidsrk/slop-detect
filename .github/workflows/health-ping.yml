@@ -5,6 +5,9 @@ name: health-ping
 # which fails the run — and a failed scheduled run notifies (Actions mails
 # the committer by default; wire ERROR_WEBHOOK later for chat paging).
 # Every 30 minutes: one cheap KV-read ping, negligible cost.
+# NOTE: /api/health reports degraded while SCAN_DISABLED is set, so this
+# ping fails through intentional maintenance windows too — treat that as
+# the re-enable reminder (or pause the workflow for the window).
 
 on:
   schedule:
