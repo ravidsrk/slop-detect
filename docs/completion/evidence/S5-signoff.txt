@@ -1,0 +1,95 @@
+S5 Sign-off — gate evaluation + rescore + reconcile (run 20260914-S1)
+====================================================================
+Stage S4 → S5. Verdict: CONDITIONAL GO (gate item 2's own rule:
+CF-04 production E2E rests on launch-gating H-02/H-03 → never GO).
+
+S5-A — mechanical gate (DEFINITION.md, frozen 6770c58):
+1. S0s: G-01 open with agent part done (T-15) + H-02/H-03 filed
+   (the stated minimum); G-02 CLOSED in this update (T-14 live
+   matrix covered it; the gap row lagged the task). → MET
+2. Every CF happy+failure E2E-evidenced: T-39 transcript
+   (22/6/0, prod + local identical tallies) + mailbox-gated
+   confirms owned by monitor-flow/dashboard integration tests.
+   CF-04 prod confirm→alert unproven (H-02/H-03) → CONDITIONAL. → MET
+3. Backup restored once: T-08 restore core rehearsed (round-trip,
+   dry-run safety, TTL preservation, manifest validation —
+   memory backend; 13 backup tests green in the 513 web suite);
+   CF-API transport = filed H-01. This is the interpretation
+   under which G-13 closed; restated explicitly here. → MET
+4. Rollback rehearsed on preview/staging: runbook + script done
+   (T-27); LIVE rehearsal needs H-01 (open). → OPEN → condition.
+   (P4 stays active on this criterion.)
+5. One alert proven: T-25 scan_failed end-to-end against a LIVE
+   stub receiver (POST bytes + waitUntil wiring pinned). Prod
+   webhook URL = H-07 (non-gating, as allowed). → MET
+6. Stranger test: 92s to first verdict, 116s to permalink, 15-min
+   budget (evidence/S4-stranger.txt; permalink independently
+   re-verified 200 + exact title). → MET
+7. No ACCEPT at S0: accepts are G-45 (S2, Logpush, expiry
+   2027-03-14) + G-57 (S3, issues-as-support) only. H-01..H-05
+   filed, open, launch-gating. → MET
+8. Minimum scores: re-derived below; 1–9 all ≥3, 10–17 all ≥2,
+   no deviation. → MET
+
+S5-A bis — production delivery (S5-C find, fixed + proven live):
+#152 confirmed: prod predated ~04:30 UTC (pre-T-14 wording,
+/api/health → index.html), health-ping 17/17 red since 08:43 UTC,
+deploy.yml publishing previews (missing --branch). PR #190 fixed
+(--branch main + main-only/tag-contained ref guards, 1 P1 + 1
+P1-sec addressed) and the merge-triggered deploy flipped prod:
+health JSON status ok, post-T-14 wording, patterns unchanged
+(probes 17:19 UTC; health-ping's next run should go green).
+#129 (extract-zip CVE): triaged unreachable (transitive of
+Cloudflare's SDK, edge binding never downloads, zero src
+unzip sites) → commented + closed as not-actionable with the
+reporter's pre-authorization.
+
+S5-B — angle rescore (frozen → S5, evidence-backed):
+A1 product 2→3 (all flows E2E + stranger PASS; CF-04 mail H-gated)
+A2 functional 2→3 (CF-02 characterized, CUT executed, taxonomy;
+  G-01/H + G-03/H-05 residuals)
+A3 code-quality 2→3 (CI gates format+lint+type+test; big-file
+  refactor DEFER S3)
+A4 testing 3→4 (E2E suite + goldens + mechanism proofs +
+  stranger-verified; coverage gate DEFER S3)
+A5 security 3→3 (authz matrix, SSRF, rate limits, dep baseline,
+  secret hygiene; H-08 walk + sitekey-rotation residual open —
+  rotation issue was noted in T-09 but never filed; recorded
+  here as accepted S3 residual for the owner)
+A6 data 2→3 (TTLs, counters, export/delete, retention, backup
+  script + rehearsal tests; prod backup run = H-01)
+A7 infra 2→3 (prod delivery PROVEN this stage; staging
+  code-complete + interlocked, activation = H-01; rollback
+  runbook, live rehearsal = H-01)
+A8 reliability 2→3 (health+readiness LIVE in prod, retries,
+  runbooks, CAPACITY.md budgets, kill switch)
+A9 observability 1→3 (request IDs, ops+flow metrics, alert
+  proof; Logpush ACCEPT with expiry)
+A10 perf-cost 2→2 HOLD (bounds + kill switch + tested
+  counters; load test + measured cost still absent — honest)
+A11 integrations 3→3 (fail-closed proven; staging keys = H-01)
+A12 ai-llm N/A (excluded, verified zero-LLM)
+A13 ux 3→3 (states, focus trap, stranger 92s real-path)
+A14 docs 2→3 (runbooks, API+spec guard, REHEARSAL,
+  S4-verified READMEs)
+A15 legal 2→3 (terms, mail compliance, rights+retention,
+  task-time verification)
+A16 gtm 1→2 (support/pricing/analytics/email-auth/distribution
+  closed; launch posts post-GO H-06; billing DEFER per owner)
+A17 ownership 1→2 (runbooks/inventory/recovery; publish
+  procedure H-04 filed; bus-factor-1 on accounts remains)
+
+S5-C — open PR/issue reconcile (live gh query 2026-09-15):
+0 open PRs. 11 open issues → 10 reconciled, 1 closed:
+#95↔H-04, #96↔H-02, #97↔H-07, #99↔H-05, #100↔G-03-partial/H-05
+(launch-blocker label correct), #102↔G-50 DEFER, #103/#104↔H-06
+(post-GO), #109↔T-11 accepted cross-isolate residual,
+#152 workflow half FIXED+verified, dashboard half → owner
+(stays open), #129 triaged + closed (above).
+
+Tracker updates in this commit: close G-02/G-22/G-23/G-27/G-28/
+G-29/G-30/G-31/G-48 (tasks done, evidence cited); G-03 → partial
+(H-05 remainder, mirrors G-47); P2 criteria (backup/authz/
+dep-criticals) met → P2 complete; P4 stays active (rollback
+live = H-01); angles gain s5_score+s5_rationale (frozen score
+preserved); gate → CONDITIONAL_GO; pointer → S6.
