@@ -181,4 +181,21 @@
 - artifacts: /tmp/kvbu-empty (CLI guard probe; DELETE in S6).
 - second look: single-key PUT loop chosen over bulk endpoint for binary certainty at our
   scale; restore is upsert-only (no delete path) — both stated in the runbook.
-- resume_pointer: P2/T-09
+- resume_pointer: P2/T-09 (T-08 merged 382d0f6)
+
+## 2026-09-14 S3/P2 T-09 authz matrix (G-22, G-23) — DONE
+- branch ravidsrk/p2-authz → PR #132 → merged 70edc0e, no squash.
+- 16 new tests in apps/web/test/authz-matrix.test.js: sweep Bearer auth (was zero
+  coverage: 503-off, 401 x2, 500, happy path, middleware→handler chain), API-key
+  paths (401/403, foreign-origin+key, Turnstile skip, unlimited cap bypass),
+  aeo/fix-prompt scan-gating with shared-bucket 429s, fix-prompt 20/min 429,
+  patterns GET, tampered dashboard cookie. Full auth surface: 76 green.
+- docs/AUTHZ_MATRIX.md: route x credential matrix (gate-vs-handler scope marked)
+  + env behavior matrix for all 14 keys/bindings, every row cited to its test.
+- Finding (documented, not fixed — out of verify/doc scope): TURNSTILE_SITEKEY is
+  write-only; rotating the var alone does nothing (widget uses hardcoded fallback).
+- Evidence: evidence/T-09-authz.txt (all 0; web 348 at capture, 350 after the 2
+  review-fix tests; merge-commit CI green). Greptile 3 P2s on doc accuracy —
+  ALL fixed in 301bcd1, replied in-thread.
+- second look: no scope creep into fixing the sitekey injection; filed as follow-up.
+- resume_pointer: P2/T-11
