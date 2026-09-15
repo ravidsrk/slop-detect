@@ -1,0 +1,31 @@
+T-18c — per-pattern golden coverage, batch 3 (IDs 19-27), closes G-18/gh-92
+Branch: ravidsrk/p3-goldens-c
+
+CHANGE (completes the T-18a registry in pattern-coverage.test.js):
+- 9 new CASES rows + 9 new pat-* fixtures: ai_sparkle_badges,
+  cream_default_bg, low_contrast_text, crushed_tracking, gray_on_color,
+  oversized_hero_h1, nested_cards, wide_body_tracking, flat_type_hierarchy.
+- New UNSKIPPED completeness pin: CASES ids must equal the engine's 27
+  PATTERNS ids — a future 28th pattern without a fixture fails the
+  DEFAULT suite (not just the golden run).
+- Clean-artisan anchor now covers all 27 IDs (still 0 fired).
+
+LOCAL RUN (RUN_GOLDEN=1): 29 passed (29), ~20s.
+DEFAULT SUITE: 1 passed (completeness pin) | 28 skipped.
+NEGATIVE CONTROL: cream bg #f5f0e6->#ffffff => exactly
+  cream_default_bg fails (1 failed | 28 passed); restored green.
+gh-92 CLOSED by this batch: every extractor now has a positive
+fixture enforced by the required CI smoke job on every PR.
+=== FORMAT ===
+FORMAT_EXIT=0
+=== LINT ===
+LINT_EXIT=0
+=== TYPECHECK ===
+TYPECHECK_EXIT=0
+=== TEST ===
+TEST_EXIT=0
+@slop-detect/core:test:       Tests  77 passed (77)
+@slop-detect/action:test:       Tests  7 passed (7)
+slop-detect-mcp:test:       Tests  14 passed (14)
+slop-detect-web:test:       Tests  367 passed (367)
+slop-detect:test:       Tests  13 passed | 40 skipped (53)
