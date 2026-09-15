@@ -282,6 +282,7 @@ export function Footer({ origin = '', domain = '<domain>', meta = '© 2026 · MI
     { href: '/docs', label: 'docs' },
     { href: '/directory', label: 'directory' },
     { href: '/privacy.md', label: 'privacy' },
+    { href: '/terms.md', label: 'terms' },
   ];
   return (
     <footer class="ft">
