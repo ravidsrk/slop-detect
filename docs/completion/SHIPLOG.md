@@ -239,4 +239,20 @@
   dense-but-uncharacterizable); code unchanged; 2 core tests; live-verified.
 - Evidence: evidence/T-14-cli.txt (all 0; core 73). Greptile 2 P2s —
   fixed in 8767b80, replied in-thread. PR body corrected for parity scope.
-- resume_pointer: P3/T-15
+- resume_pointer: P3/T-15 (T-14 merged 38a2af8)
+
+## 2026-09-14 S3/P3 T-15 CF-04 monitor (G-01, S0) — DONE (agent part; prod E2E = H-02/H-03)
+- branch ravidsrk/p3-monitor → PR #136 → merged e4efb52, no squash.
+- S0 FIX: sweep Bearer vs API-key collision — every scheduled run 401d.
+  Middleware exempts cron/sweep from key resolution; handler judges Bearer.
+  Found + re-verified live on pages dev (200/consent-gate/handler-401).
+- 5-test monitor-flow E2E (full lifecycle + sans-secrets fail-closed) +
+  2 sweep-chain regression tests (fail 401 pre-fix) + 1 scan→watch
+  contract test + stub contract enforcement (key + payload asserted).
+- docs/MONITOR_SANDBOX.md (L0/L1/L2; L2 = H-02 verify with controlled
+  regression via staging KV surgery). AUTHZ_MATRIX sweep row updated.
+- Evidence: evidence/T-15-watch.txt (all 0; web 365). Greptile 2 P2s —
+  fixed in 81ce6ea, replied in-thread.
+- second look: local .wrangler/.dev.vars junk broke lint mid-task —
+  deleted; tree clean. Both S0s now closed at agent level.
+- resume_pointer: P3/T-17

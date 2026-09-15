@@ -317,13 +317,51 @@ export const PATTERNS = [
         if (pcs.textAlign === 'center') centered = true;
       }
       if (!centered) {
-        // Geometric check: bbox center within 12% of parent container center
+        // Geometric check: a block strictly narrower than its parent's
+        // CONTENT box, centered within it (real gaps both sides + bbox
+        // center within 12% of content center). The content box matters
+        // twice: a full-width left-aligned H1 (Linear's 64px hero) is
+        // trivially "centered" by border-box math, and symmetric parent
+        // padding defeats any border-box width ratio (a padded container's
+        // full-width child looks narrow against the border box). Gaps
+        // against the content box are immune to both. text-align:center
+        // still hits the checks above; this path is geometric only.
+        //
+        // Abstain under ancestor transforms/zoom: getBoundingClientRect is
+        // scaled viewport geometry while computed padding/border stay CSS
+        // px, so mixing them skews both ways. Better to miss a centered
+        // hero here (text-align still catches most) than to misfire.
         try {
+          const parent = h1.parentElement || document.body;
+          let scaled = false;
+          for (let el = h1, d = 0; el && d < 25; el = el.parentElement, d++) {
+            const acs = getComputedStyle(el);
+            if (acs.transform && acs.transform !== 'none') scaled = true;
+            if (acs.zoom !== undefined && acs.zoom !== '' && String(acs.zoom) !== '1')
+              scaled = true;
+            if (scaled) break;
+          }
+          if (scaled)
+            return {
+              triggered: false,
+              fontSize,
+              centered,
+              slopFont: isSlopFont(cs.fontFamily),
+              family: cs.fontFamily,
+            };
           const r = h1.getBoundingClientRect();
-          const pr = (h1.parentElement || document.body).getBoundingClientRect();
+          const pr = parent.getBoundingClientRect();
+          const pbox = getComputedStyle(parent);
+          const num = (v) => parseFloat(v) || 0;
+          const cL = pr.left + num(pbox.paddingLeft) + num(pbox.borderLeftWidth);
+          const cR = pr.right - num(pbox.paddingRight) - num(pbox.borderRightWidth);
+          const contentW = cR - cL;
+          const gapL = r.left - cL;
+          const gapR = cR - r.right;
           const elCx = r.left + r.width / 2;
-          const prCx = pr.left + pr.width / 2;
-          if (pr.width > 0 && Math.abs(elCx - prCx) / pr.width < 0.12) centered = true;
+          const cCx = (cL + cR) / 2;
+          if (contentW > 0 && gapL > 2 && gapR > 2 && Math.abs(elCx - cCx) / contentW < 0.12)
+            centered = true;
         } catch {}
       }
       // Lowered from 36 → 28 to catch v0.dev (32px) and modern smaller AI-tool heroes.

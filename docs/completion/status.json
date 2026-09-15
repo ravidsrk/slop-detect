@@ -1536,7 +1536,8 @@
       "pr": "https://github.com/ravidsrk/slop-detect/pull/136",
       "review": null,
       "size": "M",
-      "status": "in_review"
+      "status": "done",
+      "merged": "e4efb52"
     },
     {
       "attempts": 0,
@@ -1557,18 +1558,18 @@
     {
       "attempts": 0,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p3-calibration",
       "commit": null,
       "depends_on": [],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-17-calibration.txt"],
       "gaps": ["G-03"],
       "id": "T-17",
       "owner": "agent",
       "plan_phase": "P3",
-      "pr": null,
+      "pr": "https://github.com/ravidsrk/slop-detect/pull/137",
       "review": null,
       "size": "M",
-      "status": "todo"
+      "status": "in_review"
     },
     {
       "attempts": 0,

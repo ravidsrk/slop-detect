@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Driftline — analytics</title>
+  <style>
+    /* Geometric positive control (T-17): a NARROW hero block centered by
+       margins with text-align:left. No text-align:center anywhere, so only
+       the geometric fallback can catch it — and the T-17 width guard
+       (block < 85% of parent) must let it through. */
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: Inter, -apple-system, sans-serif; color:#eee; background:#0b0b12; }
+    nav { display:flex; gap:24px; padding:20px 40px; border-bottom:1px solid #222; }
+    nav a { color:#aaa; text-decoration:none; font-size:15px; }
+    main { padding:64px 40px; }
+    h1 { font-size:56px; font-weight:800; text-align:left; line-height:1.05;
+         max-width:18ch; margin:0 auto 20px; }
+    .lead { font-size:20px; color:#999; max-width:52ch; margin:0 auto 48px; }
+    section { margin:0 auto 40px; max-width:70ch; }
+    h2 { font-size:26px; margin-bottom:12px; }
+    p { font-size:17px; color:#999; line-height:1.6; margin-bottom:12px; }
+    footer { border-top:1px solid #222; padding:24px 40px; color:#666; font-size:14px; }
+  </style>
+</head>
+<body>
+  <nav><strong>Driftline</strong><a href="/p">Product</a><a href="/r">Resources</a><a href="/c">Customers</a></nav>
+  <main>
+    <h1>Analytics that explains itself in plain language</h1>
+    <p class="lead">Driftline watches your product metrics around the clock and
+      tells you what moved, why it moved, and what to do next.</p>
+    <section><h2>Always on</h2><p>Every dashboard refreshes continuously from
+      your warehouse. Stale numbers and 6am CSV exports are gone for good.</p></section>
+    <section><h2>Plain language</h2><p>Each chart ships with a written summary
+      of the trend, the likely drivers, and the suggested next step.</p></section>
+    <section><h2>Your stack</h2><p>Connects to the warehouse and tools you
+      already pay for. No rip-and-replace, no six-month onboarding.</p></section>
+  </main>
+  <footer>Made in Austin. Contact hi@drift.example for details.</footer>
+</body>
+</html>
