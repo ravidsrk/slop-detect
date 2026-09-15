@@ -1,0 +1,34 @@
+T-30 Terms of Service page — evidence (run 20260914-S1)
+=====================================================
+Branch: ravidsrk/p5-terms → PR #171 → merged ce05b7c (merge commit, no squash)
+Gaps closed: G-15 (S1), G-34 (S2). P5 exit criterion "Legal pages live" MET.
+
+Deliverables (all on main @ ce05b7c):
+- apps/web/public/terms.md (new): 10-section ToS; every clause grounded in
+  code (SSRF guard, rate limits, Turnstile, double opt-in, share:false,
+  90d/1y/indefinite retention tiers, MIT engine, trial monitoring, AS-IS
+  disclaimer, 12-month liability cap). Amended privacy.md storage table
+  with the same retention split + anonymous-aggregates row.
+- Footers: /terms.md linked next to privacy in _ui.tsx Footer and the
+  static index.html footer.
+- apps/web/test/legal.test.js (new): 13 tests pinning every checkable
+  claim in both legal pages, incl. implementation tripwires
+  (isPrivateIPv4/169, RATE_LIMIT/Turnstile, !w.verified, share gate,
+  h: WATCH_TTL) and negative pins (no region promise, no quota promise,
+  no delivery guarantee, no external-fonts denial).
+
+S1 privacy audit (12/12 claims verified, no changes needed at audit time):
+consentAt+policyVersion 2026.06; SHA-256 email index; HttpOnly/Secure/
+SameSite=Lax 30d cookie; slim-result persistence without screenshot/content
+(scan.ts:296-308); list:true/false opt-in; verified-gated alerts
+(_sweep.ts:41-54); unsubscribe delists; Google Fonts disclosed (_brand.ts +
+CSP); TTLs 90d/1y-rolling/7d/15m (_data.ts); GitHub contact.
+
+Greptile: 2 P1 + 2 P2, all fixed + replied in-thread (history-retention
+tiers incl. privacy.md same-fix; paid-quota promise removed; text-only
+parity → tripwires; aggregate-collection wording → first-scan-per-domain-
+per-year). One follow-up reply corrected a mistyped commit hash (2e2f6a7).
+Final CI on 2e2f6a7: all 6 checks pass (incl. Greptile Review).
+
+Gates (local, pre-push): format:check exit 0; typecheck exit 0;
+test green — web 456 passed (39 files), core 77, action 7, mcp 14, cli 13.
