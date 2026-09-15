@@ -351,7 +351,7 @@
       "issue_url": null,
       "severity": "S1",
       "source": ["F-9-01"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-22"]
     },
     {
@@ -1734,7 +1734,8 @@
       "pr": 155,
       "review": null,
       "size": "M",
-      "status": "in_review"
+      "status": "done",
+      "merged": "f747ed5"
     },
     {
       "attempts": 0,

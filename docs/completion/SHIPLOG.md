@@ -370,3 +370,13 @@
   gates S5 GO). P3 status done.
 - Evidence: evidence/P3-exit.txt.
 - resume_pointer: P4/T-22
+
+## 2026-09-15 S4/P4 T-22 request IDs (G-04) — DONE
+- branch ravidsrk/p4-request-ids → PR #155 → merged f747ed5, no squash.
+- X-Request-Id on every /api/* response (cf-ray > echo > UUID),
+  forwarded to handlers; scan error bodies + logs stamped; thrown
+  handlers become traced JSON 500s; CORS allows+exposes the header.
+- 13 new tests (middleware 9, contract 4); teeth-checked unfixed.
+  Greptile 2 P2s fixed in-thread. G-04 CLOSED.
+- Evidence: evidence/T-22-reqids.txt.
+- resume_pointer: P4/T-23
