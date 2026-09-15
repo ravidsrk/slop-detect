@@ -25,4 +25,12 @@ watch cleanup).
 Gates (local, pre-push): format:check exit 0; strict tsc --noEmit
 clean on scripts/s4 (outside turbo references); full live suite
 22/6/0 on 2026-09-15T13:40Z.
-Final CI on 7e2313c: all 6 checks pass (incl. Greptile Review).
+Final CI on 7e2313c: all 6 checks pass (incl. Greptile Review):
+https://github.com/ravidsrk/slop-detect/actions/runs/34977937109
+
+Auditable rerun (post-merge, main @ ca632ce): full transcript in
+evidence/T-39-s4scripts.run.txt — 22 pass, 6 skip (owner-named),
+0 fail, exit 0, 2026-09-15T14:08:47Z → 14:13:17Z. (An earlier rerun
+attempt failed 11 steps on transient local DNS ENOTFOUND mid-run,
+cf07 recovering 5/5 after — environmental, not a product signal;
+the committed transcript is the clean rerun.)
