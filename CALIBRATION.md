@@ -120,7 +120,9 @@ Re-ran the unchanged 13-row seed locally (`--local`, engine 2026.09):
 | linear.app | Clean | Heavy (36) ✗ → Mild (19) ✗ |
 | vercel.com | Clean | Heavy (29) ✗ → Mild (17) ✗ |
 
-**5/13 (38.5%)**, confusion Clean→{Clean 3, Mild 6}, Mild→{Mild 2, Heavy 1}.
+**5/13 (38.5%)**, confusion Clean→{Clean 3, Mild 6, null 1}, Mild→{Mild 2,
+Heavy 1} — the null is example.com's abstention, counted as a miss in the
+13-row denominator (the `--json` report records it as `Clean→null: 1`).
 No Heavy labels exist in the seed — another reason the number is not a claim.
 
 What moved since June, and why:
