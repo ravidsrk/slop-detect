@@ -387,3 +387,49 @@ test('the computed ID is forwarded to the handler on a cloned request', async ()
   expect(res.headers.get('X-Request-Id')).toBe('fwd-ray-7');
   expect(seen.headers.get('x-request-id')).toBe('fwd-ray-7');
 });
+
+test('preflight allows + exposes X-Request-Id (CORS gap)', async () => {
+  const opt = makeRequest({ method: 'OPTIONS', path: '/api/scan' });
+  const res = await onRequest(makeContext(opt, {}));
+  expect(res.status).toBe(204);
+  expect(res.headers.get('Access-Control-Allow-Headers')).toMatch(/X-Request-Id/);
+  expect(res.headers.get('Access-Control-Expose-Headers')).toMatch(/X-Request-Id/);
+});
+
+test('a throwing POST handler becomes a traced JSON 500 (same ID in body+header)', async () => {
+  const req = makeRequest({
+    headers: { Origin: ALLOWED, 'CF-Ray': 'throw-ray-1', 'CF-Connecting-IP': '203.0.113.215' },
+    body: { url: 'https://x.com' },
+  });
+  const ctx = {
+    request: req,
+    env: {},
+    next: async () => {
+      throw new Error('handler exploded');
+    },
+  };
+  const res = await onRequest(ctx);
+  expect(res.status).toBe(500);
+  expect(res.headers.get('X-Request-Id')).toBe('throw-ray-1');
+  const j = await res.json();
+  expect(j.error).toBe('internal_error');
+  expect(j.requestId).toBe('throw-ray-1');
+  expect(JSON.stringify(j)).not.toMatch(/exploded/);
+});
+
+test('a throwing GET handler becomes a traced JSON 500', async () => {
+  const req = makeRequest({ method: 'GET', path: '/api/patterns' });
+  const ctx = {
+    request: req,
+    env: {},
+    next: async () => {
+      throw new Error('get handler exploded');
+    },
+  };
+  const res = await onRequest(ctx);
+  expect(res.status).toBe(500);
+  const j = await res.json();
+  expect(j.error).toBe('internal_error');
+  expect(j.requestId).toBe(res.headers.get('X-Request-Id'));
+  expect(j.requestId).toBeTruthy();
+});

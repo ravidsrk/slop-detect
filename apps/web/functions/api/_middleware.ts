@@ -20,6 +20,7 @@
 //   env.TURNSTILE_SITEKEY — public sitekey (echoed to web UI)
 
 import { requestIdFor, forwardWithId } from '../_request-id.js';
+import { report } from '../_report.js';
 
 const ALLOWED_ORIGINS = new Set([
   'https://slop-detect.com',
@@ -51,7 +52,11 @@ function corsHeaders(origin) {
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     // Allow the two API-key header styles through CORS preflight too, so
     // browser clients with a key (e.g. a dashboard) aren't blocked.
-    'Access-Control-Allow-Headers': 'Content-Type, X-Turnstile-Token, Authorization, X-API-Key',
+    // X-Request-Id is allowed (callers may send their own trace ID) and
+    // exposed (so permitted clients can read ours back).
+    'Access-Control-Allow-Headers':
+      'Content-Type, X-Turnstile-Token, Authorization, X-API-Key, X-Request-Id',
+    'Access-Control-Expose-Headers': 'X-Request-Id',
     Vary: 'Origin',
   };
 }
@@ -60,6 +65,33 @@ function jsonResponse(data, status, origin, requestId) {
   const headers = { 'Content-Type': 'application/json', ...corsHeaders(origin) };
   if (requestId) headers['X-Request-Id'] = requestId;
   return new Response(JSON.stringify(data), { status, headers });
+}
+
+// Convert a thrown handler into a traced JSON 500 (never leak the stack to
+// the caller — it goes to the log line, keyed by the same request ID).
+function tracedFailure(env, requestId, origin, url, err, waitUntil) {
+  report(
+    env,
+    'error',
+    'handler_threw',
+    {
+      requestId,
+      route: url?.pathname || null,
+      message: err && err.message ? err.message : String(err),
+    },
+    waitUntil
+  );
+  return jsonResponse(
+    {
+      error: 'internal_error',
+      message:
+        'Something went wrong handling this request. Retry, or report it with the request ID.',
+      requestId,
+    },
+    500,
+    origin,
+    requestId
+  );
 }
 
 // Pull an API key from either header style. Returns null if none supplied —
@@ -253,7 +285,12 @@ export async function onRequest(context) {
 
   // GET endpoints are public — only POST hits the expensive browser code.
   if (request.method !== 'POST') {
-    const res = await next(fwdRequest);
+    let res;
+    try {
+      res = await next(fwdRequest);
+    } catch (err) {
+      return tracedFailure(env, requestId, origin, url, err, context.waitUntil);
+    }
     const merged = new Response(res.body, res);
     merged.headers.set('X-Request-Id', requestId);
     return merged;
@@ -529,8 +566,15 @@ export async function onRequest(context) {
     }
   }
 
+  // A handler that throws (instead of returning a Response) would otherwise
+  // surface as a bare platform 500 with no request ID — trace it instead.
+  let res;
+  try {
+    res = await next(fwdRequest);
+  } catch (err) {
+    return tracedFailure(env, requestId, origin, url, err, context.waitUntil);
+  }
   // Attach CORS headers + rate-limit metadata to whatever the handler returns.
-  const res = await next(fwdRequest);
   const merged = new Response(res.body, res);
   for (const [k, v] of Object.entries(corsHeaders(origin))) {
     merged.headers.set(k, v);
