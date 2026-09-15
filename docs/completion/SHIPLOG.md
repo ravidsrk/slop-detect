@@ -270,4 +270,15 @@
 - Evidence: evidence/T-17-calibration.txt (all 0; goldens 8/8). Greptile
   2 P1s (padded defeat, transform skew) — fixed in d590c8d/7f2cda8,
   replied in-thread. TDZ slip caught by tsc DTS, fixed same commit.
-- resume_pointer: P3/T-16
+- resume_pointer: P3/T-16 (T-17 merged 137fd6d)
+
+## 2026-09-15 S3/P3 T-16 CUT landing stub (G-48) — DONE
+- branch ravidsrk/p3-cut → PR #138 → merged 52cf1df, no squash.
+- Cut 100K of 301-hidden dead weight: deleted old-theme og.svg/og.png,
+  git-moved design/ → apps/web/design/ (history preserved, out of the
+  redirect shadow). Kept /landing/* → / 301 as backlink tombstone.
+  Repointed _card comment + live design-doc paths; deleted-OG mentions in
+  historical spec prose intentionally left as audit trail.
+- CUT-pin test (tombstone + dir-absent). No other dead surfaces found.
+- Evidence: evidence/T-16-cut.txt (all 0; web 366). Zero review threads.
+- resume_pointer: P3/T-20

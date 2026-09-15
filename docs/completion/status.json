@@ -1553,7 +1553,8 @@
       "pr": "https://github.com/ravidsrk/slop-detect/pull/138",
       "review": null,
       "size": "S",
-      "status": "in_review"
+      "status": "done",
+      "merged": "52cf1df"
     },
     {
       "attempts": 0,
@@ -1671,18 +1672,18 @@
     {
       "attempts": 0,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p3-focus-trap",
       "commit": null,
       "depends_on": [],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-20-trap.txt"],
       "gaps": ["G-30"],
       "id": "T-20",
       "owner": "agent",
       "plan_phase": "P3",
-      "pr": null,
+      "pr": "https://github.com/ravidsrk/slop-detect/pull/139",
       "review": null,
       "size": "S",
-      "status": "todo"
+      "status": "in_review"
     },
     {
       "attempts": 0,
