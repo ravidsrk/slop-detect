@@ -30,6 +30,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          # Don't persist the write-scoped token into git config: install /
+          # build / test execute PR-controlled code before the comment step,
+          # and must have no credential to steal. The comment step gets
+          # GH_TOKEN via its own env only.
+          persist-credentials: false
 
       - name: Preflight — staging ready
         id: preflight
@@ -52,8 +58,11 @@ jobs:
           fi
           # EVERY kv_namespaces block needs its live preview_id: one missing
           # ID would silently bind that binding to PRODUCTION data.
-          blocks=$(grep -c '^\[\[kv_namespaces\]\]' apps/web/wrangler.toml)
-          ids=$(grep -cE '^[[:space:]]*preview_id[[:space:]]*=' apps/web/wrangler.toml)
+          # `|| true`: grep -c exits 1 on zero matches, and these steps run
+          # under bash -e — without it, the unwired state fails red instead
+          # of skipping green (caught live on PR #167).
+          blocks=$(grep -c '^\[\[kv_namespaces\]\]' apps/web/wrangler.toml || true)
+          ids=$(grep -cE '^[[:space:]]*preview_id[[:space:]]*=' apps/web/wrangler.toml || true)
           if [ "$ids" -lt "$blocks" ]; then
             echo "ready=false" >> "$GITHUB_OUTPUT"
             echo "::notice::Preview skipped: ${ids}/${blocks} kv_namespaces blocks have a live preview_id (staging not wired)."

@@ -65,6 +65,18 @@ GREPTILE ROUND (2 P1 + 2 P2, all fixed):
   (Bonus live validation: preview.yml's self-skip ran green on PR #167
   itself — pull_request event, preflight success, overall success.)
 
+FOLLOW-UP (caught live + P1 review):
+- bash -e kill: the blocks-vs-ids grep -c exits 1 on zero matches,
+  which failed the preflight red on the unwired state (run 34955126555).
+  Fixed with || true + comment; lesson: my local grep check ran without
+  -e, unlike CI. Verified since by executing the exact preflight script
+  under bash -e for all 4 paths (skip/skip/proceed/reject).
+  (Side signal: the run passed the secrets gate, so CLOUDFLARE_* repo
+  secrets exist — only preview_ids + agent-shell access remain for H-01.)
+- P1 write-token exposure: checkout now sets persist-credentials: false
+  (PR-controlled install/build/test steps get no credential to steal;
+  GH_TOKEN exists only in the comment step's env).
+
 === FORMAT ===
 FORMAT_EXIT=0
 === TYPECHECK ===
