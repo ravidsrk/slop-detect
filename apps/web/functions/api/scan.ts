@@ -290,8 +290,11 @@ export async function onRequestPost({ request, env, waitUntil }) {
     );
     // Null-safe: binding-level failures can reject with no error value, and
     // reading .message off that threw a TypeError out of the handler (live:
-    // bare Cloudflare edge 502 instead of this JSON contract).
-    const message = err && err.message ? err.message : 'Scan failed (browser error)';
+    // bare Cloudflare edge 502 instead of this JSON contract). Non-null
+    // rejections without .message (strings, plain objects) keep their
+    // stringified detail; only null/undefined fall back to generic.
+    const message =
+      err && err.message ? err.message : err == null ? 'Scan failed (browser error)' : String(err);
     return json({ error: message }, 502);
   } finally {
     await releaseBrowser(browser);

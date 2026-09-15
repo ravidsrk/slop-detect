@@ -499,6 +499,17 @@ test('502 JSON (not a bare edge 502) when navigation rejects with no error value
   expect(r.error.length).toBeGreaterThan(0);
 });
 
+test('502 keeps the detail of a string rejection (no .message, non-null)', async () => {
+  mock.gotoError = 'plain string failure from the binding';
+  const res = await onRequestPost({
+    request: postReq({ url: 'https://acme.example.com' }),
+    env: { BROWSER: {} },
+  });
+  expect(res.status).toBe(502);
+  const r = await res.json();
+  expect(r.error).toBe('plain string failure from the binding');
+});
+
 test('DESIGN.md fetch stream-caps oversized bodies without buffering past 200KB', async () => {
   const DESIGN_MD_CAP = 200_000;
   const oversized = DESIGN_MD_CAP + 400_000;
