@@ -1,0 +1,26 @@
+T-37 Email-auth procedure + gate — evidence (run 20260914-S1)
+==========================================================
+Branch: ravidsrk/p6-emailauth → PR #179 → merged e058705 (merge commit, no squash)
+Gap closed: G-43 (S2, agent part per T-27 precedent). P6 criterion "Email auth
+passes (or H outstanding)" MET via the parenthetical — live DNS verify is H-03.
+Owner remainder open: H-03 (Resend domain + SPF/DKIM/DMARC records + gate-PASS
+paste + received-headers confirmation).
+
+Deliverables (all on main @ e058705):
+- docs/EMAIL_AUTH.md: 5-step owner procedure.
+- _emailauth.ts checkEmailAuth: SPF token-parsed (bare/+ include:amazonses.com
+  only), DKIM v=DKIM1 at resend._domainkey, DMARC ;-parsed explicit p= with
+  reported value; DNS errors fail with reason, never throw.
+- scripts/email-auth-check.ts: bun wrapper, exit 0/1.
+- 7 tests (stub resolver): PASS, bare-SPF/unrelated-include/lookalike FAILs,
+  DKIM+DMARC missing/policy-less FAILs, p=none-reported, DNS-error path.
+
+Greptile: 4 P1 (2 + 2 follow-up), all fixed + replied in-thread (Resend-
+specific SPF; explicit DMARC policy; mechanism parsing vs exp=/qualifiers;
+tag parsing vs sp= + case-insensitivity).
+
+Gates (local, pre-push): format:check exit 0; typecheck 6/6 (one Record-type
+fix); web 495 passed (42 files).
+Live baseline (negative control): all three ENOTFOUND, exit 1 — expected
+red pre-H-03, proving end-to-end DNS execution.
+Final CI on d24e46a: all 6 checks pass (incl. Greptile Review).

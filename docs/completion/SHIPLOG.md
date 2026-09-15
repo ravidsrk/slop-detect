@@ -522,3 +522,13 @@
 - Greptile 1 P1 + 2 P2 — all fixed + replied in-thread.
 - Evidence: evidence/T-36-support.txt.
 - resume_pointer: P6/T-37
+
+## 2026-09-15 S3/P6 T-37 email-auth gate (G-43) — DONE (agent part; live = H-03)
+- branch ravidsrk/p6-emailauth → PR #179 → merged e058705, no squash.
+- EMAIL_AUTH.md procedure + checkEmailAuth gate (token-parsed SPF,
+  ;-parsed DMARC) + bun CLI wrapper + 7 stub-resolver tests. G-43
+  CLOSED (agent part). P6 email-auth criterion MET via H-outstanding.
+- Greptile 4 P1 (2+2 follow-up) — all fixed + replied in-thread.
+  Live baseline red (3× ENOTFOUND, exit 1) as expected pre-H-03.
+- Evidence: evidence/T-37-emailauth.txt.
+- resume_pointer: P6/T-38
