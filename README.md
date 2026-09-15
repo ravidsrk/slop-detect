@@ -150,7 +150,8 @@ reproducible scan of well-known landing pages (how much of the web now reads as
 AI-generated, and who's still clean). We only store
 your email to send the alerts you asked for, only after you confirm, and never
 sell it. See the [privacy policy](https://slop-detect.com/privacy.md). Engine
-stays MIT and free forever; only continuity (history + alerts) is the paid layer.
+stays MIT and free forever; only continuity (history + alerts) is the paid
+layer, free during the current validation phase.
 
 ## The 27 patterns
 

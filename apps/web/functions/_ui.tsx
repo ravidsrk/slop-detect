@@ -562,8 +562,8 @@ export function MonitorCard({ domain }) {
         </div>
         <p class="mon-msg" id="watchMsg" role="status" aria-live="polite" />
         <p class="mon-fine">
-          double opt-in · $29–$149/mo · engine stays MIT & free forever ·{' '}
-          <a href="/privacy.md">privacy</a>
+          double opt-in · free during validation · engine stays MIT & free forever ·{' '}
+          <a href="/pricing.md">pricing</a> · <a href="/privacy.md">privacy</a>
         </p>
       </div>
       <script>{raw(MONITOR_SCRIPT)}</script>
