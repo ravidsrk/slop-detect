@@ -330,3 +330,13 @@
   19/19; CI smoke green. Greptile P2 (missing pr link) fixed in-thread.
 - Evidence: evidence/T-18b-goldens.txt.
 - resume_pointer: P3/T-18c
+
+## 2026-09-15 S3/P3 T-18c per-pattern goldens batch 3 (G-18/gh-92) — DONE
+- branch ravidsrk/p3-goldens-c → PR #146 → merged 66f653b, no squash.
+- Registry complete: all 27 IDs with positive fixtures + unskipped
+  completeness pin (a 28th pattern fails the default suite until
+  covered). Clean-artisan anchor: 0/27. gh-92/G-18 CLOSED.
+- Teeth-checked: white bg fails exactly the cream case. Local 29/29;
+  CI smoke ran the file (42 passed incl. 29 new). Zero threads.
+- Evidence: evidence/T-18c-goldens.txt.
+- resume_pointer: P3/T-19a

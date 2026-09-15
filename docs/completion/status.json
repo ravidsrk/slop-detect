@@ -519,7 +519,7 @@
       "issue_url": null,
       "severity": "S2",
       "source": ["gh-92"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-18a", "T-18b", "T-18c"]
     },
     {
@@ -1621,7 +1621,8 @@
       "pr": 146,
       "review": null,
       "size": "S",
-      "status": "in_review"
+      "status": "done",
+      "merged": "66f653b"
     },
     {
       "attempts": 0,
