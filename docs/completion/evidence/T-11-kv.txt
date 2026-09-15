@@ -1,0 +1,28 @@
+=== T-11 KV counters ===
+--- burst/limit surface (dashboard+watch+middleware+alerts) ---
+ ✓ test/middleware.test.js (15 tests) 5ms
+ ✓ test/alerts.test.js (13 tests) 5ms
+ ✓ test/watch.test.js (16 tests) 23ms
+ ✓ test/dashboard.test.js (19 tests) 436ms
+ Test Files  4 passed (4)
+      Tests  63 passed (63)
+--- negative control: burst test on pre-T-11 _data.ts ---
+     → expected 10 to be 3 // Object.is equality
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected 10 to be 3 // Object.is equality
+      Tests  1 failed | 15 skipped (16)
+stash-restored: ## ravidsrk/p2-kv-limits
+ M functions/_data.ts
+=== FORMAT ===
+FORMAT_EXIT=0
+=== LINT ===
+LINT_EXIT=0
+=== TYPECHECK ===
+TYPECHECK_EXIT=0
+=== TEST ===
+TEST_EXIT=0
+@slop-detect/core:test:       Tests  71 passed (71)
+@slop-detect/action:test:       Tests  7 passed (7)
+slop-detect-mcp:test:       Tests  14 passed (14)
+slop-detect:test:       Tests  12 passed | 10 skipped (22)
+slop-detect-web:test:       Tests  353 passed (353)

@@ -17,7 +17,7 @@ import {
   getEmailDomains,
 } from '../functions/_shared.ts';
 import { buildDashboardLinkEmail } from '../functions/_alerts.ts';
-import { onRequestPost as linkPost } from '../functions/api/dashboard/link.ts';
+import { onRequestPost as linkPost, dashLinkAllowed } from '../functions/api/dashboard/link.ts';
 import { onRequestGet as dashGet } from '../functions/dashboard.tsx';
 
 const SECRET = 'test-secret-0123456789';
@@ -240,15 +240,64 @@ test('link endpoint rate-limits magic-link sends per email (anti-bombing)', asyn
     return new Response('{}', { status: 200 });
   };
   const kv = makeKv();
-  await seedWatches(kv, [{ domain: 'a.com', email: 'known@x.io' }]);
+  // Own address: the isolate send-counter persists across tests in this file
+  // (like a production isolate), so send-triggering tests can't share emails.
+  await seedWatches(kv, [{ domain: 'a.com', email: 'capped@x.io' }]);
   const env = { RESULTS: kv, RATE_LIMIT: kv, ...LIVE_ENV };
 
   for (let i = 0; i < 4; i++) {
-    const res = await linkPost({ request: postReq({ email: 'known@x.io' }), env });
+    const res = await linkPost({ request: postReq({ email: 'capped@x.io' }), env });
     expect(res.status).toBe(200);
     expect((await res.json()).ok).toBe(true);
   }
   expect(sent.length).toBe(3);
+});
+
+test('dashLinkAllowed: a same-isolate burst cannot overshoot 3/hour (T-11)', async () => {
+  // Slow the KV puts so every caller reads before any write lands — pure KV
+  // get→put would allow all 10; the isolate counter must hold the line at 3.
+  const kv = makeKv();
+  const slowPut = kv.put.bind(kv);
+  kv.put = async (...a) => {
+    await new Promise((r) => setTimeout(r, 15));
+    return slowPut(...a);
+  };
+  const results = await Promise.all(
+    Array.from({ length: 10 }, () => dashLinkAllowed(kv, 'burst-dl@x.io'))
+  );
+  expect(results.filter(Boolean).length).toBe(3);
+});
+
+test('dashLinkAllowed: a KV deny does not leak isolate budget (T-11)', async () => {
+  const { emailHash } = await import('../functions/_shared.ts');
+  const key = `rl:dashlink:${await emailHash('leak-dl@x.io')}`;
+  const kv = makeKv({ [key]: '3' });
+  // Three KV denies (isolate counter passes, KV refuses)...
+  expect(await dashLinkAllowed(kv, 'leak-dl@x.io')).toBe(false);
+  expect(await dashLinkAllowed(kv, 'leak-dl@x.io')).toBe(false);
+  expect(await dashLinkAllowed(kv, 'leak-dl@x.io')).toBe(false);
+  // ...then the window key expires: the next send must work, proving each
+  // deny returned its isolate unit instead of wedging the address.
+  await kv.delete(key);
+  expect(await dashLinkAllowed(kv, 'leak-dl@x.io')).toBe(true);
+});
+
+test('dashLinkAllowed: a concurrent burst against a full KV budget leaks nothing (T-11)', async () => {
+  const { emailHash } = await import('../functions/_shared.ts');
+  const key = `rl:dashlink:${await emailHash('race-dl@x.io')}`;
+  const kv = makeKv({ [key]: '3' });
+  // Six at once vs a full KV budget: 3 admitted-then-KV-denied, 3 over-cap.
+  // Every unit must be released — none of the six sent anything.
+  const denied = await Promise.all(
+    Array.from({ length: 6 }, () => dashLinkAllowed(kv, 'race-dl@x.io'))
+  );
+  expect(denied.every((d) => d === false)).toBe(true);
+  // Window clears: a FULL fresh budget must remain, proving no leaked units.
+  await kv.delete(key);
+  expect(await dashLinkAllowed(kv, 'race-dl@x.io')).toBe(true);
+  expect(await dashLinkAllowed(kv, 'race-dl@x.io')).toBe(true);
+  expect(await dashLinkAllowed(kv, 'race-dl@x.io')).toBe(true);
+  expect(await dashLinkAllowed(kv, 'race-dl@x.io')).toBe(false);
 });
 
 test('dashboard link email copy: single-use, 15 minutes, privacy', () => {

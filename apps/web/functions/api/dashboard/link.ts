@@ -22,18 +22,52 @@ function json(data, status = 200) {
 const DASHLINK_LIMIT = 3;
 const DASHLINK_WINDOW_SEC = 3600;
 
-async function dashLinkAllowed(kv, email) {
+// In-isolate send counter (same pattern as ogRenderAllowed/ogMem in _data.ts):
+// KV get→put is not atomic, so concurrent sends in one isolate would all read
+// the same stale count and overshoot. The mem counter serializes them; the KV
+// key stays the cross-isolate backstop (with its residual race — see #109).
+const dashMem = new Map();
+function dashMemIncrement(email) {
+  const now = Date.now();
+  if (dashMem.size > 256) {
+    for (const [k, v] of dashMem) if (now >= v.resetAt) dashMem.delete(k);
+  }
+  const cur = dashMem.get(email);
+  if (!cur || now >= cur.resetAt) {
+    dashMem.set(email, { count: 1, resetAt: now + DASHLINK_WINDOW_SEC * 1000 });
+    return 1;
+  }
+  cur.count += 1;
+  return cur.count;
+}
+function dashMemDecrement(email) {
+  const cur = dashMem.get(email);
+  if (!cur || cur.count <= 0) return;
+  cur.count -= 1;
+}
+
+export async function dashLinkAllowed(kv, email) {
   if (!kv) return true;
+  // Over-cap denials must not consume budget: without the release, a burst
+  // would wedge the address until the hour-long mem window resets.
+  if (dashMemIncrement(email) > DASHLINK_LIMIT) {
+    dashMemDecrement(email);
+    return false;
+  }
   // Key on the hashed address, never the raw email, so a rate-limit counter is
   // not a place a plaintext address sits at rest.
   const key = `rl:dashlink:${await emailHash(email)}`;
   try {
     const n = parseInt(await kv.get(key), 10) || 0;
-    if (n >= DASHLINK_LIMIT) return false;
+    if (n >= DASHLINK_LIMIT) {
+      dashMemDecrement(email);
+      return false;
+    }
     await kv.put(key, String(n + 1), { expirationTtl: DASHLINK_WINDOW_SEC });
     return true;
   } catch {
     // Fail closed on the send path when KV is unavailable.
+    dashMemDecrement(email);
     return false;
   }
 }
