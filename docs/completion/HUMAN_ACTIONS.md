@@ -20,3 +20,6 @@
 - **H-07 — Observability values (#97).** Unblocks prod alert wiring. Gates launch: NO. Instruction:
   provide ERROR_WEBHOOK URL, confirm uptime-check target, set SCAN_DAILY_CAP number, SLOP_API_KEY value.
   Verify: agent triggers test alert + cap-key check in staging.
+- **H-08 — Edge checklist (docs/SECURITY.md).** Gates launch: NO. Instruction: walk the five
+  dashboard checkboxes (TLS, WAF rule for POST /api/scan, bots, private reporting, security.txt
+  freshness) and confirm each. Verify: agent re-checks reporting API + security.txt Expires.

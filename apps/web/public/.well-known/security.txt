@@ -1,0 +1,7 @@
+# slop-detect security contact (RFC 9116). Keep Expires ≤1y out; the
+# security-headers suite fails if this file is missing fields or expired.
+Contact: https://github.com/ravidsrk/slop-detect/security/advisories/new
+Contact: https://github.com/ravidsrk/slop-detect/issues
+Expires: 2027-09-14T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://slop-detect.com/.well-known/security.txt

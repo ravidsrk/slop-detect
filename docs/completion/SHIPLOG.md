@@ -150,3 +150,13 @@
   routes → fixed (9 data-layer + og/dashlink/middleware route TTL tests; header points at suites).
 - second look: verified e: prefix from source (not guessed) and BADGE_TTL is HTTP cache, not KV.
 - resume_pointer: P2/T-13
+
+## 2026-09-14 S3/P2 T-13 security headers (G-39, G-40) — DONE
+- branch ravidsrk/p2-sec-headers → PR (see status.json) → merge commit, no squash.
+- Added form-action 'self' to both CSPs (all forms verified same-origin); CSP parity test locks
+  _headers == middleware; security.txt + rule + validity test (fails <30d to expiry); enabled
+  private vuln reporting (was off); docs/SECURITY.md posture + edge checklist; H-08 filed.
+  Skipped upgrade-insecure-requests (breaks local http Pages dev) — logged in SECURITY.md.
+- Evidence: evidence/T-13-gate.txt (reporting true, all 0; web 318). Review: greptile local.
+- second look: no change (scope held: SSRF/authz stay in T-09 per skill boundary split).
+- resume_pointer: P2/T-08
