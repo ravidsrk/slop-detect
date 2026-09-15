@@ -12,7 +12,7 @@
 //                       cap, and Turnstile.
 //   RESEND_API_KEY / ALERT_FROM — to actually deliver alert emails (else no-op).
 
-import { listWatches, getWatch, putWatch } from '../../_shared.js';
+import { listWatches, getWatch, putWatch, deferFlowBump } from '../../_shared.js';
 import { monitorSweep } from '../../_sweep.js';
 import { sendEmail } from '../../_email.js';
 import { buildRegressionAlert, buildDriftAlert, mailFooter } from '../../_alerts.js';
@@ -34,7 +34,7 @@ function safeEqual(a, b) {
   return diff === 0;
 }
 
-export async function onRequestPost({ request, env }) {
+export async function onRequestPost({ request, env, waitUntil }) {
   if (!env.CRON_SECRET)
     return json({ error: 'sweep_disabled', message: 'CRON_SECRET is not configured.' }, 503);
   if (!env.RESULTS) return json({ error: 'storage_unavailable' }, 503);
@@ -151,6 +151,10 @@ export async function onRequestPost({ request, env }) {
     max,
   });
 
+  // Funnel counts, batched (one blob write per event kind, not per watch).
+  if (summary.alerted > 0) deferFlowBump(env, 'watch', 'alerted', summary.alerted, waitUntil);
+  if (summary.driftAlerted > 0)
+    deferFlowBump(env, 'watch', 'drift_alerted', summary.driftAlerted, waitUntil);
   report(env, 'info', 'monitor_sweep', summary);
   return json({ ok: true, ...summary });
 }

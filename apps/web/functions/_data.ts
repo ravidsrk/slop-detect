@@ -769,6 +769,116 @@ export async function getOpsStats(kv, now = new Date()) {
   return { today: t, yesterday: y };
 }
 
+// ── Daily flow analytics (funnel events per critical flow, G-32/T-35) ────────
+// One small JSON blob per UTC day (`stats:flows:YYYY-MM-DD`, same 30d TTL):
+// named counters per flow (watch.subscribed, fixprompt.scanned, …) — the
+// funnel view the per-route ops blobs can't give (a route count can't tell
+// subscribe from unsubscribe, or assembled from scanned).
+// Separate blob from ops BY DESIGN: handlers own every flow bump while the
+// middleware owns every route bump, so the two writer roles never race on
+// the same key (same accepted read-modify-write approximation within a blob
+// as everywhere else here — trending, not billing).
+// Privacy: aggregate counters only. Flow/event names are a fixed allowlist,
+// counts are bare numbers — no domains, emails, IPs, or request IDs can ever
+// enter the blob, so this is first-party product telemetry, not profiling.
+const FLOW_PREFIX = 'stats:flows:';
+const FLOW_EVENTS = {
+  scan: ['completed', 'failed', 'blocked'],
+  fixprompt: ['assembled', 'scanned'],
+  watch: ['subscribed', 'confirmed', 'alerted', 'drift_alerted', 'unsubscribed'],
+  dashboard: ['link_sent', 'session_minted'],
+};
+
+export function flowDateKey(d = new Date()) {
+  return `${FLOW_PREFIX}${d.toISOString().slice(0, 10)}`;
+}
+
+export function mergeFlowBlob(blob, flow, event, count = 1) {
+  // Malformed blobs reset rather than poison (greptile P2 on PR #183): arrays
+  // pass typeof checks but swallow named props in JSON.stringify, so a
+  // `"flows":[]` blob would eat events while reporting success.
+  const plainObject = (v) => v && typeof v === 'object' && !Array.isArray(v);
+  // A malformed `flows` resets the counters but keeps a VALID date (greptile
+  // follow-ups on PR #183) — otherwise /api/stats would serve date:null
+  // until the next event repaired it. Shape-checked: garbage strings reset.
+  const rawDate = plainObject(blob) && blob.date;
+  const keepDate =
+    typeof rawDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : null;
+  const b = plainObject(blob) && plainObject(blob.flows) ? blob : { date: keepDate, flows: {} };
+  if (!plainObject(b.flows[flow])) b.flows[flow] = {};
+  const prev = b.flows[flow][event];
+  b.flows[flow][event] = (typeof prev === 'number' && Number.isFinite(prev) ? prev : 0) + count;
+  return b;
+}
+
+function validFlowEvent(flow, event, count) {
+  return (
+    Object.prototype.hasOwnProperty.call(FLOW_EVENTS, flow) &&
+    FLOW_EVENTS[flow].includes(event) &&
+    Number.isInteger(count) &&
+    count > 0
+  );
+}
+
+export async function bumpFlowStats(kv, flow, event, count = 1, dateKey = null) {
+  if (!kv || !validFlowEvent(flow, event, count)) return false;
+  const key = dateKey || flowDateKey();
+  try {
+    let blob = null;
+    try {
+      const raw = await kv.get(key);
+      blob = raw ? JSON.parse(raw) : null;
+    } catch {
+      blob = null; // corrupted blob: restart the day rather than crash
+    }
+    // The persisted date ALWAYS equals the key's date (greptile follow-up P2
+    // on PR #183): a stored garbage date ("x") must not survive a merge.
+    const merged = mergeFlowBlob(blob, flow, event, count);
+    merged.date = key.slice(FLOW_PREFIX.length);
+    await kv.put(key, JSON.stringify(merged), {
+      expirationTtl: OPS_TTL,
+    });
+    return true;
+  } catch {
+    /* metrics must never break the request */
+    return false;
+  }
+}
+
+export async function getFlowStats(kv, now = new Date()) {
+  if (!kv) return { today: null, yesterday: null };
+  const today = new Date(now);
+  const yesterday = new Date(now.getTime() - 86400000);
+  // Flow blobs carry `.flows`, not `.routes`, so getOpsBlob's shape check
+  // would reject them — read + validate raw (same corruption tolerance).
+  const raw = async (key) => {
+    try {
+      const r = await kv.get(key);
+      if (!r) return null;
+      const o = JSON.parse(r);
+      const plainObject = (v) => v && typeof v === 'object' && !Array.isArray(v);
+      return plainObject(o) && plainObject(o.flows) ? o : null;
+    } catch {
+      return null;
+    }
+  };
+  const [t, y] = await Promise.all([raw(flowDateKey(today)), raw(flowDateKey(yesterday))]);
+  return { today: t, yesterday: y };
+}
+
+// Fire-and-forget emitter for handlers (mirrors deferOpsBump): via the passed
+// context waitUntil when available so the KV write never sits on the latency
+// path, detached otherwise (tests). Never throws, never awaits.
+export function deferFlowBump(env, flow, event, count = 1, waitUntil = null) {
+  try {
+    const p = bumpFlowStats(env ? env.RESULTS : null, flow, event, count);
+    if (typeof waitUntil === 'function') waitUntil(p);
+    else void Promise.resolve(p).catch(() => {});
+  } catch {
+    /* metrics must never break the request */
+  }
+}
+
 // Record EVERY persisted scan into the per-domain timeline + the global stats,
 // regardless of whether the domain is monitored. This is what lets a public
 // /score/<domain> page chart history and rank against peers. Watch

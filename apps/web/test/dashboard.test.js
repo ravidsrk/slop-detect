@@ -333,12 +333,12 @@ test('link endpoint reads exactly one RESULTS index key per lookup [COST-2]', as
 
   await linkPost({ request: postReq({ email: 'known@x.io' }), env });
   // T-31 contract change (surfaced, not silent): the send path adds ONE more
-  // point-read — the bounce-suppression gate (G-46, `sup:` key). The COST-2
-  // intent (O(1) reads, no scans) holds: 1 index lookup + 1 suppression get.
-  // Cost math: a KV read is ~$0.50/M; the email it gates costs ~$1/1K via
-  // Resend — the gate is 2000x cheaper than the send. Any N+1 regression
-  // still blows past 2 and fails here.
-  expect(resultsGets, 'one index get for the lookup + one suppression get').toBe(2);
+  // point-read — the bounce-suppression gate (G-46, `sup:` key). T-35 adds
+  // one more: the funnel blob read for dashboard.link_sent. The COST-2
+  // intent (O(1) reads, no scans) holds: 1 index lookup + 1 suppression get
+  // + 1 funnel-blob get, each named and constant. Any N+1 regression still
+  // blows past 3 and fails here.
+  expect(resultsGets, 'lookup + suppression + funnel reads').toBe(3);
   expect(await getEmailDomains(kv, 'known@x.io')).toEqual(['a.com']);
 });
 

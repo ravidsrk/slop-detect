@@ -21,7 +21,7 @@
 // never anyone else's. noindex, no-store.
 
 import { raw } from 'hono/html';
-import { listWatchesByEmail, consumeDashboardToken } from './_shared.js';
+import { listWatchesByEmail, consumeDashboardToken, deferFlowBump } from './_shared.js';
 import { signSession, sessionEmail, sessionCookie, clearSessionCookie } from './_session.js';
 import { BRAND_FONTS_HEAD, BRAND_CSS } from './_brand.js';
 import { UI_CSS, Nav, Footer, SectionLedger, LetterAvatar } from './_ui.js';
@@ -293,7 +293,7 @@ function DashboardView({ origin, email, watches }) {
   );
 }
 
-export async function onRequestGet({ request, env }) {
+export async function onRequestGet({ request, env, waitUntil }) {
   const url = new URL(request.url);
   const origin = url.origin;
 
@@ -326,6 +326,7 @@ export async function onRequestGet({ request, env }) {
       );
     }
     const session = await signSession(email, env.SESSION_SECRET);
+    deferFlowBump(env, 'dashboard', 'session_minted', 1, waitUntil);
     return new Response(null, {
       status: 302,
       headers: {

@@ -12,7 +12,7 @@
 // 410 expired/used, 404 watch gone (alerts.test.js covers the lifecycle).
 
 import { raw } from 'hono/html';
-import { consumeWatchToken, getWatch, putWatch } from '../../_shared.js';
+import { consumeWatchToken, getWatch, putWatch, deferFlowBump } from '../../_shared.js';
 import { BRAND_FONTS_HEAD, BRAND_CSS } from '../../_brand.js';
 import { Nav, Footer, SectionLedger, Button, UI_CSS } from '../../_ui.js';
 
@@ -100,7 +100,7 @@ function page({
   });
 }
 
-export async function onRequestGet({ request, env }) {
+export async function onRequestGet({ request, env, waitUntil }) {
   if (!env.RESULTS)
     return page({
       title: 'Unavailable',
@@ -173,6 +173,7 @@ export async function onRequestGet({ request, env }) {
   watch.verified = true;
   watch.verifiedAt = new Date().toISOString();
   await putWatch(env.RESULTS, watch);
+  deferFlowBump(env, 'watch', 'confirmed', 1, waitUntil);
 
   return page({
     title: 'Confirmed',

@@ -30,9 +30,18 @@ import {
   fetchAllowedUrl,
   recordScanForWatch,
   bumpOpsStats,
+  bumpFlowStats,
 } from '../_shared.js';
 import { report } from '../_report.js';
 import { requestIdFor } from '../_request-id.js';
+
+// Flow classifier (T-35, exported pure for tests): every deferOps patch maps
+// to exactly one funnel event. Blocked (bot-wall/dead, incl. 422s) is its own
+// event because it's a targeting/deliverability signal, not a failure.
+export function scanFlowEvent(patch) {
+  if (patch && patch.blocked) return 'blocked';
+  return patch && patch.status === 200 ? 'completed' : 'failed';
+}
 
 // Normalize requested axes. Default: design only (backward-compatible).
 const VALID_AXES = ['design', 'copy'];
@@ -70,8 +79,13 @@ export async function onRequestPost({ request, env, waitUntil }) {
     if (body && body.share === false) return;
     try {
       const p = bumpOpsStats(env.RESULTS, 'scan', patch);
-      if (typeof waitUntil === 'function') waitUntil(p);
-      else void Promise.resolve(p).catch(() => {});
+      // Flow event rides the same call (T-35): completed / blocked / failed
+      // derived from the patch, so every exit above is classified exactly
+      // once. share:false skips this too (privacy promise: no KV writes).
+      const f = bumpFlowStats(env.RESULTS, 'scan', scanFlowEvent(patch));
+      const all = Promise.all([p, f]);
+      if (typeof waitUntil === 'function') waitUntil(all);
+      else void Promise.resolve(all).catch(() => {});
     } catch {
       /* metrics must never break the request */
     }
