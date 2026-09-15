@@ -29,6 +29,11 @@ headers, forwarded to Resend via the `headers` field in `sendEmail`.
 4. A token whose email no longer matches the watch is refused (403), so a
    stale link can't stop the new subscriber's alerts. Replays are harmless
    no-ops (200 "already off").
+5. Fail-closed: without `SESSION_SECRET` or `MAIL_POSTAL_ADDRESS` the sweep
+   SKIPS alerts (`sent:false`, `notified` stays false, `mail_postal_missing`
+   warn) instead of sending noncompliant mail — the next configured sweep
+   delivers. Transactional mails (confirmation, magic link) still send with
+   a degraded footer + warn; they are single solicited sends, not bulk.
 
 ## Bounce / complaint path (G-46)
 

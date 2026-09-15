@@ -123,7 +123,11 @@ test('CF-04 chain: subscribe → confirm → regress → exactly-once alert → 
   installFlowFetch({ results, sent, scanPlan, expectKey: 'unlimited-test-key' });
 
   // 1. Subscribe: 201, verification email out, watch stored unverified.
-  const { res: sub, env } = await subscribe(results, rateLimit, 'flow.test', 'owner@flow.test');
+  // Full compliance config (T-31): sweep alerts fail closed without it.
+  const { res: sub, env } = await subscribe(results, rateLimit, 'flow.test', 'owner@flow.test', {
+    SESSION_SECRET: 'chain-secret',
+    MAIL_POSTAL_ADDRESS: '123 Example St',
+  });
   expect(sub.status).toBe(201);
   expect((await sub.json()).verificationSent).toBe(true);
   expect(sent).toHaveLength(1);
@@ -152,6 +156,10 @@ test('CF-04 chain: subscribe → confirm → regress → exactly-once alert → 
   expect(await s1.json()).toMatchObject({ ok: true, considered: 1, scanned: 1, alerted: 1 });
   expect(sent).toHaveLength(2);
   expect(sent[1].to).toContain('owner@flow.test');
+  // T-31: the alert carries the footer + RFC 8058 headers end to end.
+  expect(sent[1].text).toContain('123 Example St');
+  expect(sent[1].headers['List-Unsubscribe']).toMatch(/\/api\/watch\/unsubscribe\?token=/);
+  expect(sent[1].headers['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click');
   expect((await getWatch(results, 'flow.test')).notified).toBe(true);
 
   // 5. Sweep 2 recovers → no mail, notified resets (re-armed).
@@ -209,6 +217,43 @@ test('sweep without a provider retries safe: 200, alerted 0, notified stays fals
   expect(j).toMatchObject({ ok: true, considered: 1, scanned: 1, alerted: 0, errors: 0 });
   expect((await getWatch(results, 'retry.test')).notified).toBe(false);
   expect(sent).toHaveLength(0);
+});
+
+test('sweep without compliance config fails closed: 200, alerted 0, notified stays false', async () => {
+  // Greptile P1 on PR #173: a degraded send would consume the event
+  // (notified=true) with noncompliant mail. Instead the sender skips and the
+  // next configured sweep delivers — same retry-safe shape as no-provider.
+  const results = makeKv();
+  const sent = [];
+  installFlowFetch({ results, sent, scanPlan: [[30, 'Heavy', 'D']], expectKey: 'k' });
+  const env = {
+    RESULTS: results,
+    RATE_LIMIT: makeKv(),
+    RESEND_API_KEY: 're_test',
+    ALERT_FROM: 'Slop Detect <alerts@slop-detect.com>',
+    CRON_SECRET: CRON,
+    INTERNAL_API_KEY: 'k',
+    // SESSION_SECRET and MAIL_POSTAL_ADDRESS deliberately absent.
+  };
+  await watchPost({ request: postReq({ domain: 'closed.test', email: 'owner@closed.test' }), env });
+  const w0 = await getWatch(results, 'closed.test');
+  w0.verified = true;
+  await putWatch(results, w0);
+  await recordScanForWatch(results, slim('closed.test', 5, 'Clean', 'A', 'scan-base'));
+  const res = await sweepPost({ request: sweepReq(`Bearer ${CRON}`), env });
+  expect(res.status).toBe(200);
+  expect(await res.json()).toMatchObject({ ok: true, considered: 1, scanned: 1, alerted: 0 });
+  expect((await getWatch(results, 'closed.test')).notified).toBe(false);
+  expect(sent).toHaveLength(1); // verification only — no alert went out
+  // Recovery: the same event delivers once configured (nothing was consumed).
+  installFlowFetch({ results, sent, scanPlan: [[30, 'Heavy', 'D']], expectKey: 'k' });
+  const res2 = await sweepPost({
+    request: sweepReq(`Bearer ${CRON}`),
+    env: { ...env, SESSION_SECRET: 's', MAIL_POSTAL_ADDRESS: '123 Example St' },
+  });
+  expect((await res2.json()).alerted).toBe(1);
+  expect(sent).toHaveLength(2);
+  expect((await getWatch(results, 'closed.test')).notified).toBe(true);
 });
 
 test('confirm without storage is a 503 page, not a throw', async () => {

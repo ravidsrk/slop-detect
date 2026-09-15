@@ -40,10 +40,21 @@ export async function sendEmail(
   }
   // Bounced/complained addresses stay silent (G-46): the webhook records the
   // suppression, this gate honors it. No KV bound ⇒ can't know ⇒ send (the
-  // local-dev shape; production always binds RESULTS).
-  if (await isSuppressed(env.RESULTS, to)) {
-    report(env, 'info', 'email_suppressed_skip', { to: redact(to), subject });
-    return { sent: false, reason: 'suppressed' };
+  // local-dev shape; production always binds RESULTS). A REJECTING KV fails
+  // closed with a reported reason (greptile P1 on PR #173) — inside
+  // sendEmail's contract ({sent, reason}), never a throw past the caller:
+  // mailing a complainer during a storage blip is worse than a missed mail
+  // the next sweep retries (notified only sets on sent:true).
+  try {
+    if (await isSuppressed(env.RESULTS, to)) {
+      report(env, 'info', 'email_suppressed_skip', { to: redact(to), subject });
+      return { sent: false, reason: 'suppressed' };
+    }
+  } catch (e) {
+    report(env, 'error', 'email_suppression_error', {
+      message: e && e.message ? e.message : String(e),
+    });
+    return { sent: false, reason: 'suppression_unknown' };
   }
   try {
     // One UUID per LOGICAL send, reused across in-loop retries: if Resend

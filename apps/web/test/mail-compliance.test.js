@@ -294,6 +294,29 @@ test('bounced and complained recipients are suppressed; later sends skip', async
   expect(fetched).toBe(1);
 });
 
+test('a rejecting suppression lookup fails closed inside the contract, never throws', async () => {
+  // Greptile P1 on PR #173: a transient KV rejection must not escape
+  // sendEmail as a throw, and must not send blind past the suppressions.
+  const kv = {
+    async get() {
+      throw new Error('KV blip');
+    },
+    async put() {},
+    async delete() {},
+  };
+  let fetched = 0;
+  const res = await sendEmail(
+    { RESEND_API_KEY: 'k', ALERT_FROM: 'a@b.c', RESULTS: kv },
+    { to: 'fine@example.com', subject: 's', text: 't' },
+    async () => {
+      fetched++;
+      return new Response('{}');
+    }
+  );
+  expect(res).toEqual({ sent: false, reason: 'suppression_unknown' });
+  expect(fetched).toBe(0);
+});
+
 test('forged signature, stale timestamp, and missing secret fail closed', async () => {
   const kv = makeKv();
   const env = webhookEnv(kv);
