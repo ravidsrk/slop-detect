@@ -6,8 +6,12 @@ name: deploy
 #   • workflow_run — auto-deploys after the `ci` workflow succeeds on main
 #                    (CI is the gate; a red build never ships). This is the
 #                    continuous-deploy path.
-#   • workflow_dispatch — deploy on demand from the Actions tab.
-#   • tags v*           — deploy when you cut a release tag (v0.6.0, …).
+#   • workflow_dispatch — deploy on demand from the Actions tab. Main only:
+#                    the ref guard below refuses manual runs from any other
+#                    branch (publishing uses --branch main, so anything else
+#                    would ship unreviewed code to production).
+#   • tags v*           — deploy when you cut a release tag (v0.6.0, …) from
+#                    main. The ref guard verifies tag containment in main.
 #
 # Required repository secrets (Settings → Secrets and variables → Actions):
 #   CLOUDFLARE_API_TOKEN   — a scoped token with "Pages: Write".
@@ -52,6 +56,26 @@ jobs:
           if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ] || [ -z "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then
             echo "::error::CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID must be set as repo secrets."
             exit 1
+          fi
+
+      # Publishing uses --branch main, so the checked-out ref MUST be main (or
+      # a tag contained in it) — otherwise a manual run from a feature branch
+      # would ship unreviewed code straight to production (P1 on PR #190).
+      - name: Preflight — ref is production-eligible
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            echo "::error::manual production deploys must run from main (selected: ${{ github.ref }})."
+            exit 1
+          fi
+          if [ "${{ github.event_name }}" = "push" ]; then
+            tag="${{ github.ref_name }}"
+            status=$(gh api "repos/${{ github.repository }}/compare/main...${tag}" --jq '.status' 2>/dev/null) || status="error"
+            if [ "$status" != "identical" ] && [ "$status" != "behind" ]; then
+              echo "::error::release tag ${tag} is not contained in main (compare status: ${status}); cut release tags from main."
+              exit 1
+            fi
           fi
 
       - run: bun install
