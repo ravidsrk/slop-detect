@@ -1,0 +1,65 @@
+T-25 — proven alert on CF failure (G-06, code side)
+Branch: ravidsrk/p4-alert-proof
+
+CLAIM: when a scan fails, the scan_failed alert fires end-to-end —
+handler catch -> report() -> waitUntil -> HTTP POST to ERROR_WEBHOOK —
+with the requestId attached. Proven by inducing a real failure through
+onRequestPost and asserting on the bytes a LIVE stub receiver gets
+(not a fetch mock).
+
+CHANGE (tests + runbook only; zero prod-code changes — the chain
+already worked, it was unproven):
+- apps/web/test/report-e2e.test.js (+2): fake browser whose goto()
+  throws; local http stub receiver. Asserts 502, the POST arrived at
+  /hook, the Slack {text} envelope reads "slop-detect error:
+  scan_failed", and the text carries the requestId + error message.
+  Asserts pending waitUntil count == 2 (T-24 ops bump + webhook POST):
+  a detached POST can die with the response in Workers, so the wiring
+  is pinned, not just the delivery. Second test: no hook configured
+  -> only the ops bump rides waitUntil, zero POSTs.
+- apps/web/test/scan-failure-alert.test.js (+2): locks the console-line
+  contract {ts, level, event, url, message, navMs, patternsErrored,
+  requestId} and per-failure line isolation (trace-a/trace-b).
+- docs/ALERTS.md (new): runbook — every report() event inventoried
+  from code (scan_failed, handler_threw, health_kv_probe_failed,
+  persist_failed, pattern_errors, email_*), severity rule, first
+  responses, ERROR_WEBHOOK wiring, and the known gap that _email.ts
+  reports are detached (no waitUntil at the call site).
+
+NEGATIVE CONTROL (run twice; first attempt taught a lesson):
+- Attempt 1 used a blind substring sabotage ("      waitUntil\n" ->
+  undefined) which silently hit scan.ts:324 (success-path-only
+  persist_failed, 10-space indent containing the 6-space pattern)
+  instead of :344 — a no-op sabotage. Lesson recorded: always verify
+  sabotage location via git diff before trusting a negative control.
+- Attempt 2 anchored on the scan_failed block and verified the diff
+  hunk (-      waitUntil / +      undefined at :344 only). Result:
+  E2E test FAILED as required ("expected [Promise] to have a length
+  of 2 but got 1" — the webhook promise dropped, ops bump remained),
+  no-hook test still passed. scan.ts restored byte-identical (git
+  status clean). Then green.
+
+SCOPE NOTE: an email-redaction assertion was considered and DROPPED:
+scan.ts reports the raw target URL by current contract, and TA's
+mandate is finding breakage, not smuggling new PII behavior through
+a characterization test. Follow-up decision, not taken here.
+
+PROD REMAINDER (owner action, already tracked): H-07 provides the
+ERROR_WEBHOOK secret value in the Pages dashboard. This task proves
+the code fires given the URL; it cannot invent the destination.
+
+=== FORMAT ===
+FORMAT_EXIT=0 (prettier --check, new files --write clean)
+=== TYPECHECK ===
+TYPECHECK_EXIT=0 (turbo, 6 tasks)
+=== TEST ===
+BUN_TEST_EXIT=0
+@slop-detect/action:test:       Tests  7 passed (7)
+@slop-detect/core:test:       Tests  77 passed (77)
+slop-detect-mcp:test:       Tests  14 passed (14)
+slop-detect:test:       Tests  13 passed | 40 skipped (53)
+slop-detect-web:test:       Tests  410 passed (410)
+Base check: web suite with the 2 new files moved aside = 406 passed,
+so 406 + 4 new = 410. (T-24 evidence said 400 — that count predates
+its 6 greptile-fix tests; corrected true T-24 total is 18 new tests
+per PR #160.)
