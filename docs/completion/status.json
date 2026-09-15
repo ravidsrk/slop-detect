@@ -423,7 +423,7 @@
       "issue_url": null,
       "severity": "S1",
       "source": ["F-7-03"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-29"]
     },
     {
@@ -435,7 +435,7 @@
       "issue_url": null,
       "severity": "S1",
       "source": ["F-7-04"],
-      "status": "open",
+      "status": "closed",
       "tasks": ["T-29"]
     },
     {
@@ -1852,7 +1852,8 @@
       "pr": 167,
       "review": null,
       "size": "M",
-      "status": "in_review"
+      "status": "done",
+      "merged": "dcac497"
     },
     {
       "attempts": 0,
