@@ -125,6 +125,33 @@ test('sweep through the middleware: cheap gate passes the scheduler, handler enf
   expect((await authed.json()).ok).toBe(true);
 });
 
+test('sweep Bearer is NOT resolved as an API key, even with RATE_LIMIT bound (T-15)', async () => {
+  // Live prod-breaker found on pages dev: the scheduler's
+  // `Authorization: Bearer <CRON_SECRET>` used to hit API-key resolution and
+  // 401 as invalid_api_key, since a cron secret is not a KV key record.
+  // The middleware must ignore auth on this route; the handler judges it.
+  const req = sweepReq(`Bearer ${CRON}`);
+  const res = await apiGate({
+    request: req,
+    env: { RATE_LIMIT: makeKv() },
+    next: passThrough,
+  });
+  expect(res.status).toBe(200);
+});
+
+test('sweep chain with RATE_LIMIT bound: handler judges the Bearer (T-15)', async () => {
+  const env = { CRON_SECRET: CRON, RESULTS: makeKv(), INTERNAL_API_KEY: 'k', RATE_LIMIT: makeKv() };
+  const chain = (request) => apiGate({ request, env, next: () => sweepPost({ request, env }) });
+  const authed = await chain(sweepReq(`Bearer ${CRON}`));
+  expect(authed.status).toBe(200);
+  expect((await authed.json()).ok).toBe(true);
+  // Wrong secret: the HANDLER's 401 (unauthorized), not the middleware's
+  // invalid_api_key — proving the middleware passed it through untouched.
+  const wrong = await chain(sweepReq('Bearer wrong-secret'));
+  expect(wrong.status).toBe(401);
+  expect((await wrong.json()).error).toBe('unauthorized');
+});
+
 // ── Middleware: API-key paths ────────────────────────────────────────────────
 
 const keyedKv = (records = {}) =>

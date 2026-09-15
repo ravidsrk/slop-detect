@@ -1525,10 +1525,10 @@
     {
       "attempts": 0,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p3-monitor",
       "commit": null,
       "depends_on": [],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-15-watch.txt"],
       "gaps": ["G-01"],
       "id": "T-15",
       "owner": "agent",
@@ -1536,7 +1536,7 @@
       "pr": null,
       "review": null,
       "size": "M",
-      "status": "todo"
+      "status": "in_review"
     },
     {
       "attempts": 0,

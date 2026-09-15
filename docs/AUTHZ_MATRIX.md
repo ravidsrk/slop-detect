@@ -21,7 +21,7 @@ Credential kinds: **none** (public) · **token** (single-use capability URL)
 | /api/fix-prompt {url} | POST | none, gated AS scan | same as scan | authz-matrix.test.js (gate) |
 | /api/watch | POST | none, cheap limit | 429; unsubscribe needs matching email | watch.test.js |
 | /api/dashboard/link | POST | none, cheap limit | 429; 503 unconfigured; always generic 200 | dashboard.test.js |
-| /api/cron/sweep | POST | Bearer [REDACTED] | 401; 503 unconfigured; 500 no INTERNAL_API_KEY | authz-matrix.test.js |
+| /api/cron/sweep | POST | Bearer [REDACTED] (handler-judged; middleware ignores Authorization here — resolving it as an API key 401d every run, T-15) | 401; 503 unconfigured; 500 no INTERNAL_API_KEY | authz-matrix.test.js |
 | /api/patterns, /api/stats, /api/sites | GET | none (public) | n/a | authz-matrix.test.js (patterns), api-stats.test.js, sites.test.js |
 | /api/watch?domain= | GET | none (public, email stripped) | n/a | watch.test.js |
 | /api/watch/confirm?token= | GET | token (single-use, 7d) | login-safe invalid page | alerts.test.js |
