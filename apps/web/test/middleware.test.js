@@ -455,18 +455,33 @@ function todayOpsKey() {
   return `stats:ops:${new Date().toISOString().slice(0, 10)}`;
 }
 
-test('pass-through POST bumps the route req/byStatus blob', async () => {
+test('pass-through POST bumps the route req/byStatus blob (non-scan route)', async () => {
+  // Single-writer rule: scan pass-throughs are owned by scan.ts, so this
+  // exercises a non-scan route (fix-prompt) for the middleware bump.
   const opsKv = makeOpsKv();
   const req = makeRequest({
+    path: '/api/fix-prompt',
     headers: { Origin: ALLOWED, 'CF-Connecting-IP': '203.0.113.216' },
-    body: { url: 'https://x.com' },
+    body: { result: { score: 1 } },
   });
   const res = await onRequest(makeContext(req, { RESULTS: opsKv }));
   expect(res.status).toBe(200);
   await flush();
   const blob = JSON.parse(opsKv.store.get(todayOpsKey()));
-  expect(blob.routes.scan.req).toBe(1);
-  expect(blob.routes.scan.byStatus).toEqual({ 200: 1 });
+  expect(blob.routes['fix-prompt'].req).toBe(1);
+  expect(blob.routes['fix-prompt'].byStatus).toEqual({ 200: 1 });
+});
+
+test('scan pass-throughs are NOT bumped by the middleware (scan.ts owns them)', async () => {
+  const opsKv = makeOpsKv();
+  const req = makeRequest({
+    headers: { Origin: ALLOWED, 'CF-Connecting-IP': '203.0.113.222' },
+    body: { url: 'https://x.com' },
+  });
+  const res = await onRequest(makeContext(req, { RESULTS: opsKv }));
+  expect(res.status).toBe(200);
+  await flush();
+  expect(opsKv.store.size).toBe(0);
 });
 
 test('rejections bump byStatus (403 foreign origin)', async () => {
@@ -511,6 +526,88 @@ test('share:false skips even anonymous ops bumps (privacy promise)', async () =>
   };
   const res = await onRequest(ctx);
   expect(res.status).toBe(200);
+  await flush();
+  expect(opsKv.store.size).toBe(0);
+});
+
+test('oversized declared bodies skip the pre-admission peek (rejection still counted)', async () => {
+  const opsKv = makeOpsKv();
+  // POJO double with an explicit huge content-length (real Requests forbid
+  // setting it by hand); clone would parse, but the cap skips the peek.
+  // Foreign origin forces a middleware rejection, which bumps (peek skipped
+  // means the opt-out is unknown — fail-counted, never fail-blind).
+  let cloned = false;
+  const req = {
+    method: 'POST',
+    url: 'https://slop-detect.com/api/scan',
+    headers: {
+      get: (k) => {
+        const h = {
+          origin: 'https://evil.example.com',
+          'cf-connecting-ip': '203.0.113.220',
+          'content-length': '100000',
+        };
+        return h[k.toLowerCase()] ?? null;
+      },
+    },
+    clone: () => {
+      cloned = true;
+      return { json: async () => ({ url: 'https://x.com', share: false }) };
+    },
+    json: async () => ({ url: 'https://x.com', share: false }),
+  };
+  const res = await onRequest(makeContext(req, { RESULTS: opsKv }));
+  expect(res.status).toBe(403);
+  expect(cloned).toBe(false);
+  await flush();
+  const blob = JSON.parse(opsKv.store.get(todayOpsKey()));
+  expect(blob.routes.scan.req).toBe(1);
+  expect(blob.routes.scan.byStatus).toEqual({ 403: 1 });
+});
+
+test('chunked bodies with unknown length skip the pre-admission peek', async () => {
+  const opsKv = makeOpsKv();
+  let cloned = false;
+  const req = {
+    method: 'POST',
+    url: 'https://slop-detect.com/api/scan',
+    headers: {
+      get: (k) => {
+        const h = {
+          origin: 'https://evil.example.com',
+          'cf-connecting-ip': '203.0.113.221',
+          'transfer-encoding': 'chunked',
+        };
+        return h[k.toLowerCase()] ?? null;
+      },
+    },
+    clone: () => {
+      cloned = true;
+      return { json: async () => ({ url: 'https://x.com' }) };
+    },
+    json: async () => ({ url: 'https://x.com' }),
+  };
+  const res = await onRequest(makeContext(req, { RESULTS: opsKv }));
+  expect(res.status).toBe(403);
+  expect(cloned).toBe(false);
+  await flush();
+  expect(JSON.parse(opsKv.store.get(todayOpsKey())).routes.scan.req).toBe(1);
+});
+
+test('share:false scan REJECTIONS are not bumped (peek drives the opt-out)', async () => {
+  // Real Request so the peek can actually parse the share:false flag.
+  const opsKv = makeOpsKv();
+  const req = new Request('https://slop-detect.com/api/scan', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Origin: 'https://evil.example.com',
+      'CF-Connecting-IP': '203.0.113.223',
+    },
+    body: JSON.stringify({ url: 'https://x.com', share: false }),
+  });
+  const res = await onRequest(makeContext(req, { RESULTS: opsKv }));
+  expect(res.status).toBe(403);
   await flush();
   expect(opsKv.store.size).toBe(0);
 });

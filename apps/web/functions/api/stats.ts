@@ -32,8 +32,10 @@ export async function onRequestGet({ env }) {
       heavy: 0,
       ops: { today: null, yesterday: null },
     });
-  const stats = await getStats(env.RESULTS).catch(() => null);
-  const ops = await getOpsStats(env.RESULTS).catch(() => ({ today: null, yesterday: null }));
+  const [stats, ops] = await Promise.all([
+    getStats(env.RESULTS).catch(() => null),
+    getOpsStats(env.RESULTS).catch(() => ({ today: null, yesterday: null })),
+  ]);
   return json({
     ...(stats || { count: 0, avgScore: 0, slopShare: 0, clean: 0, mild: 0, heavy: 0 }),
     ops,

@@ -83,8 +83,8 @@ function deferOpsBump(env, waitUntil, routeLabel, patch) {
 
 // Convert a thrown handler into a traced JSON 500 (never leak the stack to
 // the caller — it goes to the log line, keyed by the same request ID).
-function tracedFailure(env, requestId, origin, url, routeLabel, err, waitUntil) {
-  deferOpsBump(env, waitUntil, routeLabel, { status: 500 });
+function tracedFailure(env, requestId, origin, url, routeLabel, opsOptOut, err, waitUntil) {
+  if (!opsOptOut) deferOpsBump(env, waitUntil, routeLabel, { status: 500 });
   report(
     env,
     'error',
@@ -298,7 +298,22 @@ export async function onRequest(context) {
   // break any later request.clone() peek. One peek serves both consumers
   // below (fix-prompt gating, scan share:false opt-out).
   let peeked = null;
-  if ((routeLabel === 'scan' || routeLabel === 'fix-prompt') && request.method === 'POST') {
+  // Bounded pre-admission peek: only bodies with a declared small size are
+  // parsed before the gates (fix-prompt{url} detection needs the body, and
+  // scan share:false needs it for the metrics opt-out). Oversized or
+  // chunked-unknown bodies skip the peek — the handler still validates them,
+  // and attackers can't force unbounded pre-admission parsing.
+  // (fix-prompt{result} bodies can exceed the cap legitimately; skipping the
+  // peek just gates them as fix-prompt, which is their correct cheap bucket.)
+  const contentLength = Number(request.headers.get('content-length') || 0);
+  const chunkedUnknown =
+    !contentLength && /chunked/i.test(request.headers.get('transfer-encoding') || '');
+  if (
+    (routeLabel === 'scan' || routeLabel === 'fix-prompt') &&
+    request.method === 'POST' &&
+    !chunkedUnknown &&
+    contentLength <= 65536
+  ) {
     try {
       peeked = await request.clone().json();
     } catch {
@@ -327,7 +342,16 @@ export async function onRequest(context) {
     try {
       res = await next(fwdRequest);
     } catch (err) {
-      return tracedFailure(env, requestId, origin, url, routeLabel, err, context.waitUntil);
+      return tracedFailure(
+        env,
+        requestId,
+        origin,
+        url,
+        routeLabel,
+        opsOptOut,
+        err,
+        context.waitUntil
+      );
     }
     deferOpsBump(env, context.waitUntil, routeLabel, { status: res.status });
     const merged = new Response(res.body, res);
@@ -587,9 +611,24 @@ export async function onRequest(context) {
   try {
     res = await next(fwdRequest);
   } catch (err) {
-    return tracedFailure(env, requestId, origin, url, routeLabel, err, context.waitUntil);
+    return tracedFailure(
+      env,
+      requestId,
+      origin,
+      url,
+      routeLabel,
+      opsOptOut,
+      err,
+      context.waitUntil
+    );
   }
-  if (!opsOptOut) deferOpsBump(env, context.waitUntil, routeLabel, { status: res.status });
+  // Single-writer rule: scan.ts owns every scan-route bump (status + detail in
+  // ONE read-modify-write), so the middleware skips scan pass-throughs —
+  // otherwise the two concurrent bumps race on the same daily blob and the
+  // loser silently discards the winner's half.
+  if (routeLabel !== 'scan' && !opsOptOut) {
+    deferOpsBump(env, context.waitUntil, routeLabel, { status: res.status });
+  }
   // Attach CORS headers + rate-limit metadata to whatever the handler returns.
   const merged = new Response(res.body, res);
   for (const [k, v] of Object.entries(corsHeaders(origin))) {

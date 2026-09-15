@@ -59,3 +59,20 @@ slop-detect-web:test:       Tests  400 passed (400)
 (typecheck fixup: annotated mergeOpsBlob patch param; dropped the 2
 stale trailing args at the 9 reject() sites — reject closes over
 origin/requestId. Reran: typecheck 0, 4 suites 77/77.)
+
+GREPTILE (4 threads, all fixed):
+- P1 read-modify-write race (middleware + scan bumps): restructured to
+  single-writer — scan.ts owns EVERY scan-route bump (status + detail,
+  one write per return path incl. all early 400s/500 and the 502
+  catch); middleware skips scan pass-throughs. Tests reworked to the
+  new ownership (+1 early-error bump test). TDZ note: `let body`
+  hoisted above deferOps (BROWSER-missing path runs pre-parse).
+- P1 tracedFailure bypassed opsOptOut: opt-out threaded in; pinned by
+  a share:false rejection test (real Request, store stays empty).
+- P1/security pre-admission parsing: peek now bounded (declared
+  content-length <= 64KB, chunked-unknown skipped) — abuse case
+  pinned by 2 tests asserting clone() is never reached + the
+  rejection still counts. Residual: oversized share:false bodies
+  count on middleware rejections (handler still honors share);
+  documented, accepted (unbounded pre-admission parse is worse).
+- P2 stats.ts sequential reads: Promise.all applied as suggested.

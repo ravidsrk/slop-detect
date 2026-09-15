@@ -611,9 +611,9 @@ function navBucket(ms) {
 }
 
 // Pure merge: returns the updated blob. `req` increments iff patch.status is
-// present — the middleware always passes status (uniform per-route counts),
-// while scan.ts passes tier/navMs/blocked detail WITHOUT status so scan
-// requests are never double-counted across the two bump sites.
+// present. Single-writer rule per route: the middleware owns every non-scan
+// route's bumps, and scan.ts owns every scan-route bump (status + detail in
+// one write) — the two never race on the same blob.
 export function mergeOpsBlob(
   blob,
   route,

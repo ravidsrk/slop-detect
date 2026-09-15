@@ -208,7 +208,7 @@ test('mergeOpsBlob counts req/byStatus only when status is present (no double-co
   let b = mergeOpsBlob(null, 'scan', { status: 200 });
   expect(b.routes.scan.req).toBe(1);
   expect(b.routes.scan.byStatus).toEqual({ 200: 1 });
-  // scan.ts detail bump carries no status: tiers grow, req does not.
+  // Detail-only patches (no status) grow tiers/buckets without touching req.
   // navMs lands in latency buckets (120ms and 9s), never an average.
   b = mergeOpsBlob(b, 'scan', { tier: 'Clean', navMs: 120 });
   b = mergeOpsBlob(b, 'scan', { tier: 'Mild', navMs: 9000 });

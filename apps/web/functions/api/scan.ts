@@ -59,11 +59,15 @@ export async function onRequestPost({ request, env, waitUntil }) {
   // requestIdFor re-derives deterministically when the middleware is absent
   // (tests, other runtimes) — cf-ray, echoed x-request-id, else fresh UUID.
   const requestId = request.headers?.get?.('x-request-id') || requestIdFor(request);
-  // Ops detail (G-05): tier/navMs/blocked only — NO status, so the middleware's
-  // uniform req/byStatus bump and this one never double-count a scan.
+  // Declared early: deferOps reads it, and the BROWSER-missing bump below runs
+  // before the body parse (TDZ would swallow that bump into the catch).
+  let body;
+  // Ops metrics (G-05), single-writer: scan.ts owns EVERY scan-route bump
+  // (status + detail in one read-modify-write per request); the middleware
+  // skips scan pass-throughs so the two never race on the daily blob.
   // share:false skips even anonymous bumps (privacy promise: no KV writes).
   const deferOps = (patch) => {
-    if (body.share === false) return;
+    if (body && body.share === false) return;
     try {
       const p = bumpOpsStats(env.RESULTS, 'scan', patch);
       if (typeof waitUntil === 'function') waitUntil(p);
@@ -73,19 +77,23 @@ export async function onRequestPost({ request, env, waitUntil }) {
     }
   };
   if (!env.BROWSER) {
+    deferOps({ status: 500 });
     return json({ error: 'BROWSER binding missing — check wrangler.toml', requestId }, 500);
   }
 
-  let body;
   try {
     body = await request.json();
   } catch {
+    deferOps({ status: 400 });
     return json({ error: 'Invalid JSON body', requestId }, 400);
   }
 
   // Validate + SSRF-guard the target (blocks private/loopback/metadata hosts).
   const checked = validateScanUrl(body?.url);
-  if (checked.error) return json({ error: checked.error, requestId }, checked.status);
+  if (checked.error) {
+    deferOps({ status: checked.status });
+    return json({ error: checked.error, requestId }, checked.status);
+  }
   const url = checked.url;
   const requestedHost = new URL(url).hostname.toLowerCase();
 
@@ -94,7 +102,10 @@ export async function onRequestPost({ request, env, waitUntil }) {
   const wantsSystem = body.designMd === true || typeof body.designMd === 'string';
   if (typeof body.designMd === 'string') {
     const dv = validateScanUrl(body.designMd);
-    if (dv.error) return json({ error: `designMd: ${dv.error}`, requestId }, dv.status || 400);
+    if (dv.error) {
+      deferOps({ status: dv.status || 400 });
+      return json({ error: `designMd: ${dv.error}`, requestId }, dv.status || 400);
+    }
   }
 
   // Build the page-side IIFE that runs all detectors in one round-trip.
@@ -140,6 +151,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
     try {
       finalNavHost = new URL(finalNavUrl).hostname.toLowerCase();
     } catch {
+      deferOps({ status: 400 });
       return json(
         {
           error: 'Scan refused: navigation ended on an invalid URL.',
@@ -152,6 +164,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
       );
     }
     if (!isAllowedUrl(finalNavUrl) || finalNavHost !== requestedHost) {
+      deferOps({ status: 400 });
       return json(
         {
           error: 'Scan refused: the URL redirected to a disallowed (private/internal) host.',
@@ -168,7 +181,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
     // don't silently return a fake "Clean 0".
     const blocked = detectBlocked(data, { url, finalUrl: finalNavUrl });
     if (blocked) {
-      deferOps({ blocked: blocked.code });
+      deferOps({ status: 422, blocked: blocked.code });
       return json(
         {
           error: blocked.reason,
@@ -303,7 +316,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
       }
     }
 
-    deferOps({ tier: result.tier, navMs });
+    deferOps({ status: 200, tier: result.tier, navMs });
     return json(result);
   } catch (err) {
     // Surface scan failures instead of swallowing them (no PII: url only).
@@ -327,6 +340,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
     // stringified detail; only null/undefined fall back to generic.
     const message =
       err && err.message ? err.message : err == null ? 'Scan failed (browser error)' : String(err);
+    deferOps({ status: 502 });
     return json({ error: message, requestId }, 502);
   } finally {
     await releaseBrowser(browser);

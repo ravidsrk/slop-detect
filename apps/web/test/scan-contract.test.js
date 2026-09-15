@@ -414,7 +414,7 @@ test('502 bodies carry the forwarded x-request-id', async () => {
   expect(r.requestId).toBe('trace-502');
 });
 
-test('a successful scan bumps tier + navMs detail (no status: no double-count)', async () => {
+test('a successful scan bumps status + tier + navMs in one write (single-writer)', async () => {
   const store = new Map();
   const opsKv = {
     get: async (k) => (store.has(k) ? store.get(k) : null),
@@ -437,10 +437,32 @@ test('a successful scan bumps tier + navMs detail (no status: no double-count)',
   await Promise.all(pending);
   const key = `stats:ops:${new Date().toISOString().slice(0, 10)}`;
   const blob = JSON.parse(store.get(key));
-  // req stays 0 here: the middleware owns req/byStatus; scan.ts adds detail.
-  expect(blob.routes.scan.req).toBe(0);
+  // Single write carries req + status + detail (middleware skips scan routes).
+  expect(blob.routes.scan.req).toBe(1);
+  expect(blob.routes.scan.byStatus).toEqual({ 200: 1 });
   expect(blob.routes.scan.tiers[r.tier]).toBe(1);
   expect(Object.values(blob.routes.scan.navMs).reduce((a, b) => a + b, 0)).toBe(1);
+});
+
+test('early scan errors bump status (single-writer covers every return path)', async () => {
+  const store = new Map();
+  const kv = {
+    get: async (k) => (store.has(k) ? store.get(k) : null),
+    put: async (k, v) => {
+      store.set(k, v);
+    },
+  };
+  const pending = [];
+  const res = await onRequestPost({
+    request: postReq({}),
+    env: { BROWSER: {}, RESULTS: kv },
+    waitUntil: (p) => pending.push(p),
+  });
+  expect(res.status).toBe(400);
+  await Promise.all(pending);
+  const blob = JSON.parse(store.get(`stats:ops:${new Date().toISOString().slice(0, 10)}`));
+  expect(blob.routes.scan.req).toBe(1);
+  expect(blob.routes.scan.byStatus).toEqual({ 400: 1 });
 });
 
 test('the 502 report log line carries the requestId', async () => {
