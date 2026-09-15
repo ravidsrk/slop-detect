@@ -1,0 +1,28 @@
+=== T-12 image version exposure (verify-first) ===
+--- emission sweep: version identifiers in badge/og handlers + badge renderer ---
+--- (_card.tsx excluded from this grep; its intentional defs label is recorded
+---  as the sole known emission in the next section) ---
+(no matches)
+--- sole emission: OG card defs label (_card.tsx:107) ---
+47:  /* masthead: the logo lockup + a mono defs stamp */
+107:          <div class="defs">{slim.definitionsVersion ? `defs ${slim.definitionsVersion}` : ''}</div>
+--- cardHtml never served as HTML (screenshot only) ---
+functions/og/[id].ts:3:// Renders the cardHtml() layout inside Cloudflare Browser Rendering and
+functions/og/[id].ts:10:import { cardHtml } from '../_card.js';
+functions/og/[id].ts:52:    await page.setContent(cardHtml(slim), { waitUntil: 'networkidle0', timeout: 15000 });
+--- tripwire tests ---
+ Test Files  2 passed (2)
+      Tests  19 passed (19)
+=== FORMAT ===
+FORMAT_EXIT=0
+=== LINT ===
+LINT_EXIT=0
+=== TYPECHECK ===
+TYPECHECK_EXIT=0
+=== TEST ===
+TEST_EXIT=0
+@slop-detect/action:test:       Tests  7 passed (7)
+slop-detect:test:       Tests  12 passed | 10 skipped (22)
+slop-detect-mcp:test:       Tests  14 passed (14)
+@slop-detect/core:test:       Tests  71 passed (71)
+slop-detect-web:test:       Tests  357 passed (357)

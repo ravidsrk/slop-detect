@@ -1469,23 +1469,24 @@
       "pr": "https://github.com/ravidsrk/slop-detect/pull/133",
       "review": null,
       "size": "M",
-      "status": "in_review"
+      "status": "done",
+      "merged": "ea676ab"
     },
     {
       "attempts": 0,
       "block_signature": null,
-      "branch": null,
+      "branch": "ravidsrk/p2-img-version",
       "commit": null,
       "depends_on": [],
-      "evidence": [],
+      "evidence": ["docs/completion/evidence/T-12-img.txt"],
       "gaps": ["G-29"],
       "id": "T-12",
       "owner": "agent",
       "plan_phase": "P2",
-      "pr": null,
+      "pr": "https://github.com/ravidsrk/slop-detect/pull/134",
       "review": null,
       "size": "S",
-      "status": "todo"
+      "status": "in_review"
     },
     {
       "attempts": 1,
