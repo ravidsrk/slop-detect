@@ -281,4 +281,18 @@
   historical spec prose intentionally left as audit trail.
 - CUT-pin test (tombstone + dir-absent). No other dead surfaces found.
 - Evidence: evidence/T-16-cut.txt (all 0; web 366). Zero review threads.
-- resume_pointer: P3/T-20
+- resume_pointer: P3/T-20 (T-16 merged 52cf1df)
+
+## 2026-09-15 S3/P3 T-20 focus trap (G-30) — DONE
+- branch ravidsrk/p3-focus-trap → PR #139 → merged 2eabc1a, no squash.
+- access-it scoped run (CONFORMANT-WITH-MANUAL-PARKED): aria-modal, Tab
+  trap + outside-focus pullback, initial focus, invoker return with #go
+  fallback, stray-Escape guard. Playwright oracle: 8/8 trapped, wrap +
+  return verified, revert control 8/8 escapes. axe unchanged (4 pre-
+  existing page issues, none modal).
+- Committed cli/test/modal-trap.test.js (RUN_GOLDEN + CI golden line);
+  fails on reverted code. Parks: SR announcement, focus visibility,
+  page axe issues. Presence pin in landing.test.js.
+- Evidence: evidence/T-20-trap.txt (all 0; web 367). Greptile 2 P1 + 2
+  P2s — all fixed, replied in-thread.
+- resume_pointer: P3/T-21
