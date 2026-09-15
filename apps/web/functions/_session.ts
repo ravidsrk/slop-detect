@@ -135,3 +135,28 @@ export async function sessionEmail(request, secret) {
   const token = readSessionToken(request);
   return token ? verifySession(token, secret) : null;
 }
+
+// CSRF backstop for the cookie-authed /api/me/* routes (T-32). The middleware
+// already rejects foreign origins and the cookie is SameSite=Lax (never sent
+// on cross-site POSTs); this makes the route safe even if either regresses.
+// Absent Origin/Referer ⇒ allow (curl/CLI carry no origin, and a stolen
+// cookie is credential theft, not CSRF). Present-but-foreign ⇒ reject.
+export function isForeignOrigin(request) {
+  let origin = '';
+  let referer = '';
+  let host = '';
+  if (request.headers && typeof request.headers.get === 'function') {
+    origin = request.headers.get('Origin') || '';
+    referer = request.headers.get('Referer') || '';
+    host = request.headers.get('Host') || '';
+  }
+  const cand = origin || referer;
+  if (!cand) return false;
+  try {
+    const candHost = new URL(cand, `https://${host || 'slop-detect.com'}`).host;
+    const selfHost = host || new URL(request.url).host;
+    return candHost !== selfHost;
+  } catch {
+    return true;
+  }
+}

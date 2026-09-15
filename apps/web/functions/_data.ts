@@ -247,6 +247,14 @@ export async function addSuppression(kv, email, reason): Promise<void> {
   );
 }
 
+// Erasure (T-32): dropping the suppression re-arms delivery, which is what
+// "forget me" means — a re-subscribe starts clean. The next bounce
+// re-suppresses, so this can't be used to launder a dead address for long.
+export async function deleteSuppression(kv, email): Promise<void> {
+  if (!kv || !email) return;
+  await kv.delete(await suppressionKey(email));
+}
+
 // ── Per-recipient confirmation-email cap (anti email-bomb) ────────────────────
 // /api/watch issues a double-opt-in email to a CALLER-SUPPLIED address, so the
 // per-IP middleware limit alone lets one IP mail an arbitrary victim ~20×/min

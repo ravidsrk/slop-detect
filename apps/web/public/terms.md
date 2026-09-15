@@ -109,7 +109,9 @@ PRECEDING 12 MONTHS (ZERO IF YOU USED ONLY FREE TIERS).
 ## 9. Termination and deletion
 
 You may stop using the service at any time; cancellation of monitoring is in
-section 5. We may suspend or terminate access for terms violations or to
+section 5. Self-serve export and erasure of everything tied to your email
+are at `GET /api/me/export` and `POST /api/me/erase` (dashboard sign-in
+required). We may suspend or terminate access for terms violations or to
 protect the service. To delete stored scan results, badges, or directory
 entries, open an issue at
 <https://github.com/ravidsrk/slop-detect/issues> or contact the maintainer

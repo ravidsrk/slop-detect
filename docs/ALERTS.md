@@ -36,6 +36,7 @@ Envelope shape (asserted byte-for-byte by the E2E test):
 | `email_webhook_bad_sig` | warn | `api/email/webhook.ts` | Webhook POST failed Svix verification (forgery, clock skew, wrong secret) | If persistent, check `RESEND_WEBHOOK_SECRET`; occasional hits are scanners |
 | `mail_postal_missing` | warn | `cron/sweep.ts`, `api/watch.ts`, `api/dashboard/link.ts` | Sweep SKIPS the alert (fail-closed, `not_configured`, notified stays false); transactional mails send with a degraded footer | Set `MAIL_POSTAL_ADDRESS` (H-02); every sweep skip self-heals on the next configured run |
 | `email_suppression_error` | error | `_email.ts` | Suppression lookup threw (KV blip); mail skipped fail-closed (`suppression_unknown`), never sent blind | Transient KV; if persistent, check the RESULTS binding. Sweep alerts self-heal (notified only sets on sent:true, next run retries); verification + dashboard-link sends need the user to re-request (both routes stay 200, so retry is just another POST) |
+| `data_exported`, `data_erased` | info | `api/me/export.ts`, `api/me/erase.ts` | Self-serve rights request completed (redacted email + counts) — the erasure audit trail | None — working as designed; a burst of erasures is a product signal, not an incident |
 
 Severity rule: `error` = a request failed or a dependency is down (page
 someone); `warn` = degraded but serving (ticket, next business day).
