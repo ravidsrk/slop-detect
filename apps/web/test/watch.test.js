@@ -287,6 +287,21 @@ test('watchVerifyAllowed: a same-isolate burst cannot overshoot 3/hour (T-11)', 
   expect(results.filter(Boolean).length).toBe(3);
 });
 
+test('watchVerifyAllowed: a concurrent burst against a full KV budget leaks nothing (T-11)', async () => {
+  const { emailHash } = await import('../functions/_shared.ts');
+  const key = `rl:watchverify:${await emailHash('race-wv@x.io')}`;
+  const kv = makeKv({ [key]: '3' });
+  const denied = await Promise.all(
+    Array.from({ length: 6 }, () => watchVerifyAllowed(kv, 'race-wv@x.io'))
+  );
+  expect(denied.every((d) => d === false)).toBe(true);
+  await kv.delete(key);
+  expect(await watchVerifyAllowed(kv, 'race-wv@x.io')).toBe(true);
+  expect(await watchVerifyAllowed(kv, 'race-wv@x.io')).toBe(true);
+  expect(await watchVerifyAllowed(kv, 'race-wv@x.io')).toBe(true);
+  expect(await watchVerifyAllowed(kv, 'race-wv@x.io')).toBe(false);
+});
+
 test('POST /api/watch stops emailing one address after the per-recipient cap', async () => {
   let sends = 0;
   globalThis.fetch = async (url) => {

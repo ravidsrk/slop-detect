@@ -282,6 +282,24 @@ test('dashLinkAllowed: a KV deny does not leak isolate budget (T-11)', async () 
   expect(await dashLinkAllowed(kv, 'leak-dl@x.io')).toBe(true);
 });
 
+test('dashLinkAllowed: a concurrent burst against a full KV budget leaks nothing (T-11)', async () => {
+  const { emailHash } = await import('../functions/_shared.ts');
+  const key = `rl:dashlink:${await emailHash('race-dl@x.io')}`;
+  const kv = makeKv({ [key]: '3' });
+  // Six at once vs a full KV budget: 3 admitted-then-KV-denied, 3 over-cap.
+  // Every unit must be released — none of the six sent anything.
+  const denied = await Promise.all(
+    Array.from({ length: 6 }, () => dashLinkAllowed(kv, 'race-dl@x.io'))
+  );
+  expect(denied.every((d) => d === false)).toBe(true);
+  // Window clears: a FULL fresh budget must remain, proving no leaked units.
+  await kv.delete(key);
+  expect(await dashLinkAllowed(kv, 'race-dl@x.io')).toBe(true);
+  expect(await dashLinkAllowed(kv, 'race-dl@x.io')).toBe(true);
+  expect(await dashLinkAllowed(kv, 'race-dl@x.io')).toBe(true);
+  expect(await dashLinkAllowed(kv, 'race-dl@x.io')).toBe(false);
+});
+
 test('dashboard link email copy: single-use, 15 minutes, privacy', () => {
   const m = buildDashboardLinkEmail('https://slop-detect.com/dashboard?token=abc', 3);
   expect(m.text).toMatch(/token=abc/);

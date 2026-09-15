@@ -48,7 +48,12 @@ function dashMemDecrement(email) {
 
 export async function dashLinkAllowed(kv, email) {
   if (!kv) return true;
-  if (dashMemIncrement(email) > DASHLINK_LIMIT) return false;
+  // Over-cap denials must not consume budget: without the release, a burst
+  // would wedge the address until the hour-long mem window resets.
+  if (dashMemIncrement(email) > DASHLINK_LIMIT) {
+    dashMemDecrement(email);
+    return false;
+  }
   // Key on the hashed address, never the raw email, so a rate-limit counter is
   // not a place a plaintext address sits at rest.
   const key = `rl:dashlink:${await emailHash(email)}`;

@@ -21,8 +21,17 @@ the last column.
 
 Proven: COST-1 (scan burst), the T-11 dashlink/watchverify burst tests
 (10 parallel vs slow KV → exactly 3; the watchverify test fails 10-vs-3
-on the pre-T-11 code), the dashlink budget-leak test (KV denies return
-their isolate unit).
+on the pre-T-11 code), the budget-leak tests (KV denies AND over-cap
+denies both release their isolate unit — mem tracks admissions, not
+attempts).
+
+Known imperfection, accepted: the 60s-window mem counters (middleware
+rate buckets, ogMem) count attempts, not admissions — a burst inflates
+them past the cap. Harmless there: the window is 60s, the direction is
+fail-closed/conservative, and the daily-cap verdict is unchanged by it
+(denied requests only pile on once the cap is already reached). The
+1-hour email gates release on deny (above) because an hour-long wedge
+of legitimate mail is not acceptable.
 
 What stays racy (accepted, not fixed — fix needs a Durable Object or the
 Rate Limiting API, parked on #109 `needs-human`):

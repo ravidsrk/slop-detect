@@ -255,7 +255,13 @@ function wvMemDecrement(email) {
 }
 export async function watchVerifyAllowed(kv, email) {
   if (!kv || !email) return false;
-  if (wvMemIncrement(email) > WATCH_VERIFY_LIMIT) return false;
+  // Over-cap denials release their unit (same as dashLinkAllowed): the mem
+  // count tracks admissions, not attempts, so a burst can't wedge the address
+  // for the hour after the KV window clears.
+  if (wvMemIncrement(email) > WATCH_VERIFY_LIMIT) {
+    wvMemDecrement(email);
+    return false;
+  }
   try {
     const key = `rl:watchverify:${await emailHash(email)}`;
     const n = parseInt(await kv.get(key), 10) || 0;
