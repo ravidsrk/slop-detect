@@ -500,3 +500,16 @@
   surfaced with cost math; chain test pins List-Unsubscribe end to end.
 - Evidence: evidence/T-31-mail.txt.
 - resume_pointer: P5/T-32
+
+## 2026-09-15 S3/P5 T-32 export/erasure + retention (G-17, G-35) — DONE
+- branch ravidsrk/p5-rights → PR #175 → merged 4784a1f, no squash.
+- /api/me/export (session-authed download + notes) + /api/me/erase
+  (index-recovering, ownership-checked, echo-guarded, idempotent,
+  counters deleted, cookie cleared); isForeignOrigin backstop;
+  RETENTION.md; audit events; policy wiring. G-17/G-35 CLOSED.
+  P5 AGENT-COMPLETE — all 3 exit criteria met; owner remainder H-02 open
+  (mail secrets + webhook registration, launch-gating).
+- Greptile 1 P1 + 2 P2 — all fixed + replied in-thread (index recovery,
+  null-body 400, counter disclosure/deletion + tripwire).
+- Evidence: evidence/T-32-rights.txt.
+- resume_pointer: P6/T-36
