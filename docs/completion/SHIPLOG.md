@@ -255,4 +255,19 @@
   fixed in 81ce6ea, replied in-thread.
 - second look: local .wrangler/.dev.vars junk broke lint mid-task —
   deleted; tree clean. Both S0s now closed at agent level.
-- resume_pointer: P3/T-17
+- resume_pointer: P3/T-17 (T-15 merged e4efb52)
+
+## 2026-09-14 S3/P3 T-17 calibration repro (G-03) — DONE (agent part; re-weight = H-05)
+- branch ravidsrk/p3-calibration → PR #137 → merged 137fd6d, no squash.
+- Repro #100 on current defs: Linear 23→19, Vercel 21→17, Stripe 19 (all
+  Mild; Class-1 already cleared Heavy). Pixel truth exposed centered_hero
+  firing on Linear's LEFT-aligned hero: geometric fallback vs full-width
+  blocks. Fix: content-box gaps (padding/border subtracted) + abstain
+  under ancestor transform/zoom. 3 fixtures + golden test, 8/8 RUN_GOLDEN.
+- No defs bump (rule set + weights unchanged — precision fix). #100 stays
+  OPEN (launch-blocker + needs-human), commented; residual = class-2/3
+  corpus re-weighting. Chose fixture regression over live goldens (flaky).
+- Evidence: evidence/T-17-calibration.txt (all 0; goldens 8/8). Greptile
+  2 P1s (padded defeat, transform skew) — fixed in d590c8d/7f2cda8,
+  replied in-thread. TDZ slip caught by tsc DTS, fixed same commit.
+- resume_pointer: P3/T-16
