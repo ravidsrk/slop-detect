@@ -1,0 +1,23 @@
+=== T-09 authz matrix ===
+--- auth surface (authz+middleware+dashboard+watch+alerts) ---
+ ✓ test/middleware.test.js (15 tests) 5ms
+ ✓ test/watch.test.js (15 tests) 7ms
+ ✓ test/alerts.test.js (13 tests) 6ms
+ ✓ test/authz-matrix.test.js (14 tests) 8ms
+ ✓ test/dashboard.test.js (17 tests) 1087ms
+   ✓ link endpoint defers rate-limit work to waitUntil (latency-safe anti-enumeration) 1071ms
+ Test Files  5 passed (5)
+      Tests  74 passed (74)
+=== FORMAT ===
+FORMAT_EXIT=0
+=== LINT ===
+LINT_EXIT=0
+=== TYPECHECK ===
+TYPECHECK_EXIT=0
+=== TEST ===
+TEST_EXIT=0
+@slop-detect/action:test:       Tests  7 passed (7)
+slop-detect-mcp:test:       Tests  14 passed (14)
+slop-detect:test:       Tests  12 passed | 10 skipped (22)
+@slop-detect/core:test:       Tests  71 passed (71)
+slop-detect-web:test:       Tests  348 passed (348)

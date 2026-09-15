@@ -14,7 +14,7 @@ Three layers, each tested. Report issues via
   `http://localhost` Pages dev), HSTS `preload` (one-way commitment),
   CSP nonces (needs inline-script refactor — a follow-up, not this run).
 
-## Application (see T-09 authz matrix, T-07 secret scan)
+## Application (see [AUTHZ_MATRIX.md](AUTHZ_MATRIX.md), T-07 secret scan)
 
 - Sessions: stateless HMAC cookies (30d), `__Host-` prefix, Secure/HttpOnly/SameSite.
 - SSRF boundary around every server-side fetch (redirect + metadata guards).
