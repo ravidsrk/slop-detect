@@ -159,4 +159,7 @@
   Skipped upgrade-insecure-requests (breaks local http Pages dev) — logged in SECURITY.md.
 - Evidence: evidence/T-13-gate.txt (reporting true, all 0; web 318). Review: greptile local.
 - second look: no change (scope held: SSRF/authz stay in T-09 per skill boundary split).
+- Note: bot issue #129 (extract-zip Zip-Slip, no fix) corroborates the T-06 triage (transitive via
+  @puppeteer/browsers, dev/CI-time, vendor archives → LOW); its yauzl-replace suggestion is
+  inapplicable (not a direct dep). S5-C dedup candidate for the G-53 filing. No action now (R17).
 - resume_pointer: P2/T-08
