@@ -466,7 +466,8 @@
 - ROLLBACK.md (decision table, triggers, 3 paths, data notes,
   verification, two-part rehearsal), guard extended to workflow refs.
   Zero prod-code changes. 1 new test. G-12 CLOSED (T-08 precedent).
-  P4 COMPLETE — all 8 tasks done (T-22..T-29).
+  P4 agent work complete — all 8 tasks done (T-22..T-29); phase stays
+  `active` (rollback criterion needs the H-01 live rehearsal).
 - Greptile 2 P1 + 1 P2 + 1 follow-up P1 (PR step, preview-rollback
   impossibility confirmed from API docs, guard blindness, staging
   prerequisite) — all fixed + replied in-thread.
