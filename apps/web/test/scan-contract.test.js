@@ -25,6 +25,7 @@ const mock = vi.hoisted(() => ({
   gotoResponseUrl: 'https://acme.example.com/', // navigation response URL (SSRF boundary)
   launchError: null, // if set, puppeteer.launch throws (binding/runtime failure)
   gotoError: null, // if set, page.goto throws (navigation failure)
+  gotoNullish: false, // if set, page.goto rejects with undefined (binding-level failure)
   evalError: null, // if set, page.evaluate throws (page crashed)
   screenshotError: null, // if set, page.screenshot throws (handled, non-fatal)
   idleSessionId: null, // when set, acquireBrowser should connect instead of launch
@@ -37,6 +38,7 @@ function makeMockBrowser() {
       setViewport: async () => {},
       setUserAgent: async () => {},
       goto: async () => {
+        if (mock.gotoNullish) throw undefined;
         if (mock.gotoError) throw mock.gotoError;
         return { url: () => mock.gotoResponseUrl };
       },
@@ -149,6 +151,7 @@ beforeEach(() => {
   mock.gotoResponseUrl = 'https://acme.example.com/';
   mock.launchError = null;
   mock.gotoError = null;
+  mock.gotoNullish = false;
   mock.evalError = null;
   mock.screenshotError = null;
   mock.idleSessionId = null;
@@ -477,6 +480,34 @@ test('502 when puppeteer.launch fails', async () => {
   expect(res.status).toBe(502);
   const r = await res.json();
   expect(r.error).toMatch(/Browser binding unavailable/);
+});
+
+test('502 JSON (not a bare edge 502) when navigation rejects with no error value', async () => {
+  // Live: scanning an unresolvable host returned a bare Cloudflare edge 502
+  // ("error code: 502", text/plain) instead of the JSON contract — the catch
+  // block read err.message on a nullish rejection and threw a TypeError that
+  // escaped the handler. The rejection below simulates that binding-level
+  // failure; the handler must still answer JSON.
+  mock.gotoNullish = true;
+  const res = await onRequestPost({
+    request: postReq({ url: 'https://acme.example.com' }),
+    env: { BROWSER: {} },
+  });
+  expect(res.status).toBe(502);
+  const r = await res.json();
+  expect(typeof r.error).toBe('string');
+  expect(r.error.length).toBeGreaterThan(0);
+});
+
+test('502 keeps the detail of a string rejection (no .message, non-null)', async () => {
+  mock.gotoError = 'plain string failure from the binding';
+  const res = await onRequestPost({
+    request: postReq({ url: 'https://acme.example.com' }),
+    env: { BROWSER: {} },
+  });
+  expect(res.status).toBe(502);
+  const r = await res.json();
+  expect(r.error).toBe('plain string failure from the binding');
 });
 
 test('DESIGN.md fetch stream-caps oversized bodies without buffering past 200KB', async () => {
