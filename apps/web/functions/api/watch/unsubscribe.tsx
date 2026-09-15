@@ -12,7 +12,7 @@
 // token, 403 bad signature or token no longer matches the subscriber.
 
 import { raw } from 'hono/html';
-import { getWatch, performUnsubscribe } from '../../_shared.js';
+import { getWatch, performUnsubscribe, deferFlowBump } from '../../_shared.js';
 import { verifyUnsubscribe } from '../../_session.js';
 import { BRAND_FONTS_HEAD, BRAND_CSS } from '../../_brand.js';
 import { Nav, Footer, SectionLedger, UI_CSS } from '../../_ui.js';
@@ -170,7 +170,7 @@ export async function onRequestGet({ request, env }) {
   });
 }
 
-export async function onRequestPost({ request, env }) {
+export async function onRequestPost({ request, env, waitUntil }) {
   if (!env.RESULTS || !env.SESSION_SECRET)
     return new Response(JSON.stringify({ error: 'storage offline' }), {
       status: 503,
@@ -186,7 +186,10 @@ export async function onRequestPost({ request, env }) {
   // Stale token (address changed since the mail was sent) must NOT stop the
   // new subscriber's alerts — refuse rather than guess.
   if (watch && watch.email !== id.email) return badLink();
-  if (watch) await performUnsubscribe(env.RESULTS, id.domain, id.email);
+  // Funnel completeness (T-35 follow-up): one-click unsubs count as churn too,
+  // gated on actual removal like the API path. Replays (no watch) emit nothing.
+  if (watch && (await performUnsubscribe(env.RESULTS, id.domain, id.email)))
+    deferFlowBump(env, 'watch', 'unsubscribed', 1, waitUntil);
   // 200 either way: one-click clients just need the 2xx, humans get the page.
   return page({
     title: 'Unsubscribed',

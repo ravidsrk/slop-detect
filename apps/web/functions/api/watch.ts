@@ -83,9 +83,11 @@ export async function onRequestPost({ request, env, waitUntil }) {
     if (existing.email !== email) {
       return json({ error: 'email does not match the subscriber for this domain' }, 403);
     }
-    await performUnsubscribe(env.RESULTS, domain, email);
-    deferFlowBump(env, 'watch', 'unsubscribed', 1, waitUntil);
-    return json({ domain, monitoring: false, unsubscribed: true });
+    // Gate the event on actual removal (greptile P2 on PR #183): a lost
+    // race returns false, and must not count as churn nor claim success.
+    const removed = await performUnsubscribe(env.RESULTS, domain, email);
+    if (removed) deferFlowBump(env, 'watch', 'unsubscribed', 1, waitUntil);
+    return json({ domain, monitoring: false, unsubscribed: removed });
   }
 
   // ── Subscribe (idempotent) ───────────────────────────────────────────────────

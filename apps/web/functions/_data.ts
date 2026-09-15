@@ -794,12 +794,14 @@ export function flowDateKey(d = new Date()) {
 }
 
 export function mergeFlowBlob(blob, flow, event, count = 1) {
-  const b =
-    blob && typeof blob === 'object' && blob.flows && typeof blob.flows === 'object'
-      ? blob
-      : { date: null, flows: {} };
-  if (!b.flows[flow] || typeof b.flows[flow] !== 'object') b.flows[flow] = {};
-  b.flows[flow][event] = (b.flows[flow][event] || 0) + count;
+  // Malformed blobs reset rather than poison (greptile P2 on PR #183): arrays
+  // pass typeof checks but swallow named props in JSON.stringify, so a
+  // `"flows":[]` blob would eat events while reporting success.
+  const plainObject = (v) => v && typeof v === 'object' && !Array.isArray(v);
+  const b = plainObject(blob) && plainObject(blob.flows) ? blob : { date: null, flows: {} };
+  if (!plainObject(b.flows[flow])) b.flows[flow] = {};
+  const prev = b.flows[flow][event];
+  b.flows[flow][event] = (typeof prev === 'number' && Number.isFinite(prev) ? prev : 0) + count;
   return b;
 }
 
@@ -845,7 +847,8 @@ export async function getFlowStats(kv, now = new Date()) {
       const r = await kv.get(key);
       if (!r) return null;
       const o = JSON.parse(r);
-      return o && typeof o === 'object' && o.flows ? o : null;
+      const plainObject = (v) => v && typeof v === 'object' && !Array.isArray(v);
+      return plainObject(o) && plainObject(o.flows) ? o : null;
     } catch {
       return null;
     }

@@ -68,6 +68,18 @@ test('merge is pure: accumulates per flow/event, batches counts', () => {
   expect(b.flows).toEqual({ watch: { subscribed: 5, confirmed: 1 } });
   // Corrupt/foreign blobs restart rather than crash.
   expect(mergeFlowBlob({ nope: 1 }, 'scan', 'completed').flows).toEqual({ scan: { completed: 1 } });
+  // Greptile P2 on PR #183: arrays pass typeof checks but swallow named
+  // props in JSON.stringify — reset them (and non-number counters) instead
+  // of reporting success into a blob that stays unreadable.
+  expect(mergeFlowBlob({ flows: [] }, 'scan', 'completed').flows).toEqual({
+    scan: { completed: 1 },
+  });
+  expect(mergeFlowBlob({ flows: { scan: [] } }, 'scan', 'completed').flows).toEqual({
+    scan: { completed: 1 },
+  });
+  expect(mergeFlowBlob({ flows: { scan: { completed: 'x' } } }, 'scan', 'completed').flows).toEqual(
+    { scan: { completed: 1 } }
+  );
 });
 
 test('bump validates names and counts; rejects without writing', async () => {
@@ -89,6 +101,8 @@ test('getFlowStats returns today + yesterday; corrupt day reads null', async () 
   expect(stats.today.flows).toEqual({ scan: { completed: 1 } });
   expect(stats.yesterday).toBeNull();
   kv.store.set(flowDateKey(), '{corrupt');
+  expect((await getFlowStats(kv)).today).toBeNull();
+  kv.store.set(flowDateKey(), JSON.stringify({ date: 'x', flows: [] }));
   expect((await getFlowStats(kv)).today).toBeNull();
 });
 
@@ -228,6 +242,41 @@ test('watch funnel: subscribed once, confirmed, unsubscribed (re-POSTs excluded)
   expect(await flowBlob(kv)).toEqual({
     watch: { subscribed: 1, confirmed: 1, unsubscribed: 1 },
   });
+  // Second unsubscribe finds no watch: unsubscribed:false, no second event
+  // (greptile P2 on PR #183 — the event is gated on actual removal).
+  const again = await watchPost({
+    request: watchReq({
+      domain: 'funnel.example.com',
+      email: 'owner@funnel.example.com',
+      unsubscribe: true,
+    }),
+    env,
+  });
+  expect((await again.json()).unsubscribed).toBe(false);
+  await flush();
+  expect((await flowBlob(kv)).watch.unsubscribed).toBe(1);
+});
+
+test('one-click unsubscribe counts as churn once; replays emit nothing', async () => {
+  const kv = makeKv();
+  const SECRET = 'one-click-secret';
+  const { signUnsubscribe } = await import('../functions/_session.ts');
+  const { onRequestPost: unsubPost } = await import('../functions/api/watch/unsubscribe.tsx');
+  await putWatch(kv, {
+    domain: 'click.example.com',
+    email: 'owner@click.example.com',
+    verified: true,
+  });
+  const token = await signUnsubscribe('click.example.com', 'owner@click.example.com', SECRET);
+  const env = { RESULTS: kv, SESSION_SECRET: SECRET };
+  const req = () => ({
+    url: `https://slop-detect.com/api/watch/unsubscribe?token=${token}`,
+    headers: { get: () => null },
+  });
+  expect((await unsubPost({ request: req(), env })).status).toBe(200);
+  expect((await unsubPost({ request: req(), env })).status).toBe(200);
+  await flush();
+  expect(await flowBlob(kv)).toEqual({ watch: { unsubscribed: 1 } });
 });
 
 test('sweep batches alerted counts into one flow event', async () => {
