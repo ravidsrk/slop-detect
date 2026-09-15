@@ -1120,7 +1120,7 @@
           "text": "Each flow happy + failure evidenced"
         },
         {
-          "evidence": "docs/completion/evidence/P3-exit.txt",
+          "evidence": "docs/completion/evidence/T-16-cut.txt",
           "met": true,
           "text": "CUT surfaces removed"
         }
