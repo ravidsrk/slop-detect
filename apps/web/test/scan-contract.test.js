@@ -139,9 +139,11 @@ function healthyPageData(over = {}) {
 
 const TIERS = ['Clean', 'Mild', 'Heavy'];
 
-function postReq(body, { url = 'https://slop-detect.com/api/scan' } = {}) {
+function postReq(body, { url = 'https://slop-detect.com/api/scan', headers = {} } = {}) {
+  const h = new Map(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v]));
   return {
     url,
+    headers: { get: (k) => (h.has(k.toLowerCase()) ? h.get(k.toLowerCase()) : null) },
     json: async () => body,
   };
 }
@@ -374,6 +376,62 @@ test('400 on a missing url', async () => {
   expect(res.status).toBe(400);
   const r = await res.json();
   expect(r.error).toMatch(/url is required/);
+});
+
+// ── Request IDs in error bodies (G-04 / T-22) ────────────────────────────────
+
+test('error bodies carry the forwarded x-request-id', async () => {
+  const res = await onRequestPost({
+    request: postReq({}, { headers: { 'x-request-id': 'trace-me-1' } }),
+    env: { BROWSER: {} },
+  });
+  expect(res.status).toBe(400);
+  const r = await res.json();
+  expect(r.requestId).toBe('trace-me-1');
+});
+
+test('error bodies carry a generated requestId when none was forwarded', async () => {
+  const res = await onRequestPost({
+    request: postReq({}),
+    env: { BROWSER: {} },
+  });
+  const r = await res.json();
+  expect(typeof r.requestId).toBe('string');
+  expect(r.requestId.length).toBeGreaterThan(0);
+});
+
+test('502 bodies carry the forwarded x-request-id', async () => {
+  mock.gotoError = new Error('Navigation timeout of 25000 ms exceeded');
+  const res = await onRequestPost({
+    request: postReq(
+      { url: 'https://acme.example.com' },
+      { headers: { 'x-request-id': 'trace-502' } }
+    ),
+    env: { BROWSER: {} },
+  });
+  expect(res.status).toBe(502);
+  const r = await res.json();
+  expect(r.requestId).toBe('trace-502');
+});
+
+test('the 502 report log line carries the requestId', async () => {
+  mock.gotoError = new Error('boom');
+  const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  let lines;
+  try {
+    await onRequestPost({
+      request: postReq(
+        { url: 'https://acme.example.com' },
+        { headers: { 'x-request-id': 'trace-log-1' } }
+      ),
+      env: { BROWSER: {} },
+    });
+    // Capture before restore: mockRestore clears call history.
+    lines = spy.mock.calls.map((c) => c.join(' '));
+  } finally {
+    spy.mockRestore();
+  }
+  expect(lines.some((l) => l.includes('trace-log-1'))).toBe(true);
 });
 
 test('400 on a non-http(s) scheme (SSRF surface)', async () => {

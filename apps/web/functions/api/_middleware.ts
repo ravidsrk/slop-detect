@@ -19,6 +19,8 @@
 //   env.TURNSTILE_SECRET  — Cloudflare Turnstile secret key
 //   env.TURNSTILE_SITEKEY — public sitekey (echoed to web UI)
 
+import { requestIdFor, forwardWithId } from '../_request-id.js';
+
 const ALLOWED_ORIGINS = new Set([
   'https://slop-detect.com',
   'https://www.slop-detect.com',
@@ -54,11 +56,10 @@ function corsHeaders(origin) {
   };
 }
 
-function jsonResponse(data, status, origin) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) },
-  });
+function jsonResponse(data, status, origin, requestId) {
+  const headers = { 'Content-Type': 'application/json', ...corsHeaders(origin) };
+  if (requestId) headers['X-Request-Id'] = requestId;
+  return new Response(JSON.stringify(data), { status, headers });
 }
 
 // Pull an API key from either header style. Returns null if none supplied —
@@ -239,15 +240,23 @@ export async function onRequest(context) {
   const { request, env, next } = context;
   const origin = request.headers.get('Origin') || '';
   const url = new URL(request.url);
+  // One ID per request (G-04): stamped on every response below and forwarded
+  // to the handler so logs, error bodies, and responses all agree.
+  const requestId = requestIdFor(request);
+  const fwdRequest = forwardWithId(request, requestId);
 
   // CORS preflight passes through with the right headers.
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders(origin) });
+    const headers = { ...corsHeaders(origin), 'X-Request-Id': requestId };
+    return new Response(null, { status: 204, headers });
   }
 
   // GET endpoints are public — only POST hits the expensive browser code.
   if (request.method !== 'POST') {
-    return next();
+    const res = await next(fwdRequest);
+    const merged = new Response(res.body, res);
+    merged.headers.set('X-Request-Id', requestId);
+    return merged;
   }
 
   // Origin classification:
@@ -310,7 +319,8 @@ export async function onRequest(context) {
           message: 'The API key provided was not recognised.',
         },
         401,
-        origin
+        origin,
+        requestId
       );
     }
     if (resolved.record.disabled) {
@@ -320,7 +330,8 @@ export async function onRequest(context) {
           message: 'This API key has been disabled. Contact the operator.',
         },
         403,
-        origin
+        origin,
+        requestId
       );
     }
     keyTier = effectiveTier(resolved.record);
@@ -339,7 +350,8 @@ export async function onRequest(context) {
           'This API is not callable from third-party origins. Use the CLI, the MCP server, or an API key.',
       },
       403,
-      origin
+      origin,
+      requestId
     );
   }
 
@@ -398,7 +410,8 @@ export async function onRequest(context) {
           retryAfter: 60,
         },
         429,
-        origin
+        origin,
+        requestId
       );
     }
   }
@@ -427,7 +440,8 @@ export async function onRequest(context) {
           reason: verdict.reason,
         },
         403,
-        origin
+        origin,
+        requestId
       );
     }
   }
@@ -448,7 +462,8 @@ export async function onRequest(context) {
             'Scanning is temporarily paused for maintenance. Try again shortly or self-host.',
         },
         503,
-        origin
+        origin,
+        requestId
       );
     }
     const cap = parseInt(env.SCAN_DAILY_CAP || '10000', 10);
@@ -471,7 +486,8 @@ export async function onRequest(context) {
               'Scanning is temporarily unavailable while capacity limits are checked. Try again shortly or self-host.',
           },
           503,
-          origin
+          origin,
+          requestId
         );
       }
       if (used >= cap) {
@@ -483,7 +499,8 @@ export async function onRequest(context) {
             retryAfter: 3600,
           },
           503,
-          origin
+          origin,
+          requestId
         );
       }
       // Per-isolate ceiling on the happy path (key includes the day; 24h window).
@@ -500,7 +517,8 @@ export async function onRequest(context) {
             retryAfter: 3600,
           },
           503,
-          origin
+          origin,
+          requestId
         );
       }
       try {
@@ -512,12 +530,13 @@ export async function onRequest(context) {
   }
 
   // Attach CORS headers + rate-limit metadata to whatever the handler returns.
-  const res = await next();
+  const res = await next(fwdRequest);
   const merged = new Response(res.body, res);
   for (const [k, v] of Object.entries(corsHeaders(origin))) {
     merged.headers.set(k, v);
   }
   merged.headers.set('X-RateLimit-Tier', tierLabel);
   merged.headers.set('X-RateLimit-Limit', Number.isFinite(limit) ? String(limit) : 'unlimited');
+  merged.headers.set('X-Request-Id', requestId);
   return merged;
 }

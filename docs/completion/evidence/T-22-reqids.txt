@@ -1,0 +1,47 @@
+T-22 — request IDs on the API surface (G-04)
+Branch: ravidsrk/p4-request-ids
+
+CHANGE:
+- New apps/web/functions/_request-id.ts: requestIdFor (cf-ray, else
+  echoed x-request-id, else crypto.randomUUID with Math.random fallback)
+  + forwardWithId (clone-and-stamp; falls back to the original request
+  for test doubles / exotic runtimes).
+- api/_middleware.ts: computes one ID per request; stamps X-Request-Id
+  on ALL responses (pass-through POST+GET, OPTIONS 204, and all 9
+  rejection sites threaded); forwards the ID to handlers via a cloned
+  request so response header, error body, and log line agree.
+- api/scan.ts (CF-01): reads the forwarded ID (re-derives when the
+  middleware is absent); all 8 JSON error bodies + both report() data
+  payloads now carry requestId. Success bodies unchanged (header covers
+  them; contract stability).
+- Scope note: other API handlers (aeo, fix-prompt, ...) get the response
+  header via the middleware automatically; in-body adoption there is a
+  named follow-up, not this task.
+
+TESTS:
+- middleware.test.js +6: uuid fallback shape, cf-ray preference, echo,
+  rejection header, GET+OPTIONS header, clone-forwarding to next()
+  (real Request). 21/21.
+- scan-contract.test.js +4: 400 body forwarded id, 400 generated id,
+  502 body forwarded id, 502 report log line carries id (console spy).
+  26/26. postReq gained headers support (backward-compatible default).
+- NEGATIVE CONTROLS: the 3 body tests fail on stashed (unfixed) scan.ts
+  (3 failed | 22 passed); restored green.
+- GOTCHAS: module-level memCounters make new middleware tests order-
+  dependent — new tests use dedicated TEST-NET-3 IPs (.211-.214); an
+  early draft collided with an older hammer test's .201 (fixed, and the
+  old test's IP restored — suite diff is purely additive). vi
+  mockRestore clears call history — the log test captures before restore.
+=== FORMAT ===
+FORMAT_EXIT=1 (fixed: rerun 0)
+=== LINT ===
+LINT_EXIT=0
+=== TYPECHECK ===
+TYPECHECK_EXIT=0
+=== TEST ===
+TEST_EXIT=0
+@slop-detect/core:test:       Tests  77 passed (77)
+@slop-detect/action:test:       Tests  7 passed (7)
+slop-detect-mcp:test:       Tests  14 passed (14)
+slop-detect:test:       Tests  13 passed | 40 skipped (53)
+slop-detect-web:test:       Tests  379 passed (379)
