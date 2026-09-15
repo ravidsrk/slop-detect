@@ -304,3 +304,132 @@ test('middleware scan counters carry window TTLs (KV_TTL.md)', async () => {
   expect(global, 'expected a global daily budget write').toBeDefined();
   expect(global.ttl).toBe(172800);
 });
+
+// ── Request IDs (G-04 / T-22) ───────────────────────────────────────────────
+// Every /api/* response carries X-Request-Id: cf-ray when present, else an
+// echoed inbound x-request-id, else a fresh UUID. Rejections carry it too.
+
+test('pass-through POST stamps X-Request-Id (uuid fallback, no inbound id)', async () => {
+  const req = makeRequest({
+    headers: { Origin: ALLOWED, 'CF-Connecting-IP': '203.0.113.211' },
+    body: { url: 'https://x.com' },
+  });
+  const res = await onRequest(makeContext(req, {}));
+  expect(res.status).toBe(200);
+  const id = res.headers.get('X-Request-Id');
+  expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+});
+
+test('inbound cf-ray is preferred as the request ID', async () => {
+  const req = makeRequest({
+    headers: { Origin: ALLOWED, 'CF-Ray': 'abc123ray', 'CF-Connecting-IP': '203.0.113.212' },
+    body: { url: 'https://x.com' },
+  });
+  const res = await onRequest(makeContext(req, {}));
+  expect(res.headers.get('X-Request-Id')).toBe('abc123ray');
+});
+
+test('inbound x-request-id is echoed when no cf-ray', async () => {
+  const req = makeRequest({
+    headers: {
+      Origin: ALLOWED,
+      'X-Request-Id': 'caller-trace-1',
+      'CF-Connecting-IP': '203.0.113.213',
+    },
+    body: { url: 'https://x.com' },
+  });
+  const res = await onRequest(makeContext(req, {}));
+  expect(res.headers.get('X-Request-Id')).toBe('caller-trace-1');
+});
+
+test('rejections carry X-Request-Id too (403 foreign origin)', async () => {
+  const req = makeRequest({
+    headers: { Origin: 'https://evil.example.com', 'CF-Ray': 'rej-ray-9' },
+    body: { url: 'https://x.com' },
+  });
+  const res = await onRequest(makeContext(req, {}));
+  expect(res.status).toBe(403);
+  expect(res.headers.get('X-Request-Id')).toBe('rej-ray-9');
+});
+
+test('GET and OPTIONS responses carry X-Request-Id', async () => {
+  const get = makeRequest({ method: 'GET', path: '/api/patterns' });
+  const resGet = await onRequest(makeContext(get, {}));
+  expect(resGet.headers.get('X-Request-Id')).toBeTruthy();
+  const opt = makeRequest({ method: 'OPTIONS', path: '/api/scan' });
+  const resOpt = await onRequest(makeContext(opt, {}));
+  expect(resOpt.status).toBe(204);
+  expect(resOpt.headers.get('X-Request-Id')).toBeTruthy();
+});
+
+test('the computed ID is forwarded to the handler on a cloned request', async () => {
+  // Real Request (unlike the POJO doubles above) so forwardWithId can clone.
+  const req = new Request('https://slop-detect.com/api/scan', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'CF-Ray': 'fwd-ray-7',
+      'CF-Connecting-IP': '203.0.113.214',
+    },
+    body: JSON.stringify({ url: 'https://x.com' }),
+  });
+  let seen;
+  const ctx = {
+    request: req,
+    env: {},
+    next: async (r) => {
+      seen = r;
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    },
+  };
+  const res = await onRequest(ctx);
+  expect(res.status).toBe(200);
+  expect(res.headers.get('X-Request-Id')).toBe('fwd-ray-7');
+  expect(seen.headers.get('x-request-id')).toBe('fwd-ray-7');
+});
+
+test('preflight allows + exposes X-Request-Id (CORS gap)', async () => {
+  const opt = makeRequest({ method: 'OPTIONS', path: '/api/scan' });
+  const res = await onRequest(makeContext(opt, {}));
+  expect(res.status).toBe(204);
+  expect(res.headers.get('Access-Control-Allow-Headers')).toMatch(/X-Request-Id/);
+  expect(res.headers.get('Access-Control-Expose-Headers')).toMatch(/X-Request-Id/);
+});
+
+test('a throwing POST handler becomes a traced JSON 500 (same ID in body+header)', async () => {
+  const req = makeRequest({
+    headers: { Origin: ALLOWED, 'CF-Ray': 'throw-ray-1', 'CF-Connecting-IP': '203.0.113.215' },
+    body: { url: 'https://x.com' },
+  });
+  const ctx = {
+    request: req,
+    env: {},
+    next: async () => {
+      throw new Error('handler exploded');
+    },
+  };
+  const res = await onRequest(ctx);
+  expect(res.status).toBe(500);
+  expect(res.headers.get('X-Request-Id')).toBe('throw-ray-1');
+  const j = await res.json();
+  expect(j.error).toBe('internal_error');
+  expect(j.requestId).toBe('throw-ray-1');
+  expect(JSON.stringify(j)).not.toMatch(/exploded/);
+});
+
+test('a throwing GET handler becomes a traced JSON 500', async () => {
+  const req = makeRequest({ method: 'GET', path: '/api/patterns' });
+  const ctx = {
+    request: req,
+    env: {},
+    next: async () => {
+      throw new Error('get handler exploded');
+    },
+  };
+  const res = await onRequest(ctx);
+  expect(res.status).toBe(500);
+  const j = await res.json();
+  expect(j.error).toBe('internal_error');
+  expect(j.requestId).toBe(res.headers.get('X-Request-Id'));
+  expect(j.requestId).toBeTruthy();
+});

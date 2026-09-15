@@ -31,6 +31,7 @@ import {
   recordScanForWatch,
 } from '../_shared.js';
 import { report } from '../_report.js';
+import { requestIdFor } from '../_request-id.js';
 
 // Normalize requested axes. Default: design only (backward-compatible).
 const VALID_AXES = ['design', 'copy'];
@@ -52,20 +53,25 @@ function json(data, status = 200) {
 }
 
 export async function onRequestPost({ request, env, waitUntil }) {
+  // Traceability (G-04): prefer the middleware-forwarded ID so the error body,
+  // the report() log line, and the X-Request-Id response header all agree.
+  // requestIdFor re-derives deterministically when the middleware is absent
+  // (tests, other runtimes) — cf-ray, echoed x-request-id, else fresh UUID.
+  const requestId = request.headers?.get?.('x-request-id') || requestIdFor(request);
   if (!env.BROWSER) {
-    return json({ error: 'BROWSER binding missing — check wrangler.toml' }, 500);
+    return json({ error: 'BROWSER binding missing — check wrangler.toml', requestId }, 500);
   }
 
   let body;
   try {
     body = await request.json();
   } catch {
-    return json({ error: 'Invalid JSON body' }, 400);
+    return json({ error: 'Invalid JSON body', requestId }, 400);
   }
 
   // Validate + SSRF-guard the target (blocks private/loopback/metadata hosts).
   const checked = validateScanUrl(body?.url);
-  if (checked.error) return json({ error: checked.error }, checked.status);
+  if (checked.error) return json({ error: checked.error, requestId }, checked.status);
   const url = checked.url;
   const requestedHost = new URL(url).hostname.toLowerCase();
 
@@ -74,7 +80,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
   const wantsSystem = body.designMd === true || typeof body.designMd === 'string';
   if (typeof body.designMd === 'string') {
     const dv = validateScanUrl(body.designMd);
-    if (dv.error) return json({ error: `designMd: ${dv.error}` }, dv.status || 400);
+    if (dv.error) return json({ error: `designMd: ${dv.error}`, requestId }, dv.status || 400);
   }
 
   // Build the page-side IIFE that runs all detectors in one round-trip.
@@ -126,6 +132,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
           code: 'blocked_redirect',
           url,
           finalUrl: finalNavUrl,
+          requestId,
         },
         400
       );
@@ -137,6 +144,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
           code: 'blocked_redirect',
           url,
           finalUrl: finalNavUrl,
+          requestId,
         },
         400
       );
@@ -154,6 +162,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
           finalUrl: finalNavUrl,
           title: data.title,
           hint: blocked.hint,
+          requestId,
         },
         422
       );
@@ -172,7 +181,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
     const { patterns } = assembled;
     patternsErrored = assembled.patternsErrored;
     if (patternsErrored > 0) {
-      report(env, 'warn', 'pattern_errors', { url, navMs, patternsErrored }, waitUntil);
+      report(env, 'warn', 'pattern_errors', { url, navMs, patternsErrored, requestId }, waitUntil);
     }
 
     // Optional scoring preset (full|strict|marketing|minimal). All patterns are
@@ -285,6 +294,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
         message: err && err.message ? err.message : String(err),
         navMs: navMs ?? Date.now() - scanStart,
         patternsErrored,
+        requestId,
       },
       waitUntil
     );
@@ -295,7 +305,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
     // stringified detail; only null/undefined fall back to generic.
     const message =
       err && err.message ? err.message : err == null ? 'Scan failed (browser error)' : String(err);
-    return json({ error: message }, 502);
+    return json({ error: message, requestId }, 502);
   } finally {
     await releaseBrowser(browser);
   }
