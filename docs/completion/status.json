@@ -1419,7 +1419,8 @@
       "pr": "https://github.com/ravidsrk/slop-detect/pull/131",
       "review": "greptile",
       "size": "M",
-      "status": "done"
+      "status": "done",
+      "merged": "382d0f6"
     },
     {
       "attempts": 0,

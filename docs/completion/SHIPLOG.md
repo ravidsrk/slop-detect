@@ -165,7 +165,7 @@
 - resume_pointer: P2/T-08
 
 ## 2026-09-14 S3/P2 T-08 KV backup (G-13) — DONE (agent part; prod run = H-01)
-- branch ravidsrk/p2-kv-backup → PR (see status.json) → merge commit, no squash.
+- branch ravidsrk/p2-kv-backup → PR #131 → merged 382d0f6, no squash.
 - New apps/web/scripts/kv-backup.mjs: backup/restore(dry-run default)/verify over a
   backend-agnostic core; CF API backend (paginated list, raw bytes, TTL restore, 60s floor).
   8-test rehearsal: memory round-trip, dry-run safety, TTL preservation, expiry skip,
@@ -174,6 +174,10 @@
   local, 5 P1s — ALL fixed in-branch: 404-safe backup counting; pre-write manifest validation
   (schema+checksum+target); per-write expiry with short-TTL skip (no resurrection); strict arg
   parsing; empty-input failure. Tests added for each.
+- Greptile PR review, 3 more (2 P1 + 1 P2) — ALL fixed in 2816d6e, replied in-thread:
+  required manifest identity fields (no bypass by omission); finite-number expiration
+  validation (no NaN permanent restore); owner-only modes 0700/0600 + usage note;
+  binary test seeds raw Buffer with byte assertion. 16/16 tests, all CI green.
 - artifacts: /tmp/kvbu-empty (CLI guard probe; DELETE in S6).
 - second look: single-key PUT loop chosen over bulk endpoint for binary certainty at our
   scale; restore is upsert-only (no delete path) — both stated in the runbook.
