@@ -798,7 +798,11 @@ export function mergeFlowBlob(blob, flow, event, count = 1) {
   // pass typeof checks but swallow named props in JSON.stringify, so a
   // `"flows":[]` blob would eat events while reporting success.
   const plainObject = (v) => v && typeof v === 'object' && !Array.isArray(v);
-  const b = plainObject(blob) && plainObject(blob.flows) ? blob : { date: null, flows: {} };
+  // A malformed `flows` resets the counters but keeps a valid date (greptile
+  // follow-up P2 on PR #183) — otherwise /api/stats would serve date:null
+  // until the next event repaired it.
+  const keepDate = plainObject(blob) && typeof blob.date === 'string' ? blob.date : null;
+  const b = plainObject(blob) && plainObject(blob.flows) ? blob : { date: keepDate, flows: {} };
   if (!plainObject(b.flows[flow])) b.flows[flow] = {};
   const prev = b.flows[flow][event];
   b.flows[flow][event] = (typeof prev === 'number' && Number.isFinite(prev) ? prev : 0) + count;

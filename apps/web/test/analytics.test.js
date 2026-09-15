@@ -74,6 +74,11 @@ test('merge is pure: accumulates per flow/event, batches counts', () => {
   expect(mergeFlowBlob({ flows: [] }, 'scan', 'completed').flows).toEqual({
     scan: { completed: 1 },
   });
+  // …but a valid date survives the reset (greptile follow-up P2 on PR #183).
+  expect(mergeFlowBlob({ date: '2026-09-15', flows: [] }, 'scan', 'completed')).toEqual({
+    date: '2026-09-15',
+    flows: { scan: { completed: 1 } },
+  });
   expect(mergeFlowBlob({ flows: { scan: [] } }, 'scan', 'completed').flows).toEqual({
     scan: { completed: 1 },
   });
