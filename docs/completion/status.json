@@ -1635,7 +1635,7 @@
       "id": "T-19b",
       "owner": "agent",
       "plan_phase": "P3",
-      "pr": null,
+      "pr": 150,
       "review": null,
       "size": "S",
       "status": "in_review"
@@ -1651,7 +1651,7 @@
       "id": "T-19a",
       "owner": "agent",
       "plan_phase": "P3",
-      "pr": null,
+      "pr": 150,
       "review": null,
       "size": "S",
       "status": "in_review"
