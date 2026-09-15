@@ -308,3 +308,15 @@
 - Evidence: evidence/T-21-spec.txt. Greptile P2 (one-directional
   guard) + P2 (this entry's structure) — both fixed, replied in-thread.
 - resume_pointer: P3/T-18a (T-21 merged ac361f6)
+
+## 2026-09-15 S3/P3 T-18a per-pattern goldens batch 1 (G-18/gh-92) — DONE
+- branch ravidsrk/p3-goldens-a → PR #142 → merged a3efb70, no squash.
+- New pattern-coverage.test.js registry: every design ID fires on a
+  positive fixture (triggered + non-empty evidence, scans cached).
+  Batch 1: 8 reuse slop-vibecode, 1 new pat-accent_stripe fixture,
+  clean-artisan negative anchor (fires 0). Wired into required smoke.
+- Teeth-checked: thinned stripes fail exactly that case; skip-gate
+  holds (10 skipped without RUN_GOLDEN). Local 10/10; CI smoke ran
+  the new file (23 passed incl. 10 new). Zero review threads.
+- Evidence: evidence/T-18a-goldens.txt.
+- resume_pointer: P3/T-18b

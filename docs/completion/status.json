@@ -1584,10 +1584,11 @@
       "id": "T-18a",
       "owner": "agent",
       "plan_phase": "P3",
-      "pr": null,
+      "pr": 142,
       "review": null,
       "size": "S",
-      "status": "in_review"
+      "status": "done",
+      "merged": "a3efb70"
     },
     {
       "attempts": 0,
