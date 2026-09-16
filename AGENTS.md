@@ -108,3 +108,19 @@ which exercises both runners end-to-end.
 
 If you discover a recurring gotcha or a better workflow while working here, propose a
 concise addition to this file so the next agent doesn't relearn it.
+
+## Learned (2026-09 completion run)
+
+- E2E verification: `bun run s4 -- --target <url>` runs the stranger-test suite
+  (`scripts/s4/`, see `docs/REHEARSAL.md`). No-origin callers get 3 scan-bucket
+  hits/60s and every hit resets the counter TTL — `lib.paceScan()` already
+  mirrors this; don't re-tune it from the "6/min" shorthand.
+- Against localhost, set `S4_SEED_URL` to a public page: the default seed (the
+  target homepage) is loopback and the SSRF guard rejects it by design.
+- Local `wrangler pages dev` scans for real (local Chromium, first scan
+  downloads it). Page-eval polyfills must derive bundler-helper names from
+  serialized source (`esbuildNamePolyfills`) — dev bundles dedup `__name` to
+  `__name2` and hardcoded names 500 local scans while prod works by luck.
+- `deploy.yml` needs `--branch main` (bare `pages deploy` ships previews, not
+  production) with the ref guards intact. If health-ping is red while CI is
+  green, suspect stale prod first — probe `/api/health` + a known scan directly.
