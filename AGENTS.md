@@ -115,8 +115,9 @@ concise addition to this file so the next agent doesn't relearn it.
   (`scripts/s4/`, see `docs/REHEARSAL.md`). No-origin callers get 3 scan-bucket
   hits/60s and every hit resets the counter TTL — `lib.paceScan()` already
   mirrors this; don't re-tune it from the "6/min" shorthand.
-- Against localhost, set `S4_SEED_URL` to a public page: the default seed (the
-  target homepage) is loopback and the SSRF guard rejects it by design.
+- Against localhost, set `S4_SEED_URL` to a public, scannable page (not
+  `example.com` — it 422s as an empty page): the default seed (the target
+  homepage) is loopback and the SSRF guard rejects it by design.
 - Local `wrangler pages dev` scans for real (local Chromium, first scan
   downloads it). Page-eval polyfills must derive bundler-helper names from
   serialized source (`esbuildNamePolyfills`) — dev bundles dedup `__name` to
