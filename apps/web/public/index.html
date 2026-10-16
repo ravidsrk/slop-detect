@@ -98,7 +98,7 @@
         "Copy-slop axis (LLM phrasing tells)",
         "AEO axis — can AI engines read & cite a page",
         "System axis — DESIGN.md compliance: does a page honor its own declared design system",
-        "Domain monitoring with regression and design-drift email alerts (double opt-in)",
+        "Domain monitoring waitlist — baselines recorded now, regression and design-drift email alerts (double opt-in) activate at launch",
         "Real headless Chromium (Cloudflare Browser Rendering)",
         "CLI with --fail-on for CI gating and --design-md for system checks",
         "MCP server: scan_page, check_aeo, check_design_system, fix_prompt"
@@ -151,7 +151,7 @@
           "name": "Can it monitor a domain over time?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. POST /api/watch with a domain and email to monitor it: the daily sweep re-scans the domain and emails you (double opt-in) when the slop score regresses. Add system: true and it also checks the page against the site's own DESIGN.md, alerting when the design drifts off its declared system. Every monitored domain gets a print-friendly client report at slop-detect.com/report/<domain>, and the dashboard at slop-detect.com/dashboard (magic-link sign-in) shows every domain on your email in one view."
+            "text": "Monitoring is in waitlist. POST /api/watch with a domain and email records your baseline score today; the daily sweep and regression emails (double opt-in) switch on at launch — the API reports alertsActive honestly until then. Add system: true and, at launch, each sweep also checks the page against the site's own DESIGN.md, alerting when the design drifts off its declared system. Every monitored domain already gets a print-friendly client report at slop-detect.com/report/<domain>."
           }
         },
         {
@@ -559,7 +559,7 @@
   <main>
     <!-- 2. Hero -->
     <section class="hero" id="fingerprint">
-      <p class="mono-eyebrow hero-eyebrow">the ai-design-slop fingerprint <span id="rulesDefs">· definitions 2026.09</span></p>
+      <p class="mono-eyebrow hero-eyebrow">the ai-design-slop fingerprint <span id="rulesDefs">· definitions 2026.10</span></p>
       <h1 class="display-hero">Does your landing page look <em>generated?</em></h1>
 
       <form class="scan hero-scan" id="form">
@@ -648,12 +648,12 @@
             <p class="band-eyebrow">continuity</p>
             <h2 class="band-h" id="band-h">Slop is the hook. Staying on-system is the product.</h2>
             <p class="band-p">Sites do not become slop in one commit. A teammate ships a section, an agent "improves" a hero, and six weeks later the page reads like everyone else's.</p>
-            <p class="band-p">Monitoring re-scans your domain daily and emails you when it slips. Publish a DESIGN.md and it also checks every scan against your own declared tokens, then names exactly what drifted.</p>
+            <p class="band-p">Monitoring opens with a waitlist: join now and your baseline is recorded today. At launch it re-scans your domain daily and emails you when it slips; publish a DESIGN.md and every sweep also checks the page against your own declared tokens, naming exactly what drifted.</p>
           </div>
           <div class="continuity">
             <div class="cont-item">
               <span class="cont-glyph" aria-hidden="true">↻</span>
-              <div><div class="cont-title">Daily re-scan</div><p class="cont-desc">Re-scans every monitored domain each day and emails you the moment the slop score regresses.</p></div>
+              <div><div class="cont-title">Daily re-scan</div><p class="cont-desc">At launch: re-scans every monitored domain each day and emails you the moment the slop score regresses. Waitlist baselines are already being recorded.</p></div>
             </div>
             <div class="cont-item">
               <span class="cont-glyph" aria-hidden="true">◳</span>
@@ -669,14 +669,14 @@
             </div>
             <div class="cont-item">
               <span class="cont-glyph" aria-hidden="true">↗</span>
-              <div><div class="cont-title">Dashboard & directory</div><p class="cont-desc">Every domain on your email in one dashboard; opt in to the public directory for a live badge and a dofollow backlink.</p></div>
+              <div><div class="cont-title">Dashboard & directory</div><p class="cont-desc">Every domain on your email in one dashboard at launch; opt in to the public directory for a live badge and a listing (public once your claim is email-verified).</p></div>
             </div>
           </div>
         </div>
 
         <div class="mon-wrap">
           <h3 class="mon-h">Monitor a domain</h3>
-          <p class="mon-lead">A daily re-scan and a drift alert the moment a redesign slips back into slop. Scanning stays free; this remembers a domain over time.</p>
+          <p class="mon-lead">Join the monitoring waitlist: your baseline is recorded now, and daily re-scans with drift alerts switch on at launch. Scanning stays free; this remembers a domain over time.</p>
           <form class="watch-form" id="watchForm" novalidate>
             <div class="watch-row">
               <label class="sr-only" for="watchDomain">Domain to monitor</label>
@@ -692,7 +692,7 @@
               </label>
               <label>
                 <input type="checkbox" id="watchList">
-                <span>list it in the public <a href="/directory">directory</a> <span class="opt-note">· live badge + backlink</span></span>
+                <span>list it in the public <a href="/directory">directory</a> <span class="opt-note">· live badge · public after email verification</span></span>
               </label>
             </div>
             <div class="watch-msg" id="watchMsg" role="status" aria-live="polite"></div>

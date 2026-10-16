@@ -17,6 +17,17 @@
 
     { "url": "https://stripe.com", "label": "Clean", "builtWith": "custom", "predicted": "Mild", "predictedScore": 23, "source": "scan 2026-06-05", "notes": "FALSE POSITIVE. Iconic bespoke (pre-AI). Over-fires: purple_accent(8, the brand blurple #533afd), gradient_backgrounds(4), glassmorphism(4, single el — fixed), icon_card_grid(4), stat_banner(3)." },
     { "url": "https://linear.app", "label": "Clean", "builtWith": "custom", "predicted": "Heavy", "predictedScore": 36, "source": "scan 2026-06-05", "notes": "FALSE POSITIVE. Canonical bespoke design. Over-fires: slop_fonts(8, Inter), eyebrow_pill(5, 'Sign up' CTA — fixed), perma_dark(4), centered_hero(4), gradient_backgrounds(4), icon_card_grid(4), numbered_steps(3), nested_cards(4)." },
-    { "url": "https://vercel.com", "label": "Clean", "builtWith": "next", "predicted": "Heavy", "predictedScore": 29, "source": "scan 2026-06-05", "notes": "FALSE POSITIVE. Premium; uses Geist (its own font). Over-fires: slop_fonts(8, Geist), eyebrow_pill(5, 'Events' nav — fixed), centered_hero(4), crushed_tracking(5), icon_card_grid(4), numbered_steps(3)." }
+    { "url": "https://vercel.com", "label": "Clean", "builtWith": "next", "predicted": "Heavy", "predictedScore": 29, "source": "scan 2026-06-05", "notes": "FALSE POSITIVE. Premium; uses Geist (its own font). Over-fires: slop_fonts(8, Geist), eyebrow_pill(5, 'Events' nav — fixed), centered_hero(4), crushed_tracking(5), icon_card_grid(4), numbered_steps(3)." },
+
+    { "url": "https://www.apple.com", "label": null, "builtWith": "custom", "source": "candidate 2026-10", "notes": "Hand-crafted reference; also the canonical apex→www redirect case. Awaiting blind label." },
+    { "url": "https://clerk.com", "label": null, "builtWith": "custom", "source": "candidate 2026-10", "notes": "Scored Heavy in the 2026-10 review despite bespoke design — prime false-positive candidate. Awaiting blind label." },
+    { "url": "https://resend.com", "label": null, "builtWith": "custom", "source": "candidate 2026-10", "notes": "Scored Heavy in the 2026-10 review despite bespoke design. Awaiting blind label." },
+    { "url": "https://cal.com", "label": null, "builtWith": "custom", "source": "candidate 2026-10", "notes": "Scored Heavy in the 2026-10 review despite bespoke design. Awaiting blind label." },
+    { "url": "https://www.raycast.com", "label": null, "builtWith": "custom", "source": "candidate 2026-10", "notes": "Bespoke marketing site. Awaiting blind label." },
+    { "url": "https://www.notion.com", "label": null, "builtWith": "custom", "source": "candidate 2026-10", "notes": "Bespoke marketing site. Awaiting blind label." },
+    { "url": "https://www.figma.com", "label": null, "builtWith": "custom", "source": "candidate 2026-10", "notes": "Bespoke marketing site. Awaiting blind label." },
+    { "url": "https://cursor.com", "label": null, "builtWith": "custom", "source": "candidate 2026-10", "notes": "AI-tool vendor with custom site. Awaiting blind label." },
+    { "url": "https://replit.com", "label": null, "builtWith": "custom", "source": "candidate 2026-10", "notes": "AI-builder vendor homepage. Awaiting blind label." },
+    { "url": "https://www.framer.com", "label": null, "builtWith": "framer", "source": "candidate 2026-10", "notes": "Builder vendor; heavy bespoke motion design. Awaiting blind label." }
   ]
 }

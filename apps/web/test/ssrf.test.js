@@ -4,7 +4,7 @@
 // non-http(s) schemes are rejected, while legitimate public URLs pass.
 
 import { test, expect, afterEach } from 'vitest';
-import { validateScanUrl, fetchAllowedUrl } from '../functions/_shared.ts';
+import { validateScanUrl, fetchAllowedUrl, isSameSiteRedirect } from '../functions/_shared.ts';
 
 const realFetch = globalThis.fetch;
 afterEach(() => {
@@ -92,6 +92,19 @@ test('SSRF guard rejects empty / non-string input', () => {
     expect(r.error).toBeTruthy();
     expect(r.status).toBe(400);
   }
+});
+
+test('isSameSiteRedirect allows www/apex/subdomain hops, refuses unrelated domains', () => {
+  expect(isSameSiteRedirect('apple.com', 'www.apple.com')).toBe(true);
+  expect(isSameSiteRedirect('www.apple.com', 'apple.com')).toBe(true);
+  expect(isSameSiteRedirect('https://example.com', 'https://app.example.com/login')).toBe(true);
+  expect(isSameSiteRedirect('example.com.', 'www.example.com')).toBe(true);
+  expect(isSameSiteRedirect('example.com', 'example.com')).toBe(true);
+  expect(isSameSiteRedirect('example.com', 'unrelated.net')).toBe(false);
+  expect(isSameSiteRedirect('example.com', 'example.com.evil.net')).toBe(false);
+  expect(isSameSiteRedirect('example.com', 'notexample.com')).toBe(false);
+  expect(isSameSiteRedirect('', 'example.com')).toBe(false);
+  expect(isSameSiteRedirect('example.com', '')).toBe(false);
 });
 
 test('fetchAllowedUrl blocks redirect chains to private hosts', async () => {

@@ -54,8 +54,10 @@ page looks machine-generated, not that it is bad.
 ## Keep it clean (monitoring)
 
 - [Monitor a domain](https://slop-detect.com/#monitor): `POST /api/watch`
-  `{ domain, email, system?, list? }`: daily re-scans, regression + design-drift
-  email alerts (double opt-in; nothing sent until confirmed).
+  `{ domain, email, system?, list? }`: monitoring WAITLIST — the baseline is
+  recorded now; daily re-scans and regression + design-drift email alerts
+  (double opt-in; nothing sent until confirmed) activate at launch. The API
+  reports `alertsActive: false` until then.
 - [Dashboard](https://slop-detect.com/dashboard): every monitored domain on one
   email, magic-link sign-in (`POST /api/dashboard/link`).
 - Client report per domain: `https://slop-detect.com/report/<domain>`

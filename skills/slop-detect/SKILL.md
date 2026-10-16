@@ -29,33 +29,44 @@ Trigger phrases (non-exhaustive):
 
 Do NOT use this skill for:
 
-- Copywriting / messaging audits (this is purely visual / CSS pattern detection)
+- Copywriting / messaging audits, unless the user opts into the copy axis (`axes: ["design","copy"]` on the API, `--axes copy` on the CLI)
 - Accessibility audits (use Lighthouse / axe)
 - SEO audits (use the `seo-audit` skill)
 - Performance audits (use Lighthouse)
 
-## The 16 patterns
+## The 27 patterns (`definitions@2026.10`)
 
-| # | Pattern | Weight | Tell |
+| # | Pattern | Weight | Id |
 |---|---|---|---|
-| 1 | Slop fonts | 8 | Inter / Geist / Space Grotesk / Instrument Serif italic accent |
-| 2 | VibeCode Purple | 8 | Indigo–violet (HSL 240–295°, ≥35% sat) filled CTAs (`indigo-600`, `violet-600`) |
-| 3 | Hero gradient text | 6 | H1 with `background-clip: text` + linear-gradient |
-| 4 | Gradient backgrounds | 4 | ≥5 visible elements with CSS gradient backgrounds |
-| 5 | Accent stripe | 6 | Cards with thick colored top/left border only |
-| 6 | Glassmorphism | 4 | `backdrop-filter: blur()` on translucent layers |
-| 7 | Colored glows | 4 | Box-shadows with ≥24px blur + non-grey color |
-| 8 | Centered hero | 4 | H1 centered, ≥36px, in a slop font |
-| 9 | Eyebrow pill | 5 | Rounded pill above H1 ("Now in beta", "New") |
-| 10 | All-caps labels | 3 | `text-transform: uppercase` section labels |
-| 11 | Perma-dark mode | 3 | Hard-coded dark bg, no toggle |
-| 12 | Icon card grid | 4 | ≥3 identical feature cards with icon-on-top |
-| 13 | Numbered steps | 3 | "1 · 2 · 3" step sequences |
-| 14 | Stat banner | 3 | Big-number row ("10k+", "99.9%") |
-| 15 | FAQ accordion | 2 | Generic accordion, no schema markup |
-| 16 | Gradient avatars | 5 | Letter-only testimonial avatars on gradients |
+| 1 | AI-default font stack (Inter / Geist / Space Grotesk) | 8 | `slop_fonts` |
+| 2 | VibeCode Purple — filled indigo/violet CTAs | 8 | `purple_accent` |
+| 3 | Hero gradient text (background-clip:text) | 6 | `gradient_text` |
+| 4 | Gradient-heavy backgrounds (5+ elements) | 4 | `gradient_backgrounds` |
+| 5 | Colored top/left card borders (the AI em-dash) | 6 | `accent_stripe` |
+| 6 | Glassmorphism (backdrop-filter blur on translucent layers) | 4 | `glassmorphism` |
+| 7 | Big colored box-shadow glows (purple/blue/pink) | 4 | `colored_glows` |
+| 8 | Centered hero in generic sans (Inter-style) | 4 | `centered_hero` |
+| 9 | Eyebrow pill above hero ("Now in beta" / "New") | 5 | `hero_eyebrow_pill` |
+| 10 | All-caps section labels (text-transform:uppercase) | 3 | `all_caps_labels` |
+| 11 | Perma dark mode + medium-grey body text | 4 | `perma_dark_mode` |
+| 12 | Identical feature cards with icon on top | 4 | `icon_card_grid` |
+| 13 | Numbered "1 · 2 · 3" step sequences | 3 | `numbered_steps` |
+| 14 | Big-number stat banner ("10k+", "99.9%", "$2M+") | 3 | `stat_banner` |
+| 15 | FAQ accordion in the lower half | 2 | `faq_accordion` |
+| 16 | Gradient-letter avatars (testimonial slop) | 5 | `gradient_letter_avatars` |
+| 17 | Bento-grid wall — mixed-span rounded card grid | 4 | `bento_grid` |
+| 18 | Aurora / mesh gradient blobs (blurred glowing backdrop) | 5 | `aurora_mesh_gradient` |
+| 19 | AI-sparkle badges (✨ / Sparkles "magic" tells) | 3 | `ai_sparkle_badges` |
+| 20 | Cream / beige default page background | 7 | `cream_default_bg` |
+| 21 | Washed-out grey body text (below WCAG AA on a light background) | 7 | `low_contrast_text` |
+| 22 | Crushed letter-spacing on display type | 5 | `crushed_tracking` |
+| 23 | Gray text on a colored background | 4 | `gray_on_color` |
+| 24 | Oversized hero headline (long sentence at display size) | 4 | `oversized_hero_h1` |
+| 25 | Cards nested inside cards | 4 | `nested_cards` |
+| 26 | Wide letter-spacing on body text | 3 | `wide_body_tracking` |
+| 27 | Flat type hierarchy (sizes too close together) | 3 | `flat_type_hierarchy` |
 
-**Tiers:** Clean (0–11) · Mild (12–29) · Heavy (≥30). Max score 100.
+**Tiers:** Clean (0–9) · Mild (10–27) · Heavy (≥28). Max score 100.
 
 ## How to use it
 
@@ -83,12 +94,12 @@ Response (truncated for brevity):
   "score": 36,
   "tier": "Heavy",
   "patternsFlagged": 8,
-  "patternsTotal": 16,
+  "patternsTotal": 27,
   "patterns": [
     { "id": "slop_fonts", "label": "...", "weight": 8, "triggered": true, "evidence": { ... } },
     ...
   ],
-  "screenshot": "<base64 viewport PNG>",
+  "screenshot": null,
   "navMs": 4231
 }
 ```
@@ -125,18 +136,15 @@ First install downloads Chromium (~150MB) via Playwright. Subsequent invocations
 ### 3. Programmatic embed (the user has their own browser pipeline)
 
 ```bash
-npm install slop-detect-core
+npm install @slop-detect/core
 ```
 
 ```js
-import { PATTERNS, scorePatterns } from 'slop-detect-core';
+import { buildPageScript, assemblePatternResults, scorePatterns } from '@slop-detect/core';
 
-// Caller provides a runner that executes each pattern's extract() in the page DOM:
-const patterns = await Promise.all(PATTERNS.map(async p => ({
-  id: p.id, label: p.label, weight: p.weight,
-  evidence: await page.evaluate(p.extract),
-})));
-patterns.forEach(p => { p.triggered = PATTERNS.find(x => x.id === p.id).detect(p.evidence); });
+// Run every extractor in the page in one round-trip, then score worker-side:
+const data = await page.evaluate(buildPageScript());
+const { patterns } = assemblePatternResults(data.signals);
 const { score, tier, patternsFlagged } = scorePatterns(patterns);
 ```
 
@@ -147,12 +155,12 @@ The core package is runtime-agnostic — it works in Node, Cloudflare Workers, o
 After a scan, present results in this shape:
 
 1. **One-line verdict** with emoji tier indicator:
-   - 🔴 Heavy (≥30) — "Heavy slop — looks AI-generated"
-   - 🟡 Mild (12–29) — "Some slop signals — needs cleanup"
-   - 🟢 Clean (0–11) — "Clean — no major AI-design tells"
+   - 🔴 Heavy (≥28) — "Heavy slop — looks AI-generated"
+   - 🟡 Mild (10–27) — "Some slop signals — needs cleanup"
+   - 🟢 Clean (0–9) — "Clean — no major AI-design tells"
 2. **Triggered patterns** (only the ones with `triggered: true`), each with weight + one-line evidence
 3. **Optional:** preview the screenshot if the user asked to see it
-4. **Always offer the fix prompt** if score ≥ 12: "Want a copy-pasteable prompt to fix these in your editor? Run `/api/fix-prompt`."
+4. **Always offer the fix prompt** if score ≥ 10: "Want a copy-pasteable prompt to fix these in your editor? Run `/api/fix-prompt`."
 
 ## Edge cases
 
@@ -181,8 +189,8 @@ The fix recipes in `/api/fix-prompt` already encode these constraints. **Trust t
 - Live web UI: https://slop-detect.com
 - API docs: https://github.com/ravidsrk/slop-detect#readme
 - Source / contribute: https://github.com/ravidsrk/slop-detect
-- The 16 patterns in code: https://github.com/ravidsrk/slop-detect/blob/main/packages/core/src/patterns.js
-- Fix recipes: https://github.com/ravidsrk/slop-detect/blob/main/packages/core/src/fixes.js
+- The 27 patterns in code: https://github.com/ravidsrk/slop-detect/blob/main/packages/core/src/patterns.ts
+- Fix recipes: https://github.com/ravidsrk/slop-detect/blob/main/packages/core/src/fixes.ts
 - Origin study: https://www.adriankrebs.ch/blog/design-slop/
 
 ## License

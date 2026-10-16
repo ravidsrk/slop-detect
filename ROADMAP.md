@@ -1,7 +1,7 @@
 # slop-detect: Strategic Roadmap v2
 
 > Where this project goes next, and why.
-> Last updated: 2026-06-05 · Current version: v0.6.0
+> Last updated: 2026-10-15 · Current version: v0.8.0 (repo; npm publication of 0.8.0 is the launch gate)
 > Supersedes the v1 roadmap (preserved in git history). Grounded in the
 > June 2026 deep-research pass, see "Research basis" at the bottom, and in
 > our own calibration evidence (`CALIBRATION.md`).

@@ -1055,9 +1055,10 @@ export function ShareEmbed({
   );
 }
 
-// Claim / backlink model (MNR-12): a listed domain gets a dofollow backlink; an
-// unclaimed one gets the claim form and NO backlink. The claim form posts list:true
-// to /api/watch (verify-by-email), the same contract the old page used.
+// Claim / backlink model (MNR-12): a listed (email-verified) domain gets a
+// directory backlink (rel="ugc nofollow" — user-submitted, no ranking credit);
+// an unclaimed one gets the claim form and NO backlink. The claim form posts
+// list:true to /api/watch (verify-by-email).
 export function ClaimPanel({
   slim,
   origin,
@@ -1072,8 +1073,8 @@ export function ClaimPanel({
       <div class="claim">
         <div class="claim-h">Listed in the directory</div>
         <p>
-          This domain is claimed. It carries a dofollow backlink:{' '}
-          <a href={`https://${slim.domain}`} rel="dofollow">
+          This domain is claimed and listed:{' '}
+          <a href={`https://${slim.domain}`} rel="ugc nofollow noopener">
             {slim.domain}
           </a>
           . See it in the <a href={`${origin}/directory`}>directory</a>.
@@ -1085,8 +1086,8 @@ export function ClaimPanel({
     <div class="claim">
       <div class="claim-h">Claim this page</div>
       <p>
-        Own {slim.domain}? Verify by email to list it in the directory with a real dofollow backlink
-        and get an alert if it ever drifts back into slop.
+        Own {slim.domain}? Verify by email to list it in the directory and get an alert if it ever
+        drifts back into slop.
       </p>
       <form id="claimForm" class="claim-form" novalidate>
         <label class="sr-only" for="claimEmail">

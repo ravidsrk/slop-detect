@@ -89,7 +89,7 @@ test('a scanned domain renders score, grade, verdict, JSON-LD, canonical', async
   expect(html).toMatch(/rel="canonical" href="https:\/\/slop-detect\.com\/score\/ex\.com"/);
 });
 
-test('an UNCLAIMED domain shows the claim form, no dofollow backlink', async () => {
+test('an UNCLAIMED domain shows the claim form, no directory backlink', async () => {
   const kv = makeKv();
   const s = slim();
   await saveResult(kv, s);
@@ -97,17 +97,17 @@ test('an UNCLAIMED domain shows the claim form, no dofollow backlink', async () 
   const { html } = await render(kv, 'ex.com');
   expect(html).toMatch(/id="claimForm"/);
   expect(html).toMatch(/Claim this page/);
-  expect(html).not.toMatch(/rel="dofollow"/);
+  expect(html).not.toMatch(/Listed in the directory/);
 });
 
-test('a CLAIMED (listed) domain shows a dofollow backlink, not the claim form', async () => {
+test('a CLAIMED (listed) domain shows a ugc-nofollow backlink, not the claim form', async () => {
   const kv = makeKv();
   const s = slim();
   await saveResult(kv, s);
   await recordScan(kv, s);
   await setListing(kv, s); // owner claimed + listed
   const { html } = await render(kv, 'ex.com');
-  expect(html).toMatch(/rel="dofollow"/);
+  expect(html).toMatch(/rel="ugc nofollow noopener"/);
   expect(html).toMatch(/Listed in the/);
   expect(html).not.toMatch(/id="claimForm"/);
 });

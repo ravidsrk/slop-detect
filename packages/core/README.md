@@ -1,35 +1,27 @@
-# slop-detect-core
+# @slop-detect/core
 
 > Pure detection engine for AI-design-slop patterns. Runtime-agnostic — runs in Node, Cloudflare Workers, or the browser.
 
-This is the heart of [`slop-detect`](https://github.com/ravidsrk/slop-detect). It exports the full set of rule definitions (27 design + 9 copy as of `definitions@2026.08`), the scoring function, and the DOM-side helpers — but it never touches a browser. You bring the runner; this package brings the rules.
+This is the heart of [`slop-detect`](https://github.com/ravidsrk/slop-detect). It exports the full set of rule definitions (27 design + 9 copy as of `definitions@2026.10`), the scoring function, and the DOM-side helpers — but it never touches a browser. You bring the runner; this package brings the rules.
 
 ## Install
 
 ```bash
-npm install slop-detect-core
+npm install @slop-detect/core
 ```
 
 ## Usage
 
 ```js
-import { PATTERNS, scorePatterns } from 'slop-detect-core';
+import { buildPageScript, assemblePatternResults, scorePatterns } from '@slop-detect/core';
 
-// 1) Drive your runner (Playwright / Puppeteer / Cloudflare browser) to
-//    execute each pattern's `extract()` in the page's DOM context:
-const signals = {};
-for (const p of PATTERNS) {
-  signals[p.id] = await page.evaluate(p.extract);   // example: Playwright
-}
+// 1) Run every extractor in the page in one round-trip (Playwright /
+//    Puppeteer / Cloudflare Browser Rendering all work the same way):
+const data = await page.evaluate(buildPageScript());
 
-// 2) Run the pure `detect()` step in your runtime:
-const patterns = PATTERNS.map(p => ({
-  id:        p.id,
-  label:     p.label,
-  weight:    p.weight,
-  triggered: p.detect(signals[p.id]),
-  evidence:  signals[p.id]
-}));
+// 2) Assemble the per-pattern results ({ id, label, weight, triggered,
+//    evidence }) from the raw page signals:
+const { patterns } = assemblePatternResults(data.signals);
 
 // 3) Score:
 const { score, tier, patternsFlagged, patternsTotal } = scorePatterns(patterns);
@@ -40,8 +32,10 @@ console.log(`${score}/100 — ${tier}`);
 
 | Export | Purpose |
 |---|---|
-| `PATTERNS` | Array of design rule definitions with `{ id, label, short, category, weight, extract }` (27 in `definitions@2026.08`) |
-| `scorePatterns(results)` | Pure scorer returning `{ score, tier, patternsFlagged, patternsTotal }` |
+| `PATTERNS` | Array of design rule definitions with `{ id, label, short, category, weight, extract }` (27 in `definitions@2026.10`) |
+| `buildPageScript(opts?)` | The in-page IIFE that runs every extractor in one `page.evaluate` |
+| `assemblePatternResults(signals)` | Raw page signals → `{ patterns, patternsErrored }` |
+| `scorePatterns(results)` | Pure scorer returning `{ score, tier, grade, verdict, patternsFlagged, patternsTotal }` |
 | `createColorHelpers()` | Builds parsing helpers used inside `extract()` callbacks |
 | `createVisibilityHelpers()` | DOM-visibility predicates for in-page work |
 | `isSlopFont` / `isAccentSerif` | Font-family classifiers |
@@ -51,9 +45,9 @@ console.log(`${score}/100 — ${tier}`);
 
 ## Tiers
 
-- Clean: 0 to 11
-- Mild: 12 to 29
-- Heavy: 30 or more
+- Clean: 0 to 9
+- Mild: 10 to 27
+- Heavy: 28 or more
 
 ## Reference runners
 

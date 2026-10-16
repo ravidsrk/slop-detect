@@ -79,7 +79,7 @@ npx -y slop-detect "$PREVIEW_URL" --json --fail-on heavy | tee slop.json
 ## See also
 
 - [Web UI](https://slop-detect.com) — point-and-click scanning
-- [`slop-detect-core`](https://www.npmjs.com/package/slop-detect-core) — pure detection engine, runtime-agnostic
+- [`@slop-detect/core`](https://www.npmjs.com/package/@slop-detect/core) — pure detection engine, runtime-agnostic
 - [Repository](https://github.com/ravidsrk/slop-detect) — source, contributing, the full 27 patterns
 
 ## License

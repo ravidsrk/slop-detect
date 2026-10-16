@@ -21,7 +21,7 @@
 
 import { requestIdFor, forwardWithId } from '../_request-id.js';
 import { report } from '../_report.js';
-import { bumpOpsStats } from '../_shared.js';
+import { bumpOpsStats, normalizeOpsRoute } from '../_shared.js';
 
 const ALLOWED_ORIGINS = new Set([
   'https://slop-detect.com',
@@ -291,8 +291,22 @@ export async function onRequest(context) {
   // to the handler so logs, error bodies, and responses all agree.
   const requestId = requestIdFor(request);
   // First path segment under /api/ (scan, aeo, health, ...) — the per-route
-  // label for ops metrics (G-05). Rejections bump through `reject` below.
-  const routeLabel = url.pathname.replace(/^\/api\//, '').split('/')[0] || 'root';
+  // label for ops metrics (G-05), folded to `other` for unknown segments so
+  // bot probes (/api/.env, /api/graphql) can't grow the daily blob without
+  // bound. Rejections bump through `reject` below.
+  const routeLabel = normalizeOpsRoute(
+    url.pathname.replace(/^\/api\//, '').split('/')[0] || 'root'
+  );
+  // Unknown /api/* paths get a JSON 404 here instead of falling through to the
+  // static layer (which answered with the homepage HTML and a 200).
+  if (routeLabel === 'other') {
+    return jsonResponse(
+      { error: 'not_found', message: `No such API route: ${url.pathname}`, requestId },
+      404,
+      origin,
+      requestId
+    );
+  }
   // Peek POST bodies BEFORE forwardWithId: constructing the forwarded clone
   // disturbs the original's body stream (undici marks it used), which would
   // break any later request.clone() peek. One peek serves both consumers

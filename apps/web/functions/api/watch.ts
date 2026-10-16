@@ -91,22 +91,26 @@ export async function onRequestPost({ request, env, waitUntil }) {
   }
 
   // ── Subscribe (idempotent) ───────────────────────────────────────────────────
-  const existing = await getWatch(env.RESULTS, domain);
+  let existing = await getWatch(env.RESULTS, domain);
 
-  // Ownership guard: once a domain is claimed, only the same email may modify it
-  // (change the alert address, list/delist, re-baseline). Without this, any
-  // caller could take over an existing watch or list/delist someone else's
-  // domain. A brand-new domain can still be claimed by anyone with an email —
-  // verified ownership (DNS TXT / meta tag) is a documented follow-up; this just
-  // stops hijacking of an already-claimed domain.
+  // Ownership guard: once a domain is claimed AND VERIFIED, only the same email
+  // may modify it (change the alert address, list/delist, re-baseline). Without
+  // this, any caller could take over an existing watch or list/delist someone
+  // else's domain. An UNVERIFIED claim is unproven — anyone could have typed
+  // any email against any domain — so it does not lock the domain: a different
+  // email simply replaces it as a fresh claim (which must itself verify before
+  // it can lock anything, receive alerts, or appear in the directory).
   if (existing && existing.email !== email) {
-    return json(
-      {
-        error:
-          'this domain is already claimed by a different email; contact that owner to make changes',
-      },
-      403
-    );
+    if (existing.verified) {
+      return json(
+        {
+          error:
+            'this domain is already claimed by a different email; contact that owner to make changes',
+        },
+        403
+      );
+    }
+    existing = null;
   }
 
   const now = new Date().toISOString();
@@ -117,10 +121,11 @@ export async function onRequestPost({ request, env, waitUntil }) {
   // (see recordScanForWatch). Preserve an established baseline on re-subscribe.
   const latest = await getLatestForDomain(env.RESULTS, domain).catch(() => null);
 
-  // Opt-in to the public directory: `list:true` lists the domain (dofollow
-  // backlink from /directory); `list:false` delists it; omitting it preserves
-  // the current state. This is the ONLY way a domain enters the directory —
-  // an email-attached, deliberate act by whoever is claiming the domain.
+  // Opt-in to the public directory: `list:true` records listing intent;
+  // `list:false` delists it; omitting it preserves the current state. This is
+  // the ONLY way a domain enters the directory — and the row only goes public
+  // once the claim is email-verified (confirm.tsx activates it), so an
+  // unproven claim can never publish a link or squat a listing.
   const listed =
     body.list === true ? true : body.list === false ? false : (existing?.listed ?? false);
 
@@ -181,7 +186,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
   await putWatch(env.RESULTS, watch);
   await addToEmailIndex(env.RESULTS, email, domain);
   try {
-    if (listed) {
+    if (listed && watch.verified) {
       const seed = latest || {
         domain,
         score: watch.lastScore,
@@ -191,7 +196,9 @@ export async function onRequestPost({ request, env, waitUntil }) {
         title: null,
       };
       await setListing(env.RESULTS, seed);
-    } else if (!listed) {
+    } else {
+      // Delisted, or listed-but-unverified: no public row either way. Any
+      // pre-existing row from a replaced unverified claim is removed here.
       await deleteListing(env.RESULTS, domain);
     }
   } catch (_) {
@@ -237,7 +244,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
       ...publicWatch(watch, history),
       monitoring: true,
       alreadyMonitored: !!existing,
-      directoryUrl: listed ? `${origin}/directory` : null,
+      directoryUrl: listed && watch.verified ? `${origin}/directory` : null,
       // Honest state: alerts are live only when a provider is configured AND the
       // address has confirmed (double opt-in). Always surface privacy + deletion.
       alertsActive: alertsLive,
@@ -252,7 +259,10 @@ export async function onRequestPost({ request, env, waitUntil }) {
           ? watch.verified
             ? 'Regression alerts are on for this confirmed address. '
             : 'Check your email to confirm and switch on regression alerts. '
-          : 'Regression-alert emails are not active yet. ') +
+          : 'Regression-alert emails are not active yet — you are on the waitlist and your baseline is recorded. ') +
+        (listed && !watch.verified
+          ? 'Your directory listing goes public once the claim is email-verified. '
+          : '') +
         'Unsubscribe anytime by POSTing { unsubscribe: true } with the same email.',
     },
     existing ? 200 : 201

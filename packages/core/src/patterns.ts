@@ -520,8 +520,11 @@ export const PATTERNS = [
     extract: (ctx) => {
       const { visible } = ctx;
       // Look for siblings that have similar shape + an SVG/img as their first
-      // significant child.
-      const groups = new Map();
+      // significant child. Group by the ACTUAL parent element (identity), then
+      // by a rough width bucket within it — keying by parent TAG name used to
+      // merge same-sized cards from unrelated sections across the whole page
+      // into one phantom "grid".
+      const byParent = new Map();
       for (const el of visible) {
         const parent = el.parentElement;
         if (!parent) continue;
@@ -535,13 +538,19 @@ export const PATTERNS = [
         const ir = icon.getBoundingClientRect();
         if (ir.width > 80 || ir.height > 80) continue;
         if (ir.top > r.top + r.height * 0.4) continue; // icon not at top
-        // Group by parent + rough width bucket
-        const key = parent.tagName + ':' + Math.round(r.width / 20);
-        if (!groups.has(key)) groups.set(key, []);
-        groups.get(key).push(el);
+        if (!byParent.has(parent)) byParent.set(parent, []);
+        byParent.get(parent).push({ el, width: r.width });
       }
       let maxGroup = 0;
-      for (const arr of groups.values()) if (arr.length > maxGroup) maxGroup = arr.length;
+      for (const siblings of byParent.values()) {
+        const byWidth = new Map();
+        for (const s of siblings) {
+          const key = Math.round(s.width / 20);
+          if (!byWidth.has(key)) byWidth.set(key, []);
+          byWidth.get(key).push(s.el);
+        }
+        for (const arr of byWidth.values()) if (arr.length > maxGroup) maxGroup = arr.length;
+      }
       return { maxGroupSize: maxGroup, triggered: maxGroup >= 3 };
     },
   },
@@ -556,10 +565,16 @@ export const PATTERNS = [
     extract: (ctx) => {
       const { visible } = ctx;
       // Find groups of sibling elements where the leading numeric label
-      // increments (1,2,3) or contains "Step 1/2/3".
+      // increments (1,2,3) or contains "Step 1/2/3". Two anti-rank guards so
+      // ordered CONTENT lists (HN's 1..30 story ranks, leaderboard tables,
+      // nav breadcrumbs) don't read as marketing "how it works" steps:
+      //   - elements inside <table>/<nav> are content, never steps;
+      //   - a steps section has a handful of items — a sibling group with
+      //     more than 6 numbered elements is a ranked list, not steps.
       const numberPat = /^(?:step\s*)?(\d{1,2})(?:[.):]|\s*[—-])?\s*/i;
       const parents = new Map();
       for (const el of visible) {
+        if (typeof el.closest === 'function' && el.closest('table, nav')) continue;
         const txt = (el.textContent || '').trim();
         const m = txt.match(numberPat);
         if (!m) continue;
@@ -568,11 +583,14 @@ export const PATTERNS = [
         // Pull the inner numbered child specifically
         if (!el.parentElement) continue;
         const key = el.parentElement;
-        if (!parents.has(key)) parents.set(key, new Set());
-        parents.get(key).add(n);
+        if (!parents.has(key)) parents.set(key, { numbers: new Set(), count: 0 });
+        const group = parents.get(key);
+        group.numbers.add(n);
+        group.count += 1;
       }
       let bestRun = 0;
-      for (const set of parents.values()) {
+      for (const { numbers: set, count } of parents.values()) {
+        if (count > 6) continue; // ranked list, not a steps section
         if (set.has(1) && set.has(2) && set.has(3)) {
           let run = 3 + (set.has(4) ? 1 : 0) + (set.has(5) ? 1 : 0);
           if (run > bestRun) bestRun = run;

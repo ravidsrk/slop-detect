@@ -36,6 +36,9 @@ yarn-error.log*
 .env.local
 .env.*.local
 
+# Packed npm tarballs (bun pm pack / npm pack — release dry-runs)
+*.tgz
+
 # Local outputs from scans (per-user)
 *.scan.json
 *.fix.md
