@@ -570,7 +570,7 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
     try {
       signals["icon_card_grid"] = ((ctx) => {
       const { visible } = ctx;
-      const groups = /* @__PURE__ */ new Map();
+      const byParent = /* @__PURE__ */ new Map();
       for (const el of visible) {
         const parent = el.parentElement;
         if (!parent) continue;
@@ -583,12 +583,19 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
         const ir = icon.getBoundingClientRect();
         if (ir.width > 80 || ir.height > 80) continue;
         if (ir.top > r.top + r.height * 0.4) continue;
-        const key = parent.tagName + ":" + Math.round(r.width / 20);
-        if (!groups.has(key)) groups.set(key, []);
-        groups.get(key).push(el);
+        if (!byParent.has(parent)) byParent.set(parent, []);
+        byParent.get(parent).push({ el, width: r.width });
       }
       let maxGroup = 0;
-      for (const arr of groups.values()) if (arr.length > maxGroup) maxGroup = arr.length;
+      for (const siblings of byParent.values()) {
+        const byWidth = /* @__PURE__ */ new Map();
+        for (const s of siblings) {
+          const key = Math.round(s.width / 20);
+          if (!byWidth.has(key)) byWidth.set(key, []);
+          byWidth.get(key).push(s.el);
+        }
+        for (const arr of byWidth.values()) if (arr.length > maxGroup) maxGroup = arr.length;
+      }
       return { maxGroupSize: maxGroup, triggered: maxGroup >= 3 };
     })(ctx);
     } catch (e) {
@@ -601,6 +608,7 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
       const numberPat = /^(?:step\\s*)?(\\d{1,2})(?:[.):]|\\s*[—-])?\\s*/i;
       const parents = /* @__PURE__ */ new Map();
       for (const el of visible) {
+        if (typeof el.closest === "function" && el.closest("table, nav")) continue;
         const txt = (el.textContent || "").trim();
         const m = txt.match(numberPat);
         if (!m) continue;
@@ -608,11 +616,14 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
         if (n < 1 || n > 9) continue;
         if (!el.parentElement) continue;
         const key = el.parentElement;
-        if (!parents.has(key)) parents.set(key, /* @__PURE__ */ new Set());
-        parents.get(key).add(n);
+        if (!parents.has(key)) parents.set(key, { numbers: /* @__PURE__ */ new Set(), count: 0 });
+        const group = parents.get(key);
+        group.numbers.add(n);
+        group.count += 1;
       }
       let bestRun = 0;
-      for (const set of parents.values()) {
+      for (const { numbers: set, count } of parents.values()) {
+        if (count > 6) continue;
         if (set.has(1) && set.has(2) && set.has(3)) {
           let run = 3 + (set.has(4) ? 1 : 0) + (set.has(5) ? 1 : 0);
           if (run > bestRun) bestRun = run;
@@ -1735,7 +1746,7 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
     try {
       signals["icon_card_grid"] = ((ctx) => {
       const { visible } = ctx;
-      const groups = /* @__PURE__ */ new Map();
+      const byParent = /* @__PURE__ */ new Map();
       for (const el of visible) {
         const parent = el.parentElement;
         if (!parent) continue;
@@ -1748,12 +1759,19 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
         const ir = icon.getBoundingClientRect();
         if (ir.width > 80 || ir.height > 80) continue;
         if (ir.top > r.top + r.height * 0.4) continue;
-        const key = parent.tagName + ":" + Math.round(r.width / 20);
-        if (!groups.has(key)) groups.set(key, []);
-        groups.get(key).push(el);
+        if (!byParent.has(parent)) byParent.set(parent, []);
+        byParent.get(parent).push({ el, width: r.width });
       }
       let maxGroup = 0;
-      for (const arr of groups.values()) if (arr.length > maxGroup) maxGroup = arr.length;
+      for (const siblings of byParent.values()) {
+        const byWidth = /* @__PURE__ */ new Map();
+        for (const s of siblings) {
+          const key = Math.round(s.width / 20);
+          if (!byWidth.has(key)) byWidth.set(key, []);
+          byWidth.get(key).push(s.el);
+        }
+        for (const arr of byWidth.values()) if (arr.length > maxGroup) maxGroup = arr.length;
+      }
       return { maxGroupSize: maxGroup, triggered: maxGroup >= 3 };
     })(ctx);
     } catch (e) {
@@ -1766,6 +1784,7 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
       const numberPat = /^(?:step\\s*)?(\\d{1,2})(?:[.):]|\\s*[—-])?\\s*/i;
       const parents = /* @__PURE__ */ new Map();
       for (const el of visible) {
+        if (typeof el.closest === "function" && el.closest("table, nav")) continue;
         const txt = (el.textContent || "").trim();
         const m = txt.match(numberPat);
         if (!m) continue;
@@ -1773,11 +1792,14 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
         if (n < 1 || n > 9) continue;
         if (!el.parentElement) continue;
         const key = el.parentElement;
-        if (!parents.has(key)) parents.set(key, /* @__PURE__ */ new Set());
-        parents.get(key).add(n);
+        if (!parents.has(key)) parents.set(key, { numbers: /* @__PURE__ */ new Set(), count: 0 });
+        const group = parents.get(key);
+        group.numbers.add(n);
+        group.count += 1;
       }
       let bestRun = 0;
-      for (const set of parents.values()) {
+      for (const { numbers: set, count } of parents.values()) {
+        if (count > 6) continue;
         if (set.has(1) && set.has(2) && set.has(3)) {
           let run = 3 + (set.has(4) ? 1 : 0) + (set.has(5) ? 1 : 0);
           if (run > bestRun) bestRun = run;

@@ -29,6 +29,8 @@ const mock = vi.hoisted(() => ({
   evalError: null, // if set, page.evaluate throws (page crashed)
   screenshotError: null, // if set, page.screenshot throws (handled, non-fatal)
   idleSessionId: null, // when set, acquireBrowser should connect instead of launch
+  pageCloseCount: 0, // page.close() calls — tabs must not leak into reused sessions
+  launchCount: 0, // browser launches — the result cache must skip repeat scans
 }));
 
 function makeMockBrowser() {
@@ -51,6 +53,9 @@ function makeMockBrowser() {
         if (mock.screenshotError) throw mock.screenshotError;
         return Buffer.from('fake-jpeg-bytes');
       },
+      close: async () => {
+        mock.pageCloseCount++;
+      },
     }),
     disconnect: async () => {},
     close: async () => {},
@@ -65,6 +70,7 @@ vi.mock('@cloudflare/puppeteer', () => ({
     },
     connect: async () => makeMockBrowser(),
     launch: async () => {
+      mock.launchCount++;
       if (mock.launchError) throw mock.launchError;
       return makeMockBrowser();
     },
@@ -157,6 +163,8 @@ beforeEach(() => {
   mock.evalError = null;
   mock.screenshotError = null;
   mock.idleSessionId = null;
+  mock.pageCloseCount = 0;
+  mock.launchCount = 0;
 });
 
 // ── Success contract (MNR-1) ────────────────────────────────────────────────
@@ -535,6 +543,70 @@ test('400 blocked_redirect when navigation response lands on a private host', as
   const r = await res.json();
   expect(r.code).toBe('blocked_redirect');
   expect(r.finalUrl).toBe('http://169.254.169.254/');
+});
+
+test('apex→www redirect scans normally (same site, not "private/internal")', async () => {
+  mock.gotoResponseUrl = 'https://www.acme.example.com/';
+  const res = await onRequestPost({
+    request: postReq({ url: 'https://acme.example.com' }),
+    env: { BROWSER: {} },
+  });
+  expect(res.status).toBe(200);
+  const r = await res.json();
+  expect(r.finalUrl).toBe('https://www.acme.example.com/');
+  expect(typeof r.score).toBe('number');
+  expect(mock.pageCloseCount).toBe(1); // tab closed before session release
+});
+
+test('400 blocked_redirect with a cross-site (not private) message for an unrelated domain', async () => {
+  mock.gotoResponseUrl = 'https://unrelated.other-example.net/';
+  const res = await onRequestPost({
+    request: postReq({ url: 'https://acme.example.com' }),
+    env: { BROWSER: {} },
+  });
+  expect(res.status).toBe(400);
+  const r = await res.json();
+  expect(r.code).toBe('blocked_redirect');
+  expect(r.error).toMatch(/different site/);
+  expect(r.error).not.toMatch(/private\/internal/);
+});
+
+test('a repeat scan of the same URL is served from the 10-minute cache', async () => {
+  const kv = makeKv();
+  const env = { BROWSER: {}, RESULTS: kv };
+  const first = await onRequestPost({
+    request: postReq({ url: 'https://acme.example.com' }),
+    env,
+  });
+  expect(first.status).toBe(200);
+  const second = await onRequestPost({
+    request: postReq({ url: 'https://acme.example.com' }),
+    env,
+  });
+  expect(second.status).toBe(200);
+  const r2 = await second.json();
+  expect(r2.cached).toBe(true);
+  expect(mock.launchCount).toBe(1); // no second browser session
+  // { refresh:true } bypasses the cache (monitoring sweep relies on this).
+  const third = await onRequestPost({
+    request: postReq({ url: 'https://acme.example.com', refresh: true }),
+    env,
+  });
+  const r3 = await third.json();
+  expect(r3.cached).toBeUndefined();
+  expect(mock.launchCount).toBe(2);
+});
+
+test('browser-capacity failures return a friendly retryable 503, not a raw 502', async () => {
+  mock.launchError = new Error('Too many concurrent browser sessions');
+  const res = await onRequestPost({
+    request: postReq({ url: 'https://acme.example.com' }),
+    env: { BROWSER: {} },
+  });
+  expect(res.status).toBe(503);
+  const r = await res.json();
+  expect(r.code).toBe('scanner_busy');
+  expect(r.retryAfter).toBe(60);
 });
 
 test('pushState-spoofed location.href does not affect the SSRF boundary', async () => {

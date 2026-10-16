@@ -119,6 +119,38 @@ export function isAllowedUrl(raw) {
   return !validateScanUrl(raw).error;
 }
 
+// Normalize a host for same-site comparison: lowercase, strip the trailing
+// root dot and a leading `www.`. `apple.com` and `www.apple.com` are the same
+// site; `example.com.` (FQDN form) is too.
+export function normalizeSiteHost(host) {
+  return String(host || '')
+    .toLowerCase()
+    .replace(/\.+$/, '')
+    .replace(/^www\./, '');
+}
+
+function hostOf(urlOrHost) {
+  try {
+    return new URL(urlOrHost).hostname;
+  } catch {
+    return String(urlOrHost || '');
+  }
+}
+
+// Same-site redirect check for browser navigation: the final host is the
+// requested host, its www/apex twin, or a subdomain of it (or vice-versa).
+// Ordinary apex→www and apex→app redirects are how the public web works and
+// must not be refused as "private/internal"; a hop to an unrelated registrable
+// domain is a different site than the caller asked to scan, so it still is.
+// This is NOT the SSRF check — callers must also require isAllowedUrl(final),
+// which is what blocks private/loopback/metadata destinations.
+export function isSameSiteRedirect(requested, final) {
+  const a = normalizeSiteHost(hostOf(requested));
+  const b = normalizeSiteHost(hostOf(final));
+  if (!a || !b) return false;
+  return a === b || b.endsWith('.' + a) || a.endsWith('.' + b);
+}
+
 // Worker-side fetch with manual redirect following and per-hop SSRF re-checks.
 // Mirrors packages/core/src/aeo.ts fetchWithTimeout so a public DESIGN.md URL
 // cannot 302 to cloud metadata or RFC-1918. Returns null when blocked, timed

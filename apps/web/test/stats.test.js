@@ -227,6 +227,15 @@ test('mergeOpsBlob tolerates null/garbage blobs and unknown routes', () => {
   expect(b2.routes.scan.byStatus).toEqual({ 503: 1 });
 });
 
+test('mergeOpsBlob folds unknown route labels into `other` (bot-probe key cap)', () => {
+  let b = mergeOpsBlob(null, '.env', { status: 404 });
+  b = mergeOpsBlob(b, 'graphql', { status: 404 });
+  b = mergeOpsBlob(b, 'wp-login.php', { status: 404 });
+  expect(Object.keys(b.routes)).toEqual(['other']);
+  expect(b.routes.other.req).toBe(3);
+  expect(b.routes.other.byStatus).toEqual({ 404: 3 });
+});
+
 test('bumpOpsStats persists the blob with a 30d TTL and restarts corrupted days', async () => {
   const puts = [];
   const store = new Map([['stats:ops:2026-09-15', 'not-json{{{']]);

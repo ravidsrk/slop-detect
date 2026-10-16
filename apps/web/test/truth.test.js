@@ -69,21 +69,23 @@ test('pattern-count copy matches the live engine catalogue', () => {
 });
 
 test('"daily sweep" claims pin the full config-dependent contract', () => {
-  // index.html + README promise a daily re-scan. Greptile P2 on PR #181: a
-  // cron alone doesn't prove sweeps — without CRON_SECRET the workflow
-  // exits 0 having done nothing. So pin the whole chain: the daily
-  // schedule, the skip-with-notice step (real code, not a comment), and
-  // the RUNBOOKS caveat. The claim describes the configured service
-  // (CRON_SECRET is H-02, launch-gating); this test proves the mechanism
-  // and its documented off-state, not that prod is configured today.
+  // index.html + README describe a daily re-scan AT LAUNCH (waitlist copy).
+  // Greptile P2 on PR #181: a cron alone doesn't prove sweeps — the old
+  // workflow exited 0 having done nothing, a green no-op. The off-state must
+  // now be VISIBLE: scheduled runs are skipped unless MONITORING_ENABLED is
+  // true, and a manual run without CRON_SECRET fails loudly. Pin the whole
+  // chain plus the RUNBOOKS caveat; this proves the mechanism and its
+  // documented off-state, not that prod is configured today.
   expect(landing).toMatch(/daily re-scan/i);
+  expect(landing).toMatch(/waitlist/i);
   const workflow = fs.readFileSync(
     path.join(ROOT, '.github', 'workflows', 'monitor-sweep.yml'),
     'utf8'
   );
   expect(workflow).toMatch(/cron:\s*'\d+ \d+ \* \* \*'/);
   expect(workflow).toMatch(/\[\s*-z\s*"\$CRON_SECRET"\s*\]/);
-  expect(workflow).toMatch(/::notice::CRON_SECRET not set/);
+  expect(workflow).toMatch(/vars\.MONITORING_ENABLED == 'true'/);
+  expect(workflow).toMatch(/::error::CRON_SECRET not set/);
   const runbooks = fs.readFileSync(path.join(ROOT, 'docs', 'RUNBOOKS.md'), 'utf8');
   expect(runbooks).toMatch(/monitor-sweep\.yml/);
   expect(runbooks).toMatch(/alerts can't fire if the sweep never runs/);

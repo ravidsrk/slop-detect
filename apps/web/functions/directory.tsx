@@ -2,12 +2,12 @@
 // GET /directory — the public, crawlable catalogue of opt-in scanned sites.
 //
 // Server-rendered (so search engines index it) listing of every domain whose
-// owner opted in via the claim/monitor flow (POST /api/watch { list:true }).
-// Each row links OUT to the original site with a real (dofollow) backlink — the
-// catalogue ranks for "is <site> AI slop", sends link equity to listed sites,
-// and the backlink is the incentive that pulls owners into the claim + monitor
-// funnel (see VALIDATION.md). Opt-in only: the directory never publishes an
-// unrequested verdict on a company (MNR-27).
+// owner opted in via the claim/monitor flow (POST /api/watch { list:true }) AND
+// verified the claim by email. Each row links OUT to the original site with
+// rel="ugc nofollow": these are user-submitted links, and passing ranking
+// credit for them would make the directory a link farm and a spam magnet.
+// Opt-in only: the directory never publishes an unrequested verdict on a
+// company (MNR-27).
 //
 // Rebuilt as a full page in the design's "3. Leaderboard > 6. Directory (opt-in
 // only)" language: the shared nav/footer shell, the 1.5px ink section-ledger,
@@ -83,8 +83,8 @@ function formatListed(iso) {
   return `${mon} ${day}, ${year}`;
 }
 
-// One directory row on the `26px 22px 1fr auto auto` grid. The domain link is the
-// dofollow backlink (a plain <a href> with no rel — the gift). The score/grade
+// One directory row on the `26px 22px 1fr auto auto` grid. The domain link is
+// rel="ugc nofollow noopener" (user-submitted link; no ranking credit). The score/grade
 // readout links to the per-domain score hub, closing the re-scan loop. A listed-
 // but-not-yet-scored domain shows "Pending", never "Unlisted" — it IS listed.
 function Row({ site, rank, origin }) {
@@ -97,7 +97,7 @@ function Row({ site, rank, origin }) {
       <span class="dir-rank">{rank}</span>
       <LetterAvatar name={site.domain} size={20} />
       <span class="dir-name">
-        <a class="dir-link" href={`https://${site.domain}`}>
+        <a class="dir-link" href={`https://${site.domain}`} rel="ugc nofollow noopener">
           {name}
         </a>
         {site.title ? <span class="dir-dom">{site.domain}</span> : null}
@@ -170,7 +170,7 @@ export async function onRequestGet({ request, env }) {
         <title>Directory — sites scored for AI design slop · slop-detect</title>
         <meta
           name="description"
-          content="An opt-in catalogue of websites scored against the AI-design-slop fingerprint. Each listed site links out with a dofollow backlink, ranked by how generic its design reads."
+          content="An opt-in catalogue of websites scored against the AI-design-slop fingerprint, ranked by how generic their design reads."
         />
         <link rel="canonical" href={`${ORIGIN}/directory`} />
         <meta property="og:title" content="Directory of sites scored for AI design slop" />
@@ -191,8 +191,7 @@ export async function onRequestGet({ request, env }) {
           <SectionLedger tag="/directory" label="opt-in only" />
           <h1>The directory</h1>
           <p class="dir-count">
-            <strong>{n}</strong> site{n === 1 ? '' : 's'} listed {raw('&middot;')} dofollow
-            backlinks
+            <strong>{n}</strong> site{n === 1 ? '' : 's'} listed {raw('&middot;')} owner-verified
           </p>
           <p class="lead dir-explain">
             Owners opt in to appear here. Scanning is free; listing is a choice. Each row links to

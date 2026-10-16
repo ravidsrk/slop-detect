@@ -36,7 +36,7 @@
 | `wide_body_tracking` | Wide letter-spacing on body text | 3 | fonts | Body copy with letter-spacing > 0.05em (non-uppercase) |
 | `flat_type_hierarchy` | Flat type hierarchy (sizes too close together) | 3 | fonts | ≥3 distinct font sizes with max/min ratio < 2.0 |
 
-Definitions version: **2026.09**. Patterns 1–15 from Adrian Krebs's April 2026 study; 16 from Meng To; 17–19 added 2026.07; 20–27 added 2026.08 (ported from Impeccable, Apache-2.0).
+Definitions version: **2026.10**. Patterns 1–15 from Adrian Krebs's April 2026 study; 16 from Meng To; 17–19 added 2026.07; 20–27 added 2026.08 (ported from Impeccable, Apache-2.0).
 
 ## Pattern detail
 

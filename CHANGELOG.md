@@ -1,5 +1,45 @@
 # Changelog
 
+## Unreleased — launch-readiness pass (2026-10-15)
+
+Decisions: launch without live monitoring (waitlist), directory listings are
+verified-only with `rel="ugc nofollow"`, tuning waits for a blind-labeled corpus.
+
+### Fixed
+
+- **Apex→www redirects scan again.** The scan endpoint refused any redirect to a
+  different hostname as "private/internal" (a plain `apple.com` failed). Same-site
+  redirects (apex/www/subdomain) are now accepted and recorded under the final
+  host; genuinely private destinations and cross-site hops get distinct errors.
+- **npm release can no longer publish an uninstallable CLI.** `publish.yml` packs
+  with `bun pm pack` (rewrites `workspace:*`), asserts tarballs are workspace-free,
+  install-smokes them, and publishes the tarballs with provenance. Manual runs
+  are dry-runs by default.
+- **Detector grouping bugs** (`definitions@2026.10`): `icon_card_grid` grouped
+  cards by parent tag name across unrelated sections; `numbered_steps` fired on
+  ranked lists (HN). Both now group by real parent/sibling structure.
+- **Ops metrics growth capped:** unknown `/api/*` route labels fold into `other`
+  instead of adding a key per bot probe; unknown API paths return a JSON 404 and
+  unknown pages a real `404.html` (was: homepage with 200). Bare `/pricing`,
+  `/terms`, `/privacy` serve their documents.
+- **Unverified claims can't squat domains or publish links.** A claim locks a
+  domain and appears in `/directory` only after email verification; directory
+  links are `rel="ugc nofollow"`.
+- **Monitoring copy is honest:** homepage, FAQ, README and `llms.txt` now say
+  waitlist (baselines recorded, alerts at launch); the sweep workflow shows
+  Skipped instead of a green no-op; the README watch example sends `domain`
+  (it sent `url` and got a 400).
+- **Workflows:** leaderboard job installs + builds core (it crashed monthly);
+  calibration runs under `pipefail` (it "passed" while failing).
+- **Scan capacity:** 10-minute KV result cache for repeat scans (`refresh:true`
+  bypasses; the sweep sends it), browser tabs are closed before session reuse,
+  and browser-capacity failures return a friendly retryable 503.
+- **Calibration harness:** paced scans, failed scans counted in accuracy, JSON
+  rows carry fired pattern ids, `--check` treats a labeled ERROR as a miss, and
+  10 hand-crafted reference candidates await blind labeling.
+- **Docs:** `@slop-detect/core` README and the Agent Skill updated to the current
+  API, 27 patterns, and tiers (Clean 0–9 · Mild 10–27 · Heavy ≥28).
+
 ## v0.8.0 — monorepo restructure: bun + turbo + apps/docs + spec/
 
 A structural refactor. No detector behavior changed; tooling, layout, and the

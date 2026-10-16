@@ -113,4 +113,4 @@ JSON mode still exits 1 on gate failure; stderr carries the human gate message o
 
 ## Definitions version
 
-Scores are tagged with `definitionsVersion` (currently **2026.09**). When the catalogue changes, re-score pages to distinguish rule drift from site changes.
+Scores are tagged with `definitionsVersion` (currently **2026.10**). When the catalogue changes, re-score pages to distinguish rule drift from site changes.

@@ -12,7 +12,14 @@
 // 410 expired/used, 404 watch gone (alerts.test.js covers the lifecycle).
 
 import { raw } from 'hono/html';
-import { consumeWatchToken, getWatch, putWatch, deferFlowBump } from '../../_shared.js';
+import {
+  consumeWatchToken,
+  getWatch,
+  putWatch,
+  deferFlowBump,
+  setListing,
+  getLatestForDomain,
+} from '../../_shared.js';
 import { BRAND_FONTS_HEAD, BRAND_CSS } from '../../_brand.js';
 import { Nav, Footer, SectionLedger, Button, UI_CSS } from '../../_ui.js';
 
@@ -173,6 +180,26 @@ export async function onRequestGet({ request, env, waitUntil }) {
   watch.verified = true;
   watch.verifiedAt = new Date().toISOString();
   await putWatch(env.RESULTS, watch);
+  // Verification is what makes a directory listing public: an opted-in but
+  // unconfirmed claim stays out of /directory until this click.
+  if (watch.listed) {
+    try {
+      const latest = await getLatestForDomain(env.RESULTS, domain).catch(() => null);
+      await setListing(
+        env.RESULTS,
+        latest || {
+          domain,
+          score: watch.lastScore,
+          grade: watch.lastGrade,
+          tier: watch.lastTier,
+          id: watch.lastId,
+          title: null,
+        }
+      );
+    } catch {
+      /* derived row — reconciled on the domain's next scan */
+    }
+  }
   deferFlowBump(env, 'watch', 'confirmed', 1, waitUntil);
 
   return page({

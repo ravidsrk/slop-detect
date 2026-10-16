@@ -254,7 +254,7 @@ const CODE = {
     c.cmt("// pattern's detect() in-page, then hand the triggered results to the scorer."),
     `${c.kw('const')} summary = ${c.cmd('scorePatterns')}(results);`,
     `console.${c.cmd('log')}(summary.score, summary.grade, summary.tier);`,
-    `console.${c.cmd('log')}(PATTERNS.length, DEFINITIONS_VERSION); ${c.cmt('// 27 2026.09')}`,
+    `console.${c.cmd('log')}(PATTERNS.length, DEFINITIONS_VERSION); ${c.cmt('// 27 2026.10')}`,
   ].join('\n'),
 
   mcp: [

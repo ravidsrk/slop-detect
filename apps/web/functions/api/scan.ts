@@ -27,6 +27,7 @@ import {
   recordScan,
   validateScanUrl,
   isAllowedUrl,
+  isSameSiteRedirect,
   fetchAllowedUrl,
   recordScanForWatch,
   bumpOpsStats,
@@ -132,16 +133,44 @@ export async function onRequestPost({ request, env, waitUntil }) {
     }
   }
 
+  // Short-lived result cache: launch traffic repeats the same URLs (everyone
+  // scans linear.app), and each uncached scan costs a full browser session.
+  // 10 minutes keeps scores fresh while collapsing bursts. Bypassed by
+  // share:false (privacy: no KV reads serve a no-write caller stale shared
+  // state), screenshots, the system axis, and explicit { refresh:true }
+  // (the monitoring sweep sends it so daily re-scans are always live).
+  const presetForCache = isPreset(body?.preset) ? body.preset : 'full';
+  const cacheKey =
+    env.RESULTS && body.share !== false && !body.screenshot && !wantsSystem && body.refresh !== true
+      ? `scancache:v1:${url}|${presetForCache}|${normalizeAxes(body?.axes).join(',')}`
+      : null;
+  if (cacheKey) {
+    try {
+      const raw = await env.RESULTS.get(cacheKey);
+      if (raw) {
+        const cached = JSON.parse(raw);
+        if (cached && typeof cached.score === 'number') {
+          if (cached.id) cached.resultUrl = `${new URL(request.url).origin}/r/${cached.id}`;
+          deferOps({ status: 200, tier: cached.tier });
+          return json({ ...cached, cached: true });
+        }
+      }
+    } catch {
+      /* a cache hiccup must never break a scan */
+    }
+  }
+
   // Build the page-side IIFE that runs all detectors in one round-trip.
   const pageScript = buildPageScript({ includeSystem: wantsSystem });
 
   let browser;
+  let page;
   let navMs;
   let patternsErrored = 0;
   const scanStart = Date.now();
   try {
     ({ browser } = await acquireBrowser(env.BROWSER));
-    const page = await browser.newPage();
+    page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 800 });
     await page.setUserAgent('Mozilla/5.0 SlopDetector/1.0 (+slop-detector.pages.dev)');
 
@@ -187,11 +216,28 @@ export async function onRequestPost({ request, env, waitUntil }) {
         400
       );
     }
-    if (!isAllowedUrl(finalNavUrl) || finalNavHost !== requestedHost) {
+    // Two distinct refusals, named honestly: a private/internal destination is
+    // the SSRF case; a public but unrelated domain is a cross-site redirect.
+    // Same-site hops (apex→www, apex→app subdomain) are normal and allowed —
+    // the result is recorded under the final host via finalUrl/slimResult.
+    if (!isAllowedUrl(finalNavUrl)) {
       deferOps({ status: 400 });
       return json(
         {
           error: 'Scan refused: the URL redirected to a disallowed (private/internal) host.',
+          code: 'blocked_redirect',
+          url,
+          finalUrl: finalNavUrl,
+          requestId,
+        },
+        400
+      );
+    }
+    if (!isSameSiteRedirect(requestedHost, finalNavHost)) {
+      deferOps({ status: 400 });
+      return json(
+        {
+          error: `Scan refused: the URL redirected to a different site (${finalNavHost}). Scan that address directly.`,
           code: 'blocked_redirect',
           url,
           finalUrl: finalNavUrl,
@@ -340,6 +386,13 @@ export async function onRequestPost({ request, env, waitUntil }) {
       }
     }
 
+    if (cacheKey) {
+      try {
+        await env.RESULTS.put(cacheKey, JSON.stringify(result), { expirationTtl: 600 });
+      } catch {
+        /* cache write is best-effort */
+      }
+    }
     deferOps({ status: 200, tier: result.tier, navMs });
     return json(result);
   } catch (err) {
@@ -364,9 +417,31 @@ export async function onRequestPost({ request, env, waitUntil }) {
     // stringified detail; only null/undefined fall back to generic.
     const message =
       err && err.message ? err.message : err == null ? 'Scan failed (browser error)' : String(err);
+    // Browser-capacity failures are transient overload, not a bad scan: say
+    // so with a retryable 503 instead of leaking a raw binding error as 502.
+    if (/session|browser.*(limit|capacity|busy)|too many|429|concurrent/i.test(message)) {
+      deferOps({ status: 503 });
+      return json(
+        {
+          error: 'The scanner is at capacity right now. Please retry in a minute.',
+          code: 'scanner_busy',
+          retryAfter: 60,
+          requestId,
+        },
+        503
+      );
+    }
     deferOps({ status: 502 });
     return json({ error: message, requestId }, 502);
   } finally {
+    // Close the tab before releasing the session: releaseBrowser disconnects
+    // (keeps the session warm for reuse), so an unclosed page would leak into
+    // the next scan that reuses this session.
+    try {
+      await page?.close?.();
+    } catch {
+      /* already gone */
+    }
     await releaseBrowser(browser);
   }
 }

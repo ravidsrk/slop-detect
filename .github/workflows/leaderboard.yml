@@ -26,6 +26,11 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: 1.4.2
+      # build.mjs imports @slop-detect/core (DEFINITIONS_VERSION) — without an
+      # install + core build the import fails and the job dies before scanning
+      # (this silently broke every monthly run while the file went stale).
+      - run: bun install
+      - run: bun run --filter @slop-detect/core build
       - name: Scan corpus → public/leaderboard.json
         env:
           SLOP_API_KEY: ${{ secrets.SLOP_API_KEY }}

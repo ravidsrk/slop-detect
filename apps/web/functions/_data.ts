@@ -701,11 +701,36 @@ function navBucket(ms) {
 // present. Single-writer rule per route: the middleware owns every non-scan
 // route's bumps, and scan.ts owns every scan-route bump (status + detail in
 // one write) — the two never race on the same blob.
+// The only route labels allowed as keys in the daily ops blob. Anything else
+// (bot probes like /api/.env, /api/graphql, /api/<random>) folds into `other`
+// — otherwise every probe permanently grows the one blob that /api/stats
+// serves and every homepage view downloads.
+export const OPS_ROUTES = new Set([
+  'scan',
+  'aeo',
+  'health',
+  'stats',
+  'patterns',
+  'fix-prompt',
+  'watch',
+  'sites',
+  'dashboard',
+  'cron',
+  'email',
+  'me',
+  'root',
+]);
+
+export function normalizeOpsRoute(route) {
+  return OPS_ROUTES.has(route) ? route : 'other';
+}
+
 export function mergeOpsBlob(
   blob,
   route,
   patch: { status?: number | string; tier?: string; blocked?: string; navMs?: number } = {}
 ) {
+  route = normalizeOpsRoute(route);
   const b =
     blob && typeof blob === 'object' && blob.routes && typeof blob.routes === 'object'
       ? blob
@@ -1013,7 +1038,9 @@ export async function recordScanForWatch(kv, slim) {
   // row if it was delisted but a previous delete didn't land. Best-effort —
   // never break a scan over the directory.
   try {
-    if (watch.listed) await setListing(kv, slim);
+    // Only a VERIFIED claim may hold a public directory row; an unverified
+    // `list:true` is intent only (activated by the confirm click).
+    if (watch.listed && watch.verified) await setListing(kv, slim);
     else await deleteListing(kv, slim.domain);
   } catch (_) {
     /* directory row is derived; reconciled on a later scan */
@@ -1098,9 +1125,9 @@ export function publicWatch(watch, history) {
 // A site is listed ONLY when its owner opts in via the claim/monitor flow
 // (POST /api/watch { list: true }) — never from an anonymous scan, so we never
 // publish a verdict on a company that didn't ask to be there (a ROADMAP
-// guardrail). Listed sites get a real (dofollow) backlink from /directory: the
-// catalogue ranks in search, links out to each site, and the backlink is the
-// incentive that drives owners to claim + monitor.
+// guardrail) — and only once the claim is email-verified. Listed sites are
+// linked from /directory with rel="ugc nofollow" (user-submitted links earn
+// no ranking credit, so the catalogue can't be farmed for SEO spam).
 //
 // Storage (RESULTS KV): l:<domain> → full listing record, with a compact display
 // summary in the key's METADATA so the directory enumerates in one list() call

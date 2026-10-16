@@ -1,7 +1,7 @@
 # How the scan works · slop-detect methodology
 
 > Canonical URL: https://slop-detect.com/docs
-> Definitions version: `2026.09` · 27 design rules · 9 copy rules · 8 AEO checks · `DESIGN.md` system compliance · MIT
+> Definitions version: `2026.10` · 27 design rules · 9 copy rules · 8 AEO checks · `DESIGN.md` system compliance · MIT
 
 `slop-detect` scores a landing page against a fixed, weighted catalogue of the CSS and copy tells that Cursor, v0, Lovable, and Bolt converged on. It runs in real headless Chromium against the page's own computed styles. Same page in, same score out: no model, no randomness, auditable, reproducible, safe to gate CI on.
 
@@ -20,7 +20,7 @@
 
 ![Four-axis telemetry architecture](https://slop-detect.com/media/docs-four-axes-architecture.png)
 
-### The 27 design patterns (`definitions@2026.09`)
+### The 27 design patterns (`definitions@2026.10`)
 
 | # | ID | Label | Category | Weight |
 |---|---|---|---|---|
@@ -52,7 +52,7 @@
 | 26 | `wide_body_tracking` | Wide letter-spacing on body text | fonts | 3 |
 | 27 | `flat_type_hierarchy` | Flat type hierarchy (sizes too close together) | fonts | 3 |
 
-### The 9 copy patterns (`definitions@2026.09`)
+### The 9 copy patterns (`definitions@2026.10`)
 
 | # | ID | Label | Weight |
 |---|---|---|---|
@@ -128,7 +128,7 @@ slop-detect https://your-site.com --design-md auto
 
 - `POST /api/scan` — Score a URL on the design (and optional copy) axis, with optional `designMd: true` and `preset`.
 - `POST /api/aeo` — Score whether AI engines can fetch, read, and cite a page.
-- `GET /api/patterns` — Live pattern catalogue (`definitions@2026.09`).
+- `GET /api/patterns` — Live pattern catalogue (`definitions@2026.10`).
 - `POST /api/fix-prompt` — Assemble a paste-ready remediation prompt scoped to triggered tells.
 - `GET /?mode=agent` — Machine-readable capability document.
 - `GET /api/health` — Live readiness probe.
@@ -154,7 +154,7 @@ import { scorePatterns, PATTERNS, DEFINITIONS_VERSION } from '@slop-detect/core'
 
 const summary = scorePatterns(results);
 console.log(summary.score, summary.grade, summary.tier);
-console.log(PATTERNS.length, DEFINITIONS_VERSION); // 27 2026.09
+console.log(PATTERNS.length, DEFINITIONS_VERSION); // 27 2026.10
 ```
 
 ---

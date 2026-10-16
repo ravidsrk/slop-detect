@@ -1,6 +1,6 @@
 # slop-detect
 
-> Score any landing page against the versioned four-axis AI-slop fingerprint (`definitions@2026.09`), from your terminal or CI pipeline.
+> Score any landing page against the versioned four-axis AI-slop fingerprint (`definitions@2026.10`), from your terminal or CI pipeline.
 
 Playwright-based, deterministic, zero-config. Audits visual design slop (27 CSS/DOM rules), AI copy tells (9 prose rules), `DESIGN.md` token compliance, and Answer Engine Optimization (8 AEO crawler checks).
 
@@ -87,7 +87,7 @@ npx -y slop-detect "$PREVIEW_URL" --json --fail-on heavy | tee slop.json
 
 ## See also
 
-- [Web UI & Methodology](https://slop-detect.com/docs) — interactive scanning and full 2026.09 spec
+- [Web UI & Methodology](https://slop-detect.com/docs) — interactive scanning and full 2026.10 spec
 - [`@slop-detect/core`](https://www.npmjs.com/package/@slop-detect/core) — pure detection engine, runtime-agnostic
 - [`slop-detect-mcp`](https://www.npmjs.com/package/slop-detect-mcp) — MCP server for Claude Code, Cursor, and Windsurf
 - [Repository](https://github.com/ravidsrk/slop-detect) — source, contributing, and the full pattern catalogue
