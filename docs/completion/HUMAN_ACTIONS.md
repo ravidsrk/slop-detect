@@ -17,9 +17,11 @@
   (`resend._domainkey`), and DMARC (`_dmarc`) DNS records on Cloudflare zone `75eb1f3de83e49bc675fb38cb22a27d5`;
   verified `bun scripts/email-auth-check.ts slop-detect.com` → `PASS`. Evidence:
   `docs/completion/evidence/H-03-email-auth-live.txt`.
-- **H-04 — npm publish v0.8.0 (#95).** Gates launch: YES. Instruction: set NPM_TOKEN, cut v0.8.0 tag
-  after T-03 green; confirm publish.yml core→cli→mcp order completed. Verify: agent checks npm
-  registry versions match repo.
+- **H-04 — npm publish v0.8.0 (#95).** DONE (2026-10-19). Set `NPM_TOKEN` in GitHub Actions secrets,
+  bundled `@slop-detect/core` into `slop-detect` CLI (`noExternal`) and configured `prepack`/`postpack`
+  so all three packages publish under the individual account (`slop-detect-core@0.8.0`,
+  `slop-detect@0.8.0`, `slop-detect-mcp@0.8.0`), and pushed tag `v0.8.0`. Evidence:
+  `docs/completion/evidence/H-04-npm-publish-live.txt`.
 - **H-05 — Calibration labeling (#99).** Gates launch: YES. Instruction: label 50–100 corpus URLs +
   recruit second rater; drop labels per T-19c harness format. Verify: agent runs harness + commits corpus.
 - **H-06 — Launch posts (#103 HN, #104 PH/Reddit).** Gates launch: NO (event, not product).

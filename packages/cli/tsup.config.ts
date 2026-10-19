@@ -15,6 +15,7 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   treeshake: true,
+  noExternal: ['@slop-detect/core'],
   target: 'node20',
   outDir: 'dist',
   outExtension({ format }) {
