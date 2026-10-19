@@ -1012,7 +1012,7 @@
   ],
   "gate": {
     "status": "CONDITIONAL_GO",
-    "reason": "S5: all 8 mechanical gate items met (incl. item 4 live rollback rehearsal in H-01-cloudflare-kv-live.txt); H-01, H-02, H-03, H-07, H-08 provisioned and verified live; only H-04 (npm publish) and H-05 (human calibration labeling) remain. Evidence: S5-signoff.txt."
+    "reason": "S5: all 8 mechanical gate items met; H-01, H-02, H-03, H-04, H-07, H-08 provisioned and verified live; only H-05 (human calibration labeling) remains. Evidence: S5-signoff.txt."
   },
   "history": [
     {
@@ -1055,9 +1055,9 @@
       "id": "H-04",
       "instruction": "Set NPM_TOKEN, cut v0.8.0 tag after T-03 green; confirm publish order (#95)",
       "issue_url": "https://github.com/ravidsrk/slop-detect/issues/95",
-      "status": "open",
+      "status": "done",
       "unblocks": ["npm-0.8.0"],
-      "verification": "agent checks registry versions match repo"
+      "verification": "docs/completion/evidence/H-04-npm-publish-live.txt"
     },
     {
       "gates_launch": true,

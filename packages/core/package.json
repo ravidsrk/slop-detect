@@ -56,7 +56,9 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist .turbo",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "prepack": "node -e 'const fs=require(\"fs\"),p=\"package.json\",j=JSON.parse(fs.readFileSync(p,\"utf8\"));j.name=\"slop-detect-core\";fs.writeFileSync(p,JSON.stringify(j,null,2)+\"\\n\")'",
+    "postpack": "node -e 'const fs=require(\"fs\"),p=\"package.json\",j=JSON.parse(fs.readFileSync(p,\"utf8\"));j.name=\"@slop-detect/core\";fs.writeFileSync(p,JSON.stringify(j,null,2)+\"\\n\")'"
   },
   "files": [
     "dist",

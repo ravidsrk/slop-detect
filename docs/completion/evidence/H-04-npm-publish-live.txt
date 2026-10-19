@@ -1,0 +1,13 @@
+=== H-04 NPM PUBLISH v0.8.0 (INDIVIDUAL ACCOUNT: ravindrakumar8088) ===
+GitHub Actions secret NPM_TOKEN: SET
+Published packages:
+  + slop-detect-core@0.8.0 (shasum: 7ddb478ac56ae6919ab4980cbb2b99fba8b31b2e, 489.7 kB, 46 files)
+  + slop-detect@0.8.0      (shasum: f5f2408411c457d11865a89560bab728b7021d1c, 395.7 kB, 16 files, @slop-detect/core bundled)
+  + slop-detect-mcp@0.8.0  (shasum: 9de943af1cf82e85e7d7bd0a36203c459e32d46b, 45.8 kB, 15 files)
+
+=== GITHUB ACTIONS REPOSITORY SECRETS ===
+CLOUDFLARE_ACCOUNT_ID	2026-10-19T09:58:24Z
+CLOUDFLARE_API_TOKEN	2026-10-19T09:58:24Z
+CRON_SECRET	2026-10-19T09:59:20Z
+NPM_TOKEN	2026-10-19T10:55:04Z
+SLOP_API_KEY	2026-10-19T09:59:20Z

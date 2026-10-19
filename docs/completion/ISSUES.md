@@ -6,7 +6,7 @@ Reconciled against live `gh issue list` (0 open PRs, 8 open issues, 4 closed in 
 |---|---|---|---|
 | `H-01` — Cloudflare API token (KV backup + staging/preview + rollback live rehearsal) | Provisioned, verified (`docs/completion/evidence/H-01-cloudflare-kv-live.txt`), & closed | https://github.com/ravidsrk/slop-detect/issues/193 (`#193`) |
 | `H-02` + `H-03` — Monitoring pipeline secrets (`CRON_SECRET`, `RESEND_API_KEY`, `SESSION_SECRET`) & Resend DNS (`SPF`/`DKIM`/`DMARC`) | Provisioned, verified (`docs/completion/evidence/H-02-pages-secrets-live.txt`, `docs/completion/evidence/H-03-email-auth-live.txt`), & closed | https://github.com/ravidsrk/slop-detect/issues/96 (`#96`) |
-| `H-04` — npm publish (`@slop-detect/core` → `slop-detect` → `slop-detect-mcp`) & `NPM_TOKEN` | Mapped to existing open issue | https://github.com/ravidsrk/slop-detect/issues/95 (`#95`) |
+| `H-04` — npm publish (`slop-detect-core@0.8.0`, `slop-detect@0.8.0`, `slop-detect-mcp@0.8.0`) & `NPM_TOKEN` | Published, verified (`docs/completion/evidence/H-04-npm-publish-live.txt`), & closed | https://github.com/ravidsrk/slop-detect/issues/95 (`#95`) |
 | `H-05` / `G-47` — Calibration corpus human labeling (50–100 URLs + second rater) | Mapped to existing open issue | https://github.com/ravidsrk/slop-detect/issues/99 (`#99`) |
 | `G-03` (partial, blocked on `H-05`) — Class-2/3 over-flagging calibration tuning | Mapped to existing open issue | https://github.com/ravidsrk/slop-detect/issues/100 (`#100`) |
 | `H-06` — Launch posts (Show HN + Product Hunt / Reddit, post-GO) | Mapped to existing open issues | https://github.com/ravidsrk/slop-detect/issues/103 (`#103`), https://github.com/ravidsrk/slop-detect/issues/104 (`#104`) |
