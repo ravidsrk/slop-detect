@@ -804,7 +804,7 @@ A deterministic detector is feasible if it requires hiding **and** an AI-address
   - A ~500 KB HTML page becomes 3 KB of markdown, a "99.37% reduction".
   - The rewrite matches `text/markdown` anywhere in `Accept`.
   - Vercel also uses `<link rel=alternate>`.
-  - Direct probe: **`vercel.com/index.md` returns 200 text/html (the 2.6 MB homepage)**, a soft-404 trap for `md.twin` [V].
+  - Direct probe: **`vercel.com/index.md` returns 200 text/html (the 2.6 MB homepage)** [V]. Today's `md.twin` already fails this, because it requires a `text/markdown` content type (`aeo.ts:530`). The real gap is the reverse: Vercel's markdown is served by negotiation on the canonical URL, which the `.md`-only probe never requests, so Vercel fails `md.twin` despite having a twin.
 - **Mintlify** (2026-01-29). Source: [Mintlify](https://www.mintlify.com/blog/context-for-agents) [V].
   - Negotiates on `Accept`.
   - Sends `Link: </llms.txt>; rel="llms-txt"`, `X-Llms-Txt`, and `X-Robots-Tag: noindex` on markdown responses.
@@ -988,7 +988,7 @@ RFC 9421 (HTTP Message Signatures) and RFC 9651 (Structured Fields) are referenc
 | `bot.notBlocked` (25) | **Concept well supported; implementation weak.** | OpenAI and Perplexity say to allow search bots and their IP ranges (§2). Microsoft says don't hide content (§9). But the probe spoofs **GPTBot** (training; an "independent" setting), uses an outdated UA (`GPTBot/1.2` vs the documented `GPTBot/1.4` format), passes AWS WAF 202 challenges, ignores `cf-mitigated`, and is treated as unverified traffic (§5). |
 | `robots.aiAllowed` (20) | **Supported for search tokens; unsupported for training tokens; parser non-compliant.** | OAI-SearchBot opt-out removes a site from ChatGPT search answers. Google-Extended "does not impact a site's inclusion in Google Search". Applebot-Extended "does not crawl" (§2). The web copy wrongly names GPTBot, ClaudeBot and Google-Extended as the "major AI crawlers" (`apps/web/functions/_posts.ts`). RFC 9309 deviations: group selection, Allow precedence, wildcards, 5xx = full disallow (§2). |
 | `html.indexable` (15) | **Well supported.** | Google: "must be indexed and eligible to be shown in Google Search with a snippet" (§4). Gaps: misses the `none` directive, bot-specific meta (`googlebot`, `bingbot`) and UA-prefixed `X-Robots-Tag`. |
-| `md.twin` (10) | **Moderate for coding agents; none for answer engines.** | Claude Code, Cursor and OpenCode request markdown; Codex and Copilot don't; Google: not needed (§8). The `.md`-only probe misses negotiation and is fooled by soft-404s (vercel.com/index.md). |
+| `md.twin` (10) | **Moderate for coding agents; none for answer engines.** | Claude Code, Cursor and OpenCode request markdown; Codex and Copilot don't; Google: not needed (§8). The `.md`-only probe misses `Accept` negotiation on the canonical URL, so Vercel's real twin fails. It already requires `text/markdown`, so HTML soft-404s such as vercel.com/index.md correctly fail; body checks would only add protection on top. |
 | `html.linkAlternate` (8) | **Weak–moderate.** | Recommended by llms.txt v2. No evidence found that agents follow it. Presence is not validated (§8). |
 | `site.llmsTxt` (7) | **Weak for AI search and citation; moderate for coding agents.** | Google ignores it. 97% of files got zero requests and retrieval bots were 1.1% of requests. No correlation with citations. SPA soft-404s pass today (§3). |
 | `html.vary` (5) | **Mis-specified.** | RFC 9110 makes `Vary` a conditional SHOULD. Reference implementations omit `Vary: Accept` on HTML (§8). |
