@@ -15,6 +15,11 @@ export function formatScan(result) {
     patternsTotal,
     patterns = [],
     resultUrl,
+    unifiedScore,
+    unifiedTier,
+    unifiedGrade,
+    axes,
+    system,
   } = result;
 
   // Only the triggered patterns are actionable; the rest are noise here.
@@ -23,16 +28,42 @@ export function formatScan(result) {
     ? triggered.map((p) => `  • ${p.label} (+${p.weight})`).join('\n')
     : '  • None — clean on all checks.';
 
+  const copyAxis = axes && axes.copy;
+  const copyTriggered =
+    copyAxis && Array.isArray(copyAxis.patterns)
+      ? copyAxis.patterns.filter((p) => p.triggered)
+      : [];
+  const copyBlock = copyAxis
+    ? [
+        '',
+        `Copy Axis: ${copyAxis.score}/100 (grade ${copyAxis.grade || '?'} · tier ${copyAxis.tier} · lower is better)`,
+        `Copy patterns flagged: ${copyAxis.patternsFlagged}/${copyAxis.patternsTotal}`,
+        copyTriggered.length
+          ? copyTriggered.map((p) => `  • ${p.label} (+${p.weight})`).join('\n')
+          : '  • None — clean on all copy checks.',
+      ].join('\n')
+    : null;
+
+  const systemBlock =
+    system && system.declared
+      ? `\nSystem Axis (DESIGN.md): ${system.score}/100 (tier ${system.tier} · HIGHER is better)`
+      : null;
+
   const lines = [
     `Grade: ${grade}`,
     `Score: ${score}/100 (lower is better — 0 = no slop)`,
     `Tier: ${tier}`,
+    unifiedScore != null
+      ? `Unified Score: ${unifiedScore}/100 (grade ${unifiedGrade || grade} · tier ${unifiedTier || tier})`
+      : null,
     verdict ? `Verdict: ${verdict}` : null,
     title ? `Title: ${title}` : null,
     finalUrl ? `Scanned: ${finalUrl}` : null,
     '',
     `Patterns flagged: ${patternsFlagged}/${patternsTotal}`,
     triggeredLines,
+    copyBlock,
+    systemBlock,
     '',
     resultUrl ? `Shareable result: ${resultUrl}` : null,
     '',

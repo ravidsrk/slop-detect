@@ -45,13 +45,12 @@ Legend: ✅ done in-repo · 🔧 needs you (secret/decision/data) · ⏳ follow-
     `publish.yml` — it publishes the renamed core, the CLI, and the MCP server.
     Old consumers of `slop-detect-core` should be told (in the CHANGELOG) to
     `npm install @slop-detect/core` instead.
-- ✅ **Engine has real tests now** (scoring/grades/presets/combine + catalogue
-  integrity, 92 total). ⏳ Still no DOM-level golden tests of the 27 design
-  patterns — see below.
+- ✅ **Engine + DOM golden tests** (scoring/grades/presets/combine + catalogue
+  integrity + DOM-level golden fixtures in `packages/cli/test/golden.test.js` across all 27 design patterns).
 
 ## 🟡 Medium / follow-up
 
-- ✅ Version drift fixed (all 0.6.0, lockfile synced).
+- ✅ Version drift fixed (all `0.8.0` / `definitions@2026.09`, lockfile synced).
 - ✅ Security headers + CSP (scoped to Google Fonts + Turnstile). ⏳ Graduate CSP
   from `'unsafe-inline'` to nonces once index.html inline scripts are audited.
 - 🟡 **Calibrate detection — harness shipped, data pending.** Added deterministic
@@ -76,7 +75,7 @@ Legend: ✅ done in-repo · 🔧 needs you (secret/decision/data) · ⏳ follow-
 | Pages env | `SCAN_DISABLED` | emergency kill switch (`1` to pause) |
 | Pages env | `ERROR_WEBHOOK` | error alerts (optional) |
 | Pages env | `TURNSTILE_SECRET` | captcha (already external) |
-| Pages env | `RESEND_API_KEY` / `ALERT_FROM` | send monitoring emails (optional) |
+| Pages env | `RESEND_API_KEY` / `ALERT_FROM` / `ALERT_POSTAL_ADDRESS` | send monitoring emails + CAN-SPAM postal address (optional) |
 | Pages env | `CRON_SECRET` | auth for `/api/cron/sweep` |
 | Pages env | `INTERNAL_API_KEY` | unlimited-tier key for sweep re-scans |
 | Pages env | `SWEEP_MAX` | domains re-scanned per sweep (default 50) |

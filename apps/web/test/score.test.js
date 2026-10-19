@@ -329,3 +329,118 @@ test('the page is dogfood-clean: its own CSS uses no slop fonts, gradients, or c
   // the remediation copy legitimately names the banned font — proof we scoped right
   expect(html).toMatch(/Inter/);
 });
+
+test('result page wires Live AEO Evaluator, AI Fix Studio handoffs, and clickable category bars', async () => {
+  const kv = makeKv();
+  const s = slim();
+  await saveResult(kv, s);
+  await recordScan(kv, s);
+  const { html } = await render(kv, 'ex.com');
+  expect(html, 'live AEO check button').toMatch(/id="runAeoBtn"/);
+  expect(html, 'AEO check rows carry data-aeo-id').toMatch(/data-aeo-id="html\.reachable"/);
+  expect(html, 'AI Fix Studio ChatGPT handoff').toMatch(/id="fixChatGPT"/);
+  expect(html, 'AI Fix Studio Claude handoff').toMatch(/id="fixClaude"/);
+  expect(html, 'AI Fix Studio Cursor handoff').toMatch(/id="fixCursor"/);
+  expect(html, 'clickable category bars').toMatch(/data-cat-jump="fonts"/);
+  expect(html, 'compare link').toMatch(/\/compare\?a=ex\.com/);
+});
+
+test('GET /score?domain= redirects 302 to /score/:domain', async () => {
+  const { onRequestGet: scoreRedirect } = await import('../functions/score.ts');
+  const res = await scoreRedirect({
+    request: new Request('https://slop-detect.com/score?domain=https%3A%2F%2FStripe.com%2Fpricing'),
+  });
+  expect(res.status).toBe(302);
+  expect(res.headers.get('Location')).toBe('https://slop-detect.com/score/stripe.com');
+
+  const empty = await scoreRedirect({
+    request: new Request('https://slop-detect.com/score'),
+  });
+  expect(empty.status).toBe(302);
+  expect(empty.headers.get('Location')).toBe('https://slop-detect.com/');
+});
+
+test('copy-axis triggered tells appear in FixesPanel and assembleFixPrompt', async () => {
+  const kv = makeKv();
+  const s = slim({
+    axes: {
+      copy: {
+        score: 18,
+        tier: 'Mild',
+        grade: 'B-',
+        triggered: [
+          {
+            id: 'buzzword_density',
+            label: 'AI buzzword density',
+            short: 'Buzzwords',
+            weight: 7,
+          },
+        ],
+      },
+    },
+  });
+  await saveResult(kv, s);
+  await recordScan(kv, s);
+  const { html } = await render(kv, 'ex.com');
+  expect(html).toContain('AI buzzword density');
+});
+
+test('/r/:id renders SystemAeoCards so Live AEO check and DESIGN.md drift work on shared permalinks', async () => {
+  const { onRequestGet: rGet } = await import('../functions/r/[id].tsx');
+  const kv = makeKv();
+  const s = slim({ id: 'perm0001' });
+  await saveResult(kv, s);
+  const res = await rGet({
+    params: { id: 'perm0001' },
+    request: { url: 'https://slop-detect.com/r/perm0001' },
+    env: { RESULTS: kv },
+  });
+  const html = await res.text();
+  expect(html).toMatch(/id="runAeoBtn"/);
+  expect(html).toMatch(/data-aeo-id="html\.reachable"/);
+  expect(html).toMatch(/system · DESIGN\.md drift/);
+});
+
+test('GET /api/patterns exposes design, copy, aeo, system, and presets', async () => {
+  const { onRequestGet: patternsGet } = await import('../functions/api/patterns.ts');
+  const res = await patternsGet();
+  expect(res.status).toBe(200);
+  const data = await res.json();
+  expect(data.count).toBe(27);
+  expect(data.copyCount).toBe(9);
+  expect(data.aeoCount).toBe(8);
+  expect(data.systemCount).toBe(5);
+  expect(Array.isArray(data.presets)).toBe(true);
+});
+
+test('apps/web/public/DESIGN.md parses and scores 100/100 Aligned against slop-detect tokens', async () => {
+  const fs = await import('node:fs');
+  const { parseDesignMd, scoreSystemCompliance } = await import('@slop-detect/core');
+  const md = fs.readFileSync(new URL('../public/DESIGN.md', import.meta.url), 'utf8');
+  const spec = parseDesignMd(md);
+  expect(spec).toBeTruthy();
+  const scored = scoreSystemCompliance(spec, {
+    fonts: {
+      Newsreader: 14,
+      'Libre Franklin': 48,
+      'JetBrains Mono': 36,
+    },
+    ctas: [
+      { bg: '#1fa85e', text: '#ffffff' },
+      { bg: '#181815', text: '#f4f5f2' },
+    ],
+    surface: '#f4f5f2',
+    headings: [
+      { tag: 'H1', color: '#181815' },
+      { tag: 'H2', color: '#181815' },
+    ],
+    radii: {
+      4: 12,
+      6: 10,
+      8: 8,
+    },
+  });
+  expect(scored.score).toBe(100);
+  expect(scored.tier).toBe('Aligned');
+  expect(scored.drift).toEqual([]);
+});

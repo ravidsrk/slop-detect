@@ -44,7 +44,7 @@ const PAGE_CSS = `
   .lb-wrap{max-width:1080px;margin:0 auto;padding:0 var(--pad-x)}
   .lb-head{padding:56px 0 26px}
   .lb-eyebrow{font-family:var(--mono);font-size:13px;color:var(--clean-text);margin-bottom:14px}
-  .lb-h1{font-family:var(--serif);font-weight:500;font-size:var(--fs-display-2);line-height:1.0;letter-spacing:-0.02em;color:var(--text);margin-bottom:18px}
+  .lb-h1{font-family:var(--serif);font-weight:500;font-size:var(--fs-display-2);line-height:1.12;letter-spacing:-0.02em;color:var(--text);margin-bottom:18px}
   .lb-pos{font-size:var(--fs-lead);line-height:1.6;color:var(--text-2);max-width:66ch}
   .lb-pos strong{color:var(--text);font-weight:600}
   .lb-pos a{color:var(--text);border-bottom:1px solid var(--border-btn);padding-bottom:1px}
@@ -54,33 +54,47 @@ const PAGE_CSS = `
   .lb-live strong{color:var(--text);font-weight:700}
 
   .lb-sec{padding:34px 0}
-  .lb-sec-h{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-c);line-height:1.05;letter-spacing:-0.02em;color:var(--text)}
+  .lb-sec-h{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-c);line-height:1.18;letter-spacing:-0.02em;color:var(--text)}
   .lb-sec-sub{margin-top:8px;font-size:14px;color:var(--text-4);max-width:62ch}
 
   /* distribution histogram */
   .hb-fig{margin:22px 0 0}
-  .hb{display:grid;grid-template-columns:repeat(${BUCKETS},1fr);gap:7px;align-items:end}
-  .hb-col{display:grid;grid-template-rows:18px ${BAR_MAX}px auto;align-items:end;justify-items:center;gap:6px}
-  .hb-n{font-family:var(--mono);font-size:11px;color:var(--text-5);line-height:1}
+  .hb{display:grid;grid-template-columns:repeat(${BUCKETS},1fr);gap:7px;align-items:end;list-style:none}
+  .hb-col{display:grid;grid-template-rows:18px ${BAR_MAX}px auto;align-items:end;justify-items:center;gap:6px;cursor:pointer;padding:4px 2px;border-radius:3px;transition:background var(--t)}
+  .hb-col:hover,.hb-col.active{background:var(--bg-2)}
+  .hb-n{font-family:var(--mono);font-size:12px;color:var(--text-5);line-height:1}
   .hb-bar{width:100%;align-self:end;border-radius:3px 3px 0 0;min-height:2px;height:var(--h);animation:hb-grow .6s ease both}
-  .hb-x{font-family:var(--mono);font-size:11px;color:var(--text-6);line-height:1}
-  .hb-axis{display:flex;justify-content:space-between;margin-top:10px;font-family:var(--mono);font-size:11.5px;color:var(--text-5)}
+  .hb-x{font-family:var(--mono);font-size:12px;color:var(--text-6);line-height:1}
+  .hb-axis{display:flex;justify-content:space-between;margin-top:10px;font-family:var(--mono);font-size:12px;color:var(--text-5)}
   .hb-cap{margin-top:12px;font-size:13px;color:var(--text-4);max-width:62ch}
   @keyframes hb-grow{from{height:0}to{height:var(--h)}}
+
+  /* interactive filter bar */
+  .lb-controls{margin-top:16px;padding:12px 14px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .lb-search{flex:1;min-width:210px;background:var(--panel);border:1px solid var(--border-btn);border-radius:3px;padding:8px 12px;font-family:var(--mono);font-size:13px;color:var(--text)}
+  .lb-tiers{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .lb-tier-btn{font-family:var(--mono);font-size:12px;color:var(--text-3);background:var(--panel);border:1px solid var(--border-chip);border-radius:3px;padding:6px 11px;cursor:pointer;transition:var(--t)}
+  .lb-tier-btn:hover{border-color:var(--text);color:var(--text)}
+  .lb-tier-btn.active{background:var(--text);color:var(--d-text);border-color:var(--text)}
+  .lb-compare-link{font-family:var(--mono);font-size:12px;color:var(--clean-text)}
+  .lb-compare-link:hover{color:var(--text)}
+  .lb-filter-row[hidden]{display:none}
 
   /* the cleanest-overall + per-category 2-up boards */
   .lb-2col{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 40px;margin-top:18px}
   .lb-boards{display:grid;grid-template-columns:repeat(2,1fr);gap:32px 40px;margin-top:20px}
   .lb-board-h{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text-3);letter-spacing:0;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:2px}
-  .lb-board-h small{color:var(--text-5);font-weight:400}
+  .lb-board-h small{font-size:12px;color:var(--text-4);font-weight:400}
+  .lb-dir-pill{display:inline-block;font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text-3);background:var(--bg-2);border:1px solid var(--border);border-radius:3px;padding:2px 8px;margin-left:10px;vertical-align:middle}
 
   /* by-builder ledger table */
   .lb-tbl{border-collapse:collapse;width:100%;max-width:520px;margin-top:18px}
-  .lb-tbl caption{text-align:left;font-family:var(--mono);font-size:11.5px;color:var(--text-5);padding-bottom:8px}
+  .lb-tbl caption{text-align:left;font-family:var(--mono);font-size:12px;color:var(--text-5);padding-bottom:8px}
   .lb-tbl th,.lb-tbl td{text-align:left;padding:9px 14px 9px 0;font-size:14px;border-bottom:1px solid var(--row)}
-  .lb-tbl th{font-family:var(--mono);font-size:11.5px;font-weight:500;color:var(--text-5)}
+  .lb-tbl th{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text-5)}
   .lb-tbl td:first-child{font-family:var(--mono);color:var(--text-2)}
   .lb-tbl td.lb-num,.lb-tbl th.lb-num{font-family:var(--mono);text-align:right;white-space:nowrap}
+  .lb-tbl tbody td.lb-num{background:#FFFFFF;padding-right:6px;padding-left:6px}
 
   /* CTA scan form */
   .lb-cta{padding:48px 0 8px}
@@ -144,6 +158,10 @@ function Histogram({ sites, scored }: { sites: any[]; scored: number }) {
           return (
             <li
               class="hb-col"
+              data-bucket={String(i)}
+              data-lo={String(lo)}
+              data-hi={String(hi)}
+              title={`Click to filter scores ${lo}–${hi}`}
               aria-label={`Scores ${lo} to ${hi}: ${n} ${n === 1 ? 'page' : 'pages'}`}
             >
               <span class="hb-n" aria-hidden="true">
@@ -165,9 +183,9 @@ function Histogram({ sites, scored }: { sites: any[]; scored: number }) {
         <span>clean</span>
         <span>heavy</span>
       </div>
-      <figcaption class="hb-cap">
+      <figcaption class="hb-cap" id="hbCaption">
         Slop scores across {scored} scanned pages, in ten bands. Lower is cleaner: Clean is
-        0&ndash;9, Mild 10&ndash;27, Heavy 28+.
+        0&ndash;9, Mild 10&ndash;27, Heavy 28+. Click any band to filter the boards below.
       </figcaption>
     </figure>
   );
@@ -211,23 +229,58 @@ function CategoryBoards({ sites, origin }: { sites: any[]; origin: string }) {
     ...Object.keys(groups).filter((k) => !CATEGORY_ORDER.includes(k)),
   ];
   return (
-    <div class="lb-boards stack-900">
-      {keys.map((k) => {
-        const rows = groups[k].slice().sort((a, b) => a.score - b.score);
-        return (
-          <section aria-label={CATEGORY_NAMES[k] || k}>
-            <h3 class="lb-board-h">
-              {CATEGORY_NAMES[k] || k} <small>· {rows.length}</small>
-            </h3>
-            <ol>
-              {rows.map((s, i) => (
-                <Row s={s} rank={i + 1} origin={origin} />
-              ))}
-            </ol>
-          </section>
-        );
-      })}
-    </div>
+    <>
+      <div class="lb-controls" role="region" aria-label="Filter leaderboard rows">
+        <input
+          id="lbSearch"
+          class="lb-search"
+          type="search"
+          placeholder="Filter domains (e.g. stripe, linear)…"
+          aria-label="Filter domains"
+        />
+        <div class="lb-tiers" role="group" aria-label="Filter by tier">
+          <button type="button" class="lb-tier-btn active" data-tier-filter="all">
+            all tiers
+          </button>
+          <button type="button" class="lb-tier-btn" data-tier-filter="Clean">
+            Clean (0–9)
+          </button>
+          <button type="button" class="lb-tier-btn" data-tier-filter="Mild">
+            Mild (10–27)
+          </button>
+          <button type="button" class="lb-tier-btn" data-tier-filter="Heavy">
+            Heavy (28+)
+          </button>
+        </div>
+        <a class="lb-compare-link" href={`${origin}/compare`}>
+          compare head-to-head →
+        </a>
+      </div>
+      <div class="lb-boards stack-900" id="lbCategoryBoards">
+        {keys.map((k) => {
+          const rows = groups[k].slice().sort((a, b) => a.score - b.score);
+          return (
+            <section aria-label={CATEGORY_NAMES[k] || k} data-cat-sec={k}>
+              <h3 class="lb-board-h">
+                {CATEGORY_NAMES[k] || k} <small>· {rows.length}</small>
+              </h3>
+              <ol>
+                {rows.map((s, i) => (
+                  <div
+                    class="lb-filter-row"
+                    data-domain={String(s.domain || '').toLowerCase()}
+                    data-tier={s.tier}
+                    data-score={String(s.score)}
+                  >
+                    <Row s={s} rank={i + 1} origin={origin} />
+                  </div>
+                ))}
+              </ol>
+            </section>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
@@ -343,9 +396,9 @@ export async function onRequestGet({ request, env }: { request: { url: string };
             segments={[
               [{ n: scored.toLocaleString('en-US') }, ' pages scanned'],
               ['avg slop ', { n: stats.avgScore, color: tierText(tierFor(stats.avgScore)) }],
-              [{ n: stats.cleanCount, color: '#15824A' }, ' Clean'],
-              [{ n: stats.mildCount, color: '#9A6B12' }, ' Mild'],
-              [{ n: stats.heavyCount, color: '#B23A2A' }, ' Heavy'],
+              [{ n: stats.cleanCount, color: 'var(--clean-text)' }, ' Clean'],
+              [{ n: stats.mildCount, color: 'var(--mild-text)' }, ' Mild'],
+              [{ n: stats.heavyCount, color: 'var(--heavy-text)' }, ' Heavy'],
             ]}
           />
         ) : null}
@@ -374,7 +427,7 @@ export async function onRequestGet({ request, env }: { request: { url: string };
 
               <section class="lb-sec" aria-labelledby="lb-clean">
                 <h2 class="lb-sec-h" id="lb-clean">
-                  Cleanest overall
+                  Cleanest overall <span class="lb-dir-pill">Slop score · lower is better</span>
                 </h2>
                 <p class="lb-sec-sub">
                   The ten lowest scores in the corpus. Every name links to its score hub.
@@ -384,7 +437,7 @@ export async function onRequestGet({ request, env }: { request: { url: string };
 
               <section class="lb-sec" aria-labelledby="lb-cat">
                 <h2 class="lb-sec-h" id="lb-cat">
-                  By category
+                  By category <span class="lb-dir-pill">Slop score · lower is better</span>
                 </h2>
                 <p class="lb-sec-sub">Cleanest first within each group.</p>
                 <CategoryBoards sites={sites} origin={origin} />
@@ -432,11 +485,58 @@ export async function onRequestGet({ request, env }: { request: { url: string };
         </main>
 
         <Footer origin={origin} meta={`definitions ${def} · MIT`} />
+        <script>
+          {raw(`(function(){
+  var search=document.getElementById('lbSearch');
+  var rows=Array.prototype.slice.call(document.querySelectorAll('.lb-filter-row'));
+  var tierBtns=Array.prototype.slice.call(document.querySelectorAll('[data-tier-filter]'));
+  var hbCols=Array.prototype.slice.call(document.querySelectorAll('.hb-col[data-bucket]'));
+  if(!rows.length)return;
+  var activeTier='all';
+  var activeBand=null;
+  function apply(){
+    var q=(search&&search.value?search.value:'').trim().toLowerCase();
+    rows.forEach(function(r){
+      var dom=r.getAttribute('data-domain')||'';
+      var tier=r.getAttribute('data-tier')||'';
+      var sc=parseFloat(r.getAttribute('data-score')||'0');
+      var okDom=!q||dom.indexOf(q)!==-1;
+      var okTier=activeTier==='all'||tier===activeTier;
+      var okBand=!activeBand||(sc>=activeBand.lo&&sc<=activeBand.hi);
+      r.hidden=!(okDom&&okTier&&okBand);
+    });
+  }
+  if(search)search.addEventListener('input',apply);
+  tierBtns.forEach(function(b){
+    b.addEventListener('click',function(){
+      activeTier=b.getAttribute('data-tier-filter')||'all';
+      tierBtns.forEach(function(x){x.classList.toggle('active',x===b);});
+      apply();
+    });
+  });
+  hbCols.forEach(function(c){
+    c.addEventListener('click',function(){
+      var lo=parseFloat(c.getAttribute('data-lo')||'0');
+      var hi=parseFloat(c.getAttribute('data-hi')||'100');
+      if(activeBand&&activeBand.lo===lo){
+        activeBand=null;
+        hbCols.forEach(function(x){x.classList.remove('active');});
+      }else{
+        activeBand={lo:lo,hi:hi};
+        hbCols.forEach(function(x){x.classList.toggle('active',x===c);});
+      }
+      apply();
+    });
+  });
+})();`)}
+        </script>
       </body>
     </html>
   );
 
-  const html = '<!doctype html>' + doc.toString();
+  const html =
+    '<!doctype html><!-- impeccable-disable low-contrast -- tierText() tokens pinned by ui.test.js -->' +
+    doc.toString();
 
   return new Response(html, {
     headers: {

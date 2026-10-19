@@ -283,3 +283,25 @@ test('a completed scan navigates to the full /r/<id> result page', () => {
     'inline render fallback kept'
   ).toBeTruthy();
 });
+
+// ── 3D Exploded DOM Stage + Multi-Axis Console + Pattern X-Ray Explorer ──────
+test('landing renders the 3D Exploded DOM Stage, Multi-Axis Scan Console, Pattern X-Ray, and 4-Axis Grid', () => {
+  expect(html, 'multi-axis copy toggle').toMatch(/id="optCopy"/);
+  expect(html, 'multi-axis DESIGN.md toggle').toMatch(/id="optSystem"/);
+  expect(html, 'preset selector').toMatch(/id="optPreset"/);
+  expect(html, '3D exploded DOM stage container').toMatch(/id="stage3d"/);
+  expect(html, '3D exploded DOM canvas').toMatch(/id="domStageCanvas"/);
+  expect(html, 'de-slop calibration slider').toMatch(/id="stageMorphRange"/);
+  expect(html, 'de-slop animation button').toMatch(/id="stageDeslopBtn"/);
+  expect(html, 'interactive pattern X-Ray section').toMatch(/id="xraySection"/);
+  expect(html, 'interactive pattern X-Ray canvas').toMatch(/id="patternXrayCanvas"/);
+  expect(html, 'score direction label on design/copy').toMatch(/Slop score · lower is better/);
+  expect(html, 'score direction label on system/AEO').toMatch(/higher is better/);
+  expect(html, 'loads CSP-safe /instrument-3d.js').toMatch(/src="\/instrument-3d\.js"/);
+
+  const instrumentSrc = readFileSync(
+    new URL('../public/instrument-3d.js', import.meta.url),
+    'utf8'
+  );
+  expect(() => new Function(instrumentSrc), 'instrument-3d.js must parse cleanly').not.toThrow();
+});

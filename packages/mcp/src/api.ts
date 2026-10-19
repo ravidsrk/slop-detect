@@ -78,12 +78,31 @@ async function fetchWithTimeout(url, opts = {}) {
   }
 }
 
-// POST {url} to /api/scan and return the parsed JSON result.
-export async function scanPage(url) {
+function apiHeaders() {
+  const headers: Record<string, string> = { 'content-type': 'application/json' };
+  const key = process.env.SLOP_API_KEY || process.env.SLOP_DETECT_API_KEY;
+  if (key) headers['x-api-key'] = key;
+  return headers;
+}
+
+export interface ScanPageOptions {
+  axes?: string[];
+  preset?: string;
+  designMd?: string | boolean;
+}
+
+// POST {url, ...opts} to /api/scan and return the parsed JSON result.
+export async function scanPage(url: string, opts: ScanPageOptions = {}) {
+  const payload: Record<string, any> = { url };
+  if (Array.isArray(opts.axes) && opts.axes.length > 0) payload.axes = opts.axes;
+  if (typeof opts.preset === 'string' && opts.preset) payload.preset = opts.preset;
+  if (opts.designMd !== undefined && opts.designMd !== null && opts.designMd !== '') {
+    payload.designMd = opts.designMd;
+  }
   const res = await fetchWithTimeout(`${apiBase()}/api/scan`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ url }),
+    headers: apiHeaders(),
+    body: JSON.stringify(payload),
   });
   if (!res.ok) throw await toApiError(res);
   return res.json();
@@ -94,10 +113,10 @@ export async function scanPage(url) {
 // `designMdUrl` (optional) points at an explicit DESIGN.md; otherwise the API
 // auto-discovers <origin>/DESIGN.md. share:false — agent checks shouldn't mint
 // public permalinks.
-export async function checkSystem(url, designMdUrl) {
+export async function checkSystem(url: string, designMdUrl?: string) {
   const res = await fetchWithTimeout(`${apiBase()}/api/scan`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: apiHeaders(),
     body: JSON.stringify({
       url,
       designMd: typeof designMdUrl === 'string' && designMdUrl ? designMdUrl : true,
@@ -110,25 +129,41 @@ export async function checkSystem(url, designMdUrl) {
 
 // POST {url} to /api/aeo and return the AEO conformance report JSON — "can AI
 // engines (ChatGPT/Claude/Perplexity) actually read & cite this page?".
-export async function checkAeo(url) {
+export async function checkAeo(url: string) {
   const res = await fetchWithTimeout(`${apiBase()}/api/aeo`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: apiHeaders(),
     body: JSON.stringify({ url }),
   });
   if (!res.ok) throw await toApiError(res);
   return res.json();
 }
 
-// POST {url} to /api/fix-prompt and return the generated prompt as text.
+// POST {url, ...opts} to /api/fix-prompt and return the generated prompt as text.
 // The endpoint returns text/plain by default; we never request JSON because the
 // raw prompt is exactly what we want to hand back to the agent.
-export async function fixPrompt(url) {
+export async function fixPrompt(url: string, opts: ScanPageOptions = {}) {
+  const payload: Record<string, any> = { url };
+  if (Array.isArray(opts.axes) && opts.axes.length > 0) payload.axes = opts.axes;
+  if (typeof opts.preset === 'string' && opts.preset) payload.preset = opts.preset;
+  if (opts.designMd !== undefined && opts.designMd !== null && opts.designMd !== '') {
+    payload.designMd = opts.designMd;
+  }
   const res = await fetchWithTimeout(`${apiBase()}/api/fix-prompt`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ url }),
+    headers: apiHeaders(),
+    body: JSON.stringify(payload),
   });
   if (!res.ok) throw await toApiError(res);
   return res.text();
+}
+
+// GET /api/patterns and return the live pattern & check catalogue JSON.
+export async function fetchPatterns() {
+  const res = await fetchWithTimeout(`${apiBase()}/api/patterns`, {
+    method: 'GET',
+    headers: { accept: 'application/json' },
+  });
+  if (!res.ok) throw await toApiError(res);
+  return res.json();
 }

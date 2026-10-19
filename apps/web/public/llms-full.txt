@@ -90,9 +90,10 @@ Response (abridged):
   "score": 34,
   "tier": "Heavy",
   "grade": "D",
+  "definitionsVersion": "2026.09",
   "patternsFlagged": 9,
   "patternsTotal": 27,
-  "patterns": [{ "id": "gradient_hero_text", "weight": 4, "hit": true }],
+  "patterns": [{ "id": "gradient_text", "weight": 6, "triggered": true }],
   "resultUrl": "https://slop-detect.com/r/ab12cd"
 }
 ```
@@ -180,11 +181,16 @@ Free and open source (MIT). No paid tiers. See https://slop-detect.com/pricing.m
 ## Discovery & links
 
 - llms.txt: https://slop-detect.com/llms.txt
-- Methodology: https://slop-detect.com/docs
+- Methodology: https://slop-detect.com/docs (Markdown twin: https://slop-detect.com/docs.md)
+- Research blog: https://slop-detect.com/blog
+- Side-by-side compare: https://slop-detect.com/compare (Markdown twin: https://slop-detect.com/compare/index.md)
 - Brand & identity: https://slop-detect.com/brand
 - OpenAPI: https://slop-detect.com/openapi.json
+- Health probe: https://slop-detect.com/api/health
 - Auth: https://slop-detect.com/auth.md
 - Pricing: https://slop-detect.com/pricing.md
+- Privacy & data rights (`/api/me/export`, `/api/me/erase`): https://slop-detect.com/privacy.md
+- Terms: https://slop-detect.com/terms.md
 - Agent discovery: https://slop-detect.com/.well-known/agent.json
 - MCP server card: https://slop-detect.com/.well-known/mcp/server-card.json
 - A2A agent card: https://slop-detect.com/.well-known/agent-card.json

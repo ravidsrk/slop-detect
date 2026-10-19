@@ -9,6 +9,7 @@ import {
   PATTERNS,
   COPY_PATTERNS,
   AEO_CHECKS,
+  SYSTEM_CHECKS,
   DEFINITIONS_VERSION,
   scorePatterns,
 } from '@slop-detect/core';
@@ -22,6 +23,7 @@ test('spec config counts and versions match the engine', () => {
   expect(config.pattern_count).toBe(PATTERNS.length);
   expect(config.copy_pattern_count).toBe(COPY_PATTERNS.length);
   expect(config.aeo_check_count).toBe(AEO_CHECKS.length);
+  expect(config.system_check_count).toBe(SYSTEM_CHECKS.length);
 });
 
 test('spec design tiers match engine behavior at the boundaries', () => {
@@ -48,6 +50,7 @@ test('spec catalogue id sets match the engine id sets exactly (both directions)'
   expect(tableIds(spec('patterns.md'))).toEqual(PATTERNS.map((p) => p.id).sort());
   expect(tableIds(spec('copy-axis.md'))).toEqual(COPY_PATTERNS.map((p) => p.id).sort());
   expect(tableIds(spec('aeo.md'))).toEqual(AEO_CHECKS.map((c) => c.id).sort());
+  expect(tableIds(spec('system.md'))).toEqual(SYSTEM_CHECKS.map((c) => c.id).sort());
 });
 
 test('spec catalogue weights match engine weights', () => {
@@ -61,4 +64,6 @@ test('spec catalogue weights match engine weights', () => {
   for (const p of COPY_PATTERNS) expect(rowWeight(copy, p.id)).toBe(p.weight);
   const aeo = spec('aeo.md');
   for (const c of AEO_CHECKS) expect(rowWeight(aeo, c.id)).toBe(c.weight);
+  const system = spec('system.md');
+  for (const c of SYSTEM_CHECKS) expect(rowWeight(system, c.id)).toBe(c.weight);
 });

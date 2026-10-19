@@ -27,7 +27,7 @@ const ORIGIN = 'https://slop-detect.com';
 
 const PAGE_CSS = `
   .wrap{max-width:760px;margin:0 auto;padding:52px var(--pad-x) 0}
-  h1{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-a);line-height:1.02;
+  h1{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-a);line-height:1.14;
      letter-spacing:-0.02em;color:var(--text);margin:14px 0 0}
   .dir-count{font-family:var(--mono);font-size:13px;color:var(--text-4);margin-top:16px}
   .dir-count strong{color:var(--text);font-weight:700}
@@ -48,7 +48,7 @@ const PAGE_CSS = `
   .dir-link:hover{text-decoration:underline;text-underline-offset:2px}
   .dir-dom{font-family:var(--mono);font-size:12px;color:var(--text-5);
      overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .dir-listed{font-family:var(--mono);font-size:11.5px;color:var(--text-6);white-space:nowrap;text-align:right}
+  .dir-listed{font-family:var(--mono);font-size:12px;color:var(--text-6);white-space:nowrap;text-align:right}
   .dir-score{font-family:var(--mono);font-size:13px;color:var(--text-3);white-space:nowrap}
   .dir-score:hover .dir-sc{color:var(--text)}
   .dir-grade{font-weight:700}
@@ -60,7 +60,7 @@ const PAGE_CSS = `
 
   .dir-add{margin:48px 0 80px;border-top:1.5px solid var(--text);padding-top:22px}
   .dir-add-h{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-c);
-     line-height:1.05;letter-spacing:-0.02em;color:var(--text)}
+     line-height:1.18;letter-spacing:-0.02em;color:var(--text)}
   .dir-add-body{color:var(--text-2);margin:8px 0 18px;max-width:54ch}
   .dir-add .scan{max-width:440px}
 
@@ -180,6 +180,7 @@ export async function onRequestGet({ request, env }) {
         />
         <meta property="og:url" content={`${ORIGIN}/directory`} />
         <meta property="og:image" content={`${ORIGIN}/og.png`} />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <script type="application/ld+json">{raw(jsonLd(sites))}</script>
         {raw(BRAND_FONTS_HEAD)}
         <style>{raw(BRAND_CSS + UI_CSS + PAGE_CSS)}</style>
@@ -205,7 +206,7 @@ export async function onRequestGet({ request, env }) {
             </div>
           ) : null}
 
-          <ol class="dir">
+          <ol class="dir" id="dirList">
             {n > 0 ? (
               sites.map((s, i) => <Row site={s} rank={i + 1} origin={origin} />)
             ) : (

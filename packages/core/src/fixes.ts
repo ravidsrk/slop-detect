@@ -662,9 +662,50 @@ const EVIDENCE_FORMATTERS = {
       ? `Found ${parts.join(', ')} in the page text — invisible to readers, but a dead giveaway of copy pasted straight from an LLM.`
       : null;
   },
+  buzzword_density: (e) => {
+    if (!e.total) return null;
+    const words = Array.isArray(e.topWords)
+      ? e.topWords.map((w) => `"${w.word}" (×${w.count})`).join(', ')
+      : '';
+    return `${e.total} buzzword hit(s) across ${e.distinct || 0} distinct LLM-favorite terms (${e.density || 0} per 1,000 words)${words ? ` — top hits: ${words}` : ''}.`;
+  },
+  em_dash_overload: (e) =>
+    e.total
+      ? `${e.total} em/en-dash connectives (${e.emDashes || 0} em-dashes, ${e.density || 0} per 1,000 words) — exceeds human rhythm (~1 per 150 words).`
+      : null,
+  antithesis_construction: (e) => {
+    if (!e.total) return null;
+    const sam = fmtList(e.samples);
+    return `${e.total} "not just X, it's Y" / "not only … but also" construction(s) found${sam ? ` — e.g. ${sam}` : ''}.`;
+  },
+  filler_openers: (e) => {
+    if (!e.total) return null;
+    const sam = fmtList(e.samples);
+    return `${e.total} generic throat-clearing opener(s) found${sam ? ` — e.g. ${sam}` : ''}.`;
+  },
+  formulaic_closers: (e) => {
+    if (!e.total) return null;
+    const sam = fmtList(e.samples);
+    return `${e.total} essay-style closer(s) found${sam ? ` — e.g. ${sam}` : ''}.`;
+  },
+  rule_of_three: (e) => {
+    if (!e.total) return null;
+    const sam = fmtList(e.samples);
+    return `${e.total} adjective tricolon(s) ("X, Y, and Z") found${sam ? ` — e.g. ${sam}` : ''}.`;
+  },
+  whether_youre: (e) => {
+    if (!e.total) return null;
+    const sam = fmtList(e.samples);
+    return `${e.total} "whether you're X or Y" audience-spanning phrase(s) found${sam ? ` — e.g. ${sam}` : ''}.`;
+  },
+  emoji_bullet_headers: (e) => {
+    if (!e.count) return null;
+    const sam = fmtList(e.samples);
+    return `${e.count} emoji-prefixed bullet/header line(s) found${sam ? ` — e.g. ${sam}` : ''}.`;
+  },
 };
 
-function formatEvidence(pattern) {
+export function formatEvidence(pattern) {
   const formatter = EVIDENCE_FORMATTERS[pattern.id];
   if (!formatter) return null;
   try {
@@ -691,7 +732,15 @@ export function buildFixPrompt(result) {
   const passing = allPatterns.filter((p) => !p.triggered);
   const totalCount = allPatterns.length;
 
-  if (triggered.length === 0) {
+  const systemDrift =
+    (result.system && Array.isArray(result.system.drift) && result.system.drift) || [];
+  const aeoFailed =
+    (result.aeo && Array.isArray(result.aeo.failed) && result.aeo.failed) ||
+    (result.aeo && Array.isArray(result.aeo.checks)
+      ? result.aeo.checks.filter((c) => c.status === 'fail')
+      : []);
+
+  if (triggered.length === 0 && systemDrift.length === 0 && aeoFailed.length === 0) {
     return `Your landing page (${result.url}) scored ${result.score}/100 — tier "${result.tier}" — and triggered 0 of ${totalCount} slop patterns. There's nothing to fix on the slop dimension. Move on to conversion or content quality.`;
   }
 
@@ -710,15 +759,16 @@ Your landing page scored **${result.score}/100** on the Slop Detector — tier *
 `;
 
   const sorted = triggered.slice().sort((a, b) => b.weight - a.weight);
-  const issues = sorted
-    .map((p, i) => {
-      const fix = FIXES[p.id];
-      if (!fix)
-        return `### ${i + 1}. ${p.label} (+${p.weight})\n_No fix recipe available for this pattern._`;
-      const alts = fix.alternatives.map((a) => `   - ${a}`).join('\n');
-      const evidence = formatEvidence(p);
-      const evidenceBlock = evidence ? `\n**What we found on YOUR page:**\n${evidence}\n` : '';
-      return `### ${i + 1}. ${p.label}  *(weight: +${p.weight})*
+  const issues = sorted.length
+    ? sorted
+        .map((p, i) => {
+          const fix = FIXES[p.id];
+          if (!fix)
+            return `### ${i + 1}. ${p.label} (+${p.weight})\n_No fix recipe available for this pattern._`;
+          const alts = fix.alternatives.map((a) => `   - ${a}`).join('\n');
+          const evidence = formatEvidence(p);
+          const evidenceBlock = evidence ? `\n**What we found on YOUR page:**\n${evidence}\n` : '';
+          return `### ${i + 1}. ${p.label}  *(weight: +${p.weight})*
 ${evidenceBlock}
 **Why this reads as AI-slop:**
 ${fix.problem}
@@ -730,8 +780,24 @@ ${fix.fix}
 ${alts}
 
 **Hard rule:** ${fix.rule}`;
-    })
-    .join('\n\n---\n\n');
+        })
+        .join('\n\n---\n\n')
+    : '_No design or copy slop patterns triggered._';
+
+  const systemBlock = systemDrift.length
+    ? `\n\n---\n\n## Design system drift (\`DESIGN.md\` — ${result.system.score}/100 · ${result.system.tier})\n\nThe page drifted from its declared \`DESIGN.md\` tokens on ${systemDrift.length} check(s). Bring the rendered DOM back into alignment:\n\n` +
+      systemDrift.map((d) => `- **\`${d.id}\`**: ${d.message}`).join('\n')
+    : '';
+
+  const aeoBlock = aeoFailed.length
+    ? `\n\n---\n\n## Agent-readiness (AEO) gaps (${result.aeo.score}/${result.aeo.maxScore || 100} · ${result.aeo.tier})\n\nThe following AEO checks failed or are missing. Fix them so AI answer engines (ChatGPT, Claude, Perplexity) can fetch, parse, and cite your page:\n\n` +
+      aeoFailed
+        .map(
+          (c) =>
+            `- **\`${c.id}\`** (${c.label || c.id}, ${c.weight} pts${c.required ? ', required' : ''}): ${c.fix || c.detail || 'Add the missing signal.'}`
+        )
+        .join('\n')
+    : '';
 
   // Anti-regression: list patterns that currently pass so the LLM doesn't
   // "fix" the page by introducing one of them (very common: removing the
@@ -784,5 +850,5 @@ When you make the changes:
 - For each change, name the pattern ID it addresses (e.g. \`slop_fonts\`, \`perma_dark_mode\`)
 - After all changes, list the triggered patterns that should now be resolved AND confirm none of the "currently passing" patterns were introduced.`;
 
-  return header + '\n' + issues + footer;
+  return header + '\n' + issues + systemBlock + aeoBlock + footer;
 }

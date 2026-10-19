@@ -28,6 +28,7 @@ import { raw } from 'hono/html';
 import { Nav, Footer, CodeBlock, ScanInput, UI_CSS } from './_ui.js';
 import { BRAND_FONTS_HEAD, BRAND_CSS } from './_brand.js';
 import { tierFill, tierText } from './_theme.js';
+import { jsonForScript } from './_render.js';
 import {
   PATTERNS,
   COPY_PATTERNS,
@@ -52,25 +53,25 @@ const N_AEO = AEO_CHECKS.length;
 const FOUR_AXES = [
   {
     name: 'design slop',
-    color: tierText('Heavy'),
+    color: 'var(--heavy-text)',
     desc: `The original CSS fingerprint: ${N_DESIGN} weighted tells AI builders converged on — slop fonts, purple CTAs, gradient text, glassmorphism, bento grids.`,
     polarity: 'lower is better',
   },
   {
     name: 'copy slop',
-    color: tierText('Mild'),
+    color: 'var(--mild-text)',
     desc: `${N_COPY} text tells on the page's own prose: buzzword density, em-dash overload, the "not just X, it's Y" antithesis, filler openers.`,
     polarity: 'lower is better',
   },
   {
     name: 'system · DESIGN.md',
-    color: '#2C6E8F',
+    color: 'var(--system-text)',
     desc: 'Does the page honor its own declared design system? Named, contestable drift against a DESIGN.md, never a verdict.',
     polarity: 'higher is better',
   },
   {
     name: 'AEO · agent-readable',
-    color: tierText('Clean'),
+    color: 'var(--clean-text)',
     desc: `Can AI engines fetch, read, and cite the page? ${N_AEO} weighted checks against the live crawler registry.`,
     polarity: 'higher is better',
   },
@@ -104,6 +105,11 @@ const ENDPOINTS = [
     path: '/?mode=agent',
     desc: 'A machine-readable capability document (capabilities, endpoints, auth, discovery) in one fetch.',
   },
+  {
+    method: 'GET',
+    path: '/api/health',
+    desc: 'Live readiness probe reporting engine version, definitions version, and KV health.',
+  },
 ];
 
 // The continuity layer (the optional, paid memory over a domain). Detection stays
@@ -121,6 +127,11 @@ const CONTINUITY = [
   },
   {
     method: 'GET',
+    path: '/api/watch/unsubscribe',
+    desc: 'One-click RFC 8058 unsubscribe endpoint for domain watch alerts.',
+  },
+  {
+    method: 'GET',
     path: '/api/sites',
     desc: 'The public, owner-gated directory dataset of listed domains.',
   },
@@ -133,6 +144,16 @@ const CONTINUITY = [
     method: 'POST',
     path: '/api/dashboard/link',
     desc: 'Email a single-use magic sign-in link for the multi-domain dashboard.',
+  },
+  {
+    method: 'GET',
+    path: '/api/me/export',
+    desc: 'Self-serve GDPR/DPDP JSON export of all watches owned by the signed-in session.',
+  },
+  {
+    method: 'POST',
+    path: '/api/me/erase',
+    desc: 'Self-serve GDPR/DPDP erasure of all watches and email records for the signed-in session.',
   },
 ];
 
@@ -202,6 +223,7 @@ const CODE = {
     `slop-detect ${esc('<url> [...urls]')}        ${c.cmt('# score one or many pages')}`,
     `  ${c.key('--copy')}              ${c.cmt('# also score the copy axis')}`,
     `  ${c.key('--axes all')}          ${c.cmt('# design + copy together')}`,
+    `  ${c.key('--aeo')}               ${c.cmt('# score the 8-check AEO axis')}`,
     `  ${c.key('--design-md auto')}    ${c.cmt('# check against <origin>/DESIGN.md')}`,
     `  ${c.key('--preset strict')}     ${c.cmt('# score a curated subset')}`,
     `  ${c.key('--remote')}            ${c.cmt('# scan via the API, no local browser')}`,
@@ -244,7 +266,7 @@ const CODE = {
   ].join('\n'),
 
   ci: [
-    `${c.key('- uses')}: ravidsrk/slop-detect/packages/action@v0.2.0`,
+    `${c.key('- uses')}: ravidsrk/slop-detect/packages/action@v0.8.0`,
     `  ${c.key('with')}:`,
     `    ${c.key('url')}: ${esc('${{ steps.preview.outputs.url }}')}   ${c.cmt('# your deploy-preview URL')}`,
     `    ${c.key('fail-under')}: ${c.str("'B'")}                       ${c.cmt('# fail if the grade drops below B')}`,
@@ -267,15 +289,15 @@ const PAGE_CSS = `
     border-left:2px solid transparent;padding:5px 0 5px 12px}
   .toc-link:hover{color:var(--text);border-left-color:var(--clean)}
   .toc-meta{margin-top:22px;padding-top:16px;border-top:1px solid var(--border);
-    font-family:var(--mono);font-size:11.5px;line-height:1.7;color:var(--text-5)}
+    font-family:var(--mono);font-size:12px;line-height:1.7;color:var(--text-5)}
 
   .doc-main{min-width:0;max-width:760px}
 
   /* intro */
   .doc-eyebrow{font-family:var(--mono);font-size:13px;color:var(--clean-text)}
   .doc-h1{font-family:var(--serif);font-weight:500;font-size:var(--fs-display-3);
-    line-height:1.0;letter-spacing:-0.02em;color:var(--text);margin:10px 0 16px}
-  .doc-intro{font-size:var(--fs-lead);line-height:1.6;color:var(--text-2);max-width:64ch}
+    line-height:1.12;letter-spacing:-0.02em;color:var(--text);margin:10px 0 16px;text-wrap:balance}
+  .doc-intro{font-size:var(--fs-lead);line-height:1.65;color:var(--text-2);max-width:64ch}
   .doc-note{margin-top:14px;font-family:var(--mono);font-size:12.5px;line-height:1.7;
     color:var(--text-4);max-width:70ch}
   .doc-note a{color:var(--text-3);border-bottom:1px solid var(--border-2)}
@@ -283,9 +305,9 @@ const PAGE_CSS = `
 
   /* a content section: the signature 1.5px ink top rule above an H2 */
   .doc-sec{margin-top:52px;border-top:1.5px solid var(--text);padding-top:14px}
-  .doc-tag{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--clean-text)}
+  .doc-tag{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--clean-text);font-variant-numeric:tabular-nums}
   .doc-sec h2{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-static);
-    line-height:1.1;letter-spacing:-0.01em;color:var(--text);margin:8px 0 12px}
+    line-height:1.2;letter-spacing:-0.01em;color:var(--text);margin:8px 0 12px;text-wrap:balance}
   .doc-sec p{color:var(--text-2);max-width:66ch;margin-bottom:12px}
   .doc-sec p a{color:var(--text);border-bottom:1px solid var(--border-2)}
   .doc-sec p a:hover{border-color:var(--text)}
@@ -293,29 +315,53 @@ const PAGE_CSS = `
 
   /* reference tables — colored name column, rows divided by border-2, ink header */
   .tbl{width:100%;border-collapse:collapse;margin:6px 0 4px;font-size:14px}
-  .tbl th{text-align:left;font-family:var(--mono);font-size:11.5px;font-weight:500;
+  .tbl th{text-align:left;font-family:var(--mono);font-size:12px;font-weight:500;
     color:var(--text-4);border-bottom:1.5px solid var(--text);padding:0 14px 8px 0;
     letter-spacing:0;vertical-align:bottom}
   .tbl td{border-bottom:1px solid var(--border-2);padding:10px 14px 10px 0;
     color:var(--text-2);vertical-align:top}
   .tbl td.name{font-family:var(--mono);font-size:13px;white-space:nowrap}
-  .tbl td.num{font-family:var(--mono);font-size:13px;color:var(--text-3);white-space:nowrap}
+  .tbl td.num{font-family:var(--mono);font-size:13px;color:var(--text-3);white-space:nowrap;font-variant-numeric:tabular-nums}
   .tbl td.pol{font-family:var(--mono);font-size:12px;color:var(--text-4);white-space:nowrap}
-  .tbl .meth{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text-4)}
+  .tbl .meth{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--text-4)}
 
   /* language hint above a code block */
   .code{margin:10px 0 6px}
-  .code-lang{display:block;font-family:var(--mono);font-size:11px;color:var(--text-5);
+  .code-lang{display:block;font-family:var(--mono);font-size:12px;color:var(--text-5);
     margin-bottom:6px}
 
   /* callouts — flat 1px panels, no shadow */
   .callout{border:1px solid var(--border-2);border-radius:6px;background:var(--panel);
     padding:14px 16px;font-size:14px;color:var(--text-2);margin:10px 0}
-  .callout .lab{font-family:var(--mono);font-size:11.5px;font-weight:700;color:var(--text-4);
+  .callout .lab{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--text-4);
     margin-right:8px}
   .callout-green{background:#E9F4EE;border-color:#A9D8BD;color:#1f3a2b}
   .callout-green .lab{color:var(--clean-text)}
-  .callout-green a{color:#15824A;border-bottom:1px solid #A9D8BD}
+  .callout-green a{color:var(--clean-text);border-bottom:1px solid #A9D8BD}
+
+  /* editorial technical plates (Nano Banana diagrams) */
+  .doc-fig{margin:18px 0 14px;border:1px solid var(--border);border-radius:6px;background:var(--panel);overflow:hidden}
+  .doc-fig img{display:block;width:100%;height:auto;border-bottom:1px solid var(--border-2)}
+  .doc-figcap{padding:10px 14px;font-family:var(--mono);font-size:12px;color:var(--text-4);line-height:1.55;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .doc-figcap b{color:var(--text-2);font-weight:700}
+
+  /* interactive live catalogue explorer inside #axes */
+  .cat-exp{margin-top:22px;border:1px solid var(--border);border-radius:6px;background:var(--panel);padding:16px}
+  .cat-exp-hd{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid var(--border-2)}
+  .cat-exp-title{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+  .cat-exp-ctrls{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .cat-pill{font-family:var(--mono);font-size:12px;color:var(--text-3);background:var(--bg);border:1px solid var(--border-2);border-radius:4px;padding:4px 9px;cursor:pointer;font-variant-numeric:tabular-nums}
+  .cat-pill:hover{border-color:var(--text);color:var(--text)}
+  .cat-pill[aria-pressed="true"]{background:var(--ink-deep);color:#F4F5F2;border-color:var(--ink-deep)}
+  .cat-search{font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg);border:1px solid var(--border-2);border-radius:4px;padding:4px 10px;min-width:170px}
+  .cat-search:focus{outline:none;border-color:var(--clean)}
+  .cat-list{max-height:380px;overflow:auto;margin-top:8px}
+  .cat-row{display:grid;grid-template-columns:170px 76px 1fr 48px;gap:12px;align-items:baseline;padding:8px 4px;border-bottom:1px solid var(--row);font-size:13px}
+  .cat-row:last-child{border-bottom:0}
+  .cat-id{font-family:var(--mono);font-size:12px;color:var(--text);font-weight:500}
+  .cat-cat{font-family:var(--mono);font-size:12px;color:var(--text-4)}
+  .cat-lbl{color:var(--text-2)}
+  .cat-w{font-family:var(--mono);font-size:12px;font-weight:700;text-align:right;color:var(--heavy-text);font-variant-numeric:tabular-nums}
 
   /* auth tiers line */
   .auth{font-family:var(--mono);font-size:12.5px;line-height:1.7;color:var(--text-4);
@@ -326,18 +372,18 @@ const PAGE_CSS = `
   .tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:6px}
   .tier-col{padding-top:12px}
   .tier-name{font-family:var(--mono);font-weight:700;font-size:14px;letter-spacing:0.02em}
-  .tier-range{font-family:var(--mono);font-size:12px;color:var(--text-4);margin:2px 0 10px}
+  .tier-range{font-family:var(--mono);font-size:12px;color:var(--text-4);margin:2px 0 10px;font-variant-numeric:tabular-nums}
   .tier-grades{list-style:none}
   .tier-grades li{display:flex;justify-content:space-between;gap:12px;
     font-family:var(--mono);font-size:12.5px;color:var(--text-3);
-    padding:5px 0;border-bottom:1px solid var(--row)}
+    padding:5px 0;border-bottom:1px solid var(--row);font-variant-numeric:tabular-nums}
   .tier-grades .gr{font-weight:700;color:var(--text)}
-  .tier-blurb{margin-top:10px;font-size:13px;color:var(--text-3);line-height:1.5}
+  .tier-blurb{margin-top:10px;font-size:13px;color:var(--text-3);line-height:1.55}
 
   /* closer */
   .closer{margin-top:60px;border-top:1.5px solid var(--text);padding-top:32px;text-align:center}
   .closer-q{font-family:var(--serif);font-style:italic;font-size:var(--fs-quote-lg);
-    line-height:1.3;color:var(--text-3);max-width:30ch;margin:0 auto 8px}
+    line-height:1.4;color:var(--text-3);max-width:30ch;margin:0 auto 8px}
   .closer-b{color:var(--text-3);margin-bottom:20px}
   .closer-form{max-width:440px;margin:0 auto}
 
@@ -352,8 +398,48 @@ const PAGE_CSS = `
     .docs{padding-left:20px;padding-right:20px}
     .tiers{grid-template-columns:1fr;gap:0}
     .tier-col{border-top:2px solid var(--border);margin-top:14px}
+    .cat-row{grid-template-columns:1fr auto}
+    .cat-cat{display:none}
+    .tbl{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+    .tbl td.name,.tbl td.pol{white-space:normal;word-break:break-word}
   }
 `;
+
+const CATALOGUE_FILTER_SCRIPT = `(function(){
+  var root = document.getElementById('docCatExp');
+  if (!root) return;
+  var btns = root.querySelectorAll('[data-cat-filter]');
+  var search = document.getElementById('docCatSearch');
+  var rows = root.querySelectorAll('[data-cat-row]');
+  var countEl = document.getElementById('docCatCount');
+  var active = 'all';
+  function apply() {
+    var q = (search && search.value ? search.value : '').toLowerCase().trim();
+    var shown = 0;
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      var axis = r.getAttribute('data-axis') || '';
+      var cat = r.getAttribute('data-cat') || '';
+      var text = (r.textContent || '').toLowerCase();
+      var matchCat = active === 'all' || active === axis || active === cat;
+      var matchQ = !q || text.indexOf(q) !== -1;
+      var vis = matchCat && matchQ;
+      r.style.display = vis ? '' : 'none';
+      if (vis) shown++;
+    }
+    if (countEl) countEl.textContent = shown + ' shown';
+  }
+  for (var j = 0; j < btns.length; j++) {
+    btns[j].addEventListener('click', function() {
+      active = this.getAttribute('data-cat-filter') || 'all';
+      for (var k = 0; k < btns.length; k++) {
+        btns[k].setAttribute('aria-pressed', btns[k] === this ? 'true' : 'false');
+      }
+      apply();
+    });
+  }
+  if (search) search.addEventListener('input', apply);
+})();`;
 
 // ── small components ───────────────────────────────────────────────────────────
 
@@ -361,7 +447,7 @@ const PAGE_CSS = `
 function DocSection({ id, tag, title, children }) {
   return (
     <section id={id} class="doc-sec" aria-labelledby={`${id}-h`}>
-      <span class="doc-tag">{tag}</span>
+      <span class="doc-tag">§ {tag}</span>
       <h2 id={`${id}-h`}>{title}</h2>
       {children}
     </section>
@@ -376,6 +462,20 @@ function Code({ lang, html }) {
       <span class="code-lang">{lang}</span>
       <CodeBlock html={html} label={`${lang} example`} wrap={false} />
     </div>
+  );
+}
+
+function DocFigure({ src, alt, figNum, caption }) {
+  return (
+    <figure class="doc-fig">
+      <img src={src} alt={alt} width="1200" height="675" />
+      <figcaption class="doc-figcap">
+        <span>
+          <b>{figNum}</b> · {caption}
+        </span>
+        <span>definitions·{DEFINITIONS_VERSION}</span>
+      </figcaption>
+    </figure>
   );
 }
 
@@ -394,7 +494,7 @@ function EndpointTable({ rows, caption }) {
           <tr>
             <td class="name">
               <span class="meth">{e.method}</span>{' '}
-              <span style={`color:${tierText('Clean')}`}>{e.path}</span>
+              <span style="color:var(--clean-text)">{e.path}</span>
             </td>
             <td>{e.desc}</td>
           </tr>
@@ -409,6 +509,14 @@ function EndpointTable({ rows, caption }) {
 export async function onRequestGet({ request }) {
   const origin = new URL(request.url).origin;
   const metaLine = `definitions·${DEFINITIONS_VERSION} · ${N_DESIGN} design · ${N_COPY} copy · ${N_AEO} AEO · MIT`;
+  const jsonLd = jsonForScript({
+    '@context': 'https://schema.org',
+    '@type': 'TechArticle',
+    headline: 'How the scan works · slop-detect methodology',
+    version: DEFINITIONS_VERSION,
+    url: `${ORIGIN}/docs`,
+    author: { '@type': 'Organization', name: 'slop-detect', url: ORIGIN },
+  });
 
   const doc = (
     <html lang="en">
@@ -421,6 +529,8 @@ export async function onRequestGet({ request }) {
           content="The slop-detect methodology: a deterministic, weighted, reproducible fingerprint of the design and copy tells AI builders converged on, plus the DESIGN.md system axis and the AEO agent-readability axis. The four axes, the CLI, the API, presets, and the CI gate."
         />
         <link rel="canonical" href={`${ORIGIN}/docs`} />
+        <link rel="alternate" type="text/markdown" href={`${ORIGIN}/docs.md`} />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <meta property="og:title" content="How the scan works · slop-detect" />
         <meta
           property="og:description"
@@ -428,6 +538,7 @@ export async function onRequestGet({ request }) {
         />
         <meta property="og:url" content={`${ORIGIN}/docs`} />
         <meta property="og:image" content={`${ORIGIN}/og.png`} />
+        <script type="application/ld+json">{raw(jsonLd)}</script>
         {raw(BRAND_FONTS_HEAD)}
         <style>{raw(BRAND_CSS + UI_CSS + PAGE_CSS)}</style>
       </head>
@@ -464,7 +575,8 @@ export async function onRequestGet({ request }) {
               result reads, nothing about the team behind it. The full positioning against ML
               detectors and Lighthouse lives at <a href={`${origin}/compare`}>/compare</a>; the live
               catalogue is at <a href={`${origin}/api/patterns`}>/api/patterns</a> (definitions·
-              {DEFINITIONS_VERSION}).
+              {DEFINITIONS_VERSION}) and the raw markdown twin is at{' '}
+              <a href={`${origin}/docs.md`}>/docs.md</a>.
             </p>
 
             {/* 4. The four axes */}
@@ -493,6 +605,107 @@ export async function onRequestGet({ request }) {
                   ))}
                 </tbody>
               </table>
+
+              <DocFigure
+                src="/media/docs-four-axes-architecture.png"
+                alt="Four-axis telemetry architecture schematic showing Design Slop, Copy Slop, System Compliance, and AEO checks converging into a deterministic grade"
+                figNum="FIG. 01"
+                caption="Four-axis telemetry architecture: headless Chromium DOM extraction feeding design, copy, system, and AEO instruments."
+              />
+
+              {/* Interactive live catalogue explorer */}
+              <div class="cat-exp" id="docCatExp">
+                <div class="cat-exp-hd">
+                  <span class="cat-exp-title">
+                    live rule explorer · {N_DESIGN + N_COPY} rules ({N_DESIGN} design + {N_COPY}{' '}
+                    copy) · <span id="docCatCount">{N_DESIGN + N_COPY} shown</span>
+                  </span>
+                  <div class="cat-exp-ctrls">
+                    <button
+                      type="button"
+                      class="cat-pill"
+                      data-cat-filter="all"
+                      aria-pressed="true"
+                    >
+                      all ({N_DESIGN + N_COPY})
+                    </button>
+                    <button
+                      type="button"
+                      class="cat-pill"
+                      data-cat-filter="design"
+                      aria-pressed="false"
+                    >
+                      design ({N_DESIGN})
+                    </button>
+                    <button
+                      type="button"
+                      class="cat-pill"
+                      data-cat-filter="copy"
+                      aria-pressed="false"
+                    >
+                      copy ({N_COPY})
+                    </button>
+                    <button
+                      type="button"
+                      class="cat-pill"
+                      data-cat-filter="fonts"
+                      aria-pressed="false"
+                    >
+                      fonts
+                    </button>
+                    <button
+                      type="button"
+                      class="cat-pill"
+                      data-cat-filter="colors"
+                      aria-pressed="false"
+                    >
+                      colors
+                    </button>
+                    <button
+                      type="button"
+                      class="cat-pill"
+                      data-cat-filter="layout"
+                      aria-pressed="false"
+                    >
+                      layout
+                    </button>
+                    <input
+                      type="search"
+                      id="docCatSearch"
+                      class="cat-search"
+                      placeholder="Filter by id or tell..."
+                      aria-label="Filter pattern catalogue"
+                    />
+                  </div>
+                </div>
+                <div class="cat-list">
+                  {PATTERNS.map((p) => (
+                    <div
+                      class="cat-row"
+                      data-cat-row="1"
+                      data-axis="design"
+                      data-cat={p.category || 'design'}
+                    >
+                      <span class="cat-id">{p.id}</span>
+                      <span class="cat-cat">design·{p.category || 'css'}</span>
+                      <span class="cat-lbl">{p.label}</span>
+                      <span class="cat-w">+{p.weight}</span>
+                    </div>
+                  ))}
+                  {COPY_PATTERNS.map((p) => (
+                    <div class="cat-row" data-cat-row="1" data-axis="copy" data-cat="copy">
+                      <span class="cat-id">{p.id}</span>
+                      <span class="cat-cat" style="color:var(--mild-text)">
+                        copy
+                      </span>
+                      <span class="cat-lbl">{p.label}</span>
+                      <span class="cat-w" style="color:var(--mild-text)">
+                        +{p.weight}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </DocSection>
 
             {/* 5. Install */}
@@ -528,6 +741,12 @@ export async function onRequestGet({ request }) {
                 fundamentals; the rest are recommended bonuses. Higher is better: AI-Ready (≥80),
                 Partial (≥50), Invisible (&lt;50).
               </p>
+              <DocFigure
+                src="/media/docs-aeo-crawler-pipeline.png"
+                alt="AEO agent-readable verification pipeline schematic showing AI crawlers evaluating eight weighted checkpoints"
+                figNum="FIG. 02"
+                caption="AEO verification circuit: eight weighted checks across crawler access, llms.txt, markdown twins, JSON-LD, and semantic SSR HTML."
+              />
               <table class="tbl">
                 <thead>
                   <tr>
@@ -539,10 +758,12 @@ export async function onRequestGet({ request }) {
                 <tbody>
                   {AEO_CHECKS.map((k) => (
                     <tr>
-                      <td>{k.label}</td>
+                      <td>
+                        <code>{k.id}</code> · {k.label}
+                      </td>
                       <td
                         class="num"
-                        style={`color:${k.severity === 'required' ? tierText('Clean') : tierText('Mild')}`}
+                        style={`color:${k.severity === 'required' ? 'var(--clean-text)' : 'var(--mild-text)'}`}
                       >
                         {k.weight}
                       </td>
@@ -553,7 +774,8 @@ export async function onRequestGet({ request }) {
               </table>
               <div class="callout callout-green">
                 <span class="lab">eating our own cooking</span>
-                slop-detect serves a markdown twin for every page, publishes an{' '}
+                slop-detect serves a markdown twin for every page (
+                <a href={`${origin}/docs.md`}>/docs.md</a>), publishes an{' '}
                 <a href={`${origin}/llms.txt`}>llms.txt</a>, and lets AI crawlers in. Run the axis
                 on this very page: <code>POST /api/aeo</code> with{' '}
                 <code>{'{ "url": "https://slop-detect.com/docs" }'}</code>.
@@ -577,6 +799,12 @@ export async function onRequestGet({ request }) {
                 scale. A bespoke site checked against its own system scores Aligned, never "slop".
                 Every drift item is a named, contestable signal.
               </p>
+              <DocFigure
+                src="/media/docs-design-md-drift.png"
+                alt="Side-by-side comparison of declared DESIGN.md tokens versus live rendered DOM drift"
+                figNum="FIG. 03"
+                caption="Relative token verification: comparing declared DESIGN.md typography, palette, and corner radii against live rendered DOM styles."
+              />
               <Code lang="bash" html={CODE.drift} />
             </DocSection>
 
@@ -652,6 +880,12 @@ export async function onRequestGet({ request }) {
                 <code>fix_prompt</code>.
               </p>
               <Code lang="json" html={CODE.mcp} />
+              <DocFigure
+                src="/media/docs-ci-mcp-loop.png"
+                alt="Closed-loop engineering workflow connecting in-editor MCP self-audit, GitHub Action PR CI gate, and daily continuity sweep"
+                figNum="FIG. 04"
+                caption="Closed-loop verification: in-editor MCP self-audit before commit, pull-request CI gate on preview URLs, and daily continuity monitoring."
+              />
             </DocSection>
 
             {/* 13. CI gate */}
@@ -675,7 +909,10 @@ export async function onRequestGet({ request }) {
               <div class="tiers">
                 {TIER_COLUMNS.map((col) => (
                   <div class="tier-col" style={`border-top:2px solid ${tierFill(col.tier)}`}>
-                    <div class="tier-name" style={`color:${tierText(col.tier)}`}>
+                    <div
+                      class="tier-name"
+                      style={`color:${col.tier === 'Clean' ? 'var(--clean-text)' : col.tier === 'Mild' ? 'var(--mild-text)' : 'var(--heavy-text)'}`}
+                    >
                       {col.tier}
                     </div>
                     <div class="tier-range">score {col.range}</div>
@@ -709,6 +946,7 @@ export async function onRequestGet({ request }) {
           </main>
         </div>
 
+        <script>{raw(CATALOGUE_FILTER_SCRIPT)}</script>
         <Footer origin={origin} />
       </body>
     </html>

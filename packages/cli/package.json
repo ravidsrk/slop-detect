@@ -48,7 +48,7 @@
     "demo": "node dist/bin/slop.js https://news.ycombinator.com https://www.aura.build https://lovable.dev"
   },
   "dependencies": {
-    "@slop-detect/core": "workspace:*",
+    "@slop-detect/core": "*",
     "playwright": "1.60.0"
   },
   "keywords": [

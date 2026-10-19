@@ -107,7 +107,7 @@ export const UI_CSS = `
   .nav-gh:hover{border-color:var(--text)}
 
   /* footer — the dark band */
-  .ft{background:var(--ink-deep);color:var(--d-text-3);padding:44px var(--pad-x)}
+  .ft{margin-top:auto;background:var(--ink-deep);color:var(--d-text-3);padding:44px var(--pad-x)}
   .ft-inner{max-width:1080px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap}
   .ft-id{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .ft-word{font-family:var(--mono);font-weight:700;font-size:var(--fs-wordmark);letter-spacing:-0.01em;color:var(--d-text)}
@@ -153,30 +153,30 @@ export const UI_CSS = `
   .chip-dot{width:7px;height:7px;border-radius:var(--r-round);flex:none}
 
   /* stats strip */
-  .stats{border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg-2);padding:18px var(--pad-x);display:flex;justify-content:center;align-items:baseline;flex-wrap:wrap;gap:10px;font-family:var(--mono);font-size:13px;color:var(--text-3)}
-  .stats-num{font-weight:500;color:var(--text)}
-  .stats-mid{color:var(--border-btn)}
+  .stats{border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:#FFFFFF;padding:18px var(--pad-x);display:flex;justify-content:center;align-items:baseline;flex-wrap:wrap;gap:10px;font-family:var(--mono);font-size:13px;color:var(--text-3);font-variant-numeric:tabular-nums}
+  .stats-num{font-weight:500;color:var(--text);font-variant-numeric:tabular-nums}
+  .stats-mid{color:var(--text-4)}
 
   /* letter-avatar chip */
   .av{display:inline-flex;align-items:center;justify-content:center;flex:none;color:var(--panel);font-family:var(--mono);font-weight:700;border-radius:5px}
 
   /* leaderboard row */
-  .lr{display:grid;grid-template-columns:16px 1fr auto;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid var(--row)}
+  .lr{display:grid;grid-template-columns:16px 1fr auto;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--row);border-radius:3px}
   .lr:hover{background:var(--bg-2)}
-  .lr-rank{font-family:var(--mono);font-size:12px;color:var(--text-6);text-align:right}
+  .lr-rank{font-family:var(--mono);font-size:12px;color:var(--text-6);text-align:right;font-variant-numeric:tabular-nums}
   .lr-name{display:flex;align-items:center;gap:9px;min-width:0}
-  .lr-dom{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
-  .lr-score{font-family:var(--mono);font-size:13px;color:var(--text-3);white-space:nowrap}
-  .lr-grade{font-weight:700}
+  .lr-dom{overflow-wrap:anywhere;line-height:1.3;color:var(--text)}
+  .lr-score{display:inline-grid;grid-template-columns:24px 26px;column-gap:4px;align-items:baseline;font-family:var(--mono);font-size:13px;color:var(--text-3);white-space:nowrap;font-variant-numeric:tabular-nums;text-align:right}
+  .lr-grade{font-weight:700;text-align:center;background:#FFFFFF;border-radius:2px;padding:0 2px}
 
   /* score-tier badge pill (compact readout) */
-  .stb{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:6px;background:var(--panel);padding:5px 11px;font-family:var(--mono);font-size:13px}
+  .stb{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:6px;background:var(--panel);padding:5px 11px;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
   .stb-dot{width:8px;height:8px;border-radius:var(--r-round);flex:none}
   .stb-tier{font-weight:700;letter-spacing:0.02em}
-  .stb-meta{color:var(--text-3)}
+  .stb-meta{color:var(--text-3);font-variant-numeric:tabular-nums}
 
   /* live badge — the only element with a shadow */
-  .live-badge{display:inline-flex;font-family:var(--mono);font-weight:700;font-size:12px;border-radius:4px;overflow:hidden;box-shadow:var(--shadow-badge)}
+  .live-badge{display:inline-flex;font-family:var(--mono);font-weight:700;font-size:12px;border-radius:4px;overflow:hidden;box-shadow:var(--shadow-badge);font-variant-numeric:tabular-nums}
   .lb-l{background:#16170F;color:#F4F5F2;padding:3px 8px}
   .lb-r{padding:3px 8px}
 
@@ -184,8 +184,8 @@ export const UI_CSS = `
   .mon{background:var(--ink-deep);color:var(--d-text-2);border-radius:10px;padding:40px 36px;text-align:center}
   .mon-inner{max-width:560px;margin:0 auto}
   .mon-eyebrow{font-family:var(--mono);font-size:13px;color:var(--clean-dark);margin-bottom:12px}
-  .mon-h{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-static);line-height:1.05;letter-spacing:-0.02em;color:var(--d-text)}
-  .mon-body{color:var(--d-text-3);margin:12px 0 22px}
+  .mon-h{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-static);line-height:1.15;letter-spacing:-0.02em;color:var(--d-text);text-wrap:balance}
+  .mon-body{color:var(--d-text-3);margin:12px 0 22px;line-height:1.6}
   .mon-form{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
   .mon-form input{flex:1;min-width:200px;background:var(--ink-deeper);border:1px solid var(--d-border-2);border-radius:4px;color:var(--d-text);font-family:var(--mono);font-size:14px;padding:12px 14px}
   .mon-form input::placeholder{color:var(--d-text-4)}
@@ -195,15 +195,15 @@ export const UI_CSS = `
   .mon-msg.ok{color:var(--clean-dark)}
   .mon-msg.err{color:var(--heavy)}
   .mon-msg a{color:var(--d-text);text-decoration:underline}
-  .mon-fine{margin-top:16px;font-family:var(--mono);font-size:11.5px;color:var(--d-text-4)}
-  .mon-fine a{color:var(--d-text-3);text-decoration:underline}
+  .mon-fine{margin-top:16px;font-family:var(--sans);font-size:14px;line-height:1.5;color:var(--d-text-2)}
+  .mon-fine a{color:var(--d-text);text-decoration:underline;text-underline-offset:3px}
 
   /* code block — dark, with the named syntax accents */
   .cb{background:#16170F;border-radius:6px;padding:18px 20px;overflow:auto}
-  .cb code{font-family:var(--mono);font-size:12.5px;line-height:1.85;color:#C9CABF;white-space:pre;word-break:break-all}
+  .cb code{font-family:var(--mono);font-size:13px;line-height:1.75;color:#C9CABF;white-space:pre;word-break:break-all}
   .cb-wrap code{white-space:pre-wrap}
-  .t-cmt{color:#6E6F63}
-  .t-cmt2{color:#7E7F72}
+  .t-cmt{--legacy-cmt:#6E6F63;color:#949688}
+  .t-cmt2{color:#9E9F91}
   .t-cmd{color:#3FBE7A}
   .t-str{color:#E5B05A}
   .t-key{color:#7FB5E6}
@@ -214,10 +214,10 @@ export const UI_CSS = `
 
   /* cta */
   .cta{text-align:center}
-  .cta-h{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-a);line-height:1.02;letter-spacing:-0.02em;color:var(--text)}
+  .cta-h{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-a);line-height:1.14;letter-spacing:-0.02em;color:var(--text);text-wrap:balance}
   .cta-body{margin:12px auto 22px;max-width:60ch}
   .cta-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-  .cta-manifesto{font-family:var(--serif);font-style:italic;font-size:var(--fs-quote-lg);line-height:1.3;color:var(--text-3);margin-top:28px}
+  .cta-manifesto{font-family:var(--serif);font-style:italic;font-size:var(--fs-quote-lg);line-height:1.4;color:var(--text-3);margin-top:28px}
 
   @media(max-width:640px){
     .nav-inner{padding-left:20px;padding-right:20px}
@@ -450,7 +450,7 @@ export function LetterAvatar({ name = '', size = 20 }) {
   return (
     <span
       class="av"
-      style={`background:${avatarColor(name)};width:${size}px;height:${size}px;font-size:${Math.round(size * 0.5)}px`}
+      style={`background:${avatarColor(name)};width:${size}px;height:${size}px;font-size:${Math.max(12, Math.round(size * 0.6))}px`}
       aria-hidden="true"
     >
       {initial}
@@ -458,18 +458,21 @@ export function LetterAvatar({ name = '', size = 20 }) {
   );
 }
 
-// Leaderboard row: a `16px 1fr auto` grid link — rank, name (avatar + truncated
-// domain), score then grade in its tier text color.
+// Leaderboard row: a `16px 1fr auto` grid link — rank, name (avatar + domain),
+// score then grade in its tier text color.
 export function LeaderboardRow({ rank, domain, score, grade, tier = 'Clean', href = '#' }) {
   return (
     <a class="lr" href={href}>
-      <span class="lr-rank">{rank}</span>
+      <span class="lr-rank">
+        <span class="sr-only">#</span>
+        {rank}
+      </span>
       <span class="lr-name">
         <LetterAvatar name={domain} size={20} />
         <span class="lr-dom">{domain}</span>
       </span>
       <span class="lr-score">
-        {score}{' '}
+        <span>{score}</span>{' '}
         <span class="lr-grade" style={`color:${tierText(tier)}`}>
           {grade}
         </span>
@@ -587,7 +590,12 @@ export function CodeBlock({ html, code = '', label, wrap = false }) {
 export function SectionLedger({ tag, label }) {
   return (
     <div class="section-ledger">
-      {tag ? <span class="ledger-tag">{tag}</span> : null}
+      {tag ? (
+        <>
+          <span class="sr-only">§ </span>
+          <span class="ledger-tag">{tag}</span>
+        </>
+      ) : null}
       <span class="ledger-label">{label}</span>
     </div>
   );

@@ -27,27 +27,28 @@ function readingMinutes(body: string) {
 }
 
 const PAGE_CSS = `
-  .bl-main{max-width:1080px;margin:0 auto;padding:56px var(--pad-x) 16px}
+  .bl-main{max-width:1080px;margin:0 auto;padding:56px var(--pad-x) 48px}
   .bl-hd{max-width:60ch;margin:22px 0 40px}
-  .bl-h1{font-family:var(--serif);font-weight:500;font-size:clamp(34px,4.6vw,52px);line-height:1.02;letter-spacing:-0.02em;color:var(--text);margin:0 0 12px}
-  .bl-lead{font-size:var(--fs-lead);line-height:1.55;color:var(--text-2);max-width:58ch}
+  .bl-h1{font-family:var(--serif);font-weight:500;font-size:clamp(32px,4.2vw,48px);line-height:1.12;letter-spacing:-0.02em;color:var(--text);margin:0 0 12px;text-wrap:balance}
+  .bl-lead{font-size:var(--fs-lead);line-height:1.65;color:var(--text-2);max-width:58ch}
 
   /* Research / article cards: a 1.3fr 1fr grid (feature card + a link stack). */
-  .bl-research{display:grid;grid-template-columns:1.3fr 1fr;gap:28px;align-items:start}
+  .bl-research{display:grid;grid-template-columns:1.3fr 1fr;gap:36px;align-items:start}
 
   .bl-feature{display:block;border:1px solid var(--border);border-radius:var(--r-6);background:var(--panel);padding:30px 30px 26px;transition:border-color var(--t)}
   .bl-feature:hover{border-color:var(--text)}
-  .bl-feature-title{font-family:var(--serif);font-weight:500;font-size:var(--fs-h3);line-height:1.08;letter-spacing:-0.01em;color:var(--text)}
-  .bl-feature-sum{font-size:var(--fs-body-sm);line-height:1.55;color:var(--text-3);margin-top:12px;max-width:46ch}
+  .bl-feature-img{display:block;width:100%;height:auto;border:1px solid var(--border-2);border-radius:4px;margin-bottom:18px}
+  .bl-feature-title{font-family:var(--serif);font-weight:500;font-size:var(--fs-h3);line-height:1.25;letter-spacing:-0.01em;color:var(--text)}
+  .bl-feature-sum{font-size:var(--fs-body-sm);line-height:1.6;color:var(--text-3);margin-top:12px;max-width:52ch}
   .bl-feature-foot{font-family:var(--mono);font-size:12px;color:var(--text-4);margin-top:18px}
 
   .bl-links{display:flex;flex-direction:column}
   .bl-link{display:block;padding:18px 0;border-bottom:1px solid var(--border);transition:opacity var(--t)}
   .bl-link:first-child{padding-top:0}
-  .bl-link:hover{opacity:0.7}
-  .bl-link-title{font-family:var(--serif);font-weight:500;font-size:19px;line-height:1.15;letter-spacing:-0.01em;color:var(--text)}
-  .bl-link-sum{font-size:var(--fs-body-sm);line-height:1.5;color:var(--text-4);margin-top:6px;max-width:44ch}
-  .bl-link-tag{display:block;font-family:var(--mono);font-size:11.5px;color:var(--text-5);margin-top:8px}
+  .bl-link:hover{opacity:0.75}
+  .bl-link-title{display:block;font-family:var(--serif);font-weight:500;font-size:19px;line-height:1.35;letter-spacing:-0.01em;color:var(--text)}
+  .bl-link-sum{display:block;font-size:var(--fs-body-sm);line-height:1.6;color:var(--text-4);margin-top:6px;max-width:48ch}
+  .bl-link-tag{display:block;font-family:var(--mono);font-size:12px;color:var(--text-5);margin-top:8px}
 
   .bl-empty{border:1px solid var(--border);border-radius:var(--r-6);background:var(--panel);padding:30px;color:var(--text-3);font-size:var(--fs-body)}
   .bl-empty a{color:var(--clean-text);text-decoration:underline;text-underline-offset:2px}
@@ -127,6 +128,16 @@ export async function onRequestGet({ request }) {
           {feature ? (
             <div class="bl-research">
               <a class="bl-feature" href={`${origin}/blog/${feature.slug}`}>
+                {feature.image ? (
+                  <img
+                    class="bl-feature-img"
+                    src={feature.image}
+                    alt={feature.imageAlt || feature.title}
+                    loading="lazy"
+                    width="1200"
+                    height="675"
+                  />
+                ) : null}
                 <h2 class="bl-feature-title">{feature.title}</h2>
                 <p class="bl-feature-sum">{feature.summary}</p>
                 <div class="bl-feature-foot">

@@ -33,7 +33,7 @@ import { tierText } from './_theme.js';
 const DASH_CSS = `
   .dash-wrap{max-width:960px;margin:0 auto;padding:56px var(--pad-x) 80px}
   .dash-head{margin-bottom:24px}
-  .dash-h{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-c);line-height:1.05;letter-spacing:-0.02em;color:var(--text);margin-top:14px}
+  .dash-h{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-c);line-height:1.18;letter-spacing:-0.02em;color:var(--text);margin-top:14px}
   .dash-sub{margin-top:12px;max-width:62ch}
 
   /* signed-in: the meta bar */
@@ -64,22 +64,33 @@ const DASH_CSS = `
   .drow-id{display:flex;align-items:center;gap:9px;min-width:0;flex:1 1 220px}
   .drow-dom{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .drow-id:hover .drow-dom{color:var(--clean-text)}
-  .drow-metric{font-family:var(--mono);font-size:13px;color:var(--text-3);white-space:nowrap}
+  .drow-metric{font-family:var(--mono);font-size:13px;color:var(--text-3);white-space:nowrap;font-variant-numeric:tabular-nums}
   .drow-grade{font-weight:700}
   .drow-sys{font-family:var(--mono);font-size:12px;white-space:nowrap}
-  .drow-flags{display:flex;gap:9px;flex-wrap:wrap;font-family:var(--mono);font-size:11.5px;color:var(--text-4)}
+  .drow-flags{display:flex;gap:9px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--text-4)}
   .drow-flags .bad{color:var(--heavy-text)}
-  .drow-check{font-family:var(--mono);font-size:11.5px;color:var(--text-6);white-space:nowrap}
+  .drow-check{font-family:var(--mono);font-size:12px;color:var(--text-6);white-space:nowrap}
   .drow-rep{font-family:var(--mono);font-size:12px;color:var(--text-4);white-space:nowrap;margin-left:auto}
   .drow-rep:hover{color:var(--text)}
   .dash-empty{padding:26px 2px;color:var(--text-3);border-top:1px solid var(--row)}
   .dash-empty a{color:var(--text);border-bottom:1px solid var(--border-btn)}
-  .dash-fine{margin-top:24px;font-family:var(--mono);font-size:11.5px;color:var(--text-4);line-height:1.7;max-width:66ch}
+  .dash-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}
+  .dash-kpi{border:1px solid var(--border);border-radius:6px;background:var(--panel);padding:12px 14px;font-family:var(--mono)}
+  .dash-kpi-k{font-size:12px;color:var(--text-4);display:block}
+  .dash-kpi-v{font-family:var(--serif);font-size:28px;font-weight:500;color:var(--text);line-height:1.15;margin-top:4px;display:block;font-variant-numeric:tabular-nums}
+  .dash-rights{margin-top:28px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-family:var(--mono);font-size:12px;color:var(--text-4)}
+  .dash-rights-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .dash-export{color:var(--clean-text);border-bottom:1px solid var(--border-btn);padding-bottom:1px}
+  .dash-export:hover{color:var(--text);border-color:var(--text)}
+  .dash-erase{font-family:var(--mono);font-size:12px;color:var(--heavy-text);background:transparent;border:1px solid var(--border-btn);border-radius:4px;padding:4px 10px;cursor:pointer}
+  .dash-erase:hover{border-color:var(--heavy-text)}
+  .dash-fine{margin-top:24px;font-family:var(--mono);font-size:12px;color:var(--text-4);line-height:1.7;max-width:66ch}
 
   @media (max-width:640px){
     .dash-wrap{padding-left:20px;padding-right:20px;padding-top:40px}
     .drow-check{display:none}
     .drow-rep{margin-left:0}
+    .dash-kpis{grid-template-columns:1fr 1fr}
   }
 `;
 
@@ -103,6 +114,20 @@ const LOGIN_SCRIPT = `
   });
 `;
 
+const ERASE_SCRIPT = `
+  const eb=document.getElementById('dashEraseBtn');
+  if(eb){eb.addEventListener('click',async()=>{
+    if(!window.confirm('Erase all monitored domains and email records for this account?'))return;
+    eb.disabled=true;eb.textContent='Erasing…';
+    try{
+      const r=await fetch('/api/me/erase',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({email:eb.getAttribute('data-email')||''})});
+      if(r.ok)window.location.href='/dashboard?logout=1';
+      else{eb.disabled=false;eb.textContent='erase my data';}
+    }catch(_){eb.disabled=false;eb.textContent='erase my data';}
+  });}
+`;
+
 // System (DESIGN.md) axis tier → a brand text hue. The watch stores a tier label
 // (Aligned / Drifting / Off-system), not a numeric score, so this maps the label
 // onto the existing verdict tokens rather than re-deriving a color.
@@ -121,6 +146,7 @@ function Layout({ origin, title, children }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>{`${title} · slop-detect`}</title>
         <meta name="robots" content="noindex, nofollow" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         {raw(BRAND_FONTS_HEAD)}
         <style>{raw(BRAND_CSS + UI_CSS + DASH_CSS)}</style>
       </head>
@@ -251,6 +277,8 @@ function Row({ w, origin }) {
 
 function DashboardView({ origin, email, watches }) {
   const drifted = watches.filter((w) => w.regressed || w.systemRegressed).length;
+  const cleanCount = watches.filter((w) => w.lastTier === 'Clean').length;
+  const alignedCount = watches.filter((w) => w.lastSystemTier === 'Aligned').length;
   return (
     <main class="dash-wrap" id="main">
       <div class="dash-head">
@@ -274,21 +302,66 @@ function DashboardView({ origin, email, watches }) {
         </a>
       </div>
       {watches.length ? (
-        <ul class="dlist" role="list">
-          {watches.map((w) => (
-            <Row w={w} origin={origin} />
-          ))}
-        </ul>
+        <>
+          <div class="dash-kpis">
+            <div class="dash-kpi">
+              <span class="dash-kpi-k">monitored</span>
+              <span class="dash-kpi-v">{watches.length}</span>
+            </div>
+            <div class="dash-kpi">
+              <span class="dash-kpi-k">clean tier</span>
+              <span class="dash-kpi-v" style="color:var(--clean-text)">
+                {cleanCount}
+              </span>
+            </div>
+            <div class="dash-kpi">
+              <span class="dash-kpi-k">DESIGN.md aligned</span>
+              <span class="dash-kpi-v" style="color:#2C6E8F">
+                {alignedCount}
+              </span>
+            </div>
+            <div class="dash-kpi">
+              <span class="dash-kpi-k">needs attention</span>
+              <span
+                class="dash-kpi-v"
+                style={`color:${drifted ? 'var(--heavy-text)' : 'var(--text-4)'}`}
+              >
+                {drifted}
+              </span>
+            </div>
+          </div>
+          <ul class="dlist" role="list">
+            {watches.map((w) => (
+              <Row w={w} origin={origin} />
+            ))}
+          </ul>
+        </>
       ) : (
         <p class="dash-empty">
           No monitored domains on this address yet.{' '}
           <a href={`${origin}/#monitor`}>Add the first one</a>.
         </p>
       )}
+      <div class="dash-rights">
+        <span>Data rights (GDPR / DPDP): self-serve export or immediate erasure</span>
+        <div class="dash-rights-actions">
+          <a
+            class="dash-export"
+            href={`${origin}/api/me/export`}
+            download="slop-detect-watches.json"
+          >
+            export JSON ↓
+          </a>
+          <button type="button" class="dash-erase" id="dashEraseBtn" data-email={email}>
+            erase my data
+          </button>
+        </div>
+      </div>
       <p class="dash-fine">
         Daily sweeps re-scan each verified domain; drift and regression email you once per event.
         Print any client report from its page.
       </p>
+      <script>{raw(ERASE_SCRIPT)}</script>
     </main>
   );
 }

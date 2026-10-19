@@ -1,6 +1,7 @@
 # Dependencies
 node_modules/
 .pnpm-store/
+package-lock.json
 
 # Build / cache
 dist/
@@ -43,6 +44,11 @@ yarn-error.log*
 
 # Agent state (issues, outputs, entities)
 .mogra/
+.agent/
+.agents/
+.claude/
+.codex/
+.cursor/
 
 # Core dumps (anchored to repo root so it never matches packages/core/)
 /core

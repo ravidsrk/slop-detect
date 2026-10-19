@@ -8,6 +8,7 @@ import {
   extractFrontMatter,
   flattenDesignTokens,
   scoreSystemCompliance,
+  generateDesignMd,
   primaryFamily,
   parseCssColor,
 } from '@slop-detect/core';
@@ -78,11 +79,13 @@ test('primaryFamily skips generic families and quotes', () => {
   expect(primaryFamily('sans-serif')).toBe(null);
 });
 
-test('parseCssColor handles hex (3/6) and rgb()/rgba()', () => {
+test('parseCssColor handles hex (3/6), rgb()/rgba(), and hsl()/hsla()', () => {
   expect(parseCssColor('#fff')).toEqual([255, 255, 255]);
   expect(parseCssColor('#B8422E')).toEqual([184, 66, 46]);
   expect(parseCssColor('rgb(184, 66, 46)')).toEqual([184, 66, 46]);
   expect(parseCssColor('rgba(184,66,46,0.9)')).toEqual([184, 66, 46]);
+  expect(parseCssColor('hsl(0, 0%, 100%)')).toEqual([255, 255, 255]);
+  expect(parseCssColor('hsla(148, 69%, 39%, 1)')).toEqual([31, 168, 95]);
   expect(parseCssColor('oklch(62% 0.18 250)')).toBe(null);
 });
 
@@ -153,4 +156,15 @@ test('color matching tolerates rendering rounding (±10/channel)', () => {
     ctas: [{ bg: 'rgb(186, 68, 48)', text: 'Buy' }], // tertiary ±2
   });
   expect(r.drift.some((d) => d.id === 'colors.cta')).toBe(false);
+});
+
+test('generateDesignMd bootstraps a DESIGN.md that round-trips to 100/100 Aligned', () => {
+  const md = generateDesignMd(ALIGNED, { name: 'Heritage Auto', url: 'https://heritage.example' });
+  const reparsed = parseDesignMd(md);
+  expect(reparsed).not.toBeNull();
+  expect(reparsed.name).toBe('Heritage Auto');
+  const compliance = scoreSystemCompliance(reparsed, ALIGNED);
+  expect(compliance.score).toBe(100);
+  expect(compliance.tier).toBe('Aligned');
+  expect(compliance.drift).toEqual([]);
 });

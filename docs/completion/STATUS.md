@@ -172,3 +172,22 @@ Rule: every S3 task re-opens the bodies it touches; nothing ships on child word 
   Also corrected synthesis arithmetic (59.7% redistributed, not 56.75%).
 - Stage 1 exit: MET. Resume pointer → S2-A.
 
+## R4 Delta Resume & 2026 Feature/UI Completion Audit (2026-10-19)
+
+- **Baseline ancestor check**: `6770c58` is an ancestor of `HEAD` (`cdd58e1`). File delta since `48cb3cb`: `74 / 433 = 17.09%` (`< 20%` threshold per R4).
+- **Environment (R1)**: `git 2.43.0`, `bun 1.4.2`, `node v22.23.3`, `gh 2.102.0`, `REVIEW_CMD=manual` (no external review CLI in container), `BRANCH_PREFIX=ravidsrk/`, `MERGE_STRATEGY=merge-commit`.
+- **Cold-start verification (`docs/completion/evidence/S1-delta-coldstart.txt`)**:
+  - `BUILD_EXIT=0`, `TYPECHECK_EXIT=0`, `LINT_EXIT=0`, `TEST_EXIT=0`.
+  - **646 passed, 0 skipped, 0 failed** across all workspaces (`@slop-detect/core`: 82, `slop-detect`: 19, `slop-detect-mcp`: 15, `@slop-detect/action`: 10, `slop-detect-web`: 520).
+- **Dogfood 4-axis self-scan (`docs/completion/evidence/S4-dogfood-selfscan.json`, `docs/completion/evidence/S4-cli-flows.txt`)**:
+  - Design axis: **0/100 (`A+` · `Clean`, 0/27 patterns triggered)**
+  - Copy axis: **0/100 (`A+` · `Clean`, 0/9 patterns triggered)**
+  - System (`DESIGN.md`) axis: **100/100 (`Aligned`, 5/5 checks passed, 0 drift)**
+  - AEO axis: **100/100 (`AI-Ready`, 8/8 checks passed)**
+- **S4 End-to-End Flow Suite (`docs/completion/evidence/S4-delta-suite.txt`, `docs/completion/evidence/S4-api-and-share-flows.txt`, `docs/completion/evidence/S4-mcp-action.txt`)**:
+  - `S4 RESULT: PASS` (**24 pass, 4 skip [mailbox/secret-gated], 0 fail**).
+- **Live Cloudflare, Resend & GitHub Provisioning (`H-01`, `H-02`, `H-03`, `H-07`, `H-08` — DONE)**:
+  - `docs/completion/evidence/H-01-cloudflare-kv-live.txt`: scoped token minted, `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` set in GitHub Actions, preview KV namespaces (`be2494e78b8e40bcbe42757f2a3ac1e7`, `cda8560802c04fe6b4ba356a6115a478`) created and bound in `apps/web/wrangler.toml`, live `kv-backup.mjs` backup/verify/restore dry-run passed, and live production rollback + roll-forward (`T-27`) rehearsed.
+  - `docs/completion/evidence/H-02-pages-secrets-live.txt`: `RESEND_API_KEY`, `ALERT_FROM`, `CRON_SECRET`, `INTERNAL_API_KEY` (+ `key:<INTERNAL_API_KEY>` in prod & preview `RATE_LIMIT` KV), `SESSION_SECRET`, `RESEND_WEBHOOK_SECRET`, `MAIL_POSTAL_ADDRESS`, and `SCAN_DAILY_CAP=10000` provisioned on Cloudflare Pages `slop-detector` (`production` + `preview`); `CRON_SECRET` & `SLOP_API_KEY` set in GitHub Actions secrets; Resend bounce/complaint webhook registered.
+  - `docs/completion/evidence/H-03-email-auth-live.txt`: Resend domain `slop-detect.com` (`badb6232-19aa-4cbd-9fec-32369d1097b9`) verified (`status: "verified"`); SPF, DKIM (`resend._domainkey`), and DMARC (`_dmarc`) DNS records live; `bun scripts/email-auth-check.ts slop-detect.com` → `PASS`.
+  - `docs/completion/evidence/H-08-edge-security-live.txt`: TLS `strict`, `always_use_https: on`, WAF Managed + DDoS L7 rulesets, Turnstile widget `0x4AAAAAADWirXpm1gXBhB5E`, GitHub Private Vulnerability Reporting `{"enabled":true}`, and `security.txt` expiry verified.

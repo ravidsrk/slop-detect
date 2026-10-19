@@ -38,6 +38,11 @@
   Content-Type: text/markdown; charset=utf-8
 /privacy.md
   Content-Type: text/markdown; charset=utf-8
+/terms.md
+  Content-Type: text/markdown; charset=utf-8
+/DESIGN.md
+  Content-Type: text/markdown; charset=utf-8
+  Access-Control-Allow-Origin: *
 /llms-full.txt
   Content-Type: text/plain; charset=utf-8
 /api/patterns.md
@@ -76,6 +81,9 @@
   Content-Type: application/json; charset=utf-8
   Access-Control-Allow-Origin: *
 /.well-known/agent-card.json
+  Content-Type: application/json; charset=utf-8
+  Access-Control-Allow-Origin: *
+/.well-known/mcp.json
   Content-Type: application/json; charset=utf-8
   Access-Control-Allow-Origin: *
 /.well-known/mcp/server-card.json

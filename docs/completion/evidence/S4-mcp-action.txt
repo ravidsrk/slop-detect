@@ -1,0 +1,29 @@
+=== CF-06 MCP SERVER E2E (TOOLS, ANNOTATIONS, PROMPTS, RESOURCES) ===
+slop-detect-mcp test: 
+slop-detect-mcp test:  RUN  v2.1.9 /home/repos/users/mDn3vRscxATUnCmKRdQLXELIVrl1/ffa263b3-eb3d-4ac9-96d8-7baa3bb156d2/.worktrees/7b63e35f-114a-4e8f-a5c1-9e1026b5c6b0/packages/mcp
+slop-detect-mcp test: 
+slop-detect-mcp test:  ✓ test/api.test.js (5 tests) 4ms
+slop-detect-mcp test:  ✓ test/system.test.js (4 tests) 3ms
+slop-detect-mcp test:  ✓ test/server.test.js (6 tests) 6ms
+slop-detect-mcp test: 
+slop-detect-mcp test:  Test Files  3 passed (3)
+slop-detect-mcp test:       Tests  15 passed (15)
+slop-detect-mcp test:    Start at  09:24:30
+slop-detect-mcp test:    Duration  391ms (transform 69ms, setup 0ms, collect 225ms, tests 13ms, environment 0ms, prepare 199ms)
+slop-detect-mcp test: 
+slop-detect-mcp test: Exited with code 0
+MCP_EXIT=0
+=== CF-06 GITHUB ACTION E2E (4-AXIS + ANNOTATIONS + PR COMMENT) ===
+@slop-detect/action test: 
+@slop-detect/action test:  RUN  v2.1.9 /home/repos/users/mDn3vRscxATUnCmKRdQLXELIVrl1/ffa263b3-eb3d-4ac9-96d8-7baa3bb156d2/.worktrees/7b63e35f-114a-4e8f-a5c1-9e1026b5c6b0/packages/action
+@slop-detect/action test: 
+@slop-detect/action test:  ✓ test/threshold.test.js (5 tests) 3ms
+@slop-detect/action test:  ✓ test/scan.test.js (5 tests) 3ms
+@slop-detect/action test: 
+@slop-detect/action test:  Test Files  2 passed (2)
+@slop-detect/action test:       Tests  10 passed (10)
+@slop-detect/action test:    Start at  09:24:31
+@slop-detect/action test:    Duration  239ms (transform 37ms, setup 0ms, collect 59ms, tests 6ms, environment 0ms, prepare 97ms)
+@slop-detect/action test: 
+@slop-detect/action test: Exited with code 0
+ACTION_EXIT=0

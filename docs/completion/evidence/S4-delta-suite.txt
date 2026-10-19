@@ -1,0 +1,64 @@
+[CF-01] ▸ happy: scan slop-detect.com returns a scored result
+[CF-01]   ✓ happy: scan slop-detect.com returns a scored result (6898ms)
+[CF-01] ▸ happy: /r/:id permalink renders the result
+[CF-01]   ✓ happy: /r/:id permalink renders the result (11ms)
+[CF-01] ▸ failure: SSRF-blocked target → 400, nothing scanned
+[CF-01]   ✓ failure: SSRF-blocked target → 400, nothing scanned (11ms)
+[CF-01] ▸ failure: empty body → 400
+[CF-01]   ✓ failure: empty body → 400 (14ms)
+--- cf01: 4 pass, 0 skip, 0 fail
+[CF-02] ▸ happy: remote JSON scan exits 0 with a scored result
+[CF-02]   ✓ happy: remote JSON scan exits 0 with a scored result (69014ms)
+[CF-02] ▸ failure: unscannable URL fails the --fail-on gate (exit 1)
+[CF-02]   ✓ failure: unscannable URL fails the --fail-on gate (exit 1) (233ms)
+[CF-02] ▸ failure: bogus --fail-on value → exit 2 usage error
+[CF-02]   ✓ failure: bogus --fail-on value → exit 2 usage error (30ms)
+--- cf02: 3 pass, 0 skip, 0 fail
+[CF-03] ▸ happy: assembled mode returns markdown
+[CF-03]   ✓ happy: assembled mode returns markdown (10ms)
+[CF-03] ▸ happy: scanned mode scans, then returns markdown
+[CF-03]   ✓ happy: scanned mode scans, then returns markdown (69005ms)
+[CF-03] ▸ failure: empty body → 400
+[CF-03]   ✓ failure: empty body → 400 (17ms)
+--- cf03: 3 pass, 0 skip, 0 fail
+[CF-04] ▸ happy: subscribe → 201 with monitoring:true
+[CF-04]   ✓ happy: subscribe → 201 with monitoring:true (19ms)
+[CF-04] ▸ happy: unsubscribe (email match) cleans up → true
+[CF-04]   ✓ happy: unsubscribe (email match) cleans up → true (32ms)
+[CF-04] ▸ failure: unsubscribe with wrong email → 403
+[CF-04]   ✓ failure: unsubscribe with wrong email → 403 (40ms)
+[CF-04] ▸ failure: sweep without auth never executes (401, or 503 if sweep unconfigured)
+[CF-04]   ✓ failure: sweep without auth never executes (401, or 503 if sweep unconfigured) (10ms)
+[CF-04] ▸ confirm + alert delivery (needs email access)
+[CF-04]   ○ confirm + alert delivery (needs email access) SKIP: token + mailbox access required; covered by monitor-flow.test.js chain
+--- cf04: 4 pass, 1 skip, 0 fail
+[CF-05] ▸ happy: link request → 200 generic (anti-enumeration shape)
+[CF-05]   ○ happy: link request → 200 generic (anti-enumeration shape) SKIP: target has no email provider/SESSION_SECRET (fail-closed 503); owned by dashboard.test.js
+[CF-05] ▸ happy: /dashboard renders the login form
+[CF-05]   ✓ happy: /dashboard renders the login form (6ms)
+[CF-05] ▸ failure: invalid email → 400
+[CF-05]   ○ failure: invalid email → 400 SKIP: target has no email provider/SESSION_SECRET (fail-closed 503); owned by dashboard.test.js
+[CF-05] ▸ failure: dead token → expired page
+[CF-05]   ✓ failure: dead token → expired page (6ms)
+[CF-05] ▸ full mint (needs mailbox access)
+[CF-05]   ○ full mint (needs mailbox access) SKIP: magic-link email access required; covered by dashboard.test.js
+--- cf05: 2 pass, 3 skip, 0 fail
+[CF-06] ▸ happy: tools/list exposes the 4 tools
+[CF-06]   ✓ happy: tools/list exposes the 4 tools (147ms)
+[CF-06] ▸ happy: scan_page scans via the target API
+[CF-06]   ✓ happy: scan_page scans via the target API (7098ms)
+[CF-06] ▸ failure: unknown tool → isError
+[CF-06]   ✓ failure: unknown tool → isError (146ms)
+--- cf06: 3 pass, 0 skip, 0 fail
+[CF-07] ▸ happy: scan to seed share surfaces
+[CF-07]   ✓ happy: scan to seed share surfaces (61609ms)
+[CF-07] ▸ happy: /r/:id + /score/slop-detect.com resolve
+[CF-07]   ✓ happy: /r/:id + /score/slop-detect.com resolve (22ms)
+[CF-07] ▸ happy: /api/patterns serves the live catalogue
+[CF-07]   ✓ happy: /api/patterns serves the live catalogue (2ms)
+[CF-07] ▸ happy: /og/:id.png renders a card (or documented /og.png fallback)
+[CF-07]   ✓ happy: /og/:id.png renders a card (or documented /og.png fallback) (2109ms)
+[CF-07] ▸ failure: unknown result id → 404
+[CF-07]   ✓ failure: unknown result id → 404 (4ms)
+--- cf07: 5 pass, 0 skip, 0 fail
+S4 RESULT: PASS

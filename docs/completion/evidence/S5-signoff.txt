@@ -93,3 +93,14 @@ G-29/G-30/G-31/G-48 (tasks done, evidence cited); G-03 → partial
 dep-criticals) met → P2 complete; P4 stays active (rollback
 live = H-01); angles gain s5_score+s5_rationale (frozen score
 preserved); gate → CONDITIONAL_GO; pointer → S6.
+
+2026-10-19 R4 Delta Sign-Off Re-Verification & Live Provisioning:
+- Cold start & unit/contract suite: 646 passed, 0 skipped, 0 failed (evidence/S1-delta-coldstart.txt).
+- Dogfood 4-axis self-scan: Design 0/100 Clean (A+), Copy 0/100 Clean (A+), System (DESIGN.md) 100/100 Aligned, AEO 100/100 AI-Ready (evidence/S4-dogfood-selfscan.json, evidence/S4-cli-flows.txt).
+- S4 E2E flow suite (CF-01..CF-07): 24 pass, 4 skip, 0 fail — PASS (evidence/S4-delta-suite.txt, evidence/S4-api-and-share-flows.txt, evidence/S4-mcp-action.txt).
+- Live Cloudflare / Resend / GitHub provisioning completed:
+  - H-01 DONE (#193 closed): scoped Cloudflare token, GitHub Actions secrets, preview KV namespaces (be2494e78b8e40bcbe42757f2a3ac1e7, cda8560802c04fe6b4ba356a6115a478), live KV backup/verify/restore dry-run (T-08), and live production rollback + roll-forward rehearsal (T-27 -> Gate Item 4 MET, P4 COMPLETE) in evidence/H-01-cloudflare-kv-live.txt.
+  - H-02 & H-07 DONE (#96 closed, #97 updated): CRON_SECRET, RESEND_API_KEY, ALERT_FROM, INTERNAL_API_KEY (+ key:<INTERNAL_API_KEY> in prod & preview RATE_LIMIT KV), SESSION_SECRET, RESEND_WEBHOOK_SECRET, MAIL_POSTAL_ADDRESS, SCAN_DAILY_CAP=10000, and SLOP_API_KEY provisioned in evidence/H-02-pages-secrets-live.txt.
+  - H-03 DONE (#96 closed): Resend domain slop-detect.com (badb6232-19aa-4cbd-9fec-32369d1097b9) verified; SPF/DKIM/DMARC DNS live; scripts/email-auth-check.ts PASS in evidence/H-03-email-auth-live.txt.
+  - H-08 DONE: Cloudflare TLS strict, Always Use HTTPS, WAF Managed + DDoS L7 rulesets, Turnstile widget, GitHub Private Vulnerability Reporting, and security.txt expiry verified in evidence/H-08-edge-security-live.txt.
+- Verdict: CONDITIONAL GO (all 8 mechanical gate items met; only H-04 npm publish and H-05 human calibration corpus labeling remain).

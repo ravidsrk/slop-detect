@@ -1,8 +1,8 @@
 # slop-detect
 
-> Score any landing page against the versioned AI-design-slop fingerprint, from your terminal.
+> Score any landing page against the versioned four-axis AI-slop fingerprint (`definitions@2026.09`), from your terminal or CI pipeline.
 
-Playwright-based, deterministic, zero-config. Perfect for CI, batch scans, and air-gapped audits.
+Playwright-based, deterministic, zero-config. Audits visual design slop (27 CSS/DOM rules), AI copy tells (9 prose rules), `DESIGN.md` token compliance, and Answer Engine Optimization (8 AEO crawler checks).
 
 ## Install
 
@@ -15,14 +15,22 @@ npm install -g slop-detect
 slop-detect https://your-site.com
 ```
 
-Chromium is installed lazily on the first local scan (~150 MB via Playwright), not at `npm install`. Set `SKIP_PLAYWRIGHT_DOWNLOAD=1` to skip that download when Playwright's Chromium is already installed (it does not select a system Chrome/Safari binary). `--remote` scans via the API and needs no Chromium.
+Chromium is installed lazily on the first local scan (~150 MB via Playwright), not at `npm install`. Set `SKIP_PLAYWRIGHT_DOWNLOAD=1` to skip that download when Playwright's Chromium is already installed (it does not select a system Chrome/Safari binary). `--remote` scans via the hosted API and needs no local Chromium.
 
 ## Usage
 
 ```bash
-slop-detect <url>                       # scan one URL
-slop-detect <url1> <url2> <url3>        # scan many, print a table
-slop-detect <url> --json                # machine-readable output
+slop-detect <url>                       # scan one URL (design axis)
+slop-detect <url1> <url2> <url3>        # scan many, print a comparison table
+slop-detect <url> --copy                # score design + copy axes (unified score)
+slop-detect <url> --axes design,copy    # explicit axis list (or --axes all)
+slop-detect <url> --aeo                 # run the 8-check AEO crawler & citation audit
+slop-detect <url> --design-md auto      # check compliance against <origin>/DESIGN.md
+slop-detect <url> --design-md ./DESIGN.md  # check compliance against a local DESIGN.md
+slop-detect <url> --preset strict       # preset: full | strict | marketing | minimal
+slop-detect <url> --remote              # scan via https://slop-detect.com/api/scan (no browser)
+slop-detect <url> --fail-on heavy       # exit non-zero on heavy (or mild) tier for CI
+slop-detect <url> --json                # machine-readable JSON output
 slop-detect <url> --screenshot          # include base64 viewport screenshot
 slop-detect <url> --timeout 30000       # navigation timeout in ms
 ```
@@ -30,10 +38,10 @@ slop-detect <url> --timeout 30000       # navigation timeout in ms
 ## Example
 
 ```
-$ slop-detect https://www.aura.build
+$ slop-detect https://www.aura.build --copy --aeo
 
 URL: https://www.aura.build
-SCORE: 36 / 100   →   Heavy   (8 / 27 patterns)
+SCORE: 36 / 100   →   Heavy (D)   (8 / 27 design patterns)
 
   ✓ Slop fonts (Inter / Geist / Space Grotesk)        (+8)
   ✓ VibeCode Purple — filled indigo/violet CTAs       (+8)
@@ -72,15 +80,17 @@ npx -y slop-detect "$PREVIEW_URL" --json --fail-on heavy | tee slop.json
 
 ## Tiers
 
-- Clean: 0 to 9
-- Mild: 10 to 27
-- Heavy: 28 or more
+- **Design slop** (lower is better): Clean `0 to 9` · Mild `10 to 27` · Heavy `28 or more`
+- **Copy slop** (lower is better): Clean `0 to 7` · Mild `8 to 19` · Heavy `20 or more`
+- **System (`DESIGN.md`)** (higher is better): Aligned `80 to 100` · Drifting `50 to 79` · Off-system `< 50`
+- **AEO** (higher is better): AI-Ready `80 to 100` · Partial `50 to 79` · Invisible `< 50`
 
 ## See also
 
-- [Web UI](https://slop-detect.com) — point-and-click scanning
-- [`slop-detect-core`](https://www.npmjs.com/package/slop-detect-core) — pure detection engine, runtime-agnostic
-- [Repository](https://github.com/ravidsrk/slop-detect) — source, contributing, the full 27 patterns
+- [Web UI & Methodology](https://slop-detect.com/docs) — interactive scanning and full 2026.09 spec
+- [`@slop-detect/core`](https://www.npmjs.com/package/@slop-detect/core) — pure detection engine, runtime-agnostic
+- [`slop-detect-mcp`](https://www.npmjs.com/package/slop-detect-mcp) — MCP server for Claude Code, Cursor, and Windsurf
+- [Repository](https://github.com/ravidsrk/slop-detect) — source, contributing, and the full pattern catalogue
 
 ## License
 

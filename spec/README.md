@@ -14,9 +14,10 @@ Current version: **2026.09**
 |------|--------|----------------|------------|
 | Design | `patterns.ts` | Lower is better | Clean 0–9, Mild 10–27, Heavy 28+ |
 | Copy | `copyPatterns.ts` | Lower is better | Clean 0–7, Mild 8–19, Heavy 20+ |
+| System (`DESIGN.md`) | `system.ts` | Higher is better | Aligned ≥80%, Drifting 50–79%, Off-system &lt;50% |
 | AEO | `aeo.ts` | Higher is better | AI-Ready ≥80%, Partial ≥50%, Invisible &lt;50% |
 
-Design and copy slop scores sum triggered pattern weights (clamped 0–100). AEO scores sum passed check weights (max 100). Unified slop score (when copy is enabled) uses `combineAxes()` — see [copy-axis.md](./copy-axis.md).
+Design and copy slop scores sum triggered pattern weights (clamped 0–100). System and AEO scores measure compliance and agent-readiness (max 100, higher is better). Unified slop score (when copy is enabled) uses `combineAxes()` — see [copy-axis.md](./copy-axis.md).
 
 ## File index
 
@@ -24,6 +25,7 @@ Design and copy slop scores sum triggered pattern weights (clamped 0–100). AEO
 |------|----------|
 | [patterns.md](./patterns.md) | 27 design-slop patterns (CSS/DOM tells) |
 | [copy-axis.md](./copy-axis.md) | 9 copy-slop patterns and multi-axis aggregation |
+| [system.md](./system.md) | 5 `DESIGN.md` system compliance checks and token tolerances |
 | [aeo.md](./aeo.md) | 8 AEO ladder checks, AI-bot registry, graded tiers |
 | [conformance.md](./conformance.md) | Producer expectations, AEO pass thresholds, CLI `--fail-on` |
 | [config.json](./config.json) | Machine-readable manifest |

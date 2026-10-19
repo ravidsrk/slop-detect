@@ -34,7 +34,7 @@
     "s4": "bun run --filter slop-detect --filter slop-detect-mcp build && bun scripts/s4/run.ts",
     "scan": "npm run --workspace slop-detect scan --",
     "demo": "npm run --workspace slop-detect demo",
-    "web:dev": "bun run --filter slop-detect-web dev",
+    "web:dev": "bun run --filter @slop-detect/core build && bun run --filter slop-detect-web dev",
     "web:deploy": "bun run --filter slop-detect-web deploy",
     "calibrate": "bun packages/cli/calibration/run.mjs"
   },

@@ -18,6 +18,36 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./patterns": {
+      "types": "./dist/patterns.d.ts",
+      "import": "./dist/patterns.js",
+      "require": "./dist/patterns.cjs"
+    },
+    "./fonts": {
+      "types": "./dist/fonts.d.ts",
+      "import": "./dist/fonts.js",
+      "require": "./dist/fonts.cjs"
+    },
+    "./color": {
+      "types": "./dist/color.d.ts",
+      "import": "./dist/color.js",
+      "require": "./dist/color.cjs"
+    },
+    "./system": {
+      "types": "./dist/system.d.ts",
+      "import": "./dist/system.js",
+      "require": "./dist/system.cjs"
+    },
+    "./aeo": {
+      "types": "./dist/aeo.d.ts",
+      "import": "./dist/aeo.js",
+      "require": "./dist/aeo.cjs"
+    },
+    "./fixes": {
+      "types": "./dist/fixes.d.ts",
+      "import": "./dist/fixes.js",
+      "require": "./dist/fixes.cjs"
     }
   },
   "scripts": {

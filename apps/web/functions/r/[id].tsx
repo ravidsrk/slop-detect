@@ -31,6 +31,7 @@ import {
   CategoryBars,
   Breakdown,
   AxisStrip,
+  SystemAeoCards,
   FixesPanel,
   ShareEmbed,
 } from '../_result.js';
@@ -211,6 +212,13 @@ export async function onRequestGet({ params, env, request }) {
             <SectionLedger tag="" label="the four axes" />
           </div>
           <AxisStrip slim={slim} />
+        </section>
+
+        <section class="result-section">
+          <div class="rs-ledger">
+            <SectionLedger tag="" label="system & aeo detail" />
+          </div>
+          <SystemAeoCards slim={slim} />
         </section>
 
         <section class="result-section">

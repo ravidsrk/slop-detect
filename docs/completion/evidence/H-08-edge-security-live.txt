@@ -1,0 +1,50 @@
+=== H-08 CLOUDFLARE ZONE TLS & HTTPS SETTINGS ===
+{
+  "id": "ssl",
+  "value": "strict"
+}
+{
+  "id": "always_use_https",
+  "value": "on"
+}
+
+=== H-08 CLOUDFLARE WAF MANAGED RULESETS ===
+[
+  {
+    "id": "70339d97bdb34195bbf054b1ebe81f76",
+    "name": "Cloudflare Normalization Ruleset",
+    "phase": "http_request_sanitize",
+    "kind": "managed"
+  },
+  {
+    "id": "77454fe2d30c4220b5701f6fdfb893ba",
+    "name": "Cloudflare Managed Free Ruleset",
+    "phase": "http_request_firewall_managed",
+    "kind": "managed"
+  },
+  {
+    "id": "4d21379b4f9f4bb088e0729962c8b3cf",
+    "name": "DDoS L7 ruleset",
+    "phase": "ddos_l7",
+    "kind": "managed"
+  }
+]
+
+=== H-08 TURNSTILE WIDGET VERIFICATION ===
+[
+  {
+    "sitekey": "0x4AAAAAADWirXpm1gXBhB5E",
+    "name": "slop-detect",
+    "domains": [
+      "localhost",
+      "slop-detect.com",
+      "slop-detector.pages.dev"
+    ],
+    "mode": "managed"
+  }
+]
+
+=== H-08 GITHUB PRIVATE VULNERABILITY REPORTING ===
+{"enabled":true}
+=== H-08 SECURITY.TXT EXPIRES ===
+Expires: 2027-09-14T00:00:00.000Z

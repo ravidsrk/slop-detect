@@ -792,6 +792,45 @@
             "items": {
               "$ref": "#/components/schemas/Pattern"
             }
+          },
+          "copyCount": {
+            "type": "integer",
+            "description": "Number of copy-axis patterns.",
+            "example": 9
+          },
+          "copyPatterns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Pattern"
+            }
+          },
+          "aeoCount": {
+            "type": "integer",
+            "description": "Number of AEO checks.",
+            "example": 8
+          },
+          "aeoChecks": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "systemCount": {
+            "type": "integer",
+            "description": "Number of DESIGN.md system compliance checks.",
+            "example": 5
+          },
+          "systemChecks": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "presets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -864,7 +903,7 @@
       },
       "FixPromptRequest": {
         "type": "object",
-        "description": "Provide exactly one of `result` or `url`.",
+        "description": "Provide either `result` or `url`.",
         "properties": {
           "result": {
             "$ref": "#/components/schemas/ScanResult"
@@ -872,6 +911,36 @@
           "url": {
             "type": "string",
             "format": "uri"
+          },
+          "axes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "design",
+                "copy"
+              ]
+            }
+          },
+          "preset": {
+            "type": "string",
+            "enum": [
+              "full",
+              "strict",
+              "marketing",
+              "minimal"
+            ]
+          },
+          "designMd": {
+            "oneOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "string",
+                "format": "uri"
+              }
+            ]
           }
         }
       },

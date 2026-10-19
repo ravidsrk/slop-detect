@@ -1,7 +1,14 @@
 {
   "angles": [
     {
-      "evidence": ["docs/completion/evidence/S1-corroboration.txt"],
+      "evidence": [
+        "docs/completion/evidence/S1-corroboration.txt",
+        "docs/completion/evidence/S4-dogfood-selfscan.json",
+        "docs/completion/evidence/S4-delta-suite.txt",
+        "docs/completion/evidence/S4-api-and-share-flows.txt",
+        "docs/completion/evidence/S4-cli-flows.txt",
+        "docs/completion/evidence/S4-mcp-action.txt"
+      ],
       "findings": ["F-1-01", "F-1-02", "F-1-03", "F-1-04", "F-1-05", "F-1-06", "F-1-07", "F-1-08"],
       "id": 1,
       "na_reason": null,
@@ -9,7 +16,7 @@
       "rag": "A",
       "score": 2,
       "s5_score": 3,
-      "s5_rationale": "flows E2E + stranger PASS; CF-04 mail H-gated"
+      "s5_rationale": "flows E2E + stranger PASS (24 pass, 4 skip, 0 fail) + 4-axis dogfood 0/100 Clean A+; CF-04 mail H-gated"
     },
     {
       "evidence": [],
@@ -34,7 +41,10 @@
       "s5_rationale": "CI gates format+lint+type+test; big-file DEFER S3"
     },
     {
-      "evidence": ["docs/completion/evidence/S1-coldstart-run.txt"],
+      "evidence": [
+        "docs/completion/evidence/S1-coldstart-run.txt",
+        "docs/completion/evidence/S1-delta-coldstart.txt"
+      ],
       "findings": ["F-4-01", "F-4-02", "F-4-03", "F-4-04"],
       "id": 4,
       "na_reason": null,
@@ -42,7 +52,7 @@
       "rag": "G",
       "score": 3,
       "s5_score": 4,
-      "s5_rationale": "E2E suite + goldens + mechanism proofs + stranger-verified"
+      "s5_rationale": "646/646 unit+contract tests + E2E suite (24/4/0) + goldens + mechanism proofs + stranger-verified"
     },
     {
       "evidence": ["docs/completion/evidence/S1-coldstart-run.txt"],
@@ -1002,7 +1012,7 @@
   ],
   "gate": {
     "status": "CONDITIONAL_GO",
-    "reason": "S5: items 1-3,5-8 met; item 4 (rollback live rehearsal) + CF-04 prod E2E + H-04/H-05 rest on launch-gating H-01/H-02/H-03/H-04/H-05. Evidence: S5-signoff.txt."
+    "reason": "S5: all 8 mechanical gate items met (incl. item 4 live rollback rehearsal in H-01-cloudflare-kv-live.txt); H-01, H-02, H-03, H-07, H-08 provisioned and verified live; only H-04 (npm publish) and H-05 (human calibration labeling) remain. Evidence: S5-signoff.txt."
   },
   "history": [
     {
@@ -1017,34 +1027,34 @@
       "gates_launch": true,
       "id": "H-01",
       "instruction": "Create Cloudflare API token (KV + Pages edit, 30d ttl) for rehearsal work",
-      "issue_url": null,
-      "status": "open",
+      "issue_url": "https://github.com/ravidsrk/slop-detect/issues/193",
+      "status": "done",
       "unblocks": ["T-08-prod", "T-27", "T-29"],
-      "verification": "wrangler kv namespace list + backup dry-run captured by agent"
+      "verification": "docs/completion/evidence/H-01-cloudflare-kv-live.txt"
     },
     {
       "gates_launch": true,
       "id": "H-02",
       "instruction": "Set CRON_SECRET, Resend key, INTERNAL_API_KEY, SESSION_SECRET in Pages env (#96); T-31 adds MAIL_POSTAL_ADDRESS (CAN-SPAM street address) + RESEND_WEBHOOK_SECRET and registering https://slop-detect.com/api/email/webhook for email.bounced/email.complained in the Resend dashboard (see docs/EMAIL.md)",
-      "issue_url": null,
-      "status": "open",
+      "issue_url": "https://github.com/ravidsrk/slop-detect/issues/96",
+      "status": "done",
       "unblocks": ["CF-04-prod"],
-      "verification": "agent watch-register -> forced sweep -> alert path"
+      "verification": "docs/completion/evidence/H-02-pages-secrets-live.txt"
     },
     {
       "gates_launch": true,
       "id": "H-03",
       "instruction": "Add+verify Resend sending domain; add SPF/DKIM/DMARC records",
-      "issue_url": null,
-      "status": "open",
+      "issue_url": "https://github.com/ravidsrk/slop-detect/issues/96",
+      "status": "done",
       "unblocks": ["CF-04-mail", "T-37"],
-      "verification": "agent T-37 post-verify check"
+      "verification": "docs/completion/evidence/H-03-email-auth-live.txt"
     },
     {
       "gates_launch": true,
       "id": "H-04",
       "instruction": "Set NPM_TOKEN, cut v0.8.0 tag after T-03 green; confirm publish order (#95)",
-      "issue_url": null,
+      "issue_url": "https://github.com/ravidsrk/slop-detect/issues/95",
       "status": "open",
       "unblocks": ["npm-0.8.0"],
       "verification": "agent checks registry versions match repo"
@@ -1053,7 +1063,7 @@
       "gates_launch": true,
       "id": "H-05",
       "instruction": "Label 50-100 corpus URLs + second rater per T-19c format (#99)",
-      "issue_url": null,
+      "issue_url": "https://github.com/ravidsrk/slop-detect/issues/99",
       "status": "open",
       "unblocks": ["calibration"],
       "verification": "agent runs harness + commits corpus"
@@ -1062,7 +1072,7 @@
       "gates_launch": false,
       "id": "H-06",
       "instruction": "Post HN/PH/Reddit launches when gate is GO/CONDITIONAL (#103/#104)",
-      "issue_url": null,
+      "issue_url": "https://github.com/ravidsrk/slop-detect/issues/103",
       "status": "open",
       "unblocks": [],
       "verification": "agent links threads in ISSUES.md"
@@ -1071,18 +1081,18 @@
       "gates_launch": false,
       "id": "H-07",
       "instruction": "Provide ERROR_WEBHOOK URL, uptime target, SCAN_DAILY_CAP, SLOP_API_KEY (#97)",
-      "issue_url": null,
-      "status": "open",
+      "issue_url": "https://github.com/ravidsrk/slop-detect/issues/97",
+      "status": "done",
       "unblocks": ["T-25-prod"],
-      "verification": "agent test alert + cap check in staging"
+      "verification": "docs/completion/evidence/H-02-pages-secrets-live.txt"
     },
     {
       "id": "H-08",
       "instruction": "Walk the five edge/dashboard checkboxes in docs/SECURITY.md (TLS, WAF rule for POST /api/scan, bots, private reporting, security.txt freshness)",
       "unblocks": [],
       "gates_launch": false,
-      "verification": "agent re-checks reporting API + security.txt Expires",
-      "status": "open",
+      "verification": "docs/completion/evidence/H-08-edge-security-live.txt",
+      "status": "done",
       "issue_url": null
     }
   ],
@@ -1092,7 +1102,7 @@
     "existing_fetched": 11,
     "ledger": "docs/completion/ISSUES.md",
     "reopened": 0,
-    "updated": 0
+    "updated": 3
   },
   "mode": "drive",
   "plan_phases": [
@@ -1121,7 +1131,7 @@
     {
       "exit_criteria": [
         {
-          "evidence": "T-08 restore core rehearsed (memory round-trip + dry-run safety, 13 tests green); CF transport = filed H-01 — S5-signoff.txt item 3",
+          "evidence": "T-08 restore core rehearsed + live CF KV backup/verify/restore dry-run in docs/completion/evidence/H-01-cloudflare-kv-live.txt",
           "met": true,
           "text": "Backup restored (local rehearsal + prod H filed)"
         },
@@ -1170,8 +1180,8 @@
           "text": "One alert proven to fire"
         },
         {
-          "evidence": "agent part only: docs/ROLLBACK.md + rehearsal script (PR #169); live rehearsal = H-01",
-          "met": false,
+          "evidence": "docs/ROLLBACK.md + live production rollback & roll-forward rehearsal in docs/completion/evidence/H-01-cloudflare-kv-live.txt",
+          "met": true,
           "text": "Rollback rehearsed"
         },
         {
@@ -1182,7 +1192,7 @@
       ],
       "id": "P4",
       "name": "Operability",
-      "status": "active"
+      "status": "complete"
     },
     {
       "exit_criteria": [

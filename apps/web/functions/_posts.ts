@@ -9,9 +9,69 @@ import { escapeHtml } from './_shared.js';
 
 export const POSTS = [
   {
+    slug: 'four-axis-calibration-2026-09',
+    title: 'Calibrating the four-axis instrument: design, copy, system, and AEO',
+    date: '2026-10-17',
+    image: '/media/docs-four-axes-architecture.png',
+    imageAlt: 'Four-axis telemetry architecture schematic for definitions 2026.09',
+    summary:
+      'How definitions 2026.09 unifies 27 CSS and DOM rules, 9 prose checks, DESIGN.md token compliance, and 8 AEO crawler checks into one deterministic audit.',
+    body: `A single visual score catches template reflexes, but modern web software fails in four distinct ways. A landing page can wear a generated layout, speak in repetitive machine prose, drift off its team's declared design tokens, or ship an empty client-rendered shell that AI answer engines cannot read.
+
+## Four independent axes with explicit polarity
+
+In definitions 2026.09, the engine separates these concerns into four orthogonal axes:
+
+- Design slop: 27 weighted CSS and DOM checks run in real headless Chromium. Lower is cleaner (0 to 9 Clean, 10 to 27 Mild, 28 and up Heavy).
+- Copy slop: 9 prose checks run against extracted page text at zero extra navigation cost. Lower is cleaner (0 to 7 Clean, 8 to 19 Mild, 20 and up Heavy).
+- System compliance (DESIGN.md): relative verification against the repository's own declared colors, typography, and corner radii. Higher is better (80 to 100 Aligned, 50 to 79 Drifting, below 50 Off-system).
+- AEO readiness: 8 crawler and content-negotiation checks verifying whether answer engines can index and cite the page. Higher is better (80 to 100 AI-Ready).
+
+## Inspecting DOM strata in 3D
+
+When a page triggers multiple design or layout rules, reading a flat list of rule IDs hides where the tells live in the document tree. The interactive 3D DOM spectrometer on the home page and per-domain score hubs explodes the scanned document into five vertical strata: typography, palette and contrast, layout topology, copy rhetoric, and AEO metadata.
+
+\`\`\`bash
+npx slop-detect https://your-site.com --axes all --design-md auto --aeo
+\`\`\`
+
+## Closing the loop in CI and MCP
+
+Because every check is a deterministic function of computed styles and HTTP headers, coding agents can call \`slop-detect-mcp\` inside the editor before opening a pull request, and teams can gate deploy previews with \`slop-detect-action\` in GitHub Actions.`,
+  },
+  {
+    slug: 'aeo-for-engineering-teams',
+    title: 'AEO for engineering teams: making pages readable to AI answer engines',
+    date: '2026-09-20',
+    image: '/media/docs-aeo-crawler-pipeline.png',
+    imageAlt: 'AEO eight-check verification pipeline schematic',
+    summary:
+      'Why clean visual design is still invisible to ChatGPT, Claude, and Perplexity when crawlers hit blocked robots rules or missing markdown twins.',
+    body: `A landing page can score 0 out of 100 on the design-slop fingerprint and still be completely invisible when a buyer asks an AI assistant to compare tools in your category. Answer Engine Optimization (AEO) measures whether automated research agents can fetch, parse, and cite your canonical content over HTTP.
+
+## The eight-check verification circuit
+
+The AEO axis evaluates eight concrete HTTP and HTML signals totaling 100 points (70 required points + 30 recommended bonus points):
+
+- \`html.reachable\` (10 pts, required): verifies that normal browser HTTP fetch returns a 2xx HTML document.
+- \`bot.notBlocked\` (25 pts, required): confirms that fetching with the \`GPTBot\` User-Agent returns 2xx rather than a WAF challenge or 403 block.
+- \`robots.aiAllowed\` (20 pts, required): verifies that \`robots.txt\` does not disallow major AI crawlers (\`GPTBot\`, \`ClaudeBot\`, \`PerplexityBot\`, \`Google-Extended\`).
+- \`html.indexable\` (15 pts, required): confirms the page does not emit \`noindex\` in \`X-Robots-Tag\` headers or \`<meta name="robots">\`.
+- \`md.twin\` (10 pts, recommended): checks for a clean \`<url>.md\` markdown twin (or \`/index.md\` for the root path) returning \`text/markdown\`.
+- \`html.linkAlternate\` (8 pts, recommended): checks that HTML advertises the markdown twin via \`Link: rel="alternate"; type="text/markdown"\` or \`<link rel="alternate">\`.
+- \`site.llmsTxt\` (7 pts, recommended): checks for a structured \`/llms.txt\` discovery file at the root domain.
+- \`html.vary\` (5 pts, recommended): checks that the response sends \`Vary: Accept\` for content-negotiation awareness.
+
+## Serving markdown twins
+
+Every documentation and blog route on \`slop-detect.com\` exposes a direct markdown twin alongside its HTML page. Run \`npx slop-detect <url> --aeo\` or \`POST /api/aeo\` to audit any URL against all eight checks.`,
+  },
+  {
     slug: 'how-the-slop-score-works',
     title: 'How the slop score works',
     date: '2026-06-13',
+    image: '/media/hero-optical-instrument.png',
+    imageAlt: 'Isometric optical DOM spectrometer diagram',
     summary:
       'A weighted, deterministic fingerprint: same page in, same score out. No model, no randomness.',
     body: `Every scan runs the same set of named checks against a page's live
@@ -46,6 +106,8 @@ result reads, nothing about the team behind it. Reproduce any score yourself wit
     slug: 'why-detectors-decay',
     title: 'Why slop detectors decay, and what we do about it',
     date: '2026-06-13',
+    image: '/media/docs-design-md-drift.png',
+    imageAlt: 'DESIGN.md token compliance versus live rendered DOM drift diagram',
     summary:
       'A fixed visual fingerprint degrades as generators suppress the default look. The durable signal is per-site, not global.',
     body: `A signature-style detector that enumerates today's visual tells

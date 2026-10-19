@@ -47,15 +47,15 @@ spec/                             ← versioned pattern + AEO + conformance spec
 
 When you change a rule in `packages/core/src/patterns.ts`, both the CLI and the web app pick it up automatically — they're consumers of the same `@slop-detect/core` package via `workspace:*` symlinks.
 
-## Proposing a new pattern (#17, #18, ...)
+## Proposing a new pattern (#28, #29, ...)
 
 The bar for adding a new pattern is high but not impossible. Convince us with **evidence at scale**:
 
 1. **Find the pattern in the wild.** Show 10+ real landing pages where it appears.
 2. **Confirm AI-tooling correlation.** It must be over-represented in AI-generated pages (Cursor, v0, Lovable, Bolt, GPT image-to-code) versus human-designed ones.
 3. **Write a deterministic detector.** `extract(ctx)` runs in the page's DOM; `detect(signals)` returns true/false. Avoid heuristics that depend on screenshots, ML, or wall-clock timing.
-4. **Assign a weight (1–8).** Justify it relative to the existing 16. Weight 8 is reserved for slam-dunk signals like Inter-font usage and indigo-600 CTAs.
-5. **Write a fix recipe.** Add a `FIXES` entry in `packages/core/src/fixes.js` with: problem, fix, alternatives, hard rule.
+4. **Assign a weight (1–8).** Justify it relative to the existing 27. Weight 8 is reserved for slam-dunk signals like Inter-font usage and indigo-600 CTAs.
+5. **Write a fix recipe.** Add a `FIXES` entry in `packages/core/src/fixes.ts` with: problem, fix, alternatives, hard rule.
 
 Open an issue first using the **New Pattern** template before writing code. We'd rather discuss it before you spend an evening on a detector we can't accept.
 
@@ -113,7 +113,7 @@ accepts a mixed list.
 
 ## Proposing a copy-slop pattern (the text axis)
 
-The **copy axis** lives in `packages/core/src/copyPatterns.js`. Unlike design
+The **copy axis** lives in `packages/core/src/copyPatterns.ts`. Unlike design
 patterns, copy patterns are *pure text analysis* — they run in Node/Worker on the
 already-extracted page text, so **no browser, no serialization, fully
 unit-testable**. A copy pattern is:

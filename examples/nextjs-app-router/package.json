@@ -5,7 +5,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "check:slop": "slop-detect http://localhost:3000 --copy --aeo --design-md auto --fail-under B"
   },
   "dependencies": {
     "next": "^15.0.0",

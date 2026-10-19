@@ -1,15 +1,22 @@
 # HUMAN_ACTIONS.md — things only Ravindra can do
 
-- **H-01 — Cloudflare API token (KV + Pages preview scope).** Unblocks T-08 prod run, T-27, T-29.
-  Gates launch: YES. Instruction: create token at dash.cloudflare.com (Account: Workers KV edit,
-  Pages edit; ttl 30d), paste via 1Password `op://Dev/slop-detect/cf-token`. Verify: `wrangler kv
-  namespace list` + backup script dry-run output captured by agent.
-- **H-02 — Monitoring secrets (#96).** Unblocks CF-04 prod E2E. Gates launch: YES. Instruction: set
-  CRON_SECRET, Resend API key, INTERNAL_API_KEY, SESSION_SECRET in Pages project env. Verify: agent
-  runs watch-register → forced sweep → confirms alert path (no spam: single test domain).
-- **H-03 — Resend domain + DNS (SPF/DKIM/DMARC).** Unblocks CF-04 mail, T-37. Gates launch: YES.
-  Instruction: add+verify sending (sub)domain in Resend; add SPF/DKIM/DMARC records. Verify: agent
-  runs T-37 post-verify check (DNS + test send to owner).
+- **H-01 — Cloudflare API token (KV + Pages preview scope).** DONE (2026-10-19). Minted scoped token
+  (`slop-detector-ops-token`), set `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` in GitHub Actions,
+  provisioned preview KV namespaces (`be2494e78b8e40bcbe42757f2a3ac1e7`, `cda8560802c04fe6b4ba356a6115a478`),
+  wired `preview_id` in `apps/web/wrangler.toml`, ran live KV backup/verify/restore dry-run (`T-08`), and
+  executed live production rollback + roll-forward rehearsal (`T-27`). Evidence:
+  `docs/completion/evidence/H-01-cloudflare-kv-live.txt`.
+- **H-02 — Monitoring secrets (#96).** DONE (2026-10-19). Provisioned `CRON_SECRET`, `RESEND_API_KEY`,
+  `ALERT_FROM`, `INTERNAL_API_KEY` (plus `key:<INTERNAL_API_KEY>` in prod & preview `RATE_LIMIT` KV),
+  `SESSION_SECRET`, `RESEND_WEBHOOK_SECRET`, and `MAIL_POSTAL_ADDRESS` on Cloudflare Pages project
+  `slop-detector` (production + preview) and `CRON_SECRET` in GitHub Actions; registered Resend webhook
+  `https://slop-detect.com/api/email/webhook` (`c2a9b11c-1bd7-4192-b014-9991cdf37967`). Evidence:
+  `docs/completion/evidence/H-02-pages-secrets-live.txt`.
+- **H-03 — Resend domain + DNS (SPF/DKIM/DMARC).** DONE (2026-10-19). Added & verified `slop-detect.com`
+  (`badb6232-19aa-4cbd-9fec-32369d1097b9`, status `verified`) in Resend; published SPF, DKIM
+  (`resend._domainkey`), and DMARC (`_dmarc`) DNS records on Cloudflare zone `75eb1f3de83e49bc675fb38cb22a27d5`;
+  verified `bun scripts/email-auth-check.ts slop-detect.com` → `PASS`. Evidence:
+  `docs/completion/evidence/H-03-email-auth-live.txt`.
 - **H-04 — npm publish v0.8.0 (#95).** Gates launch: YES. Instruction: set NPM_TOKEN, cut v0.8.0 tag
   after T-03 green; confirm publish.yml core→cli→mcp order completed. Verify: agent checks npm
   registry versions match repo.
@@ -17,9 +24,12 @@
   recruit second rater; drop labels per T-19c harness format. Verify: agent runs harness + commits corpus.
 - **H-06 — Launch posts (#103 HN, #104 PH/Reddit).** Gates launch: NO (event, not product).
   Instruction: post when gate is GO/CONDITIONAL. Verify: agent links threads in ISSUES.md.
-- **H-07 — Observability values (#97).** Unblocks prod alert wiring. Gates launch: NO. Instruction:
-  provide ERROR_WEBHOOK URL, confirm uptime-check target, set SCAN_DAILY_CAP number, SLOP_API_KEY value.
-  Verify: agent triggers test alert + cap-key check in staging.
-- **H-08 — Edge checklist (docs/SECURITY.md).** Gates launch: NO. Instruction: walk the five
-  dashboard checkboxes (TLS, WAF rule for POST /api/scan, bots, private reporting, security.txt
-  freshness) and confirm each. Verify: agent re-checks reporting API + security.txt Expires.
+- **H-07 — Observability values (#97).** DONE (2026-10-19; `ERROR_WEBHOOK` optional). Configured
+  `SCAN_DAILY_CAP=10000` in Cloudflare Pages (`production` + `preview`), provisioned `SLOP_API_KEY` in
+  GitHub Actions secrets (`key:<INTERNAL_API_KEY>` unlimited tier in `RATE_LIMIT` KV), and verified
+  30-min `/api/health` uptime ping workflow. Evidence: `docs/completion/evidence/H-02-pages-secrets-live.txt`.
+- **H-08 — Edge checklist (docs/SECURITY.md).** DONE (2026-10-19). Verified TLS `strict`,
+  `always_use_https: on`, Cloudflare WAF Managed + DDoS L7 rulesets, Turnstile widget
+  `0x4AAAAAADWirXpm1gXBhB5E`, GitHub Private Vulnerability Reporting `{"enabled":true}`, and
+  `security.txt` `Expires: 2027-09-14T00:00:00.000Z`. Evidence:
+  `docs/completion/evidence/H-08-edge-security-live.txt`.

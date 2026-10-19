@@ -20,6 +20,8 @@ import { fileURLToPath } from 'node:url';
 // and is the conventional way for a step to flag a failure.
 const log = (msg) => process.stdout.write(`${msg}\n`);
 const ghError = (msg) => log(`::error::${msg}`);
+const ghWarning = (msg, title = '') =>
+  log(title ? `::warning title=${title}::${msg}` : `::warning::${msg}`);
 const ghNotice = (msg) => log(`::notice::${msg}`);
 
 // SEC-4: surface misconfiguration risk when running on pull_request_target.
@@ -32,6 +34,52 @@ export function noticeIfPullRequestTarget(eventName = process.env.GITHUB_EVENT_N
   if (eventName !== 'pull_request_target') return false;
   ghNotice(PULL_REQUEST_TARGET_NOTICE);
   return true;
+}
+
+export function buildScanPayload(url, opts = {}) {
+  const payload = { url };
+  const rawAxes = String(opts.axes || '').trim();
+  if (rawAxes) {
+    if (rawAxes === 'all') payload.axes = ['design', 'copy'];
+    else {
+      const list = rawAxes
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (list.length > 0 && !(list.length === 1 && list[0] === 'design')) {
+        payload.axes = list;
+      }
+    }
+  }
+  const preset = String(opts.preset || '').trim();
+  if (preset && preset !== 'full') payload.preset = preset;
+  const designMd = String(opts.designMd || '').trim();
+  if (designMd) {
+    payload.designMd = designMd === 'auto' || designMd === 'true' ? true : designMd;
+  }
+  if (opts.share === false || String(opts.share).trim() === 'false') {
+    payload.share = false;
+  }
+  return payload;
+}
+
+export function emitPatternWarnings(result) {
+  const designTriggered = (result?.patterns || []).filter((p) => p.triggered);
+  const copyTriggered = (result?.axes?.copy?.patterns || []).filter((p) => p.triggered);
+  const target = result?.finalUrl || result?.url || '';
+  let count = 0;
+  for (const p of [...designTriggered, ...copyTriggered]) {
+    ghWarning(
+      `${p.label || p.id} (+${p.weight})${target ? ` on ${target}` : ''}`,
+      `Slop Pattern (${p.id})`
+    );
+    count++;
+  }
+  for (const d of result?.system?.drift || []) {
+    ghWarning(`${d.message}${target ? ` on ${target}` : ''}`, `DESIGN.md Drift (${d.id})`);
+    count++;
+  }
+  return count;
 }
 
 // Fail fast with a clear annotation. Used for any unrecoverable problem so we
@@ -78,14 +126,19 @@ function isLetterGrade(value) {
 // ---------------------------------------------------------------------------
 // Scan the URL via the public API.
 // ---------------------------------------------------------------------------
-async function scan(apiBase, url) {
+async function scan(apiBase, url, opts = {}) {
   const endpoint = `${apiBase.replace(/\/+$/, '')}/api/scan`;
+  const headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
+  const apiKey = opts.apiKey || process.env.SLOP_API_KEY || '';
+  if (apiKey) headers['x-api-key'] = apiKey;
+  const payload = buildScanPayload(url, opts);
+
   let res;
   try {
     res = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ url }),
+      headers,
+      body: JSON.stringify(payload),
     });
   } catch (err) {
     die(`Could not reach slop-detect API at ${endpoint}: ${err.message}`);
@@ -104,11 +157,29 @@ async function scan(apiBase, url) {
   }
 
   // Sanity check we actually got a scored result.
-  if (typeof data.score !== 'number' || !data.id) {
+  if (typeof data.score !== 'number' || (payload.share !== false && !data.id)) {
     die('Scan response was missing a score/id — refusing to report partial data.');
   }
 
   return data;
+}
+
+async function scanAeo(apiBase, url, opts = {}) {
+  const endpoint = `${apiBase.replace(/\/+$/, '')}/api/aeo`;
+  const headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
+  const apiKey = opts.apiKey || process.env.SLOP_API_KEY || '';
+  if (apiKey) headers['x-api-key'] = apiKey;
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ url }),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -132,9 +203,13 @@ export function evaluateThreshold(result, failUnder) {
     };
   }
 
+  const effectiveScore =
+    typeof result.unifiedScore === 'number' ? result.unifiedScore : result.score;
+  const effectiveGrade = result.unifiedGrade || result.grade;
+
   if (isLetterGrade(raw)) {
     const wanted = raw.toUpperCase();
-    const got = String(result.grade).toUpperCase();
+    const got = String(effectiveGrade).toUpperCase();
     // Higher rank index = worse grade. Page fails when its grade is strictly
     // worse than the requested floor.
     const passed = gradeRank(got) <= gradeRank(wanted);
@@ -158,13 +233,13 @@ export function evaluateThreshold(result, failUnder) {
   }
 
   // Score is 0–100, LOWER is better. Fail when slop score exceeds the limit.
-  const passed = result.score <= limit;
+  const passed = effectiveScore <= limit;
   return {
     passed,
     mode: 'score',
     reason: passed
-      ? `Score ${result.score} is within the limit of ${limit}.`
-      : `Score ${result.score} exceeds the limit of ${limit}.`,
+      ? `Score ${effectiveScore} is within the limit of ${limit}.`
+      : `Score ${effectiveScore} exceeds the limit of ${limit}.`,
   };
 }
 
@@ -174,18 +249,22 @@ export function evaluateThreshold(result, failUnder) {
 const STICKY_MARKER = '<!-- slop-detect-action -->';
 
 function triggeredTable(result) {
-  const triggered = (result.patterns || []).filter((p) => p.triggered);
+  const designTriggered = (result.patterns || []).filter((p) => p.triggered);
+  const copyTriggered = (result.axes?.copy?.patterns || []).filter((p) => p.triggered);
+  const triggered = [...designTriggered, ...copyTriggered];
   if (triggered.length === 0) {
     return '_No slop patterns triggered — clean._';
   }
-  const rows = triggered.map((p) => `| ${p.label || p.id} | +${p.weight} |`).join('\n');
-  return ['| Pattern | Weight |', '| --- | ---: |', rows].join('\n');
+  const rows = triggered
+    .map((p) => `| ${p.label || p.id} | ${p.axis || 'design'} | +${p.weight} |`)
+    .join('\n');
+  return ['| Pattern | Axis | Weight |', '| --- | :---: | ---: |', rows].join('\n');
 }
 
-function reportBody(apiBase, result, gate, { withMarker } = {}) {
+export function reportBody(apiBase, result, gate, { withMarker } = {}) {
   const base = apiBase.replace(/\/+$/, '');
-  const ogUrl = `${base}/og/${result.id}.png`;
-  const resultUrl = result.resultUrl || `${base}/r/${result.id}`;
+  const ogUrl = result.id ? `${base}/og/${result.id}.png` : null;
+  const resultUrl = result.resultUrl || (result.id ? `${base}/r/${result.id}` : base);
   const gateLine =
     gate.mode === 'report-only'
       ? '📊 **Report only** — no threshold set.'
@@ -193,15 +272,36 @@ function reportBody(apiBase, result, gate, { withMarker } = {}) {
         ? `✅ **Pass** — ${gate.reason}`
         : `❌ **Fail** — ${gate.reason}`;
 
+  const extraAxesRows = [];
+  if (result.axes?.copy) {
+    const c = result.axes.copy;
+    extraAxesRows.push(
+      `| **Copy Slop** (lower is better) | ${c.score}/100 (${c.grade || '?'}) | ${c.tier} | ${c.patternsFlagged}/${c.patternsTotal} flagged |`
+    );
+  }
+  if (result.system?.declared) {
+    const s = result.system;
+    extraAxesRows.push(
+      `| **System (\`DESIGN.md\`)** (higher is better) | ${s.score}/100 | ${s.tier} | ${s.drift?.length || 0} drift |`
+    );
+  }
+  if (result.aeo && typeof result.aeo.score === 'number') {
+    const a = result.aeo;
+    extraAxesRows.push(
+      `| **AEO Readiness** (higher is better) | ${a.score}/${a.maxScore || 100} | ${a.tier} | ${a.failed?.length || 0} failed |`
+    );
+  }
+
   const lines = [
     withMarker ? STICKY_MARKER : null,
-    `### 🛁 Slop Detect — Grade ${result.grade}`,
+    `### 🛁 Slop Detect — Grade ${result.unifiedGrade || result.grade}`,
     '',
-    `[![slop card](${ogUrl})](${resultUrl})`,
-    '',
-    '| Grade | Score (lower is better) | Tier | Patterns flagged |',
-    '| :---: | :---: | :---: | :---: |',
-    `| **${result.grade}** | ${result.score}/100 | ${result.tier} | ${result.patternsFlagged}/${result.patternsTotal} |`,
+    ogUrl ? `[![slop card](${ogUrl})](${resultUrl})` : null,
+    ogUrl ? '' : null,
+    '| Axis | Score | Tier | Signals |',
+    '| :--- | :---: | :---: | :---: |',
+    `| **Design Slop** (lower is better) | **${result.score}/100** (${result.grade}) | ${result.tier} | ${result.patternsFlagged}/${result.patternsTotal} flagged |`,
+    ...extraAxesRows,
     '',
     `> _${result.verdict}_`,
     '',
@@ -213,8 +313,8 @@ function reportBody(apiBase, result, gate, { withMarker } = {}) {
     '',
     '</details>',
     '',
-    `🔗 [Full result](${resultUrl})`,
-    '',
+    result.id ? `🔗 [Full result](${resultUrl})` : null,
+    result.id ? '' : null,
     `<sub>Scanned by [slop-detect](https://slop-detect.com) · defs ${result.definitionsVersion}</sub>`,
   ];
   return lines.filter((l) => l !== null).join('\n');
@@ -307,6 +407,12 @@ async function main() {
   const url = (process.env.INPUT_URL || '').trim();
   const failUnder = process.env.INPUT_FAIL_UNDER || '';
   const apiBase = (process.env.INPUT_API_BASE || 'https://slop-detect.com').trim();
+  const axes = (process.env.INPUT_AXES || 'design').trim();
+  const preset = (process.env.INPUT_PRESET || 'full').trim();
+  const designMd = (process.env.INPUT_DESIGN_MD || '').trim();
+  const aeoEnabled = (process.env.INPUT_AEO || 'false').trim() === 'true';
+  const apiKey = (process.env.INPUT_API_KEY || process.env.SLOP_API_KEY || '').trim();
+  const share = (process.env.INPUT_SHARE || 'true').trim() !== 'false';
   const commentEnabled = (process.env.INPUT_COMMENT || 'true').trim() === 'true';
   const token = process.env.GITHUB_TOKEN || '';
 
@@ -315,14 +421,26 @@ async function main() {
   noticeIfPullRequestTarget();
 
   log(`Scanning ${url} via ${apiBase} …`);
-  const result = await scan(apiBase, url);
-  const resultUrl = result.resultUrl || `${apiBase.replace(/\/+$/, '')}/r/${result.id}`;
+  const result = await scan(apiBase, url, { axes, preset, designMd, apiKey, share });
+  if (aeoEnabled) {
+    const aeo = await scanAeo(apiBase, url, { apiKey });
+    if (aeo) result.aeo = aeo;
+  }
+  const resultUrl =
+    result.resultUrl || (result.id ? `${apiBase.replace(/\/+$/, '')}/r/${result.id}` : '');
+
+  // Emit GitHub Actions annotations for triggered patterns & drift.
+  emitPatternWarnings(result);
 
   // Outputs for downstream steps.
   setOutput('score', result.score);
   setOutput('grade', result.grade);
   setOutput('tier', result.tier);
   setOutput('verdict', result.verdict);
+  setOutput('copy-score', result.axes?.copy?.score ?? '');
+  setOutput('unified-score', result.unifiedScore ?? result.score);
+  setOutput('system-score', result.system?.score ?? '');
+  setOutput('aeo-score', result.aeo?.score ?? '');
   setOutput('result-url', resultUrl);
 
   // Evaluate the gate before writing the report so the report reflects pass/fail.
@@ -332,7 +450,7 @@ async function main() {
   writeSummary(`${reportBody(apiBase, result, gate, { withMarker: false })}\n`);
 
   log(
-    `Result: grade ${result.grade}, score ${result.score}/100, tier ${result.tier} → ${resultUrl}`
+    `Result: grade ${result.grade}, score ${result.score}/100, tier ${result.tier}${resultUrl ? ` → ${resultUrl}` : ''}`
   );
 
   // Sticky PR comment, if applicable.

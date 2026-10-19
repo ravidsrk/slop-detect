@@ -7,24 +7,39 @@
 // Scores any URL against the AI-design-slop fingerprint and emits a
 // pretty terminal report or a machine-readable JSON blob.
 
-import { scanUrl, scanRemote, aeoRemote, loadDesignMd } from '../src/index.js';
+import { scanUrl, scanRemote, aeoRemote, loadDesignMd, buildSarifReport } from '../src/index.js';
 import type { ScanOptions } from '../src/index.js';
-import { isPreset, PRESETS, PATTERNS, DEFINITIONS_VERSION, runAeoChecks } from '@slop-detect/core';
+import {
+  isPreset,
+  PRESETS,
+  PATTERNS,
+  DEFINITIONS_VERSION,
+  GRADE_BANDS,
+  runAeoChecks,
+  buildFixPrompt,
+  generateDesignMd,
+} from '@slop-detect/core';
 
+const CLI_VERSION = '0.8.0';
 const args = process.argv.slice(2);
 const urls = [];
 const flags = {
   json: false,
+  sarif: false,
+  fixPrompt: false,
+  initDesignMd: false,
   screenshot: false,
   verbose: false,
   preset: 'full',
   axes: ['design'],
-  failOn: null,
+  failOn: null as string | null,
+  failUnderScore: null as number | null,
+  failUnderLabel: null as string | null,
   aeo: false,
   remote: false,
-  api: null,
-  designMd: null,
-  timeout: null,
+  api: null as string | null,
+  designMd: null as string | null,
+  timeout: null as number | null,
 };
 
 // Tier severity ordering for --fail-on. A scan exits non-zero when its tier is
@@ -32,6 +47,20 @@ const flags = {
 // regardless of threshold (you asked us to gate, we couldn't even score).
 const TIER_RANK = { Clean: 0, Mild: 1, Heavy: 2 };
 const VALID_FAIL_ON = ['mild', 'heavy'];
+
+// Parse --fail-under <grade|score> into a max allowed slop score (0..100).
+function parseFailUnder(raw: string | undefined): { maxScore: number; label: string } | null {
+  if (!raw) return null;
+  const trimmed = String(raw).trim();
+  const upper = trimmed.toUpperCase();
+  const band = (GRADE_BANDS || []).find((b: any) => b.grade.toUpperCase() === upper);
+  if (band) return { maxScore: band.max, label: band.grade };
+  if (/^\d+$/.test(trimmed)) {
+    const n = Number(trimmed);
+    if (n >= 0 && n <= 100) return { maxScore: n, label: `${n}/100` };
+  }
+  return null;
+}
 
 const VALID_AXES = ['design', 'copy'];
 function parseAxes(val) {
@@ -51,9 +80,15 @@ function parseAxes(val) {
 for (let i = 0; i < args.length; i++) {
   const a = args[i];
   if (a === '--json' || a === '-j') flags.json = true;
+  else if (a === '--sarif') flags.sarif = true;
+  else if (a === '--fix-prompt' || a === '--fix') flags.fixPrompt = true;
+  else if (a === '--init-design-md') flags.initDesignMd = true;
   else if (a === '--screenshot') flags.screenshot = true;
   else if (a === '--verbose' || a === '-v') flags.verbose = true;
-  else if (a === '--copy') flags.axes = ['design', 'copy'];
+  else if (a === '--version' || a === '-V') {
+    console.log(`slop-detect ${CLI_VERSION} (defs ${DEFINITIONS_VERSION})`);
+    process.exit(0);
+  } else if (a === '--copy') flags.axes = ['design', 'copy'];
   else if (a === '--aeo') flags.aeo = true;
   else if (a === '--remote') flags.remote = true;
   else if (a === '--api' || a.startsWith('--api=')) {
@@ -93,6 +128,17 @@ for (let i = 0; i < args.length; i++) {
       process.exit(2);
     }
     flags.failOn = val === 'mild' ? 'Mild' : 'Heavy';
+  } else if (a === '--fail-under' || a.startsWith('--fail-under=')) {
+    const val = a.startsWith('--fail-under=') ? a.slice('--fail-under='.length) : args[++i];
+    const parsed = parseFailUnder(val);
+    if (!parsed) {
+      console.error(
+        `Invalid --fail-under value: ${val || '(none)'}. Expected a letter grade (A+, A, A-, B+, B, B-, C+, C, C-, D+, D, F) or a max slop score (0-100).`
+      );
+      process.exit(2);
+    }
+    flags.failUnderScore = parsed.maxScore;
+    flags.failUnderLabel = parsed.label;
   } else if (a === '--timeout' || a.startsWith('--timeout=')) {
     const raw = a.startsWith('--timeout=') ? a.slice('--timeout='.length) : args[++i];
     const val = Number(raw);
@@ -142,6 +188,13 @@ if (flags.timeout && flags.remote) {
   process.exit(2);
 }
 
+if (flags.initDesignMd && flags.remote) {
+  console.error(
+    '--init-design-md requires local DOM token extraction; drop --remote to generate DESIGN.md.'
+  );
+  process.exit(2);
+}
+
 // Normalize bare hostnames the way the web UI does: `slop-detect example.com`
 // should Just Work. Prepend https:// when no http(s) scheme is present. An
 // explicit non-http(s) scheme (file:, ftp:…) is rejected — we only scan pages.
@@ -171,35 +224,43 @@ function help() {
 Slop Detector — score landing pages against ${PATTERNS.length} AI-design-slop patterns (defs ${DEFINITIONS_VERSION})
 
 Usage:
-  slop-detector <url> [<url2> ...] [options]
+  slop-detect <url> [<url2> ...] [options]
 
 Options:
-  --json, -j        Emit JSON instead of pretty output
-  --screenshot      Include a base64 hero screenshot in JSON output
-  --verbose, -v     Show evidence details for every triggered pattern
-  --preset, -p <p>  Scoring preset: full (default), strict, marketing, minimal
-  --axes <list>     Axes to score: design (default), copy. Comma-separated or "all"
-  --copy            Shorthand for --axes design,copy
-  --aeo             Add the AEO axis: can AI engines (ChatGPT/Claude/Perplexity)
-                    actually read & cite this page? (network checks, no browser)
-  --remote          Scan via the slop-detect.com API instead of a local browser
-                    (no Playwright/Chromium install needed). Honors SLOP_API_KEY.
-  --api <url>       Use a custom API base (implies --remote). Env: SLOP_API
-  --design-md <src> System axis: check the page against its declared design
-                    system (DESIGN.md spec). <src> = file path, URL, or "auto"
-                    (looks for <origin>/DESIGN.md). Reports drift, not slop —
-                    higher is better. Local scans only for now.
-  --fail-on <tier>  Exit non-zero (1) if any page scores at/above tier: mild | heavy.
-                    A blocked or errored scan also exits 1. Use this to gate CI.
-  --timeout <ms>    Local Playwright navigation timeout in ms (default 30000)
-  --help, -h        Show this help
+  --json, -j          Emit JSON instead of pretty output
+  --sarif             Emit SARIF 2.1.0 report for GitHub Code Scanning
+  --fix-prompt, --fix Emit the opinionated markdown remediation prompt
+  --init-design-md    Extract live DOM tokens and generate a starter DESIGN.md
+  --screenshot        Include a base64 hero screenshot in JSON output
+  --verbose, -v       Show evidence details for every triggered pattern
+  --preset, -p <p>    Scoring preset: full (default), strict, marketing, minimal
+  --axes <list>       Axes to score: design (default), copy. Comma-separated or "all"
+  --copy              Shorthand for --axes design,copy
+  --aeo               Add the AEO axis: can AI engines (ChatGPT/Claude/Perplexity)
+                      actually read & cite this page? (network checks, no browser)
+  --remote            Scan via the slop-detect.com API instead of a local browser
+                      (no Playwright/Chromium install needed). Honors SLOP_API_KEY.
+  --api <url>         Use a custom API base (implies --remote). Env: SLOP_API
+  --design-md <src>   System axis: check the page against its declared design
+                      system (DESIGN.md spec). <src> = file path, URL, or "auto"
+                      (looks for <origin>/DESIGN.md). Reports drift, not slop —
+                      higher is better.
+  --fail-on <tier>    Exit non-zero (1) if any page scores at/above tier: mild | heavy.
+                      A blocked or errored scan also exits 1. Use this to gate CI.
+  --fail-under <g|n>  Exit non-zero (1) if any page's grade/score is worse than <g|n>
+                      (e.g. --fail-under B or --fail-under 15).
+  --timeout <ms>      Local Playwright navigation timeout in ms (default 30000)
+  --version, -V       Print CLI and definitions version
+  --help, -h          Show this help
 
 Examples:
-  slop-detector https://news.ycombinator.com
-  slop-detector https://aura.build https://lovable.dev --verbose
-  slop-detector https://example.com --copy           # design + copy slop
-  slop-detector https://example.com --axes all --json > result.json
-  slop-detector https://mysite.com --fail-on heavy   # CI gate: fail on heavy slop
+  slop-detect https://news.ycombinator.com
+  slop-detect https://aura.build https://lovable.dev --verbose
+  slop-detect https://example.com --copy             # design + copy slop
+  slop-detect https://example.com --fix-prompt       # generate LLM remediation prompt
+  slop-detect https://example.com --init-design-md > DESIGN.md
+  slop-detect https://mysite.com --fail-on heavy     # CI gate: fail on heavy slop
+  slop-detect https://mysite.com --fail-under B      # CI gate: require at least grade B
 
 The ${PATTERNS.length} patterns scored:
 ${patternLines}
@@ -410,6 +471,20 @@ function renderSystem(sys) {
   }
 }
 
+if (
+  flags.designMd &&
+  flags.remote &&
+  flags.designMd !== 'auto' &&
+  !/^https?:\/\//i.test(flags.designMd)
+) {
+  console.error(
+    '--design-md with --remote requires "auto" or an http(s) URL; drop --remote to use a local file path.'
+  );
+  process.exit(2);
+}
+
+const machineOutput = flags.json || flags.sarif || flags.fixPrompt || flags.initDesignMd;
+
 // ── Main ────────────────────────────────────────────────────────────────────
 (async () => {
   const results = [];
@@ -421,19 +496,17 @@ function renderSystem(sys) {
         axes: flags.axes,
         api: flags.api,
         timeout: flags.timeout || undefined,
+        includeSystem: flags.initDesignMd || undefined,
       };
       if (flags.designMd && !flags.remote) {
         const loaded = await loadDesignMd(flags.designMd, url);
         if (loaded) scanOpts.designMd = loaded.text;
-        else if (!flags.json)
+        else if (!machineOutput)
           console.error(
             `${C.grey}No DESIGN.md found for ${url} (auto) — skipping the system axis.${C.reset}`
           );
       } else if (flags.designMd && flags.remote) {
-        console.error(
-          '--design-md is not supported with --remote yet; drop --remote to scan locally.'
-        );
-        process.exit(2);
+        scanOpts.designMd = flags.designMd;
       }
       const r = flags.remote ? await scanRemote(url, scanOpts) : await scanUrl(url, scanOpts);
       if (flags.aeo) {
@@ -446,7 +519,7 @@ function renderSystem(sys) {
         }
       }
       results.push(r);
-      if (!flags.json) {
+      if (!machineOutput) {
         renderPretty(r);
         if (r.system) renderSystem(r.system);
         if (r.aeo && !r.aeo.error) renderAeo(r.aeo);
@@ -456,20 +529,42 @@ function renderSystem(sys) {
     } catch (err) {
       const errResult = { url, error: err.message };
       results.push(errResult);
-      if (!flags.json) {
+      if (!machineOutput) {
         console.error(`\n${C.red}${C.bold}✗ ${url}${C.reset}`);
         console.error(`  ${C.red}${err.message}${C.reset}\n`);
       }
     }
   }
-  if (flags.json) {
+  if (flags.initDesignMd) {
+    const docs = results.map((r) => {
+      if (r.error || r.blocked) return `# Error scanning ${r.url}: ${r.error || r.code}`;
+      let host = 'Site';
+      try {
+        host = new URL(r.finalUrl || r.url).hostname.replace(/^www\./, '');
+      } catch {}
+      return generateDesignMd(r.systemContext || {}, {
+        name: r.title || host,
+        url: r.finalUrl || r.url,
+      });
+    });
+    console.log(docs.join('\n\n'));
+  } else if (flags.fixPrompt) {
+    const prompts = results.map((r) =>
+      r.error || r.blocked
+        ? `# Cannot build fix prompt for ${r.url}\n\n${r.error || r.code}`
+        : buildFixPrompt(r)
+    );
+    console.log(prompts.join('\n\n---\n\n'));
+  } else if (flags.sarif) {
+    console.log(JSON.stringify(buildSarifReport(results), null, 2));
+  } else if (flags.json) {
     console.log(JSON.stringify(results.length === 1 ? results[0] : results, null, 2));
   }
 
-  // ── CI gate (--fail-on) ─────────────────────────────────────────────────────
+  // ── CI gate (--fail-on / --fail-under) ──────────────────────────────────────
   // Determine the exit code BEFORE the summary so the summary can annotate it.
   // A result fails the gate if: it errored, it was blocked (couldn't score), or
-  // its effective tier (unified when multi-axis) ranks at/above the threshold.
+  // its effective tier/score ranks worse than the threshold.
   let exitCode = 0;
   if (flags.failOn) {
     const threshold = TIER_RANK[flags.failOn];
@@ -480,9 +575,18 @@ function renderSystem(sys) {
     });
     if (failed) exitCode = 1;
   }
+  if (flags.failUnderScore != null) {
+    const maxAllowed = flags.failUnderScore;
+    const failed = results.some((r) => {
+      if (r.error || r.blocked) return true;
+      const score = r.axes && r.axes.copy ? r.unifiedScore : r.score;
+      return typeof score !== 'number' || score > maxAllowed;
+    });
+    if (failed) exitCode = 1;
+  }
 
   // Summary if multiple URLs
-  if (urls.length > 1 && !flags.json) {
+  if (urls.length > 1 && !machineOutput) {
     console.log(`${C.bold}━━━ Summary ━━━${C.reset}`);
     for (const r of results) {
       if (r.blocked) {
@@ -507,10 +611,15 @@ function renderSystem(sys) {
   }
 
   // Tell the user why we're failing (only when gating + actually failing, and
-  // not in JSON mode where stdout must stay a clean JSON document).
-  if (flags.failOn && exitCode !== 0 && !flags.json) {
+  // not in machine-output mode where stdout must stay a clean document).
+  if (flags.failOn && exitCode !== 0 && !machineOutput) {
     console.error(
       `${C.red}${C.bold}✗ --fail-on ${flags.failOn.toLowerCase()}: one or more pages failed the gate.${C.reset}`
+    );
+  }
+  if (flags.failUnderScore != null && exitCode !== 0 && !machineOutput) {
+    console.error(
+      `${C.red}${C.bold}✗ --fail-under ${flags.failUnderLabel}: one or more pages failed the gate.${C.reset}`
     );
   }
   process.exit(exitCode);
