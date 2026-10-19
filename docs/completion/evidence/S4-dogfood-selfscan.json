@@ -1,0 +1,1236 @@
+{
+  "url": "http://127.0.0.1:31138",
+  "finalUrl": "http://127.0.0.1:31138/",
+  "title": "Slop Detector: score any landing page against the AI-design fingerprint",
+  "h1": "Does your landing page look generated?",
+  "h1Font": "Newsreader, Georgia, \"Times New Roman\", serif",
+  "preset": "full",
+  "score": 0,
+  "tier": "Clean",
+  "grade": "A+",
+  "verdict": "Crafted, not generated. This page has a point of view.",
+  "patternsFlagged": 0,
+  "patternsTotal": 27,
+  "definitionsVersion": "2026.09",
+  "patterns": [
+    {
+      "id": "slop_fonts",
+      "label": "AI-default font stack (Inter / Geist / Space Grotesk)",
+      "short": "Slop fonts",
+      "category": "fonts",
+      "weight": 8,
+      "triggered": false,
+      "evidence": {
+        "slopCount": 0,
+        "total": 489,
+        "ratio": 0,
+        "heroIsSlop": false,
+        "heroFam": "Newsreader, Georgia, \"Times New Roman\", serif",
+        "accentSerifItalicCount": 0,
+        "triggered": false
+      }
+    },
+    {
+      "id": "purple_accent",
+      "label": "VibeCode Purple — filled indigo/violet CTAs",
+      "short": "Vibe purple",
+      "category": "colors",
+      "weight": 8,
+      "triggered": false,
+      "evidence": {
+        "purpleEls": 0,
+        "filledCtas": 0,
+        "samples": [],
+        "triggered": false
+      }
+    },
+    {
+      "id": "gradient_text",
+      "label": "Hero gradient text (background-clip:text)",
+      "short": "Gradient text",
+      "category": "colors",
+      "weight": 6,
+      "triggered": false,
+      "evidence": {
+        "count": 0,
+        "heroHasGradient": false,
+        "triggered": false
+      }
+    },
+    {
+      "id": "gradient_backgrounds",
+      "label": "Gradient-heavy backgrounds (5+ elements)",
+      "short": "Gradient bgs",
+      "category": "colors",
+      "weight": 4,
+      "triggered": false,
+      "evidence": {
+        "bgElements": 0,
+        "conic": 0,
+        "triggered": false
+      }
+    },
+    {
+      "id": "accent_stripe",
+      "label": "Colored top/left card borders (the AI em-dash)",
+      "short": "Accent stripe",
+      "category": "layout",
+      "weight": 6,
+      "triggered": false,
+      "evidence": {
+        "stripeCards": 0,
+        "triggered": false
+      }
+    },
+    {
+      "id": "glassmorphism",
+      "label": "Glassmorphism (backdrop-filter blur on translucent layers)",
+      "short": "Glass",
+      "category": "css",
+      "weight": 4,
+      "triggered": false,
+      "evidence": {
+        "glassCount": 0,
+        "triggered": false
+      }
+    },
+    {
+      "id": "colored_glows",
+      "label": "Big colored box-shadow glows (purple/blue/pink)",
+      "short": "Colored glows",
+      "category": "css",
+      "weight": 4,
+      "triggered": false,
+      "evidence": {
+        "glowCount": 0,
+        "triggered": false
+      }
+    },
+    {
+      "id": "centered_hero",
+      "label": "Centered hero in generic sans (Inter-style)",
+      "short": "Centered hero",
+      "category": "layout",
+      "weight": 4,
+      "triggered": false,
+      "evidence": {
+        "triggered": false,
+        "fontSize": 58.88,
+        "centered": true,
+        "slopFont": false,
+        "family": "Newsreader, Georgia, \"Times New Roman\", serif"
+      }
+    },
+    {
+      "id": "hero_eyebrow_pill",
+      "label": "Eyebrow pill above hero (\"Now in beta\" / \"New\")",
+      "short": "Eyebrow pill",
+      "category": "layout",
+      "weight": 5,
+      "triggered": false,
+      "evidence": {
+        "triggered": false
+      }
+    },
+    {
+      "id": "all_caps_labels",
+      "label": "All-caps section labels (text-transform:uppercase)",
+      "short": "All-caps",
+      "category": "fonts",
+      "weight": 3,
+      "triggered": false,
+      "evidence": {
+        "count": 0,
+        "samples": [],
+        "triggered": false
+      }
+    },
+    {
+      "id": "perma_dark_mode",
+      "label": "Perma dark mode + medium-grey body text",
+      "short": "Perma dark",
+      "category": "colors",
+      "weight": 4,
+      "triggered": false,
+      "evidence": {
+        "triggered": false,
+        "bodyDark": false
+      }
+    },
+    {
+      "id": "icon_card_grid",
+      "label": "Identical feature cards with icon on top",
+      "short": "Icon cards",
+      "category": "layout",
+      "weight": 4,
+      "triggered": false,
+      "evidence": {
+        "maxGroupSize": 0,
+        "triggered": false
+      }
+    },
+    {
+      "id": "numbered_steps",
+      "label": "Numbered \"1 · 2 · 3\" step sequences",
+      "short": "Numbered steps",
+      "category": "layout",
+      "weight": 3,
+      "triggered": false,
+      "evidence": {
+        "bestRun": 0,
+        "triggered": false
+      }
+    },
+    {
+      "id": "stat_banner",
+      "label": "Big-number stat banner (\"10k+\", \"99.9%\", \"$2M+\")",
+      "short": "Stat banner",
+      "category": "layout",
+      "weight": 3,
+      "triggered": false,
+      "evidence": {
+        "clusterSize": 1,
+        "triggered": false
+      }
+    },
+    {
+      "id": "faq_accordion",
+      "label": "FAQ accordion in the lower half",
+      "short": "FAQ",
+      "category": "layout",
+      "weight": 2,
+      "triggered": false,
+      "evidence": {
+        "detailsCount": 0,
+        "hasFaqHeading": false,
+        "triggered": false
+      }
+    },
+    {
+      "id": "gradient_letter_avatars",
+      "label": "Gradient-letter avatars (testimonial slop)",
+      "short": "Letter avatars",
+      "category": "images",
+      "weight": 5,
+      "triggered": false,
+      "evidence": {
+        "count": 0,
+        "samples": [],
+        "triggered": false
+      }
+    },
+    {
+      "id": "bento_grid",
+      "label": "Bento-grid wall — mixed-span rounded card grid",
+      "short": "Bento grid",
+      "category": "layout",
+      "weight": 4,
+      "triggered": false,
+      "evidence": {
+        "children": 0,
+        "spanVariety": 0,
+        "rounded": 0,
+        "triggered": false
+      }
+    },
+    {
+      "id": "aurora_mesh_gradient",
+      "label": "Aurora / mesh gradient blobs (blurred glowing backdrop)",
+      "short": "Aurora blobs",
+      "category": "css",
+      "weight": 5,
+      "triggered": false,
+      "evidence": {
+        "blobs": 0,
+        "samples": [],
+        "triggered": false
+      }
+    },
+    {
+      "id": "ai_sparkle_badges",
+      "label": "AI-sparkle badges (✨ / Sparkles \"magic\" tells)",
+      "short": "AI sparkles",
+      "category": "images",
+      "weight": 3,
+      "triggered": false,
+      "evidence": {
+        "emojiHits": 0,
+        "svgHits": 0,
+        "samples": [],
+        "triggered": false
+      }
+    },
+    {
+      "id": "cream_default_bg",
+      "label": "Cream / beige default page background",
+      "short": "Cream bg",
+      "category": "colors",
+      "weight": 7,
+      "triggered": false,
+      "evidence": {
+        "surface": "#f4f5f2",
+        "triggered": false
+      }
+    },
+    {
+      "id": "low_contrast_text",
+      "label": "Washed-out grey body text (below WCAG AA on a light background)",
+      "short": "Low contrast",
+      "category": "colors",
+      "weight": 7,
+      "triggered": false,
+      "evidence": {
+        "fails": 0,
+        "checked": 26,
+        "ratioFail": 0,
+        "samples": [],
+        "triggered": false
+      }
+    },
+    {
+      "id": "crushed_tracking",
+      "label": "Crushed letter-spacing on display type",
+      "short": "Crushed tracking",
+      "category": "fonts",
+      "weight": 5,
+      "triggered": false,
+      "evidence": {
+        "count": 0,
+        "samples": [],
+        "triggered": false
+      }
+    },
+    {
+      "id": "gray_on_color",
+      "label": "Gray text on a colored background",
+      "short": "Gray-on-color",
+      "category": "colors",
+      "weight": 4,
+      "triggered": false,
+      "evidence": {
+        "count": 0,
+        "samples": [],
+        "triggered": false
+      }
+    },
+    {
+      "id": "oversized_hero_h1",
+      "label": "Oversized hero headline (long sentence at display size)",
+      "short": "Oversized H1",
+      "category": "fonts",
+      "weight": 4,
+      "triggered": false,
+      "evidence": {
+        "fontSize": 59,
+        "chars": 38,
+        "text": "Does your landing page look generated?",
+        "triggered": false
+      }
+    },
+    {
+      "id": "nested_cards",
+      "label": "Cards nested inside cards",
+      "short": "Nested cards",
+      "category": "layout",
+      "weight": 4,
+      "triggered": false,
+      "evidence": {
+        "nested": 0,
+        "samples": [],
+        "triggered": false
+      }
+    },
+    {
+      "id": "wide_body_tracking",
+      "label": "Wide letter-spacing on body text",
+      "short": "Wide tracking",
+      "category": "fonts",
+      "weight": 3,
+      "triggered": false,
+      "evidence": {
+        "count": 0,
+        "samples": [],
+        "triggered": false
+      }
+    },
+    {
+      "id": "flat_type_hierarchy",
+      "label": "Flat type hierarchy (sizes too close together)",
+      "short": "Flat hierarchy",
+      "category": "fonts",
+      "weight": 3,
+      "triggered": false,
+      "evidence": {
+        "distinct": 14,
+        "ratio": 4.92,
+        "min": 12,
+        "max": 59,
+        "triggered": false
+      }
+    }
+  ],
+  "patternsErrored": 0,
+  "browserVersion": "148.0.7778.0",
+  "axes": {
+    "design": {
+      "axis": "design",
+      "score": 0,
+      "tier": "Clean",
+      "grade": "A+",
+      "patternsFlagged": 0,
+      "patternsTotal": 27,
+      "patterns": [
+        {
+          "id": "slop_fonts",
+          "label": "AI-default font stack (Inter / Geist / Space Grotesk)",
+          "short": "Slop fonts",
+          "category": "fonts",
+          "weight": 8,
+          "triggered": false,
+          "evidence": {
+            "slopCount": 0,
+            "total": 489,
+            "ratio": 0,
+            "heroIsSlop": false,
+            "heroFam": "Newsreader, Georgia, \"Times New Roman\", serif",
+            "accentSerifItalicCount": 0,
+            "triggered": false
+          }
+        },
+        {
+          "id": "purple_accent",
+          "label": "VibeCode Purple — filled indigo/violet CTAs",
+          "short": "Vibe purple",
+          "category": "colors",
+          "weight": 8,
+          "triggered": false,
+          "evidence": {
+            "purpleEls": 0,
+            "filledCtas": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "gradient_text",
+          "label": "Hero gradient text (background-clip:text)",
+          "short": "Gradient text",
+          "category": "colors",
+          "weight": 6,
+          "triggered": false,
+          "evidence": {
+            "count": 0,
+            "heroHasGradient": false,
+            "triggered": false
+          }
+        },
+        {
+          "id": "gradient_backgrounds",
+          "label": "Gradient-heavy backgrounds (5+ elements)",
+          "short": "Gradient bgs",
+          "category": "colors",
+          "weight": 4,
+          "triggered": false,
+          "evidence": {
+            "bgElements": 0,
+            "conic": 0,
+            "triggered": false
+          }
+        },
+        {
+          "id": "accent_stripe",
+          "label": "Colored top/left card borders (the AI em-dash)",
+          "short": "Accent stripe",
+          "category": "layout",
+          "weight": 6,
+          "triggered": false,
+          "evidence": {
+            "stripeCards": 0,
+            "triggered": false
+          }
+        },
+        {
+          "id": "glassmorphism",
+          "label": "Glassmorphism (backdrop-filter blur on translucent layers)",
+          "short": "Glass",
+          "category": "css",
+          "weight": 4,
+          "triggered": false,
+          "evidence": {
+            "glassCount": 0,
+            "triggered": false
+          }
+        },
+        {
+          "id": "colored_glows",
+          "label": "Big colored box-shadow glows (purple/blue/pink)",
+          "short": "Colored glows",
+          "category": "css",
+          "weight": 4,
+          "triggered": false,
+          "evidence": {
+            "glowCount": 0,
+            "triggered": false
+          }
+        },
+        {
+          "id": "centered_hero",
+          "label": "Centered hero in generic sans (Inter-style)",
+          "short": "Centered hero",
+          "category": "layout",
+          "weight": 4,
+          "triggered": false,
+          "evidence": {
+            "triggered": false,
+            "fontSize": 58.88,
+            "centered": true,
+            "slopFont": false,
+            "family": "Newsreader, Georgia, \"Times New Roman\", serif"
+          }
+        },
+        {
+          "id": "hero_eyebrow_pill",
+          "label": "Eyebrow pill above hero (\"Now in beta\" / \"New\")",
+          "short": "Eyebrow pill",
+          "category": "layout",
+          "weight": 5,
+          "triggered": false,
+          "evidence": {
+            "triggered": false
+          }
+        },
+        {
+          "id": "all_caps_labels",
+          "label": "All-caps section labels (text-transform:uppercase)",
+          "short": "All-caps",
+          "category": "fonts",
+          "weight": 3,
+          "triggered": false,
+          "evidence": {
+            "count": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "perma_dark_mode",
+          "label": "Perma dark mode + medium-grey body text",
+          "short": "Perma dark",
+          "category": "colors",
+          "weight": 4,
+          "triggered": false,
+          "evidence": {
+            "triggered": false,
+            "bodyDark": false
+          }
+        },
+        {
+          "id": "icon_card_grid",
+          "label": "Identical feature cards with icon on top",
+          "short": "Icon cards",
+          "category": "layout",
+          "weight": 4,
+          "triggered": false,
+          "evidence": {
+            "maxGroupSize": 0,
+            "triggered": false
+          }
+        },
+        {
+          "id": "numbered_steps",
+          "label": "Numbered \"1 · 2 · 3\" step sequences",
+          "short": "Numbered steps",
+          "category": "layout",
+          "weight": 3,
+          "triggered": false,
+          "evidence": {
+            "bestRun": 0,
+            "triggered": false
+          }
+        },
+        {
+          "id": "stat_banner",
+          "label": "Big-number stat banner (\"10k+\", \"99.9%\", \"$2M+\")",
+          "short": "Stat banner",
+          "category": "layout",
+          "weight": 3,
+          "triggered": false,
+          "evidence": {
+            "clusterSize": 1,
+            "triggered": false
+          }
+        },
+        {
+          "id": "faq_accordion",
+          "label": "FAQ accordion in the lower half",
+          "short": "FAQ",
+          "category": "layout",
+          "weight": 2,
+          "triggered": false,
+          "evidence": {
+            "detailsCount": 0,
+            "hasFaqHeading": false,
+            "triggered": false
+          }
+        },
+        {
+          "id": "gradient_letter_avatars",
+          "label": "Gradient-letter avatars (testimonial slop)",
+          "short": "Letter avatars",
+          "category": "images",
+          "weight": 5,
+          "triggered": false,
+          "evidence": {
+            "count": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "bento_grid",
+          "label": "Bento-grid wall — mixed-span rounded card grid",
+          "short": "Bento grid",
+          "category": "layout",
+          "weight": 4,
+          "triggered": false,
+          "evidence": {
+            "children": 0,
+            "spanVariety": 0,
+            "rounded": 0,
+            "triggered": false
+          }
+        },
+        {
+          "id": "aurora_mesh_gradient",
+          "label": "Aurora / mesh gradient blobs (blurred glowing backdrop)",
+          "short": "Aurora blobs",
+          "category": "css",
+          "weight": 5,
+          "triggered": false,
+          "evidence": {
+            "blobs": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "ai_sparkle_badges",
+          "label": "AI-sparkle badges (✨ / Sparkles \"magic\" tells)",
+          "short": "AI sparkles",
+          "category": "images",
+          "weight": 3,
+          "triggered": false,
+          "evidence": {
+            "emojiHits": 0,
+            "svgHits": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "cream_default_bg",
+          "label": "Cream / beige default page background",
+          "short": "Cream bg",
+          "category": "colors",
+          "weight": 7,
+          "triggered": false,
+          "evidence": {
+            "surface": "#f4f5f2",
+            "triggered": false
+          }
+        },
+        {
+          "id": "low_contrast_text",
+          "label": "Washed-out grey body text (below WCAG AA on a light background)",
+          "short": "Low contrast",
+          "category": "colors",
+          "weight": 7,
+          "triggered": false,
+          "evidence": {
+            "fails": 0,
+            "checked": 26,
+            "ratioFail": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "crushed_tracking",
+          "label": "Crushed letter-spacing on display type",
+          "short": "Crushed tracking",
+          "category": "fonts",
+          "weight": 5,
+          "triggered": false,
+          "evidence": {
+            "count": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "gray_on_color",
+          "label": "Gray text on a colored background",
+          "short": "Gray-on-color",
+          "category": "colors",
+          "weight": 4,
+          "triggered": false,
+          "evidence": {
+            "count": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "oversized_hero_h1",
+          "label": "Oversized hero headline (long sentence at display size)",
+          "short": "Oversized H1",
+          "category": "fonts",
+          "weight": 4,
+          "triggered": false,
+          "evidence": {
+            "fontSize": 59,
+            "chars": 38,
+            "text": "Does your landing page look generated?",
+            "triggered": false
+          }
+        },
+        {
+          "id": "nested_cards",
+          "label": "Cards nested inside cards",
+          "short": "Nested cards",
+          "category": "layout",
+          "weight": 4,
+          "triggered": false,
+          "evidence": {
+            "nested": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "wide_body_tracking",
+          "label": "Wide letter-spacing on body text",
+          "short": "Wide tracking",
+          "category": "fonts",
+          "weight": 3,
+          "triggered": false,
+          "evidence": {
+            "count": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "flat_type_hierarchy",
+          "label": "Flat type hierarchy (sizes too close together)",
+          "short": "Flat hierarchy",
+          "category": "fonts",
+          "weight": 3,
+          "triggered": false,
+          "evidence": {
+            "distinct": 14,
+            "ratio": 4.92,
+            "min": 12,
+            "max": 59,
+            "triggered": false
+          }
+        }
+      ]
+    },
+    "copy": {
+      "axis": "copy",
+      "score": 0,
+      "tier": "Clean",
+      "grade": "A+",
+      "patternsFlagged": 0,
+      "patternsTotal": 9,
+      "wordCount": 1047,
+      "thin": false,
+      "patterns": [
+        {
+          "id": "buzzword_density",
+          "label": "AI buzzword density (leverage / seamless / robust / elevate …)",
+          "short": "Buzzwords",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 7,
+          "triggered": false,
+          "evidence": {
+            "total": 1,
+            "distinct": 1,
+            "density": 1,
+            "topWords": [
+              {
+                "word": "bespoke",
+                "count": 1
+              }
+            ],
+            "triggered": false
+          }
+        },
+        {
+          "id": "em_dash_overload",
+          "label": "Em-dash overload (— used as the default connective)",
+          "short": "Em-dashes",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 5,
+          "triggered": false,
+          "evidence": {
+            "emDashes": 1,
+            "enDashAsDash": 0,
+            "total": 1,
+            "density": 1,
+            "triggered": false
+          }
+        },
+        {
+          "id": "antithesis_construction",
+          "label": "\"It's not just X — it's Y\" / \"not only … but also\" antithesis",
+          "short": "Not-just-X",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 6,
+          "triggered": false,
+          "evidence": {
+            "total": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "filler_openers",
+          "label": "Generic filler openers (\"In today's fast-paced world …\")",
+          "short": "Filler opener",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 5,
+          "triggered": false,
+          "evidence": {
+            "total": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "formulaic_closers",
+          "label": "Essay-style closers (\"In conclusion\", \"In summary\", \"Ultimately\")",
+          "short": "Closers",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 4,
+          "triggered": false,
+          "evidence": {
+            "total": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "rule_of_three",
+          "label": "Rule-of-three adjective tricolons (\"fast, reliable, and scalable\")",
+          "short": "Rule of three",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 4,
+          "triggered": false,
+          "evidence": {
+            "total": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "whether_youre",
+          "label": "\"Whether you're X or Y\" audience-spanning construction",
+          "short": "Whether-you",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 3,
+          "triggered": false,
+          "evidence": {
+            "total": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "unicode_artifacts",
+          "label": "Invisible Unicode + smart-quote artifacts (copy-pasted from an LLM)",
+          "short": "Unicode tells",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 4,
+          "triggered": false,
+          "evidence": {
+            "zeroWidth": 0,
+            "narrowNbsp": 0,
+            "nbsp": 0,
+            "mathAlnum": 0,
+            "total": 0,
+            "triggered": false
+          }
+        },
+        {
+          "id": "emoji_bullet_headers",
+          "label": "Emoji-prefixed bullet/headers (🚀 ✅ ✨ as list markers)",
+          "short": "Emoji bullets",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 3,
+          "triggered": false,
+          "evidence": {
+            "count": 0,
+            "samples": [],
+            "triggered": false
+          }
+        }
+      ]
+    }
+  },
+  "unifiedScore": 0,
+  "unifiedTier": "Clean",
+  "unifiedGrade": "A+",
+  "axesScored": ["design", "copy"],
+  "dirtyAxes": 0,
+  "system": {
+    "axis": "system",
+    "declared": true,
+    "name": "slop-detect.com",
+    "score": 100,
+    "maxScore": 100,
+    "tier": "Aligned",
+    "checksEvaluated": 5,
+    "checksSkipped": 0,
+    "checks": [
+      {
+        "id": "fonts.declared",
+        "weight": 35,
+        "label": "Fonts in use are declared in the system",
+        "status": "pass",
+        "message": "all primary fonts are declared",
+        "evidence": {
+          "declared": ["newsreader", "libre franklin", "jetbrains mono"]
+        }
+      },
+      {
+        "id": "colors.cta",
+        "weight": 30,
+        "label": "CTA / button colors come from the palette",
+        "status": "pass",
+        "message": "all 19 CTA colors match the palette"
+      },
+      {
+        "id": "colors.surface",
+        "weight": 15,
+        "label": "Page surface color comes from the palette",
+        "status": "pass",
+        "message": "surface color matches the palette"
+      },
+      {
+        "id": "colors.headings",
+        "weight": 10,
+        "label": "Heading colors come from the palette",
+        "status": "pass",
+        "message": "heading colors match the palette"
+      },
+      {
+        "id": "radii.scale",
+        "weight": 10,
+        "label": "Corner radii follow the declared scale",
+        "status": "pass",
+        "message": "corner radii follow the declared scale"
+      }
+    ],
+    "drift": []
+  },
+  "systemContext": {
+    "fonts": {
+      "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace": 198,
+      "Newsreader, Georgia, \"Times New Roman\", serif": 17,
+      "\"Libre Franklin\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif": 67
+    },
+    "ctas": [
+      {
+        "bg": "rgb(24, 24, 21)",
+        "text": "Scan"
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "text": "news.ycombinator.com · A-"
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "text": "linear.app · B-"
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "text": "bolt.new · D+"
+      },
+      {
+        "bg": "rgb(24, 24, 21)",
+        "text": "v0-starter · 48 · F"
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "text": "linear-type · 16 · B"
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "text": "slop-detect · 0 · A+"
+      },
+      {
+        "bg": "rgb(14, 107, 58)",
+        "text": "Explode Z-layers: ON"
+      },
+      {
+        "bg": "rgb(24, 24, 21)",
+        "text": "De-slop to 0/100 →"
+      },
+      {
+        "bg": "rgb(24, 24, 21)",
+        "text": "all rules"
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "text": "fonts"
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "text": "colors"
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "text": "layout"
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "text": "css"
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "text": "images"
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "text": "copy tells"
+      },
+      {
+        "bg": "rgb(31, 168, 94)",
+        "text": "Monitor"
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "text": "How the scan works\n            The 27-pa"
+      },
+      {
+        "bg": "rgb(24, 24, 21)",
+        "text": "Scan your page"
+      }
+    ],
+    "surface": "rgb(244, 245, 242)",
+    "headings": [
+      {
+        "tag": "H1",
+        "color": "rgb(24, 24, 21)",
+        "fontFamily": "Newsreader, Georgia, \"Times New Roman\", serif"
+      },
+      {
+        "tag": "H2",
+        "color": "rgb(24, 24, 21)",
+        "fontFamily": "Newsreader, Georgia, \"Times New Roman\", serif"
+      },
+      {
+        "tag": "H3",
+        "color": "rgb(62, 64, 56)",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace"
+      },
+      {
+        "tag": "H3",
+        "color": "rgb(62, 64, 56)",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace"
+      },
+      {
+        "tag": "H3",
+        "color": "rgb(62, 64, 56)",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace"
+      },
+      {
+        "tag": "H2",
+        "color": "rgb(24, 24, 21)",
+        "fontFamily": "Newsreader, Georgia, \"Times New Roman\", serif"
+      },
+      {
+        "tag": "H2",
+        "color": "rgb(24, 24, 21)",
+        "fontFamily": "Newsreader, Georgia, \"Times New Roman\", serif"
+      },
+      {
+        "tag": "H2",
+        "color": "rgb(244, 245, 242)",
+        "fontFamily": "Newsreader, Georgia, \"Times New Roman\", serif"
+      },
+      {
+        "tag": "H3",
+        "color": "rgb(244, 245, 242)",
+        "fontFamily": "Newsreader, Georgia, \"Times New Roman\", serif"
+      },
+      {
+        "tag": "H3",
+        "color": "rgb(24, 24, 21)",
+        "fontFamily": "Newsreader, Georgia, \"Times New Roman\", serif"
+      },
+      {
+        "tag": "H2",
+        "color": "rgb(24, 24, 21)",
+        "fontFamily": "Newsreader, Georgia, \"Times New Roman\", serif"
+      }
+    ],
+    "radii": [4, 50, 3, 8, 5, 6]
+  },
+  "aeo": {
+    "axis": "aeo",
+    "url": "http://127.0.0.1:31138/",
+    "mdUrl": "http://127.0.0.1:31138/index.md",
+    "score": 100,
+    "maxScore": 100,
+    "ratio": 1,
+    "tier": "AI-Ready",
+    "requiredFailed": 0,
+    "recommendedFailed": 0,
+    "passed": [
+      {
+        "id": "html.reachable",
+        "label": "Page is reachable (HTML 2xx)",
+        "severity": "required",
+        "weight": 10,
+        "passed": true,
+        "message": "status 200"
+      },
+      {
+        "id": "bot.notBlocked",
+        "label": "AI crawlers are not blocked (GPTBot gets 2xx)",
+        "severity": "required",
+        "weight": 25,
+        "passed": true,
+        "message": "GPTBot received 200"
+      },
+      {
+        "id": "robots.aiAllowed",
+        "label": "robots.txt does not Disallow AI crawlers",
+        "severity": "required",
+        "weight": 20,
+        "passed": true,
+        "message": "robots.txt does not block AI crawlers"
+      },
+      {
+        "id": "html.indexable",
+        "label": "Page is indexable (no noindex)",
+        "severity": "required",
+        "weight": 15,
+        "passed": true,
+        "message": "no noindex directive"
+      },
+      {
+        "id": "md.twin",
+        "label": "Markdown twin served at <url>.md",
+        "severity": "recommended",
+        "weight": 10,
+        "passed": true,
+        "message": "markdown twin at http://127.0.0.1:31138/index.md"
+      },
+      {
+        "id": "html.linkAlternate",
+        "label": "HTML advertises the markdown twin (Link rel=alternate)",
+        "severity": "recommended",
+        "weight": 8,
+        "passed": true,
+        "message": "Link rel=alternate type=text/markdown present"
+      },
+      {
+        "id": "site.llmsTxt",
+        "label": "/llms.txt published at the site root",
+        "severity": "recommended",
+        "weight": 7,
+        "passed": true,
+        "message": "/llms.txt found"
+      },
+      {
+        "id": "html.vary",
+        "label": "HTML sends Vary: Accept (content-negotiation aware)",
+        "severity": "recommended",
+        "weight": 5,
+        "passed": true,
+        "message": "Vary: Accept present"
+      }
+    ],
+    "failed": [],
+    "checks": [
+      {
+        "id": "html.reachable",
+        "label": "Page is reachable (HTML 2xx)",
+        "severity": "required",
+        "weight": 10,
+        "passed": true,
+        "message": "status 200"
+      },
+      {
+        "id": "bot.notBlocked",
+        "label": "AI crawlers are not blocked (GPTBot gets 2xx)",
+        "severity": "required",
+        "weight": 25,
+        "passed": true,
+        "message": "GPTBot received 200"
+      },
+      {
+        "id": "robots.aiAllowed",
+        "label": "robots.txt does not Disallow AI crawlers",
+        "severity": "required",
+        "weight": 20,
+        "passed": true,
+        "message": "robots.txt does not block AI crawlers"
+      },
+      {
+        "id": "html.indexable",
+        "label": "Page is indexable (no noindex)",
+        "severity": "required",
+        "weight": 15,
+        "passed": true,
+        "message": "no noindex directive"
+      },
+      {
+        "id": "md.twin",
+        "label": "Markdown twin served at <url>.md",
+        "severity": "recommended",
+        "weight": 10,
+        "passed": true,
+        "message": "markdown twin at http://127.0.0.1:31138/index.md"
+      },
+      {
+        "id": "html.linkAlternate",
+        "label": "HTML advertises the markdown twin (Link rel=alternate)",
+        "severity": "recommended",
+        "weight": 8,
+        "passed": true,
+        "message": "Link rel=alternate type=text/markdown present"
+      },
+      {
+        "id": "site.llmsTxt",
+        "label": "/llms.txt published at the site root",
+        "severity": "recommended",
+        "weight": 7,
+        "passed": true,
+        "message": "/llms.txt found"
+      },
+      {
+        "id": "html.vary",
+        "label": "HTML sends Vary: Accept (content-negotiation aware)",
+        "severity": "recommended",
+        "weight": 5,
+        "passed": true,
+        "message": "Vary: Accept present"
+      }
+    ],
+    "durationMs": 52
+  }
+}

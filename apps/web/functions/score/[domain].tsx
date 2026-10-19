@@ -215,7 +215,7 @@ export async function onRequestGet({ params, request, env }) {
     return htmlResponse(node, { status: 503, cache: 'no-store' });
   }
 
-  const [latest, watch, history, listing, dist, catClean, lbData] = await Promise.all([
+  const [kvLatest, watch, history, listing, dist, catClean, lbData] = await Promise.all([
     getLatestForDomain(env.RESULTS, domain).catch(() => null),
     getWatch(env.RESULTS, domain).catch(() => null),
     getHistory(env.RESULTS, domain).catch(() => []),
@@ -224,6 +224,31 @@ export async function onRequestGet({ params, request, env }) {
     getCategoryCleanAverages(env.RESULTS).catch(() => ({ averages: {}, count: 0 })),
     loadLeaderboard(request).catch(() => null),
   ]);
+  const corpusSite =
+    !kvLatest && Array.isArray(lbData?.sites)
+      ? lbData.sites.find((s: any) => s.domain === domain && s.scored)
+      : null;
+  const latest =
+    kvLatest ||
+    (corpusSite
+      ? {
+          id:
+            String(corpusSite.resultUrl || '')
+              .split('/')
+              .pop() || domain,
+          url: corpusSite.url || `https://${domain}`,
+          finalUrl: corpusSite.url || `https://${domain}`,
+          domain,
+          score: corpusSite.score,
+          grade: corpusSite.grade,
+          tier: corpusSite.tier,
+          patternsFlagged: corpusSite.patternsFlagged ?? 0,
+          patternsTotal: 27,
+          verdict: `${domain} scored ${corpusSite.grade} (${corpusSite.score}/100 · ${corpusSite.tier}) on the AI-design-slop benchmark corpus.`,
+          triggered: [],
+          createdAt: lbData?.generatedAt || undefined,
+        }
+      : null);
   const pub = watch ? publicWatch(watch, history) : null;
   const claimed = !!listing;
 

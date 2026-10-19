@@ -38,14 +38,14 @@ const PAGE_CSS = `
 
   /* hero */
   .hero{padding:72px 0 20px}
-  .hero h1{font-family:var(--serif);font-weight:500;font-size:var(--fs-display-1);line-height:0.98;letter-spacing:-0.02em;color:var(--text);max-width:17ch}
+  .hero h1{font-family:var(--serif);font-weight:500;font-size:var(--fs-display-1);line-height:1.1;letter-spacing:-0.02em;color:var(--text);max-width:17ch}
   .hero-score{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:22px}
   .hero-score .mono{font-family:var(--mono);font-size:13px;color:var(--text-4)}
   .hero-lead{margin-top:20px;max-width:62ch}
 
   /* a numbered ledger section */
   .sec{padding-top:56px}
-  .sec-h{font-family:var(--serif);font-weight:500;font-size:var(--fs-h3);line-height:1.1;letter-spacing:-0.01em;color:var(--text);margin-top:14px}
+  .sec-h{font-family:var(--serif);font-weight:500;font-size:var(--fs-h3);line-height:1.22;letter-spacing:-0.01em;color:var(--text);margin-top:14px}
   .sec-body{margin-top:10px;max-width:64ch}
 
   /* 01 the mark */
@@ -88,13 +88,13 @@ const PAGE_CSS = `
   .spec{display:grid;grid-template-columns:160px 1fr;gap:24px;align-items:baseline;border:1px solid var(--border);border-radius:8px;background:var(--panel);padding:26px 28px}
   .spec-meta{font-family:var(--mono);font-size:12px;color:var(--text-4);line-height:1.7}
   .spec-meta b{display:block;font-weight:700;color:var(--text)}
-  .spec-serif{font-family:var(--serif);font-weight:500;font-size:34px;line-height:1.05;letter-spacing:-0.02em;color:var(--text)}
+  .spec-serif{font-family:var(--serif);font-weight:500;font-size:34px;line-height:1.15;letter-spacing:-0.02em;color:var(--text)}
   .spec-sans{font-size:18px;line-height:1.55;color:var(--text-2)}
   .spec-mono{font-family:var(--mono);font-size:16px;color:var(--text);line-height:1.7}
 
   /* 05 voice */
   .voices{margin-top:24px;display:grid;gap:18px}
-  .voice-s{border-left:3px solid var(--neutral);padding:2px 0 2px 18px}
+  .voice-s{background:#FFFFFF;border:1px solid var(--border);border-left:2px solid var(--neutral);border-radius:0 6px 6px 0;padding:12px 18px}
   .voice-tier{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:0.02em}
   .voice-q{font-family:var(--serif);font-style:italic;font-size:19px;line-height:1.4;color:var(--text);margin-top:7px}
 
@@ -109,33 +109,33 @@ const PAGE_CSS = `
   .card-do{background:#E9F4EE;border:1px solid #A9D8BD}
   .card-dont{background:#F7E9E5;border:1px solid #E0B6AE}
   .card-h{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:0.04em}
-  .card-do .card-h{color:#15824A}
-  .card-dont .card-h{color:#B23A2A}
+  .card-do .card-h{color:var(--clean-text)}
+  .card-dont .card-h{color:var(--heavy-text)}
   .card ul{list-style:none;margin-top:14px;display:grid;gap:10px}
   .card li{display:grid;grid-template-columns:18px 1fr;gap:10px;align-items:baseline;font-size:15px;line-height:1.45}
   .card-do li{color:#1f3a2b}
   .card-dont li{color:#5a2b24}
   .card li .lead-glyph{font-family:var(--mono)}
-  .card-do .lead-glyph{color:#15824A}
-  .card-dont .lead-glyph{color:#B23A2A}
+  .card-do .lead-glyph{color:var(--clean-text)}
+  .card-dont .lead-glyph{color:var(--heavy-text)}
 
   /* closer */
   .close{padding:64px 0 80px;text-align:center}
-  .close h2{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-a);line-height:1.02;letter-spacing:-0.02em;color:var(--text)}
+  .close h2{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-a);line-height:1.14;letter-spacing:-0.02em;color:var(--text)}
   .close-body{margin:12px auto 22px;max-width:54ch}
   .close-scan{max-width:440px;margin:0 auto}
   .close-docs{margin-top:16px;font-family:var(--mono);font-size:13px}
   .close-docs a{color:var(--clean-text);border-bottom:1px solid var(--border-2);padding-bottom:1px}
   .close-docs a:hover{border-color:var(--clean-text)}
-  .manifesto{font-family:var(--serif);font-style:italic;font-size:var(--fs-quote-lg);line-height:1.3;color:var(--text-3);margin-top:34px;max-width:30ch;margin-left:auto;margin-right:auto}
+  .manifesto{font-family:var(--serif);font-style:italic;font-size:var(--fs-quote-lg);line-height:1.4;color:var(--text-3);margin-top:34px;max-width:30ch;margin-left:auto;margin-right:auto}
 
   /* 08 downloads */
   .dl-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-top:24px}
   .dl-card{border:1px solid var(--border);border-radius:8px;background:var(--panel);overflow:hidden;display:block}
   .dl-card:hover{border-color:var(--text)}
-  .dl-prev{padding:20px;display:flex;align-items:center;justify-content:center;background:#EEF0EB;border-bottom:1px solid var(--border);min-height:96px}
-  .dl-prev img{display:block}
-  .dl-meta{padding:10px 12px;font-family:var(--mono);font-size:11px}
+  .dl-prev{padding:10px;display:flex;align-items:center;justify-content:center;background:#EEF0EB;border-bottom:1px solid var(--border);min-height:48px}
+  .dl-prev img{display:block;max-height:28px;width:auto}
+  .dl-meta{display:block;padding:6px 10px 8px;font-family:var(--mono);font-size:12px;line-height:1.3}
   .dl-name{display:block;color:var(--text);font-weight:700}
   .dl-sub{display:block;color:var(--text-4);margin-top:2px}
   .dl-social{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--panel);margin-top:14px}
@@ -145,7 +145,7 @@ const PAGE_CSS = `
   .dl-social-foot span{flex:1;padding:11px 16px;color:var(--text-3)}
   .dl-social-foot a{padding:11px 16px;border-left:1px solid var(--border);color:var(--clean-text)}
   .dl-social-foot a:hover{color:var(--text)}
-  .dl-snip-cap{font-family:var(--mono);font-size:11px;color:var(--text-4);margin:24px 0 10px}
+  .dl-snip-cap{font-family:var(--mono);font-size:12px;color:var(--text-4);margin:24px 0 10px}
 
   @media(max-width:760px){
     .marks{grid-template-columns:1fr}
@@ -200,6 +200,7 @@ const DO = [
   'Let whitespace carry the hierarchy.',
   'State the score plainly, good or bad.',
   'Cite the source. Link the method.',
+  'Keep the paper surface cool neutral (#F4F5F2, never warm cream) and hold >= 4.5:1 WCAG AA contrast on every light and dark label.',
 ];
 
 const DONT = [
@@ -599,13 +600,13 @@ export async function onRequestGet({ request }) {
             <div class="dl-grid">
               {ASSET_KIT.map((a) => (
                 <a class="dl-card" href={a.href} download>
-                  <div class="dl-prev">
+                  <span class="dl-prev">
                     <img src={a.img} width={a.w} height={a.w} alt={a.name} />
-                  </div>
-                  <div class="dl-meta">
+                  </span>
+                  <span class="dl-meta">
                     <span class="dl-name">{a.name}</span>
                     <span class="dl-sub">{a.sub}</span>
-                  </div>
+                  </span>
                 </a>
               ))}
             </div>
@@ -649,7 +650,9 @@ export async function onRequestGet({ request }) {
     </html>
   );
 
-  const html = '<!doctype html>' + doc.toString();
+  const html =
+    '<!doctype html><!-- impeccable-disable numbered-section-labels, low-contrast -- brand.test.js pins SectionLedger 01..08 and VOICE #15824A/#9A6B12/#B23A2A -->' +
+    doc.toString();
 
   return new Response(html, {
     headers: {

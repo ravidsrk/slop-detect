@@ -338,7 +338,7 @@ core shipped 26 patterns; the tree had 27) and ships security + DX fixes.
   CLI `--preset` flag and the API `{ preset }` field; `applyPreset` exported.
 - **Public API key tiers** — `Authorization: Bearer` / `X-API-Key` keys with
   `free` / `pro` / `unlimited` tiers (key-bucketed limits, Turnstile bypass).
-  Fully documented in [packages/web/API.md](packages/web/API.md).
+  Fully documented in [apps/web/API.md](apps/web/API.md).
 
 ### Definitions `2026.07`
 - **+3 emerging patterns** (max raw weight 73 → 85): `bento_grid` (w4),
@@ -361,7 +361,7 @@ core shipped 26 patterns; the tree had 27) and ships security + DX fixes.
 ## 0.2.0 — Phase 1: distribution primitives
 
 Make the score travel. Every scan now produces something shareable and embeddable.
-See [ROADMAP.md](ROADMAP.md) and [packages/web/UX.md](packages/web/UX.md).
+See [ROADMAP.md](ROADMAP.md) and [apps/web/UX.md](apps/web/UX.md).
 
 ### Added
 - **Letter grades** (A+→F) layered on the 0–100 score, on every surface (core,

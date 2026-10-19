@@ -19,6 +19,7 @@ headless Chromium. No API key for normal use; per-IP rate-limited.
   Markdown twin at `/api/patterns.md`.
 - `POST /api/fix-prompt`: Build a de-slop prompt. Body: `{ "result": {...} }`
   (cheap) or `{ "url": "..." }` (re-scans).
+- `GET /api/health`: Readiness probe (`status`, `version`, `definitionsVersion`, KV check).
 
 ## Auth
 
@@ -39,8 +40,12 @@ curl -X POST https://slop-detect.com/api/scan \
   re-scans; regression + DESIGN.md-drift email alerts, double opt-in). Flags are
   omit-preserves; `unsubscribe: true` stops + delists.
 - `GET /api/watch?domain=`: public monitoring status + history (never the email).
+- `GET /api/watch/confirm?token=`: confirm double opt-in verification link.
+- `GET /api/watch/unsubscribe?token=`: one-click RFC 8058 unsubscribe.
 - `GET /api/sites`: the opt-in public directory (JSON; `sort=clean|slop`).
+- `GET /api/stats`: aggregate scan telemetry and score distribution.
 - `POST /api/dashboard/link`: magic sign-in link for /dashboard (anti-enumeration).
+- `GET /api/me/export` & `POST /api/me/erase`: self-serve GDPR/DPDP data export and erasure for the signed-in dashboard session.
 - `designMd: true | "<url>"` on `POST /api/scan`, the system axis: DESIGN.md
   compliance, higher is better, named drift items.
 

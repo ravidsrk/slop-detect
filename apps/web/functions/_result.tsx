@@ -83,8 +83,17 @@ export function buildResultView(slim: any) {
     };
   });
 
-  // Fix cards: the heaviest design tells that have a remediation recipe.
-  const fixes = triggered
+  // Fix cards: the heaviest design + copy tells that have a remediation recipe.
+  const copyTriggered = (slim?.axes?.copy?.triggered || []).filter(Boolean);
+  const allTriggered = [...triggered];
+  const seenFixIds = new Set(triggered.map((t: any) => t.id));
+  for (const ct of copyTriggered) {
+    if (ct.id && !seenFixIds.has(ct.id)) {
+      seenFixIds.add(ct.id);
+      allTriggered.push(ct);
+    }
+  }
+  const fixes = allTriggered
     .filter((t: any) => FIXES[t.id])
     .slice()
     .sort((a: any, b: any) => (b.weight || 0) - (a.weight || 0))
@@ -111,28 +120,46 @@ export function buildResultView(slim: any) {
 // pattern list + evidence, which the slim record does not keep).
 export function assembleFixPrompt(slim: any, view: any) {
   const url = slim.finalUrl || slim.url || `https://${slim.domain}`;
-  if (!view.fixes.length) {
+  const sysDrift = slim.system?.drift || [];
+  if (!view.fixes.length && !sysDrift.length) {
     return `${slim.domain} scored ${slim.score}/100 (tier ${slim.tier}) on the AI-design-slop detector and triggered 0 of ${view.patternsTotal} patterns. Nothing to fix on the design axis.`;
   }
   const lines = [
     `# Landing page slop fix prompt`,
     ``,
     `${url} scored ${slim.score}/100 on the AI-design-slop detector — tier ${slim.tier} — triggering ${view.flaggedTotal} of ${view.patternsTotal} patterns. Reduce the score below 10 (Clean) by addressing each pattern below.`,
-    ``,
-    `## Issues to fix (highest weight first)`,
   ];
-  view.fixes.forEach((f: any, i: number) => {
+  if (view.fixes.length) {
+    lines.push(``, `## Issues to fix (highest weight first)`);
+    view.fixes.forEach((f: any, i: number) => {
+      lines.push(
+        ``,
+        `### ${i + 1}. ${f.label} (+${f.weight})`,
+        ``,
+        `Why this reads as AI-slop: ${f.why}`,
+        ``,
+        `Fix: ${f.fix}`,
+        ``,
+        `Hard rule: ${f.rule}`
+      );
+    });
+  }
+  if (sysDrift.length) {
     lines.push(
       ``,
-      `### ${i + 1}. ${f.label} (+${f.weight})`,
+      `## Design-system drift (${slim.system.score}/100 — ${slim.system.tier})`,
       ``,
-      `Why this reads as AI-slop: ${f.why}`,
-      ``,
-      `Fix: ${f.fix}`,
-      ``,
-      `Hard rule: ${f.rule}`
+      `Align the page with its declared DESIGN.md tokens:`
     );
-  });
+    sysDrift.forEach((d: any, i: number) => {
+      lines.push(
+        ``,
+        `### ${i + 1}. ${d.label || d.id} (-${d.weight || 0})`,
+        ``,
+        `Drift: ${d.message || d.id}`
+      );
+    });
+  }
   lines.push(
     ``,
     `Do not replace one slop pattern with another. Keep everything not listed above — it already passes.`
@@ -172,10 +199,12 @@ export const RESULT_CSS = `
 
   /* category overview bars */
   .cbars{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+  .cbar-item{cursor:pointer;padding:6px 8px;border-radius:4px;transition:background var(--t)}
+  .cbar-item:hover{background:var(--bg-2)}
   .cbar-track{height:8px;border-radius:4px;background:var(--track);overflow:hidden}
-  .cbar-fill{height:100%;border-radius:4px}
+  .cbar-fill{height:100%;border-radius:4px;transition:width 600ms cubic-bezier(.2,.7,.2,1)}
   .cbar-name{font-family:var(--mono);font-size:12.5px;color:var(--text-2);margin-top:9px}
-  .cbar-sub{font-family:var(--mono);font-size:11.5px;color:var(--text-4);margin-top:2px}
+  .cbar-sub{font-family:var(--mono);font-size:12px;color:var(--text-4);margin-top:2px}
 
   /* expandable breakdown */
   .bd-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
@@ -185,7 +214,7 @@ export const RESULT_CSS = `
   .bd-toggle{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:transparent;border:0;cursor:pointer;padding:15px 18px;font:inherit;color:inherit}
   .bd-caret{font-family:var(--mono);font-size:12px;color:var(--text-4);width:12px;flex:none}
   .bd-cat{font-family:var(--serif);font-size:var(--fs-serif-row);color:var(--text);font-weight:500}
-  .bd-pill{font-family:var(--mono);font-size:11px;font-weight:700;padding:2px 9px;border-radius:4px;letter-spacing:0.02em}
+  .bd-pill{font-family:var(--mono);font-size:12px;font-weight:700;padding:2px 9px;border-radius:4px;letter-spacing:0.02em}
   .bd-n{font-family:var(--mono);font-size:12px;color:var(--text-4);margin-left:auto;white-space:nowrap}
   .bd-body{padding:2px 18px 14px 42px;display:none}
   .bd-row[data-open="1"] .bd-body{display:block}
@@ -202,27 +231,30 @@ export const RESULT_CSS = `
   .axis-note{font-family:var(--mono);font-size:12px;color:var(--text-4);margin-bottom:12px}
   .axes{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
   .axis{border:1px solid var(--border);border-radius:6px;background:var(--panel);padding:15px 16px}
-  .axis-k{font-family:var(--mono);font-size:11.5px;color:var(--text-4)}
-  .axis-v{font-family:var(--mono);font-size:17px;font-weight:700;margin-top:8px}
+  .axis-k{font-family:var(--mono);font-size:12px;color:var(--text-4)}
+  .axis-v{font-family:var(--mono);font-size:17px;font-weight:700;margin-top:8px;font-variant-numeric:tabular-nums}
   .axis-t{font-family:var(--mono);font-size:12px;color:var(--text-4);margin-top:3px}
 
   /* system + AEO detail cards */
   .sa{display:grid;grid-template-columns:1fr 1fr;gap:14px}
   .sa-card{border:1px solid var(--border);border-radius:6px;background:var(--panel);padding:18px 20px}
-  .sa-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:12px}
+  .sa-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap}
   .sa-title{font-family:var(--mono);font-size:12.5px;color:var(--text-3)}
   .sa-tier{font-family:var(--mono);font-size:13px;font-weight:700}
   .sa-ok{font-family:var(--mono);font-size:13px;color:var(--clean-text)}
   .sa-absent{font-family:var(--mono);font-size:13px;color:var(--text-4);line-height:1.6}
   .sa-drift{display:flex;gap:9px;padding:7px 0;border-top:1px solid var(--row-inner);font-size:13px;color:var(--text-2);line-height:1.5}
   .sa-drift:first-of-type{border-top:0}
-  .sa-tag{font-family:var(--mono);font-size:11px;color:var(--mild-text);flex:none;margin-top:2px}
+  .sa-tag{font-family:var(--mono);font-size:12px;color:var(--mild-text);flex:none;margin-top:2px}
+  .aeo-btn{font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-2);border:1px solid var(--border-btn);border-radius:3px;padding:4px 10px;cursor:pointer;transition:var(--t)}
+  .aeo-btn:hover{border-color:var(--text);background:var(--text);color:var(--d-text)}
   .aeo-row{display:grid;grid-template-columns:16px 1fr 30px;gap:8px;align-items:baseline;padding:6px 0;border-top:1px solid var(--row-inner)}
   .aeo-row:first-of-type{border-top:0}
   .aeo-mark{font-family:var(--mono);font-size:13px}
   .aeo-label{font-family:var(--mono);font-size:12.5px;color:var(--text-2);line-height:1.4}
+  .aeo-detail{display:block;font-family:var(--mono);font-size:12px;color:var(--text-5);margin-top:2px}
   .aeo-w{font-family:var(--mono);font-size:12px;color:var(--text-6);text-align:right}
-  .aeo-foot{font-family:var(--mono);font-size:11.5px;color:var(--text-4);margin-top:11px;line-height:1.5}
+  .aeo-foot{font-family:var(--mono);font-size:12px;color:var(--text-4);margin-top:11px;line-height:1.5}
 
   /* competitive analytics */
   .analytics{display:grid;grid-template-columns:1fr 1fr;gap:28px}
@@ -232,9 +264,9 @@ export const RESULT_CSS = `
   .chart-delta{font-family:var(--mono);font-size:12px;margin-top:8px}
   .chart-cap{font-family:var(--mono);font-size:12px;color:var(--text-4);margin-top:8px}
   .chart-cap strong{color:var(--text-2)}
-  .chart-legend{display:flex;gap:16px;margin-top:8px;font-family:var(--mono);font-size:11.5px;color:var(--text-4)}
+  .chart-legend{display:flex;gap:16px;margin-top:8px;font-family:var(--mono);font-size:12px;color:var(--text-4)}
   .chart-legend-you{font-weight:600}
-  .chart-legend-avg{color:#9A9B8E}
+  .chart-legend-avg{color:var(--text-5)}
 
   /* category neighbors tile */
   .nb-row{display:grid;grid-template-columns:28px 20px 1fr auto;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--row);text-decoration:none;color:inherit}
@@ -243,13 +275,13 @@ export const RESULT_CSS = `
   .nb-you{background:rgba(31,168,94,0.08)}
   .nb-rank{font-family:var(--mono);font-size:12px;color:var(--text-6);text-align:right}
   .nb-name{font-size:14px;font-weight:600;color:var(--text);line-height:1.2}
-  .nb-dom{font-family:var(--mono);font-size:11px;color:var(--text-5);margin-top:1px}
+  .nb-dom{font-family:var(--mono);font-size:12px;color:var(--text-5);margin-top:1px}
   .nb-score{font-family:var(--mono);font-size:13px;color:var(--text-3);white-space:nowrap}
   .nb-grade{font-weight:700}
 
   /* fixes panel */
   .fixes{border:1px solid var(--border);border-radius:10px;background:var(--panel);padding:38px 36px}
-  .fixes-h{font-family:var(--serif);font-weight:500;font-size:var(--fs-h3);line-height:1.05;letter-spacing:-0.02em;text-align:center;color:var(--text)}
+  .fixes-h{font-family:var(--serif);font-weight:500;font-size:var(--fs-h3);line-height:1.18;letter-spacing:-0.02em;text-align:center;color:var(--text)}
   .fixes-sub{font-family:var(--mono);font-size:13px;color:var(--text-4);text-align:center;margin-top:8px}
   .fix{border:1px solid var(--border-2);border-radius:8px;background:var(--bg);padding:20px 22px;margin-top:18px}
   .fix-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
@@ -263,6 +295,7 @@ export const RESULT_CSS = `
   .fix-k.rule{color:var(--text-4)}
   .fix-v{font-size:13.5px;color:var(--text-2);line-height:1.55}
   .fix-foot{display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:24px}
+  .fix-handoff{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
   .fix-cli{font-family:var(--mono);font-size:12.5px;color:var(--text-4)}
   .fixes-clean{text-align:center;font-family:var(--serif);font-style:italic;font-size:18px;color:var(--clean-text);padding:6px 0}
 
@@ -276,7 +309,7 @@ export const RESULT_CSS = `
 
   /* claim / listed */
   .claim{border:1px solid var(--border);border-radius:10px;background:var(--panel);padding:24px 26px}
-  .claim-h{font-family:var(--serif);font-weight:500;font-size:21px;letter-spacing:-0.01em;color:var(--text);margin-bottom:8px}
+  .claim-h{font-family:var(--serif);font-weight:500;font-size:21px;line-height:1.22;letter-spacing:-0.01em;color:var(--text);margin-bottom:8px}
   .claim p{font-size:14px;color:var(--text-2);line-height:1.6;max-width:62ch}
   .claim a{color:var(--clean-text);text-decoration:underline}
   .claim-form{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
@@ -290,7 +323,7 @@ export const RESULT_CSS = `
   .rl-verdict{font-family:var(--serif);font-style:italic;font-size:20px;color:var(--text-4);margin-top:12px}
   .rl-slot{height:8px;border-radius:4px;background:var(--bg-2);margin-top:14px}
   .re{max-width:560px}
-  .re-h{font-family:var(--serif);font-weight:500;font-size:var(--fs-h3);letter-spacing:-0.02em;color:var(--text)}
+  .re-h{font-family:var(--serif);font-weight:500;font-size:var(--fs-display-3);line-height:1.14;letter-spacing:-0.02em;color:var(--text)}
   .re-body{font-size:15px;color:var(--text-2);line-height:1.6;margin:12px 0 22px;max-width:60ch}
   .re-row{display:flex;gap:12px;flex-wrap:wrap}
 
@@ -322,9 +355,7 @@ export const RESULT_CSS = `
 // ── inline progressive-enhancement script ──────────────────────────────────────
 // One script for the whole Result: a flash toast, clipboard copy (badge markdown +
 // the full fix prompt), share-to-X, the keyboard-operable breakdown toggles
-// (aria-expanded), and the claim form POST. Hostile field values reach the script
-// only through jsonForScript, so a value containing </script> comes out <-
-// escaped and cannot break out of the element (see inline-scripts.test.js).
+// (aria-expanded), live AEO probe, AI Fix Studio handoff, and the claim form POST.
 export function resultScript(opts: {
   shareText: string;
   shareUrl: string;
@@ -341,6 +372,7 @@ export function resultScript(opts: {
 
   var SHARE_TEXT=${j(opts.shareText)};
   var SHARE_URL=${j(opts.shareUrl)};
+  var DOMAIN=${j(opts.domain || '')};
   var sx=document.getElementById('shareX');
   if(sx)sx.addEventListener('click',function(){window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(SHARE_TEXT)+'&url='+encodeURIComponent(SHARE_URL),'_blank','noopener');});
   var sc=document.getElementById('copyLink');
@@ -356,6 +388,23 @@ export function resultScript(opts: {
   var cf=document.getElementById('copyFix');
   if(cf)cf.addEventListener('click',function(){copy(FIX_PROMPT,'copied the fix prompt',cf,'copied the fix prompt ✓');});
 
+  var AI_TARGETS={
+    chatgpt:{base:'https://chatgpt.com/?q=',blank:'https://chatgpt.com/',label:'ChatGPT'},
+    claude:{base:'https://claude.ai/new?q=',blank:'https://claude.ai/new',label:'Claude'},
+    cursor:{base:'cursor://anysphere.cursor-deeplink/prompt?text=',blank:'',label:'Cursor'}
+  };
+  function handoff(key){
+    var t=AI_TARGETS[key];if(!t||!FIX_PROMPT)return;
+    var enc=encodeURIComponent(FIX_PROMPT);
+    if(enc.length<=6000||key==='cursor'){window.open(t.base+enc,'_blank','noopener,noreferrer');return;}
+    if(navigator.clipboard)navigator.clipboard.writeText(FIX_PROMPT).catch(function(){});
+    flash('✓ Prompt copied — paste into '+t.label);
+    if(t.blank)window.open(t.blank,'_blank','noopener,noreferrer');
+  }
+  var fgpt=document.getElementById('fixChatGPT');if(fgpt)fgpt.addEventListener('click',function(){handoff('chatgpt');});
+  var fcl=document.getElementById('fixClaude');if(fcl)fcl.addEventListener('click',function(){handoff('claude');});
+  var fcur=document.getElementById('fixCursor');if(fcur)fcur.addEventListener('click',function(){handoff('cursor');});
+
   document.querySelectorAll('[data-toggle]').forEach(function(btn){
     btn.addEventListener('click',function(){
       var row=btn.closest('.bd-row');var open=row.getAttribute('data-open')==='1';
@@ -365,13 +414,60 @@ export function resultScript(opts: {
     });
   });
 
+  document.querySelectorAll('[data-cat-jump]').forEach(function(item){
+    item.addEventListener('click',function(){
+      var key=item.getAttribute('data-cat-jump');
+      var body=document.getElementById('bd-'+key);
+      if(!body)return;
+      var row=body.closest('.bd-row');
+      if(row&&row.getAttribute('data-open')!=='1'){
+        row.setAttribute('data-open','1');
+        var btn=row.querySelector('[data-toggle]');
+        if(btn){btn.setAttribute('aria-expanded','true');var c=btn.querySelector('.bd-caret');if(c)c.textContent='▾';}
+      }
+      body.scrollIntoView({behavior:'smooth',block:'nearest'});
+    });
+  });
+
+  var aeoBtn=document.getElementById('runAeoBtn');
+  if(aeoBtn&&DOMAIN){
+    aeoBtn.addEventListener('click',function(){
+      aeoBtn.disabled=true;aeoBtn.textContent='Probing AEO…';
+      fetch('/api/aeo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:'https://'+DOMAIN})})
+        .then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d};});})
+        .then(function(res){
+          if(!res.ok||!res.d||!Array.isArray(res.d.checks))throw new Error((res.d&&res.d.error)||'AEO probe failed');
+          var d=res.d;
+          var col=d.score>=80?'var(--clean-text)':d.score>=50?'var(--mild-text)':'var(--heavy-text)';
+          var av=document.getElementById('aeoAxisVal');if(av){av.textContent=d.score+'/100';av.style.color=col;}
+          var at=document.getElementById('aeoAxisTier');if(at){at.textContent=d.tier||'evaluated';}
+          var ct=document.getElementById('aeoCardTier');if(ct){ct.textContent=(d.tier||'AEO')+' · '+d.score+'/100';ct.style.color=col;ct.hidden=false;}
+          d.checks.forEach(function(chk){
+            var row=document.querySelector('[data-aeo-id="'+chk.id+'"]');
+            if(!row)return;
+            var m=row.querySelector('.aeo-mark');
+            if(m){m.textContent=chk.passed?'✓':'✗';m.style.color=chk.passed?'var(--clean-text)':'var(--heavy-text)';}
+            var det=row.querySelector('.aeo-detail');
+            if(det&&chk.detail){det.textContent=chk.detail;det.hidden=false;}
+          });
+          var foot=document.getElementById('aeoFoot');
+          if(foot)foot.textContent='Evaluated live in '+((d.durationMs||0)/1000).toFixed(1)+'s · '+d.passed.length+'/'+d.checks.length+' checks passed.';
+          aeoBtn.textContent='Re-run AEO ↻';aeoBtn.disabled=false;
+        })
+        .catch(function(err){
+          aeoBtn.textContent='Retry AEO';aeoBtn.disabled=false;
+          flash('✗ '+(err&&err.message?err.message:'AEO check failed'));
+        });
+    });
+  }
+
   var clf=document.getElementById('claimForm');
   if(clf)clf.addEventListener('submit',function(e){
     e.preventDefault();
     var email=(document.getElementById('claimEmail')||{}).value;
     var msg=document.getElementById('claimMsg');
     if(msg)msg.textContent='Submitting…';
-    fetch('/api/watch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({domain:${j(opts.domain || '')},email:(email||'').trim(),list:true})})
+    fetch('/api/watch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({domain:DOMAIN,email:(email||'').trim(),list:true})})
       .then(function(r){return r.json().catch(function(){return {};}).then(function(jb){return {ok:r.ok,b:jb};});})
       .then(function(res){if(msg)msg.textContent=res.ok?(res.b.note||'Check your email to confirm ownership and switch on the backlink.'):(res.b.error||'Could not submit. Try again.');})
       .catch(function(){if(msg)msg.textContent='Network error. Try again.';});
@@ -419,6 +515,7 @@ export function BigScore({
   const actions = [
     { label: 'Fix with AI →', href: '#fixes' },
     { label: 'Get the badge →', href: '#embed' },
+    { label: 'Compare →', href: `${origin}/compare?a=${encodeURIComponent(slim.domain)}` },
     { label: 'Rescan →', href: `${origin}/?url=${encodeURIComponent(slim.domain)}` },
     { label: 'Printable report →', href: `${origin}/report/${slim.domain}` },
     { label: 'This scan →', href: `${origin}/r/${slim.id}` },
@@ -426,12 +523,20 @@ export function BigScore({
   return (
     <div class="bs">
       <div>
-        <div class="bs-num" style={`color:${fg}`}>
+        <div
+          class="bs-num"
+          style={`color:${fg}`}
+          title="Scale (lower is better): 0–2 A+, 3–5 A, 6–9 A- (Clean 0–9) · 10–14 B+, 15–19 B, 20–23 B-, 24–27 C (Mild 10–27) · 28–33 D+, 34–39 D, 40–100 F (Heavy 28+)"
+        >
           {slim.score}
           <small>/100</small>
         </div>
         <div class="bs-meta">
-          <div class="bs-gt">
+          <div
+            class="bs-gt"
+            title="Scale (lower is better): 0–2 A+, 3–5 A, 6–9 A- (Clean 0–9) · 10–14 B+, 15–19 B, 20–23 B-, 24–27 C (Mild 10–27) · 28–33 D+, 34–39 D, 40–100 F (Heavy 28+)"
+          >
+            <span>Slop score · lower is better</span> · {slim.score} ·{' '}
             <span class="bs-grade" style={`color:${fg}`}>
               {slim.grade}
             </span>{' '}
@@ -465,7 +570,7 @@ export function CategoryBars({ categories }: { categories: any[] }) {
   return (
     <div class="cbars">
       {categories.map((c) => (
-        <div>
+        <div class="cbar-item" data-cat-jump={c.key} title={`Jump to ${c.label} breakdown`}>
           <div
             class="cbar-track"
             role="img"
@@ -560,35 +665,61 @@ export function AxisStrip({ slim }: { slim: any }) {
   const sys = slim.system || null;
   const cells = [
     {
-      k: 'design slop',
-      v: `${slim.score}/100`,
+      k: 'design slop · Slop score · lower is better',
+      v: `${slim.score} · ${slim.grade}`,
       t: slim.tier,
       color: tierText(slim.tier),
     },
     copy
-      ? { k: 'copy slop', v: `${copy.score}/100`, t: copy.tier, color: tierText(copy.tier) }
-      : { k: 'copy slop', v: 'not run', t: '', color: 'var(--text-4)' },
+      ? {
+          k: 'copy slop · Slop score · lower is better',
+          v: `${copy.score}/100`,
+          t: copy.tier,
+          color: tierText(copy.tier),
+        }
+      : {
+          k: 'copy slop · Slop score · lower is better',
+          v: 'not run',
+          t: '',
+          color: 'var(--text-4)',
+        },
     sys
       ? {
-          k: 'system · DESIGN.md',
+          k: 'system · DESIGN.md · higher is better',
           v: `${sys.score}/100`,
           t: sys.tier,
           color: systemAxisColor(sys.score),
         }
-      : { k: 'system · DESIGN.md', v: 'none', t: 'no DESIGN.md', color: 'var(--text-4)' },
-    { k: 'AEO · agent-readable', v: 'not run', t: 'scan to evaluate', color: 'var(--text-4)' },
+      : {
+          k: 'system · DESIGN.md · higher is better',
+          v: 'none',
+          t: 'no DESIGN.md',
+          color: 'var(--text-4)',
+        },
+    {
+      k: 'AEO · agent-readable · higher is better',
+      v: 'not run',
+      t: 'probe live below',
+      color: 'var(--text-4)',
+      valId: 'aeoAxisVal',
+      tierId: 'aeoAxisTier',
+    },
   ];
   return (
     <>
-      <div class="axis-note">slop: lower is better · system & AEO: higher is better</div>
+      <div class="axis-note">Slop score · lower is better · system & AEO · higher is better</div>
       <div class="axes">
-        {cells.map((c) => (
+        {cells.map((c: any) => (
           <div class="axis">
             <div class="axis-k">{c.k}</div>
-            <div class="axis-v" style={`color:${c.color}`}>
+            <div class="axis-v" id={c.valId} style={`color:${c.color}`}>
               {c.v}
             </div>
-            {c.t ? <div class="axis-t">{c.t}</div> : null}
+            {c.t ? (
+              <div class="axis-t" id={c.tierId}>
+                {c.t}
+              </div>
+            ) : null}
           </div>
         ))}
       </div>
@@ -597,8 +728,7 @@ export function AxisStrip({ slim }: { slim: any }) {
 }
 
 // 7. System drift card + AEO eight-check card. The system axis is persisted; AEO
-// pass/fail is not, so the AEO card lists the eight checks (what AEO measures) and
-// says it is evaluated on a fresh scan rather than faking ✓/✗.
+// pass/fail is evaluated live on demand via POST /api/aeo rather than faking ✓/✗.
 export function SystemAeoCards({ slim }: { slim: any }) {
   const sys = slim.system || null;
   const sysTierColor = sys ? systemAxisColor(sys.score) : 'var(--text-4)';
@@ -631,17 +761,24 @@ export function SystemAeoCards({ slim }: { slim: any }) {
       <div class="sa-card">
         <div class="sa-head">
           <span class="sa-title">AEO · agent-readable</span>
+          <span class="sa-tier" id="aeoCardTier" hidden />
+          <button type="button" class="aeo-btn" id="runAeoBtn">
+            Run live AEO check →
+          </button>
         </div>
         {(AEO_CHECKS as any[]).map((chk) => (
-          <div class="aeo-row">
+          <div class="aeo-row" data-aeo-id={chk.id}>
             <span class="aeo-mark" style="color:var(--text-6)" aria-hidden="true">
               ·
             </span>
-            <span class="aeo-label">{chk.label}</span>
+            <span class="aeo-label">
+              {chk.label}
+              <span class="aeo-detail" hidden />
+            </span>
             <span class="aeo-w">+{chk.weight}</span>
           </div>
         ))}
-        <p class="aeo-foot">
+        <p class="aeo-foot" id="aeoFoot">
           Eight checks, weighted to 100. Evaluated live per scan. Run a fresh scan to see pass/fail.
         </p>
       </div>
@@ -807,8 +944,8 @@ function Radar({
               <text
                 x={lx.toFixed(1)}
                 y={ly.toFixed(1)}
-                fill="#9A9B8E"
-                font-size="8"
+                fill="#595A52"
+                font-size="11"
                 font-family="var(--mono)"
                 text-anchor={lx < cx - 4 ? 'end' : lx > cx + 4 ? 'start' : 'middle'}
               >
@@ -993,6 +1130,11 @@ export function FixesPanel({ fixes, domain }: { fixes: any[]; domain: string }) 
           ))}
           <div class="fix-foot">
             <Button variant="primary" id="copyFix" label="Copy the full fix prompt" />
+            <div class="fix-handoff">
+              <Button variant="outline" id="fixChatGPT" label="Open in ChatGPT ↗" />
+              <Button variant="outline" id="fixClaude" label="Open in Claude ↗" />
+              <Button variant="outline" id="fixCursor" label="Open in Cursor ↗" />
+            </div>
             <span class="fix-cli">npx slop-detect {domain} --fix</span>
           </div>
         </>

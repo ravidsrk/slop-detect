@@ -6,7 +6,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "lint": "eslint ."
+    "check:slop": "slop-detect http://localhost:4321 --copy --aeo --design-md auto --fail-under B"
   },
   "devDependencies": {
     "astro": "^5.0.0",

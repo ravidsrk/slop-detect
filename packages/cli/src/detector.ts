@@ -152,17 +152,21 @@ export async function scanRemote(url, opts: ScanOptions = {}) {
   const headers = { 'content-type': 'application/json' };
   const key = opts.apiKey || process.env.SLOP_API_KEY;
   if (key) headers['x-api-key'] = key;
+  const body: Record<string, any> = {
+    url,
+    preset: opts.preset || 'full',
+    axes: opts.axes || ['design'],
+    screenshot: !!opts.screenshot,
+  };
+  if (opts.designMd) {
+    body.designMd = opts.designMd === 'auto' ? true : opts.designMd;
+  }
   let res;
   try {
     res = await fetch(new URL('/api/scan', base), {
       method: 'POST',
       headers,
-      body: JSON.stringify({
-        url,
-        preset: opts.preset || 'full',
-        axes: opts.axes || ['design'],
-        screenshot: !!opts.screenshot,
-      }),
+      body: JSON.stringify(body),
     });
   } catch (e) {
     throw new Error(`Could not reach ${base} (${e.message}). Drop --remote to scan locally.`);
@@ -195,6 +199,93 @@ export async function aeoRemote(url, opts: ScanOptions = {}) {
   const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
   if (!res.ok) throw new Error(data.error || `AEO check failed (HTTP ${res.status})`);
   return data;
+}
+
+export function buildSarifReport(results: any[]) {
+  const list = Array.isArray(results) ? results : [results];
+  const rulesMap = new Map<string, any>();
+  const sarifResults: any[] = [];
+
+  for (const r of list) {
+    if (!r || r.error || r.blocked) continue;
+    const uri = r.finalUrl || r.url || 'https://example.com';
+    const designPatterns = Array.isArray(r.patterns) ? r.patterns : [];
+    const copyPatterns = Array.isArray(r.axes?.copy?.patterns) ? r.axes.copy.patterns : [];
+    for (const p of [...designPatterns, ...copyPatterns]) {
+      if (!rulesMap.has(p.id)) {
+        rulesMap.set(p.id, {
+          id: p.id,
+          name: p.short || p.id,
+          shortDescription: { text: p.label || p.id },
+          defaultConfiguration: {
+            level: p.weight >= 6 ? 'error' : 'warning',
+          },
+          properties: {
+            axis: p.axis || 'design',
+            category: p.category || 'design',
+            weight: p.weight,
+          },
+        });
+      }
+      if (p.triggered) {
+        sarifResults.push({
+          ruleId: p.id,
+          level: p.weight >= 6 ? 'error' : 'warning',
+          message: {
+            text: `${p.label} (+${p.weight}) triggered on ${uri}`,
+          },
+          locations: [
+            {
+              physicalLocation: {
+                artifactLocation: { uri },
+              },
+            },
+          ],
+          properties: {
+            weight: p.weight,
+            axis: p.axis || 'design',
+            evidence: p.evidence || {},
+          },
+        });
+      }
+    }
+    if (Array.isArray(r.system?.drift)) {
+      for (const d of r.system.drift) {
+        const ruleId = `system.${d.id}`;
+        if (!rulesMap.has(ruleId)) {
+          rulesMap.set(ruleId, {
+            id: ruleId,
+            name: d.id,
+            shortDescription: { text: `DESIGN.md compliance: ${d.id}` },
+            defaultConfiguration: { level: 'warning' },
+          });
+        }
+        sarifResults.push({
+          ruleId,
+          level: 'warning',
+          message: { text: d.message },
+          locations: [{ physicalLocation: { artifactLocation: { uri } } }],
+        });
+      }
+    }
+  }
+
+  return {
+    $schema: 'https://json.schemastore.org/sarif-2.1.0.json',
+    version: '2.1.0',
+    runs: [
+      {
+        tool: {
+          driver: {
+            name: 'slop-detect',
+            informationUri: 'https://slop-detect.com',
+            rules: [...rulesMap.values()],
+          },
+        },
+        results: sarifResults,
+      },
+    ],
+  };
 }
 
 export async function scanUrl(url, opts: ScanOptions = {}) {
@@ -303,6 +394,9 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
     // alignment with the site's OWN system (higher is better), not slop.
     if (opts.designMd) {
       result.system = scoreSystemCompliance(parseDesignMd(opts.designMd), data.systemContext);
+    }
+    if (shouldIncludeSystem(opts) && data.systemContext) {
+      result.systemContext = data.systemContext;
     }
 
     if (opts.screenshot) {

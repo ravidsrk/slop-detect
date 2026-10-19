@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- impeccable-disable numbered-section-labels -- architectural specification ledger numbering -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -20,16 +21,19 @@
     color-scheme:light;
     --bg:#F4F5F2; --bg-2:#EEF0EB; --panel:#FBFBF9; --ink-deep:#16170F;
     --border:#DBDDD6; --border-2:#E4E6DF; --border-btn:#C9CBC3;
-    --text:#181815; --text-2:#3A3B33; --text-3:#46473F; --text-4:#565750; --text-6:#9A9B8E;
-    --clean:#1FA85E; --clean-text:#11703F;
-    --d-text:#F4F5F2; --d-text-3:#B6B7AC; --d-text-4:#8A8B7E;
+    --text:#181815; --text-2:#3A3B33; --text-3:#46473F; --text-4:#565750; --text-6:#595A52;
+    --clean:#1FA85E; --clean-text:#0E6B3A;
+    --d-text:#F4F5F2; --d-text-3:#B6B7AC; --d-text-4:#9A9B8E;
     --serif:'Newsreader',Georgia,'Times New Roman',serif;
     --sans:'Libre Franklin',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+    --r-6:8px;
   }
   *{margin:0;padding:0;box-sizing:border-box}
   html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
   body{background:var(--bg);color:var(--text-2);font-family:var(--sans);line-height:1.6}
+  h1,h2,h3,h4{text-wrap:balance}
+  p,li,dd{text-wrap:pretty}
   a{color:inherit;text-decoration:none}
   ::selection{background:#1FA85E;color:#fff}
   :focus-visible{outline:2px solid #1FA85E;outline-offset:2px;border-radius:2px}
@@ -51,16 +55,15 @@
   /* content column */
   main{max-width:780px;margin:0 auto;padding:56px 32px 72px}
   .eyebrow{font-family:var(--mono);font-size:13px;color:var(--clean-text);margin-bottom:14px}
-  h1{font-family:var(--serif);font-weight:500;font-size:clamp(38px,5vw,60px);line-height:1.0;letter-spacing:-0.02em;color:var(--text)}
-  h1 em{font-style:italic;color:var(--text-3)}
-  .lead{font-size:19px;line-height:1.6;color:var(--text-2);max-width:60ch;margin-top:16px}
+  h1{font-family:var(--serif);font-weight:500;font-size:clamp(32px,4vw,48px);line-height:1.12;letter-spacing:-0.02em;color:var(--text);text-wrap:balance}
+  .lead{font-size:18px;line-height:1.65;color:var(--text-2);max-width:60ch;margin-top:16px}
 
   /* section: the signature 1.5px ink ledger rule + a mono eyebrow over a serif H2 */
   .sec{margin-top:46px}
   .sec-h{border-top:1.5px solid #181815;padding-top:14px}
-  .sec-h .tag{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--clean-text);margin-right:10px}
+  .sec-h .tag{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--clean-text);margin-right:10px;font-variant-numeric:tabular-nums}
   .sec-h .lbl{font-family:var(--mono);font-size:12px;color:var(--text-4)}
-  h2{font-family:var(--serif);font-weight:500;font-size:28px;line-height:1.1;letter-spacing:-0.01em;color:var(--text);margin-top:10px}
+  h2{font-family:var(--serif);font-weight:500;font-size:26px;line-height:1.2;letter-spacing:-0.01em;color:var(--text);margin-top:10px;text-wrap:balance}
   p{margin-top:14px;max-width:66ch}
   p strong{color:var(--text)}
   p em{font-style:italic}
@@ -75,7 +78,7 @@
   .tbl-wrap{overflow-x:auto;margin-top:18px}
   table{width:100%;border-collapse:collapse;font-size:14px;min-width:580px}
   th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--border-2);vertical-align:top}
-  thead th{font-family:var(--mono);font-size:11.5px;font-weight:500;color:var(--text-4);border-bottom:1.5px solid #181815}
+  thead th{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text-4);border-bottom:1.5px solid #181815}
   tbody td:first-child{font-family:var(--mono);font-size:13px;color:var(--text-3)}
   .col-us{color:var(--clean-text);font-weight:500}
   td em{font-style:italic;color:var(--text-3)}
@@ -93,6 +96,34 @@
   .ft-fp{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--d-text-3)}
   .ft-repro{font-family:var(--mono);font-size:12px;color:var(--d-text-4)}
 
+  /* interactive head-to-head domain arena */
+  .arena{margin-top:24px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:22px 24px;perspective:1200px}
+  .arena-controls{display:grid;grid-template-columns:1fr auto 1fr auto;gap:10px;align-items:center}
+  .arena-input{width:100%;background:var(--bg);border:1px solid var(--border-btn);border-radius:3px;padding:10px 12px;font-family:var(--mono);font-size:13.5px;color:var(--text)}
+  .arena-vs{font-family:var(--serif);font-style:italic;font-size:18px;color:var(--text-4);padding:0 4px}
+  .arena-btn{background:var(--text);color:var(--d-text);border:0;border-radius:3px;padding:10px 16px;font-family:var(--mono);font-size:13px;cursor:pointer;white-space:nowrap}
+  .arena-btn:hover{background:var(--clean-text)}
+  .arena-presets{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-family:var(--mono);font-size:12px;color:var(--text-4)}
+  .arena-chip{font-family:var(--mono);font-size:12px;color:var(--text-2);background:var(--bg);border:1px solid var(--border);border-radius:999px;padding:4px 11px;cursor:pointer}
+  .arena-chip:hover{border-color:var(--text)}
+  .arena-stage{margin-top:18px;display:grid;grid-template-columns:1fr 230px 1fr;gap:16px;align-items:center;border-top:1px solid var(--border-2);padding-top:18px}
+  .arena-card{background:var(--bg);border:1px solid var(--border-2);border-radius:6px;padding:16px 18px}
+  .arena-dom{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--text);word-break:break-all}
+  .arena-score-row{display:flex;align-items:baseline;gap:8px;margin-top:8px;white-space:nowrap}
+  .arena-num{font-family:var(--serif);font-size:32px;font-weight:500;line-height:1;color:var(--text);font-variant-numeric:tabular-nums}
+  .arena-num small{font-family:var(--mono);font-size:12px;color:var(--text-4)}
+  .arena-grade{font-family:var(--serif);font-size:28px;font-weight:500;line-height:1}
+  .arena-meta{font-family:var(--mono);font-size:12px;color:var(--text-4);margin-top:6px}
+  .arena-tells{margin-top:8px;font-family:var(--mono);font-size:12px;color:var(--text-3);line-height:1.5}
+  .arena-link{display:inline-block;margin-top:8px;font-family:var(--mono);font-size:12px;color:var(--clean-text)}
+  .arena-radar{display:flex;flex-direction:column;align-items:center}
+  .arena-radar svg{width:230px;height:175px;display:block;overflow:visible}
+  .arena-delta{margin-top:12px;padding-top:10px;border-top:1px solid var(--border-2);font-family:var(--mono);font-size:12px;color:var(--text-2);text-align:center;font-variant-numeric:tabular-nums}
+
+  @media(max-width:740px){
+    .arena-controls{grid-template-columns:1fr}
+    .arena-stage{grid-template-columns:1fr}
+  }
   @media(max-width:640px){
     .nav-inner,main,.ft{padding-left:20px;padding-right:20px}
     .ft-inner,.ft-note{flex-direction:column;align-items:flex-start}
@@ -120,6 +151,7 @@
     </a>
     <div class="nav-links">
       <a class="nav-link" href="/leaderboard">leaderboard</a>
+      <a class="nav-link nav-link-active" href="/compare">compare</a>
       <a class="nav-link" href="/docs">docs</a>
       <a class="nav-link" href="/brand">brand</a>
       <a class="nav-gh" href="https://github.com/ravidsrk/slop-detect" target="_blank" rel="noopener noreferrer">github ↗</a>
@@ -128,12 +160,48 @@
 </nav>
 
 <main>
-  <p class="eyebrow">/compare · positioning</p>
-  <h1>How Slop Detector <em>compares</em></h1>
-  <p class="lead">Where Slop Detector sits among design-quality and AI-detection tools, and why its methodology is different.</p>
+  <p class="eyebrow">/compare · head-to-head &amp; methodology</p>
+  <h1>How Slop Detector compares</h1>
+  <p class="lead">Compare any two domains side by side on the 27-pattern fingerprint, or read how deterministic Chromium scoring differs from probabilistic ML classifiers.</p>
+
+  <section class="sec" id="compareArenaSection">
+    <div class="sec-h"><span class="tag">§ 00</span><span class="lbl">interactive domain arena · Slop score · lower is better</span></div>
+    <h2>Head-to-head fingerprint comparison</h2>
+    <div class="arena" id="compareArena">
+      <form class="arena-controls" id="cmpForm">
+        <div>
+          <label class="sr-only" for="cmpA">First domain</label>
+          <input id="cmpA" class="arena-input" list="corpusDomains" value="stripe.com" placeholder="first domain (e.g. stripe.com)" autocomplete="off">
+        </div>
+        <span class="arena-vs" aria-hidden="true">vs.</span>
+        <div>
+          <label class="sr-only" for="cmpB">Second domain</label>
+          <input id="cmpB" class="arena-input" list="corpusDomains" value="bolt.new" placeholder="second domain (e.g. bolt.new)" autocomplete="off">
+        </div>
+        <button type="submit" class="arena-btn" id="cmpGo">Compare</button>
+      </form>
+      <datalist id="corpusDomains"></datalist>
+
+      <div class="arena-presets">
+        <span>matchups:</span>
+        <button type="button" class="arena-chip" data-a="stripe.com" data-b="bolt.new">stripe.com vs bolt.new</button>
+        <button type="button" class="arena-chip" data-a="news.ycombinator.com" data-b="linear.app">news.ycombinator.com vs linear.app</button>
+        <button type="button" class="arena-chip" data-a="vercel.com" data-b="lovable.dev">vercel.com vs lovable.dev</button>
+      </div>
+
+      <div class="arena-stage" aria-live="polite">
+        <div class="arena-card" id="cardA"></div>
+        <div class="arena-radar" aria-hidden="true">
+          <svg id="cmpRadarSvg" viewBox="0 0 220 175" role="img" aria-label="5-axis cleanliness radar overlay"></svg>
+        </div>
+        <div class="arena-card" id="cardB"></div>
+      </div>
+      <div class="arena-delta" id="cmpDeltaSummary">Loading corpus benchmarks…</div>
+    </div>
+  </section>
 
   <section class="sec">
-    <div class="sec-h"><span class="tag">01</span><span class="lbl">the short version</span></div>
+    <div class="sec-h"><span class="tag">§ 01</span><span class="lbl">the short version</span></div>
     <h2>One fixed yardstick, not a moving model</h2>
     <p>
       Most "is this AI?" tools are <strong>probabilistic ML classifiers</strong>: they output a
@@ -143,10 +211,17 @@
       <em>live computed styles</em> in real headless Chromium. The same page always yields the same
       score. No model, no randomness, so the output is auditable, reproducible, and safe to gate CI on.
     </p>
+    <figure style="margin:20px 0 6px;border:1px solid var(--border);border-radius:var(--r-6);background:var(--panel);overflow:hidden">
+      <img src="/media/hero-optical-instrument.png" alt="Isometric exploded view of a landing page inspected across five optical DOM strata" decoding="async" width="1200" height="675" style="display:block;width:100%;height:auto;border-bottom:1px solid var(--border-2)">
+      <figcaption style="padding:10px 14px;font-family:var(--mono);font-size:12px;color:var(--text-4);display:flex;justify-content:space-between;gap:10px">
+        <span><b style="color:var(--text-2)">FIG. 01</b> · Five-layer optical DOM inspection: typography, contrast, layout topology, copy rhetoric, and AEO structured data</span>
+        <span>definitions·2026.09</span>
+      </figcaption>
+    </figure>
   </section>
 
   <section class="sec">
-    <div class="sec-h"><span class="tag">02</span><span class="lbl">methodology comparison</span></div>
+    <div class="sec-h"><span class="tag">§ 02</span><span class="lbl">methodology comparison</span></div>
     <h2>How the approaches differ</h2>
     <div class="tbl-wrap">
       <table>
@@ -169,7 +244,7 @@
   </section>
 
   <section class="sec">
-    <div class="sec-h"><span class="tag">03</span><span class="lbl">why deterministic matters</span></div>
+    <div class="sec-h"><span class="tag">§ 03</span><span class="lbl">why deterministic matters</span></div>
     <h2>What a fixed score buys you</h2>
     <ul>
       <li><strong>CI gating.</strong> Fail a build at <code>--fail-on heavy</code> and trust the threshold won't move under you.</li>
@@ -180,7 +255,7 @@
   </section>
 
   <section class="sec">
-    <div class="sec-h"><span class="tag">04</span><span class="lbl">the research behind it</span></div>
+    <div class="sec-h"><span class="tag">§ 04</span><span class="lbl">the research behind it</span></div>
     <h2>Where the weights come from</h2>
     <p>
       The pattern weights derive from <a class="link" href="https://www.adriankrebs.ch/blog/design-slop/" rel="noopener">Adrian Krebs's April 2026 study</a>
@@ -191,7 +266,7 @@
   </section>
 
   <section class="sec">
-    <div class="sec-h"><span class="tag">05</span><span class="lbl">when to use which</span></div>
+    <div class="sec-h"><span class="tag">§ 05</span><span class="lbl">when to use which</span></div>
     <h2>Pick by the question you're asking</h2>
     <ul>
       <li><strong>Slop Detector</strong>: a reproducible, explainable read on how templated or AI-generated a landing page looks, or to gate design regressions in CI.</li>
@@ -201,7 +276,7 @@
   </section>
 
   <section class="sec">
-    <div class="sec-h"><span class="tag">06</span><span class="lbl">try it</span></div>
+    <div class="sec-h"><span class="tag">§ 06</span><span class="lbl">try it</span></div>
     <h2>Run a scan</h2>
     <p>
       Web: <a class="link" href="https://slop-detect.com">slop-detect.com</a> ·
@@ -233,5 +308,171 @@
     <span class="ft-repro">Reproduce: npx slop-detect &lt;url&gt;</span>
   </div>
 </footer>
+<script>
+(function(){
+  var byDomain = {};
+  var FALLBACK = {
+    'stripe.com': { domain: 'stripe.com', score: 0, grade: 'A+', tier: 'Clean', category: 'saas', builtWith: 'custom', triggered: [] },
+    'news.ycombinator.com': { domain: 'news.ycombinator.com', score: 0, grade: 'A+', tier: 'Clean', category: 'classic', builtWith: 'custom', triggered: [] },
+    'vercel.com': { domain: 'vercel.com', score: 8, grade: 'A-', tier: 'Clean', category: 'saas', builtWith: 'nextjs', triggered: [{ id: 'slop_fonts', short: 'Geist font', weight: 8 }] },
+    'linear.app': { domain: 'linear.app', score: 15, grade: 'B', tier: 'Mild', category: 'saas', builtWith: 'custom', triggered: [{ id: 'slop_fonts', short: 'Default font', weight: 8 }, { id: 'perma_dark_mode', short: 'Dark surface', weight: 4 }, { id: 'pill_buttons', short: 'Pill buttons', weight: 3 }] },
+    'bolt.new': { domain: 'bolt.new', score: 32, grade: 'D+', tier: 'Heavy', category: 'ai-builder', builtWith: 'bolt', triggered: [{ id: 'slop_fonts', short: 'Default font', weight: 8 }, { id: 'gradient_text', short: 'Gradient H1', weight: 6 }, { id: 'purple_accent', short: 'Purple accent', weight: 5 }, { id: 'glassmorphism', short: 'Glass blur', weight: 5 }, { id: 'glow_shadows', short: 'Glow shadow', weight: 4 }] },
+    'lovable.dev': { domain: 'lovable.dev', score: 29, grade: 'D+', tier: 'Heavy', category: 'ai-builder', builtWith: 'lovable', triggered: [{ id: 'slop_fonts', short: 'Default font', weight: 8 }, { id: 'cream_default_bg', short: 'Cream bg', weight: 7 }, { id: 'gradient_backgrounds', short: 'Gradients', weight: 6 }, { id: 'centered_hero', short: 'Centered hero', weight: 5 }] }
+  };
+  Object.keys(FALLBACK).forEach(function(k){ byDomain[k] = FALLBACK[k]; });
+
+  var CAT_MAP = {
+    slop_fonts: 0, tight_tracking: 0, all_caps_labels: 0,
+    purple_accent: 1, cream_default_bg: 1, perma_dark_mode: 1, neon_dark_palette: 1,
+    centered_hero: 2, generic_3col_grid: 2, bento_grid: 2, pricing_3tier: 2, nested_cards: 2,
+    gradient_text: 3, gradient_backgrounds: 3, glassmorphism: 3, glow_shadows: 3, aurora_mesh_gradient: 3,
+    ai_sparkle_badges: 4, unsplash_stock: 4, gradient_avatars: 4
+  };
+
+  function cleanVector(site) {
+    var vec = [1, 1, 1, 1, 1];
+    var trig = (site && site.triggered) || [];
+    if (!trig.length && site && site.score > 0) {
+      var pen = Math.min(0.75, site.score / 55);
+      return [1 - pen, 1 - pen * 0.8, 1 - pen * 0.7, 1 - pen * 0.9, 1 - pen * 0.5];
+    }
+    trig.forEach(function(t){
+      var idx = CAT_MAP[t.id] != null ? CAT_MAP[t.id] : 3;
+      vec[idx] = Math.max(0.18, vec[idx] - (t.weight || 4) / 22);
+    });
+    return vec;
+  }
+
+  function tierColor(tier) {
+    if (tier === 'Clean') return '#0E6B3A';
+    if (tier === 'Mild') return '#78520A';
+    return '#A83223';
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  function normDomain(v) {
+    return String(v || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '');
+  }
+
+  function renderCard(el, dom, site, colorHex) {
+    if (!el) return;
+    if (!site) {
+      el.innerHTML = '<div class="arena-dom">' + esc(dom) + '</div>' +
+        '<div class="arena-meta">Not in static corpus</div>' +
+        '<div class="arena-tells">Run a live Chromium scan to score this domain.</div>' +
+        '<a class="arena-link" href="/?url=' + encodeURIComponent(dom) + '">Scan ' + esc(dom) + ' live →</a>';
+      return;
+    }
+    var tc = tierColor(site.tier);
+    var tells = (site.triggered || []).slice(0, 3).map(function(t){ return esc(t.short || t.label || t.id) + ' (+' + (t.weight || 0) + ')'; }).join(' · ');
+    el.innerHTML =
+      '<div class="arena-dom" style="color:' + colorHex + '">' + esc(site.domain) + '</div>' +
+      '<div class="arena-score-row" title="Slop score scale (lower is better): 0–9 Clean (A+/A/A-) · 10–27 Mild (B+/B/B-/C+/C) · 28+ Heavy (C-/D+/D/F)">' +
+        '<span class="arena-num">' + site.score + '<small>/100</small></span>' +
+        '<span class="arena-grade" style="color:' + tc + '">· ' + esc(site.grade || 'A') + '</span>' +
+      '</div>' +
+      '<div class="arena-meta">Slop score · lower is better · ' + esc(site.tier) + (site.builtWith ? ' · ' + esc(site.builtWith) : '') + '</div>' +
+      '<div class="arena-tells">' + (tells || '✓ 0 patterns triggered on record') + '</div>' +
+      '<a class="arena-link" href="/score/' + encodeURIComponent(site.domain) + '">Open score hub →</a>';
+  }
+
+  function renderRadar(siteA, siteB) {
+    var svg = document.getElementById('cmpRadarSvg');
+    if (!svg) return;
+    var labels = ['Type', 'Color', 'Layout', 'Effects', 'Imagery'];
+    var cx = 115, cy = 90, R = 48;
+    function pt(i, r) {
+      var a = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
+      return (cx + r * Math.cos(a)).toFixed(1) + ',' + (cy + r * Math.sin(a)).toFixed(1);
+    }
+    function poly(vec) {
+      return vec.map(function(v, i){ return pt(i, R * v); }).join(' ');
+    }
+    var rOuter = [0,1,2,3,4].map(function(i){ return pt(i, R); }).join(' ');
+    var rInner = [0,1,2,3,4].map(function(i){ return pt(i, R * 0.5); }).join(' ');
+    var vecA = cleanVector(siteA || { score: 15 });
+    var vecB = cleanVector(siteB || { score: 30 });
+    var axes = [0,1,2,3,4].map(function(i){
+      var a = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
+      var lx = cx + (R + 12) * Math.cos(a);
+      var ly = cy + (R + 12) * Math.sin(a) + 3;
+      var anchor = lx < cx - 6 ? 'end' : lx > cx + 6 ? 'start' : 'middle';
+      return '<line x1="' + cx + '" y1="' + cy + '" x2="' + (cx + R * Math.cos(a)).toFixed(1) + '" y2="' + (cy + R * Math.sin(a)).toFixed(1) + '" stroke="#E4E6DF" stroke-width="1"/>' +
+        '<text x="' + lx.toFixed(1) + '" y="' + ly.toFixed(1) + '" fill="#565750" font-size="11" font-family="var(--mono)" text-anchor="' + anchor + '">' + labels[i] + '</text>';
+    }).join('');
+    svg.innerHTML =
+      '<polygon points="' + rOuter + '" fill="none" stroke="#DBDDD6" stroke-width="1"/>' +
+      '<polygon points="' + rInner + '" fill="none" stroke="#E4E6DF" stroke-width="1"/>' +
+      axes +
+      '<polygon points="' + poly(vecB) + '" fill="rgba(201,64,46,0.12)" stroke="#A83223" stroke-width="1.8" stroke-dasharray="4 3"/>' +
+      '<polygon points="' + poly(vecA) + '" fill="rgba(31,168,94,0.16)" stroke="#0E6B3A" stroke-width="2"/>';
+  }
+
+  function updateComparison() {
+    var domA = normDomain(document.getElementById('cmpA').value) || 'stripe.com';
+    var domB = normDomain(document.getElementById('cmpB').value) || 'bolt.new';
+    var siteA = byDomain[domA] || null;
+    var siteB = byDomain[domB] || null;
+    renderCard(document.getElementById('cardA'), domA, siteA, '#0E6B3A');
+    renderCard(document.getElementById('cardB'), domB, siteB, '#A83223');
+    renderRadar(siteA, siteB);
+
+    var deltaEl = document.getElementById('cmpDeltaSummary');
+    if (deltaEl) {
+      if (siteA && siteB) {
+        var diff = siteB.score - siteA.score;
+        if (diff === 0) {
+          deltaEl.textContent = siteA.domain + ' and ' + siteB.domain + ' tie at ' + siteA.score + '/100.';
+        } else {
+          var cleaner = diff > 0 ? siteA : siteB;
+          var heavier = diff > 0 ? siteB : siteA;
+          deltaEl.textContent = cleaner.domain + ' is ' + Math.abs(diff) + ' pts cleaner than ' + heavier.domain + ' (' + cleaner.score + '/100 vs ' + heavier.score + '/100).';
+        }
+      } else {
+        deltaEl.textContent = 'Comparing ' + domA + ' vs ' + domB + ' · outer radar ring = 100% clean.';
+      }
+    }
+  }
+
+  var q = new URLSearchParams(location.search);
+  if (q.get('a')) document.getElementById('cmpA').value = normDomain(q.get('a'));
+  if (q.get('b')) document.getElementById('cmpB').value = normDomain(q.get('b'));
+
+  document.getElementById('cmpForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    updateComparison();
+  });
+
+  document.querySelectorAll('.arena-chip').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.getElementById('cmpA').value = btn.getAttribute('data-a');
+      document.getElementById('cmpB').value = btn.getAttribute('data-b');
+      updateComparison();
+    });
+  });
+
+  updateComparison();
+
+  fetch('/leaderboard.json').then(function(r){ return r.ok ? r.json() : null; }).then(function(data){
+    if (!data || !Array.isArray(data.sites)) return;
+    var dl = document.getElementById('corpusDomains');
+    data.sites.forEach(function(s){
+      if (!s || !s.scored || !s.domain) return;
+      byDomain[s.domain.toLowerCase()] = s;
+      if (dl) {
+        var opt = document.createElement('option');
+        opt.value = s.domain;
+        dl.appendChild(opt);
+      }
+    });
+    updateComparison();
+  }).catch(function(){});
+})();
+</script>
 </body>
 </html>

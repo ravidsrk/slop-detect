@@ -15,10 +15,16 @@ export { extractTextContext } from './text.js';
 export { createColorHelpers } from './color.js';
 export { createVisibilityHelpers } from './visibility.js';
 export { isSlopFont, isAccentSerif, SLOP_FONT_PREFIXES, ACCENT_SERIF_PREFIXES } from './fonts.js';
-export { FIXES, buildFixPrompt } from './fixes.js';
-export { gradeForScore, verdictFor, GRADE_BANDS } from './verdict.js';
+export { FIXES, buildFixPrompt, formatEvidence } from './fixes.js';
+export {
+  gradeForScore,
+  verdictFor,
+  GRADE_BANDS,
+  gradeForScore as scoreToGrade,
+  verdictFor as buildVerdict,
+} from './verdict.js';
 export { compileRule, compileRules, validateRule } from './rules.js';
-export { PRESETS, applyPreset, isPreset } from './presets.js';
+export { PRESETS, applyPreset, isPreset, applyPreset as getPatterns } from './presets.js';
 export {
   AI_BOTS,
   AEO_CHECKS,
@@ -26,6 +32,7 @@ export {
   aiBotsBlockedByRobots,
   toMarkdownUrl,
   runAeoChecks,
+  runAeoChecks as scoreAeo,
   readCapped,
   MAX_HTML_BYTES,
 } from './aeo.js';
@@ -35,12 +42,16 @@ export {
   extractSystemContext,
   flattenDesignTokens,
   scoreSystemCompliance,
+  scoreSystemCompliance as checkDesignSystem,
+  scoreSystemCompliance as scoreSystem,
+  generateDesignMd,
   primaryFamily,
   parseCssColor,
   SYSTEM_CHECKS,
 } from './system.js';
 export {
   buildPageScript,
+  buildPageScript as buildPageEvaluateScript,
   esbuildNamePolyfills,
   detectBlocked,
   type PageScriptData,
@@ -51,6 +62,7 @@ export {
 export { SCAN_PAGE_WAIT, waitFontsReadyInPage } from './runner-wait.js';
 export {
   assemblePatternResults,
+  assemblePatternResults as assembleScanResult,
   type PatternSignal,
   type AssembledPatternResults,
 } from './result-assembly.js';

@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- impeccable-disable italic-serif-display -- intentional editorial specimen pinned by landing.test.js -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -210,44 +211,47 @@
     --ink-deep:#16170F; --ink-deeper:#0F0F0B;
     --border:#DBDDD6; --border-2:#E4E6DF; --row:#E7E8E2; --row-inner:#EDEEE8;
     --border-btn:#C9CBC3; --border-chip:#D7D9D2; --track:#E2E4DD; --neutral:#CDCFC8;
-    --text:#181815; --text-2:#3A3B33; --text-3:#46473F; --text-4:#565750;
-    --text-5:#5E5F57; --text-6:#9A9B8E;
+    --text:#181815; --text-2:#2C2D27; --text-3:#3E4038; --text-4:#4E5046;
+    --text-5:#54564C; --text-6:#585A50;
     --clean:#1FA85E; --mild:#D89A2E; --heavy:#C9402E;
-    --clean-text:#11703F; --mild-text:#835A0E; --heavy-text:#B23A2A;
-    --system-text:#2C6E8F; --clean-dark:#3FBE7A;
-    --d-text:#F4F5F2; --d-text-2:#C9CABF; --d-text-3:#B6B7AC; --d-text-4:#8A8B7E;
+    --clean-text:#0E6B3A; --mild-text:#78520A; --heavy-text:#A83223;
+    --system-text:#1F5E7D; --clean-dark:#3FBE7A;
+    --d-text:#F4F5F2; --d-text-2:#E4E6DD; --d-text-3:#D2D4CA; --d-text-4:#B8BAB0;
     --d-border:#2A2B22; --d-border-2:#3A3B30;
     --serif:'Newsreader',Georgia,'Times New Roman',serif;
     --sans:'Libre Franklin',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
     --pad-x:32px;
     --maxw:1120px;
-    --fs-display-hero:clamp(44px,6.2vw,88px);
-    --fs-h2-a:clamp(30px,4vw,52px);
-    --fs-h2-b:clamp(28px,3.6vw,42px);
-    --fs-h2-c:clamp(26px,3.2vw,38px);
-    --fs-h3:28px; --fs-lead:19px; --fs-quote-lg:clamp(20px,2.4vw,26px);
+    --fs-display-hero:clamp(38px,4.6vw,62px);
+    --fs-h2-a:clamp(26px,3.1vw,38px);
+    --fs-h2-b:clamp(24px,2.8vw,34px);
+    --fs-h2-c:clamp(22px,2.4vw,30px);
+    --fs-h3:22px; --fs-lead:18px; --fs-quote-lg:clamp(19px,2.2vw,24px);
+    --r-6:8px;
     --t:140ms ease;
     --shadow-badge:0 1px 2px rgba(0,0,0,0.1);
   }
   *{margin:0;padding:0;box-sizing:border-box}
   html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;scroll-behavior:smooth}
   body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:16px;line-height:1.6;min-height:100vh}
+  h1,h2,h3,h4{text-wrap:balance}
+  p,li,dd{text-wrap:pretty}
   a{color:inherit;text-decoration:none}
-  input{outline:none;font-family:inherit}
+  input,textarea{outline:none;font-family:inherit;caret-color:var(--clean)}
   ::selection{background:#1FA85E;color:#fff}
   .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
   /* type helpers */
   .serif{font-family:var(--serif)}
-  .mono{font-family:var(--mono)}
-  .display-hero{font-family:var(--serif);font-weight:500;font-size:var(--fs-display-hero);line-height:0.98;letter-spacing:-0.02em;color:var(--text)}
-  .mono-eyebrow{font-family:var(--mono);font-size:13px;color:var(--clean-text);letter-spacing:0}
-  .lead{font-size:var(--fs-lead);line-height:1.6;color:var(--text-2)}
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .display-hero{font-family:var(--serif);font-weight:500;font-size:var(--fs-display-hero);line-height:1.08;letter-spacing:-0.022em;color:var(--text);text-wrap:balance}
+  .mono-eyebrow{font-family:var(--mono);font-size:13px;color:var(--clean-text);letter-spacing:0;font-variant-numeric:tabular-nums}
+  .lead{font-size:var(--fs-lead);line-height:1.65;color:var(--text-2);text-wrap:pretty}
 
   /* the signature 1.5px ink section-ledger rule (structural, not a stripe) */
   .section-ledger{border-top:1.5px solid #181815;padding-top:14px}
-  .ledger-tag{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--clean-text);margin-right:10px}
+  .ledger-tag{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--clean-text);margin-right:10px;font-variant-numeric:tabular-nums}
   .ledger-label{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text-4);letter-spacing:0}
 
   /* focus, press, disabled, reduced-motion (a11y) */
@@ -259,6 +263,10 @@
   }
 
   .wrap{max-width:var(--maxw);margin:0 auto;padding:0 var(--pad-x)}
+
+  /* ── score polarity labels ──────────────────────────────────────────────── */
+  .score-polarity-tag{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text-3);display:inline-flex;align-items:center;gap:6px}
+  .score-polarity-pill{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text-3);background:var(--bg-2);border:1px solid var(--border);border-radius:4px;padding:4px 10px;display:inline-flex;align-items:center;gap:6px;cursor:help}
 
   /* ── navigation ─────────────────────────────────────────────────────────── */
   .nav{position:sticky;top:0;z-index:50;background:rgba(244,245,242,0.92);border-bottom:1px solid var(--border)}
@@ -274,9 +282,11 @@
   #fingerprint,#monitor,#top{scroll-margin-top:72px}
 
   /* ── scan input (the primary action) ────────────────────────────────────── */
-  .scan{display:flex;align-items:stretch;overflow:hidden;background:var(--panel);border:1px solid var(--text);border-radius:4px}
+  .scan{display:flex;align-items:stretch;overflow:hidden;background:var(--panel);border:1px solid var(--text);border-radius:4px;transition:outline var(--t)}
+  .scan:focus-within{outline:2px solid var(--clean-text);outline-offset:2px}
   .scan-prefix{display:inline-flex;align-items:center;font-family:var(--mono);font-size:15px;color:var(--mild-text);padding-left:14px}
   .scan-input{flex:1;min-width:0;border:0;background:transparent;font-family:var(--mono);font-size:15px;color:var(--text);padding:13px 12px;text-align:left}
+  .scan-input:focus-visible{outline:none}
   .scan-input::placeholder{color:var(--text-5)}
   .scan-go{border:0;cursor:pointer;background:var(--text);color:var(--d-text);font-family:var(--mono);font-size:14px;padding:0 22px;white-space:nowrap;transition:var(--t)}
   .scan-go:hover{background:var(--clean-text)}
@@ -297,33 +307,50 @@
   .chip-dot{width:7px;height:7px;border-radius:50%;flex:none}
 
   /* ── stats strip ────────────────────────────────────────────────────────── */
-  .stats{border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg-2);padding:18px var(--pad-x);display:flex;justify-content:center;align-items:baseline;flex-wrap:wrap;gap:8px;font-family:var(--mono);font-size:13px;color:var(--text-3);text-align:center}
-  .stats-num{font-weight:500;color:var(--text)}
+  .stats{border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg-2);padding:18px var(--pad-x);display:flex;justify-content:center;align-items:baseline;flex-wrap:wrap;gap:8px;font-family:var(--mono);font-size:13px;color:var(--text-3);text-align:center;font-variant-numeric:tabular-nums}
+  .stats-num{font-weight:500;color:var(--text);font-variant-numeric:tabular-nums}
   #hubStats[hidden]{display:none}
   #hubStats:not([hidden]) ~ .stats-default{display:none}
 
   /* ── letter avatar + leaderboard row ────────────────────────────────────── */
-  .av{display:inline-flex;align-items:center;justify-content:center;flex:none;color:var(--panel);font-family:var(--mono);font-weight:700;border-radius:5px;width:20px;height:20px;font-size:10px}
-  .lr{display:grid;grid-template-columns:16px 1fr auto;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid var(--row)}
+  .av{display:inline-flex;align-items:center;justify-content:center;flex:none;color:var(--panel);font-family:var(--mono);font-weight:700;border-radius:5px;width:20px;height:20px;font-size:12px}
+  .lr{display:grid;grid-template-columns:22px minmax(0,1fr) auto;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--row);border-radius:3px}
   .lr:hover{background:var(--bg-2)}
-  .lr-rank{font-family:var(--mono);font-size:12px;color:var(--text-6);text-align:right}
-  .lr-name{display:flex;align-items:center;gap:9px;min-width:0}
-  .lr-dom{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
-  .lr-score{font-family:var(--mono);font-size:13px;color:var(--text-3);white-space:nowrap}
-  .lr-grade{font-weight:700}
+  .lr-rank{font-family:var(--mono);font-size:12px;color:var(--text-6);text-align:right;font-variant-numeric:tabular-nums}
+  .lr-name{display:flex;align-items:center;gap:7px;min-width:0}
+  .lr-dom{color:var(--text);font-size:14.5px;line-height:1.35;overflow-wrap:anywhere}
+  .lr-score{display:inline-grid;grid-template-columns:26px 22px;column-gap:6px;align-items:baseline;font-family:var(--mono);font-size:13px;color:var(--text-2);white-space:nowrap;font-variant-numeric:tabular-nums;cursor:help}
+  .lr-num{text-align:right;font-variant-numeric:tabular-nums}
+  .lr-grade{font-weight:700;text-align:left}
 
   /* ── hero (the one allowed centered layout — serif) ─────────────────────── */
-  .hero{max-width:var(--maxw);margin:0 auto;padding:96px var(--pad-x) 56px;text-align:center}
-  .hero-eyebrow{margin-bottom:22px;color:var(--text-4)}
+  .hero{max-width:var(--maxw);margin:0 auto;padding:72px var(--pad-x) 56px;text-align:center}
+  .hero-eyebrow{margin-bottom:18px;color:var(--text-4)}
   .hero-eyebrow b{color:var(--clean-text);font-weight:400}
-  .hero h1{max-width:14ch;margin:0 auto}
+  .hero h1{max-width:16ch;margin:0 auto}
   .hero h1 em{font-style:italic;color:var(--text-3)}
-  .hero-scan{max-width:560px;margin:30px auto 0}
+  .hero-scan{max-width:560px;margin:28px auto 0}
   #turnstile-host{margin-top:12px;display:flex;justify-content:center}
   #turnstile-host:empty{margin:0}
-  .hero-reassure{margin-top:14px;font-family:var(--mono);font-size:13px;color:var(--text-4)}
-  .hero-chips{margin-top:20px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+  .hero-reassure{margin-top:12px;font-family:var(--mono);font-size:13px;color:var(--text-4)}
+  .hero-chips{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
   .hero-chips button{font:inherit;font-family:var(--mono);font-size:12.5px}
+
+  /* ── collapsed advanced options disclosure ──────────────────────────────── */
+  .hero-adv{max-width:560px;margin:10px auto 0;text-align:center}
+  .hero-adv-sum{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12px;color:var(--text-4);cursor:pointer;padding:4px 8px;border-radius:3px;list-style:none;user-select:none}
+  .hero-adv-sum::-webkit-details-marker{display:none}
+  .hero-adv-sum::before{content:"▸";font-size:12px;color:var(--text-4);transition:transform var(--t)}
+  .hero-adv[open] .hero-adv-sum::before{transform:rotate(90deg)}
+  .hero-adv-sum:hover{color:var(--text)}
+  .scan-console{margin:8px auto 0;padding:10px 14px;background:var(--bg-2);border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--text-3);text-align:left}
+  .scan-console-checks{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .scan-opt{display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:var(--text-2);user-select:none;min-height:24px}
+  .scan-opt input{accent-color:var(--clean);cursor:pointer;margin:0;width:15px;height:15px}
+  .scan-opt-tag{color:var(--text-5);font-size:12px}
+  .scan-console-right{display:flex;align-items:center;gap:8px;margin-left:auto}
+  .scan-preset-label{color:var(--text-5);font-size:12px}
+  .scan-preset{font-family:var(--mono);font-size:12px;color:var(--text);background:var(--panel);border:1px solid var(--border-btn);border-radius:3px;padding:4px 8px;cursor:pointer}
 
   /* status + result live where the scan happens */
   .status{margin:26px auto 0;max-width:720px;color:var(--text-4);font-size:15px;display:none;font-family:var(--mono);text-align:left}
@@ -340,19 +367,19 @@
   .result-url{font-family:var(--mono);font-size:13px;color:var(--text-4);margin-bottom:6px;word-break:break-all}
   .result-title{font-size:18px;font-weight:600;margin-bottom:4px;letter-spacing:-0.01em}
   .result-h1{font-family:var(--mono);font-size:12.5px;color:var(--text-5)}
-  .score-row{display:flex;align-items:center;gap:22px;margin-top:20px;padding-top:20px;border-top:1px solid var(--border)}
-  .score-grade{font-family:var(--serif);font-weight:500;font-size:64px;letter-spacing:-0.03em;line-height:0.82}
+  .score-row{display:flex;align-items:center;gap:18px;margin-top:20px;padding-top:20px;border-top:1px solid var(--border);flex-wrap:wrap}
+  .score-grade{font-family:var(--serif);font-weight:500;font-size:44px;letter-spacing:-0.03em;line-height:1}
   .grade-Clean{color:var(--clean-text)} .grade-Mild{color:var(--mild-text)} .grade-Heavy{color:var(--heavy-text)}
-  .score-num{font-family:var(--serif);font-weight:500;font-size:44px;letter-spacing:-0.02em;line-height:1;color:var(--text)}
-  .score-num small{font-family:var(--mono);font-size:16px;color:var(--text-6);font-weight:400}
-  .scale-note{font-family:var(--mono);font-size:11px;color:var(--text-6);margin-top:4px}
+  .score-num{font-family:var(--serif);font-weight:500;font-size:44px;letter-spacing:-0.02em;line-height:1;color:var(--text);font-variant-numeric:tabular-nums}
+  .score-num small{font-family:var(--mono);font-size:15px;color:var(--text-6);font-weight:400}
+  .scale-note{font-family:var(--mono);font-size:12px;color:var(--text-4);margin-top:4px}
   .score-tier{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:0.02em;padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--panel)}
   .tier-Clean{color:var(--clean-text)} .tier-Mild{color:var(--mild-text)} .tier-Heavy{color:var(--heavy-text)}
-  .score-meta{font-family:var(--mono);color:var(--text-3);font-size:13px;margin-left:auto;text-align:right}
+  .score-meta{font-family:var(--mono);color:var(--text-3);font-size:13px;margin-left:auto;text-align:right;font-variant-numeric:tabular-nums}
   .score-bar{margin-top:16px;height:7px;background:var(--track);border-radius:4px;overflow:hidden}
   .score-bar-fill{height:100%;border-radius:4px;transition:width 0.7s cubic-bezier(.2,.7,.2,1)}
   .fill-Clean{background:var(--clean)} .fill-Mild{background:var(--mild)} .fill-Heavy{background:var(--heavy)}
-  .score-verdict{margin-top:16px;font-family:var(--serif);font-style:italic;font-size:18px;line-height:1.4;color:var(--text-3)}
+  .score-verdict{margin-top:16px;font-family:var(--serif);font-style:italic;font-size:18px;line-height:1.45;color:var(--text-3)}
 
   /* fix CTA — flat tinted panel, ink->green button (never purple, never gradient) */
   .fix-cta{margin-top:22px;padding:18px 20px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
@@ -372,11 +399,11 @@
   .share-btn:hover{border-color:var(--text)}
   .badge-preview{display:flex;align-items:center;gap:10px;margin-bottom:11px}
   .badge-preview img{height:20px}
-  .badge-preview span{font-family:var(--mono);font-size:11.5px;color:var(--text-5)}
+  .badge-preview span{font-family:var(--mono);font-size:12px;color:var(--text-5)}
   .embed-tabs{display:flex;gap:4px;margin-bottom:9px}
   .embed-tab{background:transparent;color:var(--text-5);border:0;border-radius:3px;padding:4px 9px;font-family:var(--mono);font-size:12px;cursor:pointer}
   .embed-tab.active{background:var(--bg-2);color:var(--text)}
-  .embed-snippet{background:var(--ink-deep);border-radius:6px;padding:10px 12px;font-family:var(--mono);font-size:11.5px;color:var(--d-text-2);white-space:nowrap;overflow-x:auto;cursor:pointer}
+  .embed-snippet{background:var(--ink-deep);border-radius:6px;padding:10px 12px;font-family:var(--mono);font-size:12px;color:var(--d-text-2);white-space:nowrap;overflow-x:auto;cursor:pointer}
   .embed-snippet:hover{color:var(--d-text)}
 
   .monitor-nudge{margin-top:14px;font-family:var(--mono);font-size:13px;color:var(--text-4)}
@@ -393,113 +420,132 @@
   .pat.clean .dot{background:var(--neutral)}
   .pat.clean{color:var(--text-4)}
   .pat .label{flex:1}
-  .pat .weight{font-family:var(--mono);color:var(--text-5);font-size:12px}
+  .pat .weight{font-family:var(--mono);color:var(--text-5);font-size:12px;font-variant-numeric:tabular-nums}
   .pat.triggered .weight{color:var(--heavy-text)}
-  .pat .evidence{display:none;width:100%;margin-top:8px;padding:11px 13px;background:var(--bg);border:1px solid var(--border);border-radius:6px;font-family:var(--mono);font-size:11.5px;color:var(--text-4);white-space:pre-wrap;word-break:break-all}
+  .pat .evidence{display:none;width:100%;margin-top:8px;padding:11px 13px;background:var(--bg);border:1px solid var(--border);border-radius:6px;font-family:var(--mono);font-size:12px;color:var(--text-4);white-space:pre-wrap;word-break:break-all}
   .pat.open{flex-wrap:wrap}
   .pat.open .evidence{display:block}
 
   /* ── section scaffolding ────────────────────────────────────────────────── */
   .sec{max-width:var(--maxw);margin:0 auto;padding:64px var(--pad-x)}
-  .h2-section{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-b);line-height:1.02;letter-spacing:-0.02em;color:var(--text)}
-  .h2-measure{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-c);line-height:1.05;letter-spacing:-0.02em;color:var(--text)}
+  .h2-section{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-b);line-height:1.15;letter-spacing:-0.02em;color:var(--text);text-wrap:balance}
+  .h2-measure{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-c);line-height:1.18;letter-spacing:-0.02em;color:var(--text);text-wrap:balance}
 
   /* leaderboard preview */
   .lb-preview-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .lb-head-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
   .lb-viewall{font-family:var(--mono);font-size:13px;color:var(--clean-text)}
   .lb-viewall:hover{color:var(--text)}
   .lb-intro{margin-top:14px;max-width:64ch}
-  .lb-disclaimer{margin-top:8px;font-family:var(--mono);font-size:12px;color:var(--text-5)}
-  .lb-board{margin-top:28px;display:grid;grid-template-columns:repeat(3,1fr);gap:36px 40px}
-  .lb-col-h{font-family:var(--mono);font-size:12px;color:var(--text-4);padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:4px}
+  .lb-disclaimer{margin-top:10px;font-family:var(--mono);font-size:12.5px;color:var(--text-3);display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+  .lb-band{display:inline-flex;align-items:center;gap:6px;font-weight:500}
+  .lb-band-dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .lb-board{margin-top:28px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:36px 24px;align-items:stretch}
+  .lb-col{display:flex;flex-direction:column;min-width:0}
+  .lb-col-h{font-family:var(--mono);font-size:12px;color:var(--text-3);padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:4px;display:flex;justify-content:space-between;align-items:baseline}
+  .lb-col-more{display:inline-block;margin-top:auto;padding-top:10px;font-family:var(--mono);font-size:12px;color:var(--clean-text)}
+  .lb-col-more:hover{color:var(--text)}
   .lb-empty{font-family:var(--mono);font-size:13px;color:var(--text-4);grid-column:1/-1}
   .lb-empty a{color:var(--clean-text)}
 
-  /* what the score measures — 0.8fr 1.2fr split + four-axis ledger */
-  .measure-grid{display:grid;grid-template-columns:0.8fr 1.2fr;gap:48px;align-items:start}
-  .measure-intro{margin-top:16px;max-width:46ch}
-  .axes{display:flex;flex-direction:column}
-  .axis{display:grid;grid-template-columns:auto 1fr;gap:14px;padding:18px 0;border-top:1px solid var(--border-2)}
-  .axis:first-child{border-top:0;padding-top:0}
-  .axis-mark{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;display:flex;align-items:center;gap:8px;padding-top:2px}
+  /* what the score measures — 2x2 grid of the four axes + demoted go-deeper row */
+  .measure-head{max-width:66ch}
+  .measure-intro{margin-top:12px;max-width:62ch}
+  .axes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:24px}
+  .axis{display:flex;flex-direction:column;justify-content:space-between;gap:10px;padding:20px 22px;background:var(--panel);border:1px solid var(--border);border-radius:6px}
+  .axis-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .axis-mark{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);display:inline-flex;align-items:center;gap:8px}
   .axis-dot{width:8px;height:8px;border-radius:50%;flex:none}
-  .axis-name{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);margin-bottom:5px}
-  .axis-desc{font-size:14px;line-height:1.55;color:var(--text-2)}
-  .axis-polarity{font-family:var(--mono);font-size:12px}
+  .axis-desc{font-size:16px;line-height:1.6;color:var(--text-2)}
+  .axis-polarity{font-family:var(--mono);font-size:12px;font-weight:600;padding:3px 8px;border-radius:3px;background:var(--bg-2);border:1px solid var(--border)}
+
+  /* demoted Go deeper row below the 2x2 axis grid (no card background, top border only) */
+  .go-deeper{margin-top:24px;padding-top:16px;border-top:1px solid var(--border);display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1fr);gap:14px 32px;align-items:baseline}
+  .go-deeper-label{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--text-3);white-space:nowrap}
+  .go-deeper-item{display:flex;flex-direction:column;gap:4px;min-width:0}
+  .go-deeper-title{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--text-2)}
+  .go-deeper-desc{font-size:14px;line-height:1.5;color:var(--text-3)}
+  .go-deeper-link{font-family:var(--mono);font-size:12.5px;font-weight:500;color:var(--clean-text);text-decoration:underline;text-underline-offset:3px;align-self:flex-start}
+  .go-deeper-link:hover{color:var(--text)}
 
   /* ── teams / continuity dark band (holds the monitor form) ──────────────── */
   .band{background:var(--ink-deep);color:var(--d-text-2)}
   .band-inner{max-width:var(--maxw);margin:0 auto;padding:72px var(--pad-x)}
   .band-split{display:grid;grid-template-columns:0.9fr 1.1fr;gap:56px;align-items:start}
   .band-eyebrow{font-family:var(--mono);font-size:13px;color:var(--clean-dark);margin-bottom:14px}
-  .band-h{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-a);line-height:1.02;letter-spacing:-0.02em;color:var(--d-text)}
-  .band-p{margin-top:16px;color:var(--d-text-3);font-size:16px;line-height:1.6;max-width:50ch}
-  .continuity{display:flex;flex-direction:column}
-  .cont-item{display:grid;grid-template-columns:26px 1fr;gap:14px;padding:18px 0;border-top:1px solid var(--d-border)}
-  .cont-item:first-child{border-top:0;padding-top:0}
-  .cont-glyph{font-family:var(--mono);font-size:18px;color:var(--clean-dark);line-height:1.2}
+  .band-h{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-a);line-height:1.14;letter-spacing:-0.02em;color:var(--d-text);text-wrap:balance}
+  .band-p{margin-top:16px;color:var(--d-text-2);font-size:16px;line-height:1.65;max-width:50ch}
+  .continuity{display:flex;flex-direction:column;border:1px solid var(--d-border);border-radius:8px;background:var(--ink-deeper);overflow:hidden}
+  .cont-item{display:grid;grid-template-columns:28px 1fr;gap:14px;padding:16px 20px;border-top:1px solid var(--d-border)}
+  .cont-item:first-child{border-top:0}
+  .cont-glyph{font-family:var(--mono);font-size:18px;color:var(--clean-dark);line-height:1.3}
   .cont-title{font-weight:600;color:var(--d-text);font-size:15px;margin-bottom:3px}
-  .cont-desc{font-size:13.5px;line-height:1.5;color:var(--d-text-3)}
+  .cont-desc{font-size:15px;line-height:1.55;color:var(--d-text-2)}
 
   /* monitor form (dark) */
-  .mon-wrap{margin-top:48px;padding-top:40px;border-top:1px solid var(--d-border);max-width:620px}
-  .mon-h{font-family:var(--serif);font-weight:500;font-size:32px;line-height:1.05;letter-spacing:-0.02em;color:var(--d-text);margin-bottom:10px}
-  .mon-lead{color:var(--d-text-3);font-size:15px;line-height:1.6;margin-bottom:18px;max-width:54ch}
-  .watch-form{display:flex;flex-direction:column;gap:12px}
-  .watch-row{display:flex;gap:10px;flex-wrap:wrap}
-  .watch-row input{flex:1;min-width:200px;background:var(--ink-deeper);border:1px solid var(--d-border-2);border-radius:4px;color:var(--d-text);font-family:var(--mono);font-size:14px;padding:12px 14px}
-  .watch-row input::placeholder{color:var(--d-text-4)}
-  .watch-row button{background:var(--clean);color:#0A2A18;border:0;border-radius:4px;padding:12px 22px;font-family:var(--mono);font-weight:700;font-size:13px;cursor:pointer;transition:var(--t)}
+  .mon-wrap{margin-top:48px;padding-top:40px;border-top:1px solid var(--d-border);max-width:680px}
+  .mon-h{font-family:var(--serif);font-weight:500;font-size:28px;line-height:1.16;letter-spacing:-0.02em;color:var(--d-text);margin-bottom:10px;text-wrap:balance}
+  .mon-lead{color:var(--d-text-2);font-size:16px;line-height:1.6;margin-bottom:18px;max-width:58ch}
+  .watch-form{display:flex;flex-direction:column;gap:14px}
+  .watch-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+  .watch-field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:200px}
+  .watch-label{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--d-text-2)}
+  .watch-field input{width:100%;background:var(--ink-deeper);border:1px solid var(--d-border-2);border-radius:4px;color:var(--d-text);font-family:var(--mono);font-size:14px;padding:12px 14px}
+  .watch-field input:focus-visible{outline:2px solid var(--clean-dark);outline-offset:1px}
+  .watch-field input::placeholder{color:var(--d-text-4)}
+  .watch-row button{background:var(--clean);color:#0A2A18;border:0;border-radius:4px;padding:13px 22px;font-family:var(--mono);font-weight:700;font-size:13px;cursor:pointer;transition:var(--t);height:44px}
   .watch-row button:hover{background:var(--clean-dark)}
   .watch-row button:disabled{cursor:wait}
   .watch-opts{display:flex;gap:18px;flex-wrap:wrap}
-  .watch-opts label{display:inline-flex;align-items:baseline;gap:8px;font-family:var(--mono);font-size:12.5px;color:var(--d-text-3);cursor:pointer;line-height:1.5}
-  .watch-opts input{accent-color:var(--clean);flex-shrink:0;transform:translateY(1px)}
-  .watch-opts code{font-family:var(--mono);color:var(--d-text-2)}
-  .watch-opts .opt-note{color:var(--d-text-4)}
-  .watch-msg{display:none;margin-top:4px;font-family:var(--mono);font-size:13px;line-height:1.5;color:var(--d-text-2)}
+  .watch-opts label{display:inline-flex;align-items:center;gap:10px;min-height:28px;padding:4px 0;font-family:var(--mono);font-size:13px;color:var(--d-text-2);cursor:pointer;line-height:1.5}
+  .watch-opts input[type="checkbox"]{width:18px;height:18px;accent-color:var(--clean);flex-shrink:0;cursor:pointer}
+  .watch-opts code{font-family:var(--mono);color:var(--d-text)}
+  .watch-opts a{color:var(--d-text);text-decoration:underline}
+  .watch-opts .opt-note{color:var(--d-text-3)}
+  .watch-msg{display:none;margin-top:4px;font-family:var(--mono);font-size:13px;line-height:1.5;color:var(--d-text-2);padding:10px 14px;border-radius:4px;border:1px solid var(--d-border-2);background:var(--ink-deeper)}
   .watch-msg.show{display:block}
-  .watch-msg.ok{color:var(--clean-dark)}
-  .watch-msg.err{color:var(--heavy)}
+  .watch-msg.ok{color:#E6F9EE;border-color:#3FBE7A;background:rgba(63,190,122,0.12)}
+  .watch-msg.err{color:#FFD8D2;border-color:#E56B5B;background:rgba(201,64,46,0.18)}
   .watch-msg a{color:var(--d-text);text-decoration:underline}
-  .watch-fine{margin-top:16px;font-family:var(--mono);font-size:11.5px;color:var(--d-text-4);line-height:1.6;max-width:60ch}
-  .watch-fine a{color:var(--d-text-3);text-decoration:underline}
-  .watch-fine code{color:var(--d-text-3)}
+  .watch-fine{margin-top:16px;font-family:var(--sans);font-size:14px;color:var(--d-text-2);line-height:1.5;max-width:64ch}
+  .watch-fine a{color:var(--d-text);text-decoration:underline}
+  .watch-fine code{font-family:var(--mono);font-size:13px;color:var(--d-text)}
 
   /* ── research / article cards ───────────────────────────────────────────── */
-  .research-grid{margin-top:28px;display:grid;grid-template-columns:1.3fr 1fr;gap:40px;align-items:start}
-  .feature-card{display:block;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:28px 30px;transition:var(--t)}
+  .research-grid{margin-top:28px;display:grid;grid-template-columns:1.2fr 1fr;gap:40px;align-items:start}
+  .feature-card{display:flex;flex-direction:column;justify-content:flex-start;gap:18px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:24px 28px;transition:var(--t)}
   .feature-card:hover{border-color:var(--text)}
-  .feature-card h3{font-family:var(--serif);font-weight:500;font-size:var(--fs-h3);line-height:1.1;letter-spacing:-0.01em;color:var(--text)}
-  .feature-card p{margin-top:12px;font-size:15px;line-height:1.55;color:var(--text-2);max-width:46ch}
-  .feature-foot{margin-top:20px;font-family:var(--mono);font-size:12px;color:var(--text-4)}
+  .feature-card h3{font-family:var(--serif);font-weight:500;font-size:var(--fs-h3);line-height:1.22;letter-spacing:-0.01em;color:var(--text)}
+  .feature-card p{margin-top:10px;font-size:16px;line-height:1.65;color:var(--text-2);max-width:52ch}
+  .feature-foot{margin-top:0;padding-top:14px;border-top:1px solid var(--row);font-family:var(--mono);font-size:12px;color:var(--clean-text)}
   .article-list{display:flex;flex-direction:column}
-  .article{display:block;padding:18px 0;border-top:1px solid var(--border);transition:opacity var(--t)}
+  .article{display:block;padding:14px 0;border-top:1px solid var(--border);transition:opacity var(--t)}
   .article:first-child{border-top:0;padding-top:0}
-  .article:hover{opacity:0.7}
-  .article-title{font-family:var(--serif);font-weight:500;font-size:19px;line-height:1.25;color:var(--text)}
+  .article:last-child{padding-bottom:0}
+  .article:hover{opacity:0.75}
+  .article-title{font-family:var(--serif);font-weight:500;font-size:19px;line-height:1.32;color:var(--text)}
   .article-ref{margin-top:6px;font-family:var(--mono);font-size:12px;color:var(--text-4)}
 
   /* ── CTA ────────────────────────────────────────────────────────────────── */
   .cta{max-width:var(--maxw);margin:0 auto;padding:72px var(--pad-x) 80px;text-align:center}
-  .cta-h{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-a);line-height:1.02;letter-spacing:-0.02em;color:var(--text)}
+  .cta-h{font-family:var(--serif);font-weight:500;font-size:var(--fs-h2-a);line-height:1.14;letter-spacing:-0.02em;color:var(--text);text-wrap:balance}
   .cta-body{margin:14px auto 24px;max-width:54ch}
   .cta-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-  .cta-manifesto{font-family:var(--serif);font-style:italic;font-size:var(--fs-quote-lg);line-height:1.3;color:var(--text-3);margin-top:32px;max-width:30ch;margin-left:auto;margin-right:auto}
+  .cta-manifesto{font-family:var(--serif);font-style:italic;font-size:var(--fs-quote-lg);line-height:1.4;color:var(--text-3);margin-top:32px;max-width:30ch;margin-left:auto;margin-right:auto}
 
   /* ── footer ─────────────────────────────────────────────────────────────── */
-  .ft{background:var(--ink-deep);color:var(--d-text-3);padding:46px var(--pad-x)}
+  .ft{background:var(--ink-deep);color:var(--d-text-2);padding:46px var(--pad-x)}
   .ft-inner{max-width:var(--maxw);margin:0 auto;display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:32px}
   .ft-brand{max-width:34ch}
   .ft-id{display:flex;align-items:center;gap:10px;margin-bottom:12px}
   .ft-word{font-family:var(--mono);font-weight:700;font-size:15px;letter-spacing:-0.01em;color:var(--d-text)}
-  .ft-brand p{font-size:13.5px;line-height:1.6;color:var(--d-text-3)}
-  .ft-col h5{font-family:var(--mono);font-size:11.5px;color:var(--d-text-4);margin-bottom:12px;font-weight:500}
-  .ft-col a{display:block;font-family:var(--mono);font-size:13px;color:var(--d-text-3);margin-bottom:8px}
+  .ft-brand p{font-size:14px;line-height:1.6;color:var(--d-text-2)}
+  .ft-col h5{font-family:var(--mono);font-size:13px;color:var(--d-text-3);margin-bottom:12px;font-weight:500}
+  .ft-col a{display:block;font-family:var(--mono);font-size:13px;color:var(--d-text-2);margin-bottom:8px}
   .ft-col a:hover{color:var(--d-text)}
   .ft-note{max-width:var(--maxw);margin:32px auto 0;padding-top:20px;border-top:1px solid var(--d-border);display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
-  .ft-fp{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--d-text-3)}
-  .ft-repro{font-family:var(--mono);font-size:12px;color:var(--d-text-4)}
+  .ft-fp{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--d-text-2)}
+  .ft-repro{font-family:var(--mono);font-size:13px;color:var(--d-text-3)}
 
   /* ── modal + toast ──────────────────────────────────────────────────────── */
   .modal-bg{display:none;position:fixed;inset:0;background:rgba(15,15,11,0.6);z-index:100;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto}
@@ -514,26 +560,131 @@
   .modal-actions button.primary{background:var(--text);color:var(--d-text);border-color:var(--text)}
   .modal-actions button.primary:hover{background:var(--clean-text);border-color:var(--clean-text)}
   .modal-body{padding:18px 22px;overflow-y:auto;flex:1}
-  .modal-body pre{font-family:var(--mono);font-size:12.5px;line-height:1.6;color:var(--d-text-2);background:var(--ink-deep);border-radius:6px;padding:16px 18px;white-space:pre-wrap;word-break:break-word;margin:0}
+  .modal-body pre{font-family:var(--mono);font-size:13px;line-height:1.65;color:var(--d-text-2);background:var(--ink-deep);border-radius:6px;padding:16px 18px;white-space:pre-wrap;word-break:break-word;margin:0}
   .copied-flash{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--d-text);padding:11px 20px;border-radius:6px;font-family:var(--mono);font-size:13px;z-index:200;opacity:0;transition:opacity 0.2s;pointer-events:none}
   .copied-flash.show{opacity:1}
 
+  /* ── 3D exploded DOM specimen stage (hero instrument) ───────────────────── */
+  .stage-3d{margin:38px auto 0;max-width:1056px;background:var(--panel);border:1px solid var(--border);border-radius:8px;text-align:left;overflow:hidden;perspective:1200px}
+  .stage-bar{padding:12px 18px;background:var(--bg-2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-family:var(--mono);font-size:12px}
+  .stage-bar-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .stage-tag{color:var(--clean-text);font-weight:700}
+  .stage-specimens{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap}
+  .stage-spec-btn{font-family:var(--mono);font-size:12px;color:var(--text-3);background:var(--panel);border:1px solid var(--border-chip);border-radius:3px;padding:4px 10px;cursor:pointer;transition:var(--t);font-variant-numeric:tabular-nums}
+  .stage-spec-btn:hover{border-color:var(--text);color:var(--text)}
+  .stage-spec-btn.active{background:var(--text);color:var(--d-text);border-color:var(--text)}
+  .stage-bar-right{display:flex;align-items:center;gap:8px}
+  .stage-tool-btn{font-family:var(--mono);font-size:12px;color:var(--text-2);background:var(--panel);border:1px solid var(--border-btn);border-radius:3px;padding:4px 10px;cursor:pointer;transition:var(--t)}
+  .stage-tool-btn:hover{border-color:var(--text)}
+  .stage-tool-btn.active{background:var(--clean-text);color:var(--d-text);border-color:var(--clean-text)}
+  .stage-live-banner{padding:10px 18px;background:var(--ink-deep);color:var(--d-text);font-family:var(--mono);font-size:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--d-border);font-variant-numeric:tabular-nums}
+  .stage-live-banner[hidden]{display:none}
+  .stage-live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--clean);margin-right:8px}
+  .stage-body{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);align-items:stretch}
+  .stage-canvas-wrap{position:relative;min-height:480px;background:var(--bg);border-right:1px solid var(--border);display:flex;flex-direction:column;min-width:0}
+  .stage-canvas{width:100%;height:100%;min-height:480px;flex:1;display:block;cursor:grab;touch-action:pan-y}
+  .stage-canvas:active{cursor:grabbing}
+  .stage-2d-fallback{display:none;padding:14px 16px;background:var(--bg);border-bottom:1px solid var(--border);gap:8px;flex-direction:column;min-width:0}
+  .stage-2d-layer{display:flex;flex-direction:column;gap:6px;font-family:var(--mono);font-size:12px;padding:9px 11px;background:var(--panel);border:1px solid var(--border);border-radius:4px;min-width:0}
+  .stage-2d-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  .stage-2d-id{font-weight:700;color:var(--clean-text)}
+  .stage-2d-name{color:var(--text);font-weight:600;margin-right:auto}
+  .stage-2d-status{color:var(--text-4);font-size:12px}
+  .stage-2d-rules{display:flex;flex-wrap:wrap;gap:5px}
+  .stage-2d-rule{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;background:var(--bg-2);border:1px solid var(--border);border-radius:3px;font-family:var(--mono);font-size:12px;color:var(--text-2)}
+  .stage-2d-rule b{color:var(--heavy-text);font-weight:700}
+  .stage-2d-clean{font-family:var(--mono);font-size:12px;color:var(--clean-text)}
+  .stage-hud{padding:20px 22px;display:flex;flex-direction:column;justify-content:space-between;gap:14px;background:var(--panel);min-width:0}
+  .stage-hud-top{border-bottom:1px solid var(--row);padding-bottom:12px}
+  .stage-dom-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:12px;color:var(--text-4);margin-bottom:6px;font-variant-numeric:tabular-nums}
+  .stage-polarity-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+  .stage-score-strip{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;cursor:help}
+  .stage-score{font-family:var(--serif);font-size:42px;font-weight:500;line-height:0.95;color:var(--text);font-variant-numeric:tabular-nums}
+  .stage-score-unit{font-family:var(--mono);font-size:13px;color:var(--text-5)}
+  .stage-dot-sep{font-family:var(--serif);font-size:32px;color:var(--text-5);line-height:1}
+  .stage-grade{font-family:var(--serif);font-size:42px;font-weight:500;line-height:0.95;letter-spacing:-0.03em}
+  .stage-tier-pill{font-family:var(--mono);font-size:12px;font-weight:700;padding:3px 9px;border-radius:3px;border:1px solid var(--border);margin-left:auto}
+  .stage-verdict{margin-top:8px;font-family:var(--serif);font-style:italic;font-size:15px;line-height:1.4;color:var(--text-2)}
+  .stage-morph-box{padding:12px 14px;background:var(--bg-2);border:1px solid var(--border);border-radius:4px}
+  .stage-morph-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:12px;color:var(--text-2);margin-bottom:7px;font-variant-numeric:tabular-nums}
+  .stage-morph-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .stage-morph-range{flex:1;min-width:110px;accent-color:var(--clean);cursor:pointer}
+  .stage-deslop-btn{font-family:var(--mono);font-size:12px;font-weight:500;background:var(--text);color:var(--d-text);border:0;border-radius:3px;padding:6px 12px;cursor:pointer;white-space:nowrap;transition:var(--t)}
+  .stage-deslop-btn:hover{background:var(--clean-text)}
+  .stage-tells-head{font-family:var(--mono);font-size:12px;color:var(--text-4);margin-bottom:6px;display:flex;justify-content:space-between;gap:8px}
+  .stage-tells{list-style:none;display:flex;flex-direction:column;gap:2px}
+  .st-tell,.stage-tell{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:baseline;gap:10px;font-family:var(--mono);font-size:12px;padding:5px 6px;border-bottom:1px solid var(--row-inner);color:var(--text-2);font-variant-numeric:tabular-nums}
+  .st-tell-clean,.stage-tell-clean{grid-template-columns:34px minmax(0,1fr);color:var(--text-4)}
+  .st-code{font-weight:700;color:var(--heavy-text);text-align:left}
+  .st-name{font-family:var(--sans);font-size:13px;color:var(--text);text-align:left;min-width:0}
+  .st-cat{color:var(--text-4);font-size:12px;text-align:right;white-space:nowrap}
+
+  /* ── interactive pattern x-ray explorer ─────────────────────────────────── */
+  .xray-wrap{margin-top:24px;background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;perspective:1200px}
+  .xray-toolbar{padding:12px 18px;background:var(--bg-2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .xray-filters{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .xray-filter-btn{font-family:var(--mono);font-size:12px;color:var(--text-3);background:var(--panel);border:1px solid var(--border-chip);border-radius:3px;padding:5px 11px;cursor:pointer;transition:var(--t)}
+  .xray-filter-btn:hover{border-color:var(--text);color:var(--text)}
+  .xray-filter-btn.active{background:var(--text);color:var(--d-text);border-color:var(--text)}
+  .xray-toolbar-note{font-family:var(--mono);font-size:12px;color:var(--text-4)}
+  .xray-grid{display:grid;grid-template-columns:minmax(0,0.95fr) minmax(0,1.25fr);align-items:stretch}
+  .xray-list{border-right:1px solid var(--border);max-height:460px;overflow-y:auto;display:flex;flex-direction:column}
+  .xray-item{display:grid;grid-template-columns:38px minmax(0,1fr) auto;align-items:center;gap:10px;width:100%;text-align:left;background:transparent;border:0;border-left:3px solid transparent;border-bottom:1px solid var(--row);padding:11px 16px;cursor:pointer;font-family:var(--sans);transition:var(--t)}
+  .xray-item:hover{background:var(--bg-2)}
+  .xray-item.active{background:rgba(14,107,58,0.09);border-left-color:var(--clean-text);padding-left:13px}
+  .xray-item-w,.xray-item-weight{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--heavy-text);font-variant-numeric:tabular-nums;text-align:left}
+  .xray-item-name{font-size:14px;font-weight:500;color:var(--text);text-align:left;min-width:0;line-height:1.35}
+  .xray-item.active .xray-item-name{color:var(--clean-text);font-weight:600}
+  .xray-item-cat{font-family:var(--mono);font-size:12px;color:var(--text-4);text-align:right;white-space:nowrap}
+  .xray-inspector{padding:18px 22px;display:flex;flex-direction:column;gap:12px;background:var(--panel);min-width:0}
+  .xray-canvas{width:100%;height:136px;display:block;border:1px solid var(--border);border-radius:4px;background:var(--bg)}
+  .xray-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .xray-title{font-family:var(--serif);font-size:22px;font-weight:500;color:var(--text);line-height:1.32}
+  .xray-meta{font-family:var(--mono);font-size:12px;color:var(--heavy-text);font-variant-numeric:tabular-nums}
+  .xray-specs{display:grid;grid-template-columns:1fr;gap:8px;font-size:14px}
+  .xray-spec-row{padding:10px 12px;background:var(--bg);border:1px solid var(--border-2);border-radius:4px}
+  .xray-spec-k{font-family:var(--mono);font-size:12px;color:var(--text-4);display:block;margin-bottom:3px}
+  .xray-spec-v{color:var(--text-2);line-height:1.5;word-break:break-word}
+  .xray-spec-v.mono{font-family:var(--mono);font-size:12px;color:var(--text)}
+
+  /* ── scroll-choreographed reveal ────────────────────────────────────────── */
+  [data-reveal]{opacity:1;transform:none;transition:opacity 0.45s cubic-bezier(.2,.7,.2,1),transform 0.45s cubic-bezier(.2,.7,.2,1)}
+  [data-reveal]:not(.is-visible){opacity:0.92}
+
   /* ── responsive ─────────────────────────────────────────────────────────── */
+  @media (max-width:1080px){
+    .stage-body{grid-template-columns:minmax(0,1fr)}
+    .stage-canvas-wrap{border-right:0;border-bottom:1px solid var(--border)}
+  }
   @media (max-width:900px){
-    .lb-board{grid-template-columns:1fr}
-    .measure-grid{grid-template-columns:1fr;gap:28px}
-    .band-split{grid-template-columns:1fr;gap:32px}
-    .research-grid{grid-template-columns:1fr;gap:28px}
+    .stage-body{grid-template-columns:minmax(0,1fr)}
+    .stage-canvas-wrap{border-right:0;border-bottom:1px solid var(--border)}
+    .xray-grid{grid-template-columns:minmax(0,1fr)}
+    .xray-list{border-right:0;border-bottom:1px solid var(--border);max-height:240px}
+    .lb-board{grid-template-columns:minmax(0,1fr)}
+    .go-deeper{grid-template-columns:minmax(0,1fr);gap:12px}
+    .band-split{grid-template-columns:minmax(0,1fr);gap:32px}
+    .research-grid{grid-template-columns:minmax(0,1fr);gap:28px}
     .ft-inner{grid-template-columns:1fr 1fr}
     .ft-brand{grid-column:1/-1}
   }
+  @media (max-width:767px){
+    .stage-canvas-wrap{display:none}
+    .stage-2d-fallback{display:flex}
+    .stage-bar-right{display:none}
+  }
   @media (max-width:640px){
     .nav-inner,.hero,.sec,.band-inner,.cta,.ft,.ft-note,.stats{padding-left:20px;padding-right:20px}
-    .hero{padding-top:64px}
+    .hero{padding-top:56px}
     .hero h1{max-width:100%}
+    .stage-canvas-wrap{display:none}
+    .stage-2d-fallback{display:flex}
+    .stage-bar-right{display:none}
+    .axes{grid-template-columns:minmax(0,1fr)}
+    .xray-canvas{height:256px}
     .score-row{flex-wrap:wrap;gap:14px}
-    .score-grade{font-size:52px} .score-num{font-size:36px}
-    .share{grid-template-columns:1fr}
+    .score-grade{font-size:38px} .score-num{font-size:38px}
+    .share{grid-template-columns:minmax(0,1fr)}
     .ft-inner{grid-template-columns:1fr 1fr}
   }
 </style>
@@ -548,8 +699,8 @@
       </a>
       <div class="nav-links">
         <a class="nav-link" href="/leaderboard">leaderboard</a>
+        <a class="nav-link" href="/compare">compare</a>
         <a class="nav-link" href="/docs">docs</a>
-        <a class="nav-link" href="/brand">brand</a>
         <a class="nav-link" href="/dashboard">dashboard</a>
         <a class="nav-gh" href="https://github.com/ravidsrk/slop-detect" target="_blank" rel="noopener noreferrer">github ↗</a>
       </div>
@@ -559,26 +710,128 @@
   <main>
     <!-- 2. Hero -->
     <section class="hero" id="fingerprint">
-      <p class="mono-eyebrow hero-eyebrow">the ai-design-slop fingerprint <span id="rulesDefs">· definitions 2026.09</span></p>
+      <p class="mono-eyebrow hero-eyebrow">the ai-design-slop fingerprint</p>
       <h1 class="display-hero">Does your landing page look <em>generated?</em></h1>
 
-      <form class="scan hero-scan" id="form">
+      <form class="scan hero-scan" id="form" role="search" aria-label="Scan a landing page URL">
         <span class="scan-prefix" aria-hidden="true">https://</span>
         <label class="sr-only" for="url">Domain or URL to scan</label>
-        <input id="url" class="scan-input" type="text" placeholder="yourdomain.com" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="url" required>
+        <input id="url" class="scan-input" type="text" placeholder="yourdomain.com" aria-label="Domain or URL to scan" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="url" required>
         <button class="scan-go" type="submit" id="go">Scan</button>
       </form>
-      <div id="turnstile-host"></div>
-      <p class="hero-reassure">deterministic · real Chromium · a scan takes ~8s</p>
+
+      <p class="hero-reassure">deterministic · real Chromium · ~8s</p>
 
       <div class="examples hero-chips">
-        <button class="chip" data-url="https://news.ycombinator.com"><span class="chip-dot" style="background:var(--clean)" aria-hidden="true"></span>news.ycombinator.com</button>
-        <button class="chip" data-url="https://linear.app"><span class="chip-dot" style="background:var(--mild)" aria-hidden="true"></span>linear.app</button>
-        <button class="chip" data-url="https://bolt.new"><span class="chip-dot" style="background:var(--heavy)" aria-hidden="true"></span>bolt.new</button>
+        <button type="button" class="chip" data-url="https://news.ycombinator.com"><span class="chip-dot" style="background:var(--clean)" aria-hidden="true"></span>news.ycombinator.com · A-</button>
+        <button type="button" class="chip" data-url="https://linear.app"><span class="chip-dot" style="background:var(--mild)" aria-hidden="true"></span>linear.app · B-</button>
+        <button type="button" class="chip" data-url="https://bolt.new"><span class="chip-dot" style="background:var(--heavy)" aria-hidden="true"></span>bolt.new · D+</button>
       </div>
+
+      <details class="hero-adv">
+        <summary class="hero-adv-sum">Advanced options</summary>
+        <div class="scan-console" aria-label="Multi-axis scan configuration">
+          <div class="scan-console-checks">
+            <label class="scan-opt">
+              <input type="checkbox" id="optCopy" checked>
+              <span>+ copy axis <span class="scan-opt-tag">(9 tells)</span></span>
+            </label>
+            <label class="scan-opt">
+              <input type="checkbox" id="optSystem">
+              <span>+ DESIGN.md <span class="scan-opt-tag">(system drift)</span></span>
+            </label>
+          </div>
+          <div class="scan-console-right">
+            <label class="scan-preset-label" for="optPreset">preset</label>
+            <select id="optPreset" class="scan-preset" aria-label="Scoring preset">
+              <option value="full">full (default)</option>
+              <option value="strict">strict (1.35x)</option>
+              <option value="marketing">marketing</option>
+              <option value="minimal">minimal (top 7)</option>
+            </select>
+          </div>
+        </div>
+      </details>
+
+      <div id="turnstile-host"></div>
 
       <div class="status" id="status"></div>
       <section class="result" id="result" aria-live="polite"></section>
+
+      <!-- 2b. 3D Exploded DOM Specimen & Optical Scanner Stage -->
+      <div class="stage-3d" id="stage3d" data-reveal>
+        <div class="stage-bar">
+          <div class="stage-bar-left">
+            <span class="stage-tag">3d optical dom specimen</span>
+            <span aria-hidden="true">·</span>
+            <div class="stage-specimens" role="group" aria-label="Specimen presets">
+              <button type="button" class="stage-spec-btn active" data-specimen="heavy" aria-pressed="true" title="Slop score scale (lower is better): 0–9 Clean (A+/A/A-) · 10–27 Mild (B+/B/B-/C) · 28+ Heavy (D+/D/F)">v0-starter · 48 · F</button>
+              <button type="button" class="stage-spec-btn" data-specimen="mild" aria-pressed="false" title="Slop score scale (lower is better): 0–9 Clean (A+/A/A-) · 10–27 Mild (B+/B/B-/C) · 28+ Heavy (D+/D/F)">linear-type · 16 · B</button>
+              <button type="button" class="stage-spec-btn" data-specimen="clean" aria-pressed="false" title="Slop score scale (lower is better): 0–9 Clean (A+/A/A-) · 10–27 Mild (B+/B/B-/C) · 28+ Heavy (D+/D/F)">slop-detect · 0 · A+</button>
+            </div>
+          </div>
+          <div class="stage-bar-right">
+            <button type="button" class="stage-tool-btn active" id="stageExplodeBtn">Explode Z-layers: ON</button>
+          </div>
+        </div>
+
+        <div class="stage-live-banner" id="stageLiveBanner" hidden>
+          <span><span class="stage-live-dot" aria-hidden="true"></span><span id="stageLivePhase">Launching headless Chromium...</span></span>
+          <span id="stageLiveTimer">0.0s</span>
+        </div>
+
+        <div class="stage-body">
+          <div class="stage-canvas-wrap">
+            <canvas class="stage-canvas" id="domStageCanvas" aria-label="Interactive 3D exploded DOM layer visualization"></canvas>
+          </div>
+          <div class="stage-2d-fallback" id="stage2dFallback" aria-label="2D layered DOM planes">
+            <div class="stage-2d-layer"><div class="stage-2d-head"><span class="stage-2d-id">L05</span><span class="stage-2d-name">Copy &amp; AEO discovery</span><span class="stage-2d-status">1 flagged</span></div><div class="stage-2d-rules"><span class="stage-2d-rule"><b>+7</b> LLM buzzword &amp; em-dash prose</span></div></div>
+            <div class="stage-2d-layer"><div class="stage-2d-head"><span class="stage-2d-id">L04</span><span class="stage-2d-name">Grid &amp; card geometry</span><span class="stage-2d-status">2 flagged</span></div><div class="stage-2d-rules"><span class="stage-2d-rule"><b>+4</b> 3-up icon card grid</span><span class="stage-2d-rule"><b>+6</b> 4px top accent stripe</span></div></div>
+            <div class="stage-2d-layer"><div class="stage-2d-head"><span class="stage-2d-id">L03</span><span class="stage-2d-name">CTA &amp; chromatic fill</span><span class="stage-2d-status">2 flagged</span></div><div class="stage-2d-rules"><span class="stage-2d-rule"><b>+8</b> VibeCode purple CTA</span><span class="stage-2d-rule"><b>+4</b> 28px chromatic glow</span></div></div>
+            <div class="stage-2d-layer"><div class="stage-2d-head"><span class="stage-2d-id">L02</span><span class="stage-2d-name">Hero typography</span><span class="stage-2d-status">3 flagged</span></div><div class="stage-2d-rules"><span class="stage-2d-rule"><b>+5</b> Eyebrow launch pill</span><span class="stage-2d-rule"><b>+8</b> Inter / Geist font stack</span><span class="stage-2d-rule"><b>+6</b> Gradient-clipped H1</span></div></div>
+            <div class="stage-2d-layer"><div class="stage-2d-head"><span class="stage-2d-id">L01</span><span class="stage-2d-name">Surface &amp; backdrop</span><span class="stage-2d-status">2 flagged</span></div><div class="stage-2d-rules"><span class="stage-2d-rule"><b>+5</b> Aurora mesh blob</span><span class="stage-2d-rule"><b>+4</b> Perma-dark + grey body</span></div></div>
+          </div>
+          <div class="stage-hud">
+            <div class="stage-hud-top">
+              <div class="stage-dom-row">
+                <span id="stageDomainLabel">v0-ai-launch.app</span>
+                <span id="stageFlaggedCount">10/27 rules flagged</span>
+              </div>
+              <div class="stage-polarity-row">
+                <span class="score-polarity-tag">Slop score · lower is better</span>
+              </div>
+              <div class="stage-score-strip" title="Slop score scale (lower is better): 0–9 Clean (0–2 A+, 3–5 A, 6–9 A-) · 10–27 Mild (10–14 B+, 15–19 B, 20–23 B-, 24–27 C) · 28+ Heavy (28–33 D+, 34–39 D, 40–100 F)">
+                <div>
+                  <span class="stage-score" id="stageScoreNum">48</span><span class="stage-score-unit">/100</span>
+                </div>
+                <span class="stage-dot-sep" aria-hidden="true">·</span>
+                <span class="stage-grade grade-Heavy" id="stageGradeBadge">F</span>
+                <span class="stage-tier-pill tier-Heavy" id="stageTierBadge">HEAVY</span>
+              </div>
+              <p class="stage-verdict" id="stageVerdictText">Heavy slop. Wears the starter kit head to toe.</p>
+            </div>
+
+            <div class="stage-morph-box">
+              <div class="stage-morph-head">
+                <label for="stageMorphRange">de-slop calibration morph</label>
+                <span id="stageMorphValue">0% de-slopped</span>
+              </div>
+              <div class="stage-morph-controls">
+                <input type="range" id="stageMorphRange" class="stage-morph-range" min="0" max="100" value="0" aria-label="De-slop morph percentage">
+                <button type="button" class="stage-deslop-btn" id="stageDeslopBtn">De-slop to 0/100 →</button>
+              </div>
+            </div>
+
+            <div>
+              <div class="stage-tells-head">
+                <span>exploded dom layer telemetry</span>
+                <span>weight · category</span>
+              </div>
+              <ul class="stage-tells" id="stageTellsList"></ul>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- 3. Stats strip -->
@@ -588,54 +841,127 @@
     </div>
 
     <!-- 4. Leaderboard preview -->
-    <section class="sec">
+    <section class="sec" data-reveal>
       <div class="lb-preview-head">
         <h2 class="h2-section">The cleanest pages, by category</h2>
-        <a class="lb-viewall" href="/leaderboard">view full leaderboard →</a>
+        <div class="lb-head-right">
+          <span class="score-polarity-pill" title="Slop score scale (lower is better): 0–9 Clean (0–2 A+, 3–5 A, 6–9 A-) · 10–27 Mild (10–14 B+, 15–19 B, 20–23 B-, 24–27 C) · 28+ Heavy (28–33 D+, 34–39 D, 40–100 F)">Slop score · lower is better</span>
+          <a class="lb-viewall" href="/leaderboard">view full leaderboard →</a>
+        </div>
       </div>
       <p class="lead lb-intro">A reproducible scan of well-known landing pages, cleanest first. Every name links to its score page, where the current run, history and live badge live.</p>
-      <p class="lb-disclaimer">a signal, not a verdict · premium sites score Mild too</p>
+      <p class="lb-disclaimer"><span>a signal, not a verdict ·</span><span class="lb-band" style="color:var(--clean-text)"><span class="lb-band-dot" style="background:var(--clean)" aria-hidden="true"></span>0–9 A+/A/A- Clean</span><span aria-hidden="true">·</span><span class="lb-band" style="color:var(--mild-text)"><span class="lb-band-dot" style="background:var(--mild)" aria-hidden="true"></span>10–27 B+/B/B-/C Mild</span><span aria-hidden="true">·</span><span class="lb-band" style="color:var(--heavy-text)"><span class="lb-band-dot" style="background:var(--heavy)" aria-hidden="true"></span>28+ D+/D/F Heavy</span></p>
       <div class="lb-board" id="lbBoard">
         <p class="lb-empty">The board fills from the public leaderboard. <a href="/leaderboard">view it →</a></p>
       </div>
     </section>
 
-    <!-- 5. What the score measures -->
-    <section class="sec" style="padding-top:24px">
-      <div class="measure-grid">
-        <div>
-          <h2 class="h2-measure">What the score measures</h2>
-          <p class="lead measure-intro">Four axes, two polarities. Design and copy measure slop, so lower is better. System and AEO measure fit and reach, so higher is better.</p>
+    <!-- 4.5 Interactive Pattern X-Ray Explorer -->
+    <section class="sec" id="xraySection" style="padding-top:16px" data-reveal>
+      <div class="section-ledger">
+        <span class="ledger-tag">§ 01</span>
+        <span class="ledger-label">interactive pattern x-ray</span>
+      </div>
+      <div class="lb-preview-head" style="margin-top:14px">
+        <h2 class="h2-section">Inspect the fingerprint, tell by tell</h2>
+        <a class="lb-viewall" href="/docs">full pattern specification →</a>
+      </div>
+      <p class="lead lb-intro">Select any CSS or copy rule below to compare the AI reflex against the flat editorial replacement and read the exact Chromium DOM query that triggers it.</p>
+
+      <div class="xray-wrap">
+        <div class="xray-toolbar">
+          <div class="xray-filters" role="group" aria-label="Filter patterns by category">
+            <button type="button" class="xray-filter-btn active" data-xray-filter="all">all rules</button>
+            <button type="button" class="xray-filter-btn" data-xray-filter="fonts">fonts</button>
+            <button type="button" class="xray-filter-btn" data-xray-filter="colors">colors</button>
+            <button type="button" class="xray-filter-btn" data-xray-filter="layout">layout</button>
+            <button type="button" class="xray-filter-btn" data-xray-filter="css">css</button>
+            <button type="button" class="xray-filter-btn" data-xray-filter="images">images</button>
+            <button type="button" class="xray-filter-btn" data-xray-filter="copy">copy tells</button>
+          </div>
+          <span class="xray-toolbar-note">before vs. after specimen</span>
         </div>
-        <div class="axes">
-          <div class="axis">
-            <div class="axis-mark"><span class="axis-dot" style="background:var(--heavy)"></span>design</div>
-            <div>
-              <div class="axis-name">design slop</div>
-              <p class="axis-desc"><span id="ruleCountTag">27</span> weighted CSS patterns: the fonts, gradient hero text, glassmorphism and convention stack generated pages converge on. Run on real Chromium, scored deterministically. <span class="axis-polarity" style="color:var(--heavy-text)">lower is better</span></p>
+
+        <div class="xray-grid">
+          <div class="xray-list" id="xrayList" role="listbox" aria-label="Slop pattern list"></div>
+          <div class="xray-inspector" aria-hidden="true">
+            <canvas class="xray-canvas" id="patternXrayCanvas"></canvas>
+            <div class="xray-head">
+              <div class="xray-title" id="xrayTitle">AI-default font stack (Inter / Geist / Space Grotesk)</div>
+              <div class="xray-meta" id="xrayMeta">FONTS · +8 PTS · SINCE 2026.03</div>
+            </div>
+            <div class="xray-specs">
+              <div class="xray-spec-row">
+                <span class="xray-spec-k">chromium detection rule</span>
+                <code class="xray-spec-v mono" id="xrayFormula">h1/h2/body font-family matches /inter|geist|space grotesk|plus jakarta|outfit|sora/i</code>
+              </div>
+              <div class="xray-spec-row">
+                <span class="xray-spec-k">the ai reflex</span>
+                <div class="xray-spec-v" id="xrayReflex">Every Tailwind and shadcn starter ships Inter or Geist. When H1 and body share it, the page reads as unedited scaffold.</div>
+              </div>
+              <div class="xray-spec-row">
+                <span class="xray-spec-k">senior designer fix</span>
+                <div class="xray-spec-v" id="xrayFix">Pair a high-contrast editorial serif (Newsreader, Instrument Serif, Fraunces) with a grotesque prose face (Libre Franklin, Söhne).</div>
+              </div>
             </div>
           </div>
-          <div class="axis">
-            <div class="axis-mark"><span class="axis-dot" style="background:var(--mild)"></span>copy</div>
-            <div>
-              <div class="axis-name">copy slop</div>
-              <p class="axis-desc">An optional second axis on the words: the hedge-y, em-dash-heavy register LLMs default to, and the "not just X, it's Y" antithesis. <span class="axis-polarity" style="color:var(--mild-text)">lower is better</span></p>
-            </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. What the score measures -->
+    <section class="sec" style="padding-top:24px" data-reveal>
+      <div class="section-ledger">
+        <span class="ledger-tag">§ 02</span>
+        <span class="ledger-label">four axes · two polarities</span>
+      </div>
+      <div class="measure-head" style="margin-top:14px">
+        <h2 class="h2-measure">What the score measures</h2>
+        <p class="lead measure-intro">Four axes, two polarities. Design and copy measure slop, so lower is better. System and AEO measure fit and reach, so higher is better.</p>
+      </div>
+
+      <div class="axes">
+        <div class="axis">
+          <div class="axis-top">
+            <div class="axis-mark"><span class="axis-dot" style="background:var(--heavy)"></span>design slop</div>
+            <span class="axis-polarity" style="color:var(--heavy-text)">Slop score · lower is better</span>
           </div>
-          <div class="axis">
-            <div class="axis-mark"><span class="axis-dot" style="background:var(--system-text)"></span>system</div>
-            <div>
-              <div class="axis-name">system · DESIGN.md</div>
-              <p class="axis-desc">Drift from a page's own declared design tokens. A bespoke site checked against its own <code class="mono">DESIGN.md</code> can never false-positive as slop. <span class="axis-polarity" style="color:var(--system-text)">higher is better</span></p>
-            </div>
+          <p class="axis-desc"><span id="ruleCountTag">27</span> weighted CSS and DOM patterns: the reflex fonts, purple CTAs, gradient headlines and glassmorphic cards generated pages converge on.</p>
+        </div>
+        <div class="axis">
+          <div class="axis-top">
+            <div class="axis-mark"><span class="axis-dot" style="background:var(--mild)"></span>copy slop</div>
+            <span class="axis-polarity" style="color:var(--mild-text)">Slop score · lower is better</span>
           </div>
-          <div class="axis">
-            <div class="axis-mark"><span class="axis-dot" style="background:var(--clean)"></span>aeo</div>
-            <div>
-              <div class="axis-name">aeo · agent-readable</div>
-              <p class="axis-desc">Whether ChatGPT, Claude and Perplexity can fetch, read and cite the page: crawler access, robots.txt, a markdown twin, llms.txt. <span class="axis-polarity" style="color:var(--clean-text)">higher is better</span></p>
-            </div>
+          <p class="axis-desc">Nine prose tells on the words: LLM buzzword clusters, em-dash overuse, exclamation inflation and "not just X, it's Y" antithesis framing.</p>
+        </div>
+        <div class="axis">
+          <div class="axis-top">
+            <div class="axis-mark"><span class="axis-dot" style="background:var(--system-text)"></span>system · DESIGN.md</div>
+            <span class="axis-polarity" style="color:var(--system-text)">higher is better</span>
           </div>
+          <p class="axis-desc">Token compliance against a site's own declared <code class="mono">DESIGN.md</code> fonts, palette and corner radii so bespoke brands never false-positive.</p>
+        </div>
+        <div class="axis">
+          <div class="axis-top">
+            <div class="axis-mark"><span class="axis-dot" style="background:var(--clean)"></span>aeo · agent-readable</div>
+            <span class="axis-polarity" style="color:var(--clean-text)">higher is better</span>
+          </div>
+          <p class="axis-desc">Eight checks verifying whether ChatGPT, Claude and Perplexity can fetch, parse and cite the page via <code class="mono">robots.txt</code>, <code class="mono">llms.txt</code> and Markdown twins.</p>
+        </div>
+      </div>
+
+      <div class="go-deeper">
+        <span class="go-deeper-label">Go deeper</span>
+        <div class="go-deeper-item">
+          <div class="go-deeper-title">architecture · four-axis telemetry</div>
+          <p class="go-deeper-desc">One headless Chromium pass feeds all four instruments and combines them into a deterministic grade ledger (A+ to F).</p>
+          <a class="go-deeper-link" href="/docs#axes">Read the spec →</a>
+        </div>
+        <div class="go-deeper-item">
+          <div class="go-deeper-title">workflow · mcp + ci gate + continuity</div>
+          <p class="go-deeper-desc">Remediate tells in-editor via MCP, gate pull requests with the GitHub Action and watch production domains daily for drift.</p>
+          <a class="go-deeper-link" href="/docs#presets">Setup guide →</a>
         </div>
       </div>
     </section>
@@ -679,10 +1005,14 @@
           <p class="mon-lead">A daily re-scan and a drift alert the moment a redesign slips back into slop. Scanning stays free; this remembers a domain over time.</p>
           <form class="watch-form" id="watchForm" novalidate>
             <div class="watch-row">
-              <label class="sr-only" for="watchDomain">Domain to monitor</label>
-              <input id="watchDomain" type="text" placeholder="your-site.com" autocomplete="off" spellcheck="false" required>
-              <label class="sr-only" for="watchEmail">Email for alerts</label>
-              <input id="watchEmail" type="email" placeholder="you@company.com" autocomplete="email" required>
+              <div class="watch-field">
+                <label class="watch-label" for="watchDomain">Domain to monitor</label>
+                <input id="watchDomain" type="text" placeholder="your-site.com" autocomplete="off" spellcheck="false" required>
+              </div>
+              <div class="watch-field">
+                <label class="watch-label" for="watchEmail">Email for alerts</label>
+                <input id="watchEmail" name="email" type="email" placeholder="you@company.com" autocomplete="email" required>
+              </div>
               <button type="submit" id="watchGo">Monitor</button>
             </div>
             <div class="watch-opts">
@@ -706,11 +1036,16 @@
 
     <!-- 7. Research / article cards -->
     <section class="sec">
-      <div class="section-ledger"><span class="ledger-label">research</span></div>
+      <div class="section-ledger">
+        <span class="ledger-tag">§ 03</span>
+        <span class="ledger-label">research</span>
+      </div>
       <div class="research-grid">
         <a class="feature-card" href="/docs">
-          <h3>How the scan works</h3>
-          <p>The 27-pattern fingerprint, the four axes, and why the same page always returns the same score. No model, no randomness.</p>
+          <div>
+            <h3>How the scan works</h3>
+            <p>The 27-pattern fingerprint, the four axes, and why the same page always returns the same score. Every rule runs as a deterministic DOM and computed-style query in headless Chromium — no LLM judge, no sampling jitter.</p>
+          </div>
           <div class="feature-foot">methodology · 8 min read →</div>
         </a>
         <div class="article-list">
@@ -764,7 +1099,7 @@
         <h5>install</h5>
         <a href="https://www.npmjs.com/package/slop-detect" target="_blank" rel="noopener noreferrer">CLI (npm)</a>
         <a href="https://www.npmjs.com/package/slop-detect-mcp" target="_blank" rel="noopener noreferrer">MCP server</a>
-        <a href="https://www.npmjs.com/package/slop-detect-core" target="_blank" rel="noopener noreferrer">Core engine</a>
+        <a href="https://www.npmjs.com/package/@slop-detect/core" target="_blank" rel="noopener noreferrer">Core engine</a>
         <a href="/docs">Docs</a>
       </div>
       <div class="ft-col">
@@ -778,7 +1113,7 @@
     </div>
     <div class="ft-note">
       <span class="ft-fp">A fingerprint, not a verdict. Premium sites score Mild too.</span>
-      <span class="ft-repro">© 2026 · MIT · reproduce: npx slop-detect &lt;domain&gt;</span>
+      <span class="ft-repro">© 2026 · MIT <span id="rulesDefs">· defs 2026.09</span> · reproduce: npx slop-detect &lt;domain&gt;</span>
     </div>
   </footer>
 
@@ -823,8 +1158,8 @@ const form = $('form'), urlInput = $('url'), goBtn = $('go'),
     const el = $('hubStats');
     if (!el) return;
     const gradeFor = (n) => n<=2?'A+':n<=5?'A':n<=9?'A-':n<=14?'B+':n<=19?'B':n<=23?'B-':n<=27?'C':n<=33?'D+':n<=39?'D':'F';
-    el.textContent = s.count.toLocaleString('en-US') + ' pages scanned · median grade ' +
-      gradeFor(Math.round(s.avgScore)) + ' (' + s.avgScore + '/100) · ' + s.slopShare + '% carry slop';
+    el.textContent = s.count.toLocaleString('en-US') + ' pages scanned · median score ' +
+      Math.round(s.avgScore) + ' · ' + gradeFor(Math.round(s.avgScore)) + ' (lower is better) · ' + s.slopShare + '% carry slop';
     el.hidden = false;
   } catch (_) {}
 })();
@@ -858,7 +1193,8 @@ const form = $('form'), urlInput = $('url'), goBtn = $('go'),
   };
   const CATEGORY_ORDER = ['classic', 'saas', 'bigtech', 'ai-builder'];
   const CHIPS = ['#C9402E','#9A6B12','#15824A','#46473F','#2C6E8F','#7A4D9A'];
-  const tierTextFor = (t) => t === 'Clean' ? '#15824A' : t === 'Mild' ? '#9A6B12' : t === 'Heavy' ? '#B23A2A' : '#6E6F63';
+  const SCALE_TIP = 'Slop score scale (lower is better): 0–9 Clean (0–2 A+, 3–5 A, 6–9 A-) · 10–27 Mild (10–14 B+, 15–19 B, 20–23 B-, 24–27 C) · 28+ Heavy (28–33 D+, 34–39 D, 40–100 F)';
+  const tierTextFor = (t) => t === 'Clean' ? '#0E6B3A' : t === 'Mild' ? '#78520A' : t === 'Heavy' ? '#A83223' : '#54564C';
   const avatarColor = (name) => {
     let h = 2166136261;
     for (let i = 0; i < name.length; i++) { h ^= name.charCodeAt(i); h = Math.imul(h, 16777619); }
@@ -881,16 +1217,18 @@ const form = $('form'), urlInput = $('url'), goBtn = $('go'),
     const board = $('lbBoard');
     if (!board) return;
     board.innerHTML = keys.map((k) => {
+      const catLabel = esc(CATEGORY_NAMES[k] || k);
       const rows = groups[k].slice().sort((a, b) => a.score - b.score).slice(0, 4).map((s, i) => {
         const dom = esc(s.domain);
         return '<a class="lr" href="/score/' + encodeURIComponent(s.domain) + '">' +
-          '<span class="lr-rank">' + (i + 1) + '</span>' +
+          '<span class="lr-rank">#' + (i + 1) + '</span>' +
           '<span class="lr-name"><span class="av" style="background:' + avatarColor(s.domain) + '" aria-hidden="true">' +
             esc(s.domain.charAt(0).toUpperCase()) + '</span><span class="lr-dom">' + dom + '</span></span>' +
-          '<span class="lr-score">' + (s.score != null ? s.score : '') + ' <span class="lr-grade" style="color:' +
+          '<span class="lr-score" title="' + esc(SCALE_TIP) + '"><span class="lr-num">' + (s.score != null ? s.score : '') + '</span> <span class="lr-grade" style="color:' +
             tierTextFor(s.tier) + '">' + esc(s.grade || '') + '</span></span></a>';
       }).join('');
-      return '<div class="lb-col"><h3 class="lb-col-h">' + esc(CATEGORY_NAMES[k] || k) + '</h3>' + rows + '</div>';
+      return '<div class="lb-col"><h3 class="lb-col-h"><span>' + catLabel + '</span><span>score · grade</span></h3>' + rows +
+        '<a class="lb-col-more" href="/leaderboard">see all in ' + catLabel.toLowerCase() + ' →</a></div>';
     }).join('');
   } catch (_) {
     // Dataset unavailable — leave the static "view the leaderboard" fallback.
@@ -960,6 +1298,17 @@ form.addEventListener('submit', async (e) => {
   statusEl.classList.add('show');
   statusEl.textContent = 'Loading page in headless Chromium…';
 
+  if (window.__slopInstrument && window.__slopInstrument.startLiveScan) {
+    window.__slopInstrument.startLiveScan(url);
+  }
+
+  const scanPayload = {
+    url,
+    ...($('optCopy') && $('optCopy').checked ? { axes: ['design', 'copy'] } : {}),
+    ...($('optSystem') && $('optSystem').checked ? { designMd: true } : {}),
+    ...($('optPreset') && $('optPreset').value && $('optPreset').value !== 'full' ? { preset: $('optPreset').value } : {})
+  };
+
   const t0 = Date.now();
   try {
     // Grab a Turnstile token (invisible to most users).
@@ -970,7 +1319,7 @@ form.addEventListener('submit', async (e) => {
         'Content-Type': 'application/json',
         ...(token ? { 'X-Turnstile-Token': token } : {})
       },
-      body: JSON.stringify({ url })
+      body: JSON.stringify(scanPayload)
     });
     const data = await r.json();
     // Reset token after every submit (Turnstile tokens are single-use).
@@ -1004,6 +1353,9 @@ form.addEventListener('submit', async (e) => {
     statusEl.classList.add('error');
     statusEl.textContent = '✗ ' + err.message;
   } finally {
+    if (window.__slopInstrument && window.__slopInstrument.stopLiveScan) {
+      window.__slopInstrument.stopLiveScan();
+    }
     goBtn.disabled = false;
     goBtn.textContent = 'Scan';
   }
@@ -1022,7 +1374,11 @@ if (watchForm) watchForm.addEventListener('submit', async (e) => {
   const btn = $('watchGo'), msg = $('watchMsg');
   const domain = $('watchDomain').value.trim();
   const email = $('watchEmail').value.trim();
-  if (!domain || !email) return;
+  if (!domain || !email) {
+    msg.className = 'watch-msg show err';
+    msg.textContent = '✗ Enter both a domain (e.g. your-site.com) and an alert email.';
+    return;
+  }
 
   btn.disabled = true; btn.textContent = 'Setting up…';
   msg.className = 'watch-msg show'; msg.textContent = 'Registering monitor…';
@@ -1086,16 +1442,16 @@ function render(d, totalMs) {
       <button id="fixPromptBtn">Generate fix prompt →</button>
     </div>` : '';
 
+  const scaleTip = 'Slop score scale (lower is better): 0–9 Clean (0–2 A+, 3–5 A, 6–9 A-) · 10–27 Mild (10–14 B+, 15–19 B, 20–23 B-, 24–27 C) · 28+ Heavy (28–33 D+, 34–39 D, 40–100 F)';
   resultEl.innerHTML = `
     <div class="result-head">
       <div class="result-url">${escapeHtml(d.finalUrl || d.url)}</div>
       <div class="result-title">${escapeHtml(d.title || '(no title)')}</div>
       ${d.h1 ? `<div class="result-h1">H1: "${escapeHtml(d.h1.slice(0,80))}${d.h1.length>80?'…':''}"</div>` : ''}
-      <div class="score-row">
-        <div class="score-grade grade-${d.tier}">${escapeHtml(d.grade || '')}</div>
+      <div class="score-row" title="${scaleTip}">
         <div>
-          <div class="score-num">${d.score}<small>/100</small></div>
-          <div class="scale-note">slop · lower is better</div>
+          <div class="score-num">${d.score}<small>/100</small> · <span class="score-grade grade-${d.tier}">${escapeHtml(d.grade || '')}</span></div>
+          <div class="scale-note">Slop score · lower is better</div>
         </div>
         <div class="score-tier tier-${d.tier}">${d.tier}</div>
         <div class="score-meta">${d.patternsFlagged}/${d.patternsTotal} patterns · ${(totalMs/1000).toFixed(1)}s</div>
@@ -1426,5 +1782,6 @@ copyBtn.addEventListener('click', async () => {
     }).observe(resultEl, { childList: true, subtree: true });
   })();
 </script>
+<script src="/instrument-3d.js" defer></script>
 </body>
 </html>

@@ -38,7 +38,7 @@ export function tierFill(tier: string): string {
   }
 }
 
-// text (the `Fg`) — AA-darkened hues for type on paper.
+// text (the `Fg`) — AA hues on white (#FFFFFF: 4.86:1 Clean, 4.68:1 Mild, 5.44:1 Heavy).
 export function tierText(tier: string): string {
   switch (tier) {
     case 'Clean':
@@ -48,7 +48,7 @@ export function tierText(tier: string): string {
     case 'Heavy':
       return '#B23A2A';
     default:
-      return '#6E6F63';
+      return '#565750';
   }
 }
 
@@ -100,25 +100,25 @@ export function tierColors(tier: string): {
 // System (DESIGN.md) axis: higher is better.
 //   Aligned ≥ 80 · Drifting ≥ 50 · Off-system < 50 · no system declared → grey.
 export function systemAxisColor(score: number | null | undefined): string {
-  if (score == null) return '#6E6F63';
+  if (score == null) return '#565750';
   const s = Number(score) || 0;
-  if (s >= 80) return '#15824A';
-  if (s >= 50) return '#9A6B12';
-  return '#B23A2A';
+  if (s >= 80) return '#0E6B3A';
+  if (s >= 50) return '#78520A';
+  return '#A83223';
 }
 
 // AEO (agent-readable) axis: higher is better.
 //   AI-Ready ≥ 80 · Partial ≥ 50 · Invisible < 50.
 export function aeoAxisColor(score: number): string {
   const s = Number(score) || 0;
-  if (s >= 80) return '#15824A';
-  if (s >= 50) return '#9A6B12';
-  return '#B23A2A';
+  if (s >= 80) return '#0E6B3A';
+  if (s >= 50) return '#78520A';
+  return '#A83223';
 }
 
 // Pass / fail marks for the AEO checklist.
-export const AEO_PASS_COLOR = '#15824A';
-export const AEO_FAIL_COLOR = '#C9402E';
+export const AEO_PASS_COLOR = '#0E6B3A';
+export const AEO_FAIL_COLOR = '#A83223';
 
 // Letter-avatar chip palette (deterministic per name). The one purple (#7A4D9A)
 // appears ONLY here, as 1 of 6 data backgrounds — never a CTA, accent, or brand

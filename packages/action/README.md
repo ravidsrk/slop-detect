@@ -56,7 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Slop Detect
-        uses: ravidsrk/slop-detect/packages/action@v0.2.0
+        uses: ravidsrk/slop-detect/packages/action@v0.8.0
         with:
           # Replace with your deploy-preview URL (see note below).
           url: https://your-site.com
@@ -79,7 +79,7 @@ jobs:
           URL=$(vercel inspect --token=$VERCEL_TOKEN ... )   # your lookup
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 
-      - uses: ravidsrk/slop-detect/packages/action@v0.2.0
+      - uses: ravidsrk/slop-detect/packages/action@v0.8.0
         with:
           url: ${{ steps.preview.outputs.url }}
           fail-under: 'B'   # fail if the page grades worse than B
@@ -115,7 +115,7 @@ Use them in later steps:
 
 ```yaml
       - id: slop
-        uses: ravidsrk/slop-detect/packages/action@v0.2.0
+        uses: ravidsrk/slop-detect/packages/action@v0.8.0
         with:
           url: https://your-site.com
       - run: echo "Graded ${{ steps.slop.outputs.grade }} (${{ steps.slop.outputs.score }}/100)"

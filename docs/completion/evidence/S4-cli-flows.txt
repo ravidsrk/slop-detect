@@ -1,0 +1,71 @@
+=== CF-02 CLI VERSION ===
+slop-detect 0.8.0 (defs 2026.09)
+EXIT=0
+=== CF-02 CLI HAPPY (HUMAN VERDICT + FIX PROMPT) ===
+Your landing page (http://127.0.0.1:31138) scored 0/100 — tier "Clean" — and triggered 0 of 36 slop patterns. There's nothing to fix on the slop dimension. Move on to conversion or content quality.
+EXIT=0
+=== CF-02 CLI SARIF 2.1.0 ===
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "slop-detect",
+          "informationUri": "https://slop-detect.com",
+          "rules": [
+            {
+              "id": "slop_fonts",
+              "name": "Slop fonts",
+              "shortDescription": {
+                "text": "AI-default font stack (Inter / Geist / Space Grotesk)"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "axis": "design",
+                "category": "fonts",
+                "weight": 8
+              }
+            },
+=== CF-02 CLI INIT-DESIGN-MD ===
+---
+name: "Slop Detector: score any landing page against the AI-design fingerprint"
+colors:
+  surface: "#F4F5F2"
+  ink: "#181815"
+  primary: "#181815"
+  accent_1: "#FBFBF9"
+  accent_2: "#0E6B3A"
+  accent_3: "#1FA85E"
+typography:
+  h1:
+    fontFamily: "newsreader"
+  body:
+    fontFamily: "jetbrains mono"
+  font_1:
+    fontFamily: "libre franklin"
+rounded:
+  sm: 3px
+  md: 4px
+  lg: 5px
+  xl: 6px
+  2xl: 8px
+  3xl: 50px
+components:
+  button-primary:
+    backgroundColor: "{colors.primary}"
+    textColor: "{colors.surface}"
+---
+
+# Slop Detector: score any landing page against the AI-design fingerprint — Design System (`DESIGN.md`)
+=== CF-02 CLI FAILURE PATH (UNREACHABLE URL) ===
+
+[31m[1m✗ http://127.0.0.1:59999[0m
+  [31mpage.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:59999/
+Call log:
+  - navigating to "http://127.0.0.1:59999/", waiting until "domcontentloaded"
+[0m
+

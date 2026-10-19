@@ -30,11 +30,17 @@ function serve() {
     new URL('../../../apps/web/public/index.html', import.meta.url),
     'utf8'
   );
+  const instrumentJs = readFileSync(
+    new URL('../../../apps/web/public/instrument-3d.js', import.meta.url),
+    'utf8'
+  );
   const server = createServer((req, res) => {
     if (req.url === '/api/scan' && req.method === 'POST') {
       res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(SCAN));
     } else if (req.url === '/api/fix-prompt' && req.method === 'POST') {
       res.writeHead(200, { 'Content-Type': 'text/plain' }).end('FIX PROMPT TEXT HERE');
+    } else if (req.url === '/instrument-3d.js') {
+      res.writeHead(200, { 'Content-Type': 'application/javascript' }).end(instrumentJs);
     } else {
       res.writeHead(200, { 'Content-Type': 'text/html' }).end(html);
     }

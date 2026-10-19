@@ -1,5 +1,5 @@
 import { test, expect, afterEach } from 'vitest';
-import { handleCall, TOOLS } from '../src/server.ts';
+import { handleCall, TOOLS, PROMPTS, RESOURCES } from '../src/server.ts';
 
 const realFetch = global.fetch;
 afterEach(() => {
@@ -15,7 +15,7 @@ function jsonRes(body, { ok = true, status = 200, text } = {}) {
   };
 }
 
-test('TOOLS lists all four tool names with url required', () => {
+test('TOOLS lists all four tool names with url required and MCP annotations', () => {
   expect(TOOLS.map((t) => t.name)).toEqual([
     'scan_page',
     'check_aeo',
@@ -24,9 +24,19 @@ test('TOOLS lists all four tool names with url required', () => {
   ]);
   for (const t of TOOLS) {
     expect(t.inputSchema.required).toContain('url');
+    expect(typeof t.title).toBe('string');
+    expect(t.annotations.readOnlyHint).toBe(true);
+    expect(t.annotations.destructiveHint).toBe(false);
+    expect(t.annotations.idempotentHint).toBe(true);
+    expect(t.annotations.openWorldHint).toBe(true);
   }
   const system = TOOLS.find((t) => t.name === 'check_design_system');
   expect(system.inputSchema.properties.design_md_url).toBeTruthy();
+  expect(PROMPTS.map((p) => p.name)).toEqual(['audit_landing_page', 'deslop_and_verify']);
+  expect(RESOURCES.map((r) => r.uri)).toEqual([
+    'slop://spec/patterns',
+    'slop://spec/design-md-template',
+  ]);
 });
 
 test('missing url is a tool error, not a crash', async () => {
@@ -59,6 +69,56 @@ test('scan_page POSTs /api/scan and formats the result', async () => {
   expect(calls[0].url).toMatch(/\/api\/scan$/);
   expect(calls[0].body).toEqual({ url: 'https://example.com' });
   expect(r.content[0].text).toMatch(/Score: 4\/100/);
+});
+
+test('scan_page forwards optional copy/axes/preset/design_md_url and formats multi-axis output', async () => {
+  const calls = [];
+  global.fetch = async (url, opts) => {
+    calls.push({ url: String(url), body: JSON.parse(opts.body) });
+    return jsonRes({
+      grade: 'A',
+      score: 4,
+      tier: 'Clean',
+      unifiedScore: 12,
+      unifiedGrade: 'B+',
+      unifiedTier: 'Mild',
+      patternsFlagged: 0,
+      patternsTotal: 27,
+      patterns: [],
+      axes: {
+        copy: {
+          score: 12,
+          grade: 'B+',
+          tier: 'Mild',
+          patternsFlagged: 1,
+          patternsTotal: 9,
+          patterns: [
+            { id: 'buzzword_density', label: 'AI buzzword density', weight: 7, triggered: true },
+          ],
+        },
+      },
+      system: {
+        declared: true,
+        score: 95,
+        tier: 'Aligned',
+      },
+    });
+  };
+  const r = await handleCall('scan_page', {
+    url: 'https://example.com',
+    copy: true,
+    preset: 'strict',
+    design_md_url: 'auto',
+  });
+  expect(calls[0].body).toEqual({
+    url: 'https://example.com',
+    axes: ['design', 'copy'],
+    preset: 'strict',
+    designMd: true,
+  });
+  expect(r.content[0].text).toMatch(/Unified Score: 12\/100/);
+  expect(r.content[0].text).toMatch(/Copy Axis: 12\/100/);
+  expect(r.content[0].text).toMatch(/System Axis \(DESIGN\.md\): 95\/100/);
 });
 
 test('check_aeo POSTs /api/aeo; check_design_system forwards design_md_url', async () => {

@@ -1,0 +1,27 @@
+=== H-01 KV NAMESPACES CHECK & PREVIEW PROVISIONING ===
+ok	RATE_LIMIT	c5aad4cb07e7405e86c3cf1aebcae772
+ok	RESULTS	f8bbc9f7a16948a2995215321e679115
+exists slop-detector-RATE_LIMIT-preview: be2494e78b8e40bcbe42757f2a3ac1e7
+exists slop-detector-RESULTS-preview: cda8560802c04fe6b4ba356a6115a478
+be2494e78b8e40bcbe42757f2a3ac1e7	slop-detector-RATE_LIMIT-preview
+c5aad4cb07e7405e86c3cf1aebcae772	slop-detect-ratelimit
+cda8560802c04fe6b4ba356a6115a478	slop-detector-RESULTS-preview
+f8bbc9f7a16948a2995215321e679115	slop-detect-results
+ffc392140db249148dee1577ac5544b3	thedeepfeed-session
+=== H-01 / T-08 LIVE PRODUCTION KV BACKUP, VERIFY & RESTORE DRY-RUN ===
+backup RATE_LIMIT: 3 keys (0 missing) -> /tmp/slop-prod-kv-backup/RATE_LIMIT
+verify RATE_LIMIT: 3 checked, 0 mismatched (live 3, backup 3)
+restore RATE_LIMIT DRY-RUN: 3 writes, 0 skipped-expired, 7 bytes
+
+=== T-27 LIVE PRODUCTION ROLLBACK & ROLL-FORWARD REHEARSAL ===
+Current deployment: c76f804f-a251-4a39-acfd-35563bf994db
+Previous deployment: 7679833d-8813-496d-a199-1defa63c37b0
+POST /deployments/7679833d-8813-496d-a199-1defa63c37b0/rollback -> {
+  "success": true,
+  "id": "7679833d-8813-496d-a199-1defa63c37b0"
+}
+POST /deployments/c76f804f-a251-4a39-acfd-35563bf994db/rollback -> {
+  "success": true,
+  "id": "c76f804f-a251-4a39-acfd-35563bf994db"
+}
+GET https://slop-detect.com/api/health -> {"status":"ok","checks":{"browser":{"ok":true},"rateLimitKv":{"ok":true,"latencyMs":84},"resultsKv":{"ok":true,"latencyMs":79},"scans":{"ok":true}},"version":"2026.09","time":"2026-10-19T10:02:20.159Z"}

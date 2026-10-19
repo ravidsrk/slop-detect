@@ -1,7 +1,7 @@
 # slop-detect
 
-> **Score any landing page against the 27-rule AI-design-slop fingerprint, then keep it clean.**
-> Detect Cursor / v0 / Lovable / Bolt templates in the wild, check a page against its own `DESIGN.md`, and get a copy-pasteable fix prompt. Monitor a domain and get emailed when it drifts.
+> **Score any landing page against the 27-rule AI-design-slop fingerprint, 9-rule copy axis, `DESIGN.md` system compliance, and 8-check AEO readiness — then keep it clean.**
+> Detect Cursor / v0 / Lovable / Bolt templates in the wild, verify a page against its own `DESIGN.md`, check if AI answer engines can cite it, and generate a copy-pasteable fix prompt. Monitor a domain and get emailed when it drifts.
 
 <p>
   <a href="https://github.com/ravidsrk/slop-detect/actions"><img alt="CI" src="https://github.com/ravidsrk/slop-detect/workflows/ci/badge.svg" /></a>
@@ -10,6 +10,10 @@
   <a href="https://slop-detect.com"><img alt="Live demo" src="https://img.shields.io/badge/live-slop--detect.com-22c55e" /></a>
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-blue.svg" /></a>
   <img alt="Node" src="https://img.shields.io/badge/node-%3E%3D20-339933" />
+</p>
+
+<p align="center">
+  <img src="apps/web/public/media/hero-optical-instrument.png" alt="Optical DOM Spectrometer — 5-Layer Inspection Plane Architecture" width="100%" />
 </p>
 
 ```
@@ -40,13 +44,18 @@ https://news.ycombinator.com
 
 By April 2026, AI-generated landing pages had collapsed onto a measurable visual fingerprint. Inter font, purple-to-blue gradient hero, "Now in Beta" pill badge, gradient-letter testimonial avatars, identical icon-topped feature cards. [Adrian Krebs's study](https://www.adriankrebs.ch/blog/design-slop/) scored ~1,400 Show HN submissions with Playwright and found **67% carried detectable AI-design fingerprints**.
 
-`slop-detect` reproduces Krebs's methodology, adds the signals Meng To identified in his [May 2026 Aura tutorial](https://x.com/MengTo/status/2058893181740359863), and packages it three ways:
+`slop-detect` reproduces Krebs's methodology, adds the signals Meng To identified in his [May 2026 Aura tutorial](https://x.com/MengTo/status/2058893181740359863), integrates typography & contrast tells from [Impeccable](https://github.com/pbakaus/impeccable), and packages the four-axis engine (`definitions@2026.09`) across four surfaces:
 
-- 🟢 **`slop-detect`**, Playwright-based, run from your terminal or CI
-- 🟢 **`slop-detect.com`**, drop-in web UI, scan any URL in about 5 seconds
-- 🟢 **`@slop-detect/core`**, pure detection engine, embed it in your own pipeline
+- 🟢 **`slop-detect`**, Playwright-based CLI, run from your terminal or CI
+- 🟢 **`slop-detect.com`**, drop-in web UI & interactive 3D telemetry workbench
+- 🟢 **`slop-detect-mcp`**, Model Context Protocol server for Claude Code, Cursor, and Windsurf
+- 🟢 **`@slop-detect/core`**, pure runtime-agnostic detection engine
 
-All three share the **same 27-rule scoring engine** so a Heavy from the CLI is a Heavy from the web is a Heavy from the API.
+<p align="center">
+  <img src="apps/web/public/media/docs-four-axes-architecture.png" alt="Four-Axis Telemetry Architecture (Design · Copy · System · AEO)" width="100%" />
+</p>
+
+All surfaces share the **same 27-rule design engine, 9-rule copy engine, `DESIGN.md` comparator, and 8-check AEO verifier** so a Heavy from the CLI is a Heavy from the web is a Heavy from the API.
 
 ## Try it now
 
@@ -57,10 +66,10 @@ open https://slop-detect.com
 # API: one curl away
 curl -s -X POST -H 'Content-Type: application/json' \
   https://slop-detect.com/api/scan \
-  -d '{"url":"https://your-site.com"}' | jq
+  -d '{"url":"https://your-site.com","axes":["design","copy"],"designMd":true}' | jq
 
 # CLI: for CI, batch scans, or air-gapped work
-npx slop-detect https://your-site.com
+npx slop-detect https://your-site.com --copy --aeo
 
 # CLI without a local browser: scan via the API (zero Playwright install)
 npx slop-detect https://your-site.com --remote
@@ -72,24 +81,29 @@ git clone --depth 1 https://github.com/ravidsrk/slop-detect /tmp/sd \
 
 ## Share & embed
 
-Every scan now gets a **shareable permalink** with an auto-generated social card,
-and any domain gets a **live badge** you can drop in a README or site footer.
+Every scan gets a **shareable permalink** with an auto-generated social card, a canonical **domain score hub**, and a **live SVG badge** you can drop in a README or site footer.
 
 ```md
 <!-- Live slop badge — re-scans periodically, colored by tier -->
-[![slop](https://slop-detect.com/badge/your-site.com.svg)](https://slop-detect.com)
+[![slop](https://slop-detect.com/badge/your-site.com.svg)](https://slop-detect.com/score/your-site.com)
 ```
 
 | Endpoint | What it returns |
 |---|---|
 | `GET /r/<id>` | Server-rendered result permalink (OG card unfurls on X / LinkedIn / Slack) |
+| `GET /score/<domain>` | Canonical per-domain telemetry hub with 3D breakdown, history & fix prompt |
+| `GET /report/<domain>` | Print-friendly agency audit report (`@media print` ready) |
 | `GET /og/<id>.png` | 1200×630 PNG share card (grade · score · tier · verdict) |
 | `GET /badge/<domain>.svg` | Live tier-colored badge (`slop · A · 6`) for the last scan of that domain |
 
 The `POST /api/scan` response includes `grade`, `verdict`, `definitionsVersion`,
 plus an `id` and `resultUrl` for the shareable permalink.
 
-## Use it in your agent (MCP)
+## Use it in your agent (MCP) & CI (GitHub Action)
+
+<p align="center">
+  <img src="apps/web/public/media/docs-ci-mcp-loop.png" alt="Closed-Loop Anti-Slop Engineering Workflow (MCP + CI Gate + Continuity Sweep)" width="100%" />
+</p>
 
 [`slop-detect-mcp`](packages/mcp) is a Model Context Protocol server that lets
 Cursor / Claude Code / Windsurf agents scan a page **before** they ship it, and
@@ -105,14 +119,14 @@ pull the fix prompt back into the editing loop. Four tools: `scan_page`,
 }
 ```
 
-## Gate it in CI (GitHub Action)
+### Gate it in CI (GitHub Action)
 
 [`slop-detect-action`](packages/action) scans a deploy-preview URL, posts a
 **sticky PR comment** with the grade + triggered patterns, and **fails the check**
 when slop creeps above your threshold.
 
 ```yaml
-- uses: ravidsrk/slop-detect/packages/action@v0.2.0
+- uses: ravidsrk/slop-detect/packages/action@v0.8.0
   with:
     url: ${{ steps.preview.outputs.url }}   # your Vercel/Netlify preview URL
     fail-under: 'B'                          # fail if the grade drops below B
@@ -132,7 +146,7 @@ domain and emails you when it regresses to slop between redesigns:
 # Start monitoring (double opt-in: you confirm via an emailed link)
 curl -s -X POST -H 'Content-Type: application/json' \
   https://slop-detect.com/api/watch \
-  -d '{"url":"https://your-site.com","email":"you@example.com","list":true}'
+  -d '{"url":"https://your-site.com","email":"you@example.com","list":true,"system":true}'
 ```
 
 Add `"system": true` and the daily sweep also checks the domain against its own
@@ -140,7 +154,7 @@ Add `"system": true` and the daily sweep also checks the domain against its own
 system**, the check that catches what an agent or a non-designer quietly broke.
 Every monitored domain gets a print-friendly client report at
 `slop-detect.com/report/<domain>`, and the [dashboard](https://slop-detect.com/dashboard)
-(magic-link sign-in, no password) shows every domain on your email in one view.
+(magic-link sign-in, no password, with self-serve JSON export and erasure) shows every domain on your email in one view.
 
 `list: true` also opts the domain into the public, crawlable
 [**directory**](https://slop-detect.com/directory) of scored sites, an
@@ -157,6 +171,7 @@ layer, free during the current validation phase.
 
 `definitions@2026.09`, versioned ruleset. Scores from a given definition
 version are comparable; the version ships in every result (`definitionsVersion`).
+Browse and filter all rules interactively at [`slop-detect.com/docs`](https://slop-detect.com/docs#catalogue).
 
 | # | Pattern | Weight | What it detects |
 |---|---|---|---|
@@ -219,6 +234,10 @@ declaratively; see [CONTRIBUTING.md](CONTRIBUTING.md#the-low-friction-path-decla
 
 ## The system axis: DESIGN.md compliance
 
+<p align="center">
+  <img src="apps/web/public/media/docs-design-md-drift.png" alt="DESIGN.md System Compliance vs. Live DOM Drift" width="100%" />
+</p>
+
 The absolute slop score asks "does this look AI-generated?" The **system axis**
 asks the durable question: **"does this page honor its own declared design
 system?"** Declare your tokens in a [DESIGN.md](https://github.com/google-labs-code/design.md)
@@ -275,6 +294,33 @@ compatibility. Multi-axis adds `axes.{design,copy}` plus `unifiedScore` /
 `unifiedTier`. The unified score = max axis score + a small penalty when more
 than one axis is dirty. API: `{ "url": "...", "axes": ["design","copy"] }`.
 
+## The AEO axis: Answer Engine Optimization (8 checks)
+
+<p align="center">
+  <img src="apps/web/public/media/docs-aeo-crawler-pipeline.png" alt="AEO (Answer Engine Optimization) — 8-Check Agent-Readable Verification Pipeline" width="100%" />
+</p>
+
+Can AI answer engines (`GPTBot`, `ClaudeBot`, `PerplexityBot`, `Google-Extended`) fetch, parse, and cite your page? The **AEO axis** runs 8 deterministic HTTP and HTML checks without a headless browser:
+
+1. `html.reachable` (10 pts, required) — Page is reachable (HTML 2xx)
+2. `bot.notBlocked` (25 pts, required) — AI crawlers are not blocked (`GPTBot` gets 2xx)
+3. `robots.aiAllowed` (20 pts, required) — `robots.txt` does not Disallow AI crawlers
+4. `html.indexable` (15 pts, required) — Page is indexable (no `noindex`)
+5. `md.twin` (10 pts, recommended) — Markdown twin served at `<url>.md`
+6. `html.linkAlternate` (8 pts, recommended) — HTML advertises the markdown twin (`Link rel="alternate"`)
+7. `site.llmsTxt` (7 pts, recommended) — `/llms.txt` published at the site root
+8. `html.vary` (5 pts, recommended) — HTML sends `Vary: Accept` (content-negotiation aware)
+
+```bash
+npx slop-detect https://your-site.com --aeo
+
+curl -s -X POST -H 'Content-Type: application/json' \
+  https://slop-detect.com/api/aeo \
+  -d '{"url":"https://your-site.com"}' | jq
+```
+
+Higher is better: `AI-Ready` (≥80) · `Partial` (≥50) · `Invisible` (<50).
+
 ## What's in this repo
 
 ```
@@ -293,7 +339,7 @@ slop-detect/
 ```
 
 A bun + turborepo monorepo. `core` is the single source of truth for the 27 design
-patterns, 9 copy patterns, and 8 AEO checks; `cli`, `web`, and `mcp` are thin
+patterns, 9 copy patterns, `DESIGN.md` checker, and 8 AEO checks; `cli`, `web`, and `mcp` are thin
 runtime adapters around it.
 
 ## Quickstart: contributing
@@ -343,49 +389,55 @@ Plus cross-cutting guidance ("don't replace one slop pattern with another", "emp
 
 ## Programmatic use
 
-```js
-import { PATTERNS, scorePatterns } from '@slop-detect/core';
+```ts
+import {
+  PATTERNS,
+  buildPageEvaluateScript,
+  assembleScanResult,
+} from '@slop-detect/core';
 
-// PATTERNS is the array of 27 rule definitions.
-// Each has { id, label, weight, extract, detect } where:
-//   extract(ctx) runs in the page's DOM context and returns signals
-//   detect(signals) is a pure function deciding triggered: true/false
+// 1) Execute the unified page-evaluate script inside your browser runner:
+const script = buildPageEvaluateScript(PATTERNS, { includeCopy: true });
+const raw = await page.evaluate(script);
 
-const patternResults = PATTERNS.map(p => {
-  const signals = runInPage(p.extract);  // your browser runner
-  return { ...p, triggered: p.detect(signals), evidence: signals };
+// 2) Assemble the full multi-axis scan result:
+const result = assembleScanResult(raw, {
+  url: 'https://example.com',
+  finalUrl: page.url(),
+  axes: ['design', 'copy'],
+  patterns: PATTERNS,
 });
-
-const { score, tier, patternsFlagged } = scorePatterns(patternResults);
 ```
 
-The runner is yours, Playwright, Puppeteer, Cloudflare Browser Rendering, Browserless, whatever you have. The `core` package never touches a browser.
+The runner is yours — Playwright, Puppeteer, Cloudflare Browser Rendering, Browserless, whatever you have. The `core` package never touches a browser.
 
 ## Roadmap
 
-See [ROADMAP.md](ROADMAP.md) for the full strategic plan. Phase 1 (distribution
-primitives) shipped in v0.2.0:
+See [ROADMAP.md](ROADMAP.md) for the full strategic plan. Shipped through `v0.8.0` (`definitions@2026.09`):
 
-- [x] **Shareable result permalinks**: every scan gets `slop-detect.com/r/<id>`
+- [x] **Shareable result permalinks & domain hubs**: `/r/<id>`, `/score/<domain>`, and `/report/<domain>`
 - [x] **OG share cards**: auto-generated 1200×630 image per result (`/og/<id>.png`)
 - [x] **Letter grades + verdict**: A+→F grade and a one-liner on every score
 - [x] **Embeddable SVG badge**: `slop-detect.com/badge/<domain>.svg` + copy-paste snippets
-- [x] **Versioned slop definitions**: scores tagged with `definitionsVersion`
+- [x] **Versioned slop definitions**: scores tagged with `definitionsVersion` (`2026.09`)
 - [x] **GitHub Action**: sticky PR comment + pass/fail status check on preview URLs
-- [x] **MCP server** (`slop-detect-mcp`) so agents self-audit before shipping
+- [x] **MCP server** (`slop-detect-mcp`) with `scan_page`, `check_aeo`, `check_design_system`, and `fix_prompt`
 - [x] **Public REST API** with key-based rate-limit tiers ([API.md](apps/web/API.md))
-- [x] **Declarative rule format** + named presets (strict / marketing / minimal)
-- [x] **New 2026.07 patterns**: bento walls, aurora gradients, AI sparkles
+- [x] **Declarative rule format** + named presets (`strict` / `marketing` / `minimal`)
+- [x] **27-rule design catalogue**: Krebs + Meng To + 2026.07 tells + Impeccable typography/contrast rules
 - [x] **Multi-axis slop score**: design + copy axes, unified score, both-axis fix prompts
+- [x] **System axis (`DESIGN.md` compliance)**: per-site token drift check + daily monitor alerts
+- [x] **AEO axis (8 checks)**: crawler access, `/llms.txt`, `.md` twin, JSON-LD, SSR prose
+- [x] **Agency dashboard (`/dashboard`)**: magic-link sign-in, multi-domain telemetry, GDPR/DPDP self-serve export & erase
 - [ ] Community rule registry + web rule authoring UI
 - [ ] AI-builder provenance signal ("likely built with v0 / Lovable / Bolt")
 - [ ] Code-slop axis (repo / view-source hook)
-- [ ] Historical scoring + team dashboards (Pro)
 
 ## Acknowledgments
 
 - **[Adrian Krebs](https://www.adriankrebs.ch/blog/design-slop/)**: original AI-design-slop study and 12-pattern fingerprint
 - **[Meng To](https://x.com/MengTo)**: Aura tutorial that codified the gradient-letter avatar pattern
+- **[Paul Bakaus / Impeccable](https://github.com/pbakaus/impeccable)**: typography, hierarchy, and contrast patterns (#20–27)
 - All the **AI tools we're detecting** (Cursor, v0, Lovable, Bolt), which generated the corpus that taught us what slop looks like
 
 ## Support

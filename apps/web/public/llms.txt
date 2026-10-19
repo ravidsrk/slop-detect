@@ -15,13 +15,16 @@ page looks machine-generated, not that it is bad.
 - [Homepage (markdown twin)](https://slop-detect.com/index.md): What Slop
   Detector measures and how the scan works.
 - [Methodology](https://slop-detect.com/docs): How each axis is scored, the
-  DESIGN.md system axis, and the REST/CLI/MCP surface in one reference.
+  DESIGN.md system axis, and the REST/CLI/MCP surface in one reference. Markdown
+  twin: https://slop-detect.com/docs.md.
 - [Brand & identity](https://slop-detect.com/brand): The design system, and the
   dogfood proof that this site passes its own detector.
 - [Pattern catalogue (JSON)](https://slop-detect.com/api/patterns): Every design
-  and copy pattern, with weights and the current definitions version.
-- [Blog](https://slop-detect.com/blog): how the score works and why a fixed
-  detector decays. Each post has a markdown twin at `/blog/<slug>.md`.
+  and copy pattern, with weights and the current definitions version (`2026.09`).
+  Markdown twin: https://slop-detect.com/api/patterns.md.
+- [Blog](https://slop-detect.com/blog): research essays on how the score works,
+  why fixed detectors decay, 2026.09 four-axis calibration, and AEO for
+  engineering teams. Each post has a markdown twin at `/blog/<slug>.md`.
 
 ## How it works
 

@@ -1,0 +1,174 @@
+=== CF-01 HAPPY PATH: POST /api/scan (LIVE CHROMIUM SCAN VIA MINIFLARE) ===
+HTTP/1.1 200 OK
+content-length: 6470
+content-type: application/json
+access-control-allow-origin: https://slop-detect.com
+vary: Origin
+access-control-allow-headers: Content-Type, X-Turnstile-Token, Authorization, X-API-Key, X-Request-Id
+access-control-allow-methods: POST, OPTIONS
+access-control-expose-headers: X-Request-Id
+x-ratelimit-limit: 3
+x-ratelimit-tier: anonymous
+x-request-id: d896e6e4-6275-4dfa-9144-be27b84cd1c4
+Date: Mon, 19 Oct 2026 09:23:51 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"url":"https://slop-detect.com/","finalUrl":"https://slop-detect.com/","title":"Slop Detector: score any landing page against the AI-design fingerprint","h1":"Does your landing page look generated?","h1Font":"Newsreader, Georgia, \"Times New Roman\", serif","preset":"full","score":3,"tier":"Clean","grade":"A","verdict":"Crafted, not generated. This page has a point of view.","patternsFlagged":1,"patternsTotal":27,"definitionsVersion":"2026.09","patterns":[{"id":"slop_fonts","label":"AI-default font stack (Inter / Geist / Space Grotesk)","short":"Slop fonts","category":"fonts","weight":8,"triggered":false,"evidence":{"slopCount":0,"total":254,"ratio":0,"heroIsSlop":false,"heroFam":"Newsreader, Georgia, \"Times New Roman\", serif","accentSerifItalicCount":0,"triggered":false}},{"id":"purple_accent","label":"VibeCode Purple — filled indigo/violet CTAs","short":"Vibe purple","category":"colors","weight":8,"triggered":false,"evidence":{"purpleEls":0,"filledCtas":0,"samples":[],"triggered":false}},{"id":"gradient_text","label":"Hero gradient text (background-clip:text)","short":"Gradient text","category":"colors","weight":6,"triggered":false,"evidence":{"count":0,"heroHasGradient":false,"triggered":false}},{"id":"gradient_backgrounds","label":"Gradient-heavy backgrounds (5+ elements)","short":"Gradient bgs","category":"colors","weight":4,"triggered":false,"evidence":{"bgElements":0,"conic":0,"triggered":false}},{"id":"accent_stripe","label":"Colored top/left card borders (the AI em-dash)","short":"Accent stripe","category":"layout","weight":6,"triggered":false,"evidence":{"stripeCards":0,"triggered":false}},{"id":"glassmorphism","label":"Glassmorphism (backdrop-filter blur on translucent layers)","short":"Glass","category":"css","weight":4,"triggered":false,"evidence":{"glassCount":0,"triggered":false}},{"id":"colored_glows","label":"Big colored box-shadow glows (purple/blue/pink)","short":"Colored glows","category":"css","weight":4,"triggered":false,"evidence":{"glowCount":0,"triggered":false}},{"id":"centered_hero","label":"Centered hero in generic sans (Inter-style)","short":"Centered hero","category":"layout","weight":4,"triggered":false,"evidence":{"triggered":false,"fontSize":79.36,"centered":true,"slopFont":false,"family":"Newsreader, Georgia, \"Times New Roman\", serif"}},{"id":"hero_eyebrow_pill","label":"Eyebrow pill above hero (\"Now in beta\" / \"New\")","short":"Eyebrow pill","category":"layout","weight":5,"triggered":false,"evidence":{"triggered":false}},{"id":"all_caps_labels","label":"All-caps section labels (text-transform:uppercase)","short":"All-caps","category":"fonts","weight":3,"triggered":false,"evidence":{"count":0,"samples":[],"triggered":false}},{"id":"perma_dark_mode","label":"Perma dark mode + medium-grey body text","short":"Perma dark","category":"colors","weight":4,"triggered":false,"evidence":{"triggered":false,"bodyDark":false}},{"id":"icon_card_grid","label":"Identical feature cards with icon on top","short":"Icon cards","category":"layout","weight":4,"triggered":false,"evidence":{"maxGroupSize":0,"triggered":false}},{"id":"numbered_steps","label":"Numbered \"1 · 2 · 3\" step sequences","short":"Numbered steps","category":"layout","weight":3,"triggered":true,"evidence":{"bestRun":4,"triggered":true}},{"id":"stat_banner","label":"Big-number stat banner (\"10k+\", \"99.9%\", \"$2M+\")","short":"Stat banner","category":"layout","weight":3,"triggered":false,"evidence":{"clusterSize":0,"triggered":false}},{"id":"faq_accordion","label":"FAQ accordion in the lower half","short":"FAQ","category":"layout","weight":2,"triggered":false,"evidence":{"detailsCount":0,"hasFaqHeading":false,"triggered":false}},{"id":"gradient_letter_avatars","label":"Gradient-letter avatars (testimonial slop)","short":"Letter avatars","category":"images","weight":5,"triggered":false,"evidence":{"count":0,"samples":[],"triggered":false}},{"id":"bento_grid","label":"Bento-grid wall — mixed-span rounded card grid","short":"Bento grid","category":"layout","weight":4,"triggered":false,"evidence":{"children":0,"spanVariety":0,"rounded":0,"triggered":false}},{"id":"aurora_mesh_gradient","label":"Aurora / mesh gradient blobs (blurred glowing backdrop)","short":"Aurora blobs","category":"css","weight":5,"triggered":false,"evidence":{"blobs":0,"samples":[],"triggered":false}},{"id":"ai_sparkle_badges","label":"AI-sparkle badges (✨ / Sparkles \"magic\" tells)","short":"AI sparkles","category":"images","weight":3,"triggered":false,"evidence":{"emojiHits":0,"svgHits":0,"samples":[],"triggered":false}},{"id":"cream_default_bg","label":"Cream / beige default page background","short":"Cream bg","category":"colors","weight":7,"triggered":false,"evidence":{"surface":"#f4f5f2","triggered":false}},{"id":"low_contrast_text","label":"Washed-out grey body text (below WCAG AA on a light background)","short":"Low contrast","category":"colors","weight":7,"triggered":false,"evidence":{"fails":0,"checked":11,"ratioFail":0,"samples":[],"triggered":false}},{"id":"crushed_tracking","label":"Crushed letter-spacing on display type","short":"Crushed tracking","category":"fonts","weight":5,"triggered":false,"evidence":{"count":0,"samples":[],"triggered":false}},{"id":"gray_on_color","label":"Gray text on a colored background","short":"Gray-on-color","category":"colors","weight":4,"triggered":false,"evidence":{"count":0,"samples":[],"triggered":false}},{"id":"oversized_hero_h1","label":"Oversized hero headline (long sentence at display size)","short":"Oversized H1","category":"fonts","weight":4,"triggered":false,"evidence":{"fontSize":79,"chars":38,"text":"Does your landing page look generated?","triggered":false}},{"id":"nested_cards","label":"Cards nested inside cards","short":"Nested cards","category":"layout","weight":4,"triggered":false,"evidence":{"nested":0,"samples":[],"triggered":false}},{"id":"wide_body_tracking","label":"Wide letter-spacing on body text","short":"Wide tracking","category":"fonts","weight":3,"triggered":false,"evidence":{"count":0,"samples":[],"triggered":false}},{"id":"flat_type_hierarchy","label":"Flat type hierarchy (sizes too close together)","short":"Flat hierarchy","category":"fonts","weight":3,"triggered":false,"evidence":{"distinct":12,"ratio":6.58,"min":12,"max":79,"triggered":false}}],"patternsErrored":0,"browserVersion":"HeadlessChrome/148.0.7778.0","screenshot":null,"navMs":6643,"id":"um7jkvdb","resultUrl":"http://127.0.0.1:31138/r/um7jkvdb"}
+=== CF-01 FAILURE PATH: POST /api/scan INVALID / LOOPBACK SSRF ===
+HTTP/1.1 400 Bad Request
+content-length: 128
+content-type: application/json
+access-control-allow-origin: https://slop-detect.com
+vary: Origin
+access-control-allow-headers: Content-Type, X-Turnstile-Token, Authorization, X-API-Key, X-Request-Id
+access-control-allow-methods: POST, OPTIONS
+access-control-expose-headers: X-Request-Id
+x-ratelimit-limit: 3
+x-ratelimit-tier: anonymous
+x-request-id: 235f9653-c50e-41bd-833b-60440320fa58
+Date: Mon, 19 Oct 2026 09:23:51 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"error":"That host is not allowed (private, loopback, or internal address)","requestId":"235f9653-c50e-41bd-833b-60440320fa58"}
+=== CF-03 HAPPY PATH: POST /api/fix-prompt (4-AXIS RESULT PAYLOAD) ===
+HTTP/1.1 200 OK
+content-length: 5396
+content-type: text/plain; charset=utf-8
+access-control-allow-origin: https://slop-detect.com
+vary: Origin
+access-control-allow-headers: Content-Type, X-Turnstile-Token, Authorization, X-API-Key, X-Request-Id
+access-control-allow-methods: POST, OPTIONS
+access-control-expose-headers: X-Request-Id
+x-ratelimit-limit: 20
+x-ratelimit-tier: anonymous
+x-request-id: e0519f72-66b7-4dc5-80af-7d6a8e473a52
+Date: Mon, 19 Oct 2026 09:23:51 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+# Landing page slop fix prompt
+
+Your landing page scored **35/100** on the Slop Detector — tier **Heavy** — triggering **2 of 2** slop patterns (design + copy axes). The goal of this prompt is to reduce that score to **< 10 (Clean tier)** by addressing each triggered pattern with specific, opinionated remediation.
+
+## Page context
+- URL: https://example.com
+- Title: (no title)
+
+## Issues to fix (in priority order — highest weight first)
+
+### 1. AI-default font stack  *(weight: +8)*
+
+**What we found on YOUR page:**
+Hero/H1 font is `Inter` — ✓ not on the slop list, **keep it**.
+
+**Why this reads as AI-slop:**
+Inter, Geist, Space Grotesk, and Instrument Serif (italic) are the four fonts LLMs default to because Stripe/Linear/Vercel standardized them and training data is saturated with them. Using any of these signals 'AI-built' to anyone who's looked at more than 10 landing pages in 2026.
+
+**Fix:**
+Replace the body and heading typefaces with something that actually reflects your brand. Pick from foundry sans (Söhne, Aeonik, GT America, Untitled Sans, Suisse Int'l, Pangea, Telegraf, Object Sans) OR a system-font stack (`-apple-system, BlinkMacSystemFont, Segoe UI`) for body + a single distinctive display face for H1.
+
+**Better alternatives:**
+   - Editorial: Tiempos / Söhne / system serif
+   - Modern brand: Aeonik / GT America / Pangea
+   - System-only: -apple-system + bold weight contrast
+   - Distinctive display H1 + neutral body (e.g. Romie + Inter Tight is fine; Migra + Untitled Sans is fine)
+
+**Hard rule:** If you can't name the foundry, don't ship the font. Inter/Geist/Space Grotesk are banned for this site.
+
+---
+
+=== CF-03 FAILURE PATH: POST /api/fix-prompt INVALID PAYLOAD ===
+HTTP/1.1 400 Bad Request
+content-length: 62
+content-type: text/plain
+access-control-allow-origin: https://slop-detect.com
+vary: Origin
+access-control-allow-headers: Content-Type, X-Turnstile-Token, Authorization, X-API-Key, X-Request-Id
+access-control-allow-methods: POST, OPTIONS
+access-control-expose-headers: X-Request-Id
+x-ratelimit-limit: 20
+x-ratelimit-tier: anonymous
+x-request-id: 04eedc68-00af-4932-985c-81ead358ff79
+Date: Mon, 19 Oct 2026 09:23:51 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+Provide either a `result` (from /api/scan) or a `url` to scan.
+=== CF-04 WATCH/MONITOR FAIL-CLOSED PATH ===
+HTTP/1.1 400 Bad Request
+content-length: 63
+content-type: application/json
+access-control-allow-origin: https://slop-detect.com
+vary: Origin
+access-control-allow-headers: Content-Type, X-Turnstile-Token, Authorization, X-API-Key, X-Request-Id
+access-control-allow-methods: POST, OPTIONS
+access-control-expose-headers: X-Request-Id
+x-ratelimit-limit: 20
+x-ratelimit-tier: anonymous
+x-request-id: a4af6fcf-7096-4599-a0cc-b4388a8b73b3
+Date: Mon, 19 Oct 2026 09:23:51 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"error":"a valid `domain` is required (e.g. \"example.com\")"}
+=== CF-05 DASHBOARD HAPPY (SIGN-IN) & FAILURE (BAD TOKEN) ===
+HTTP/1.1 200 OK
+transfer-encoding: chunked
+content-type: text/html; charset=utf-8
+cache-control: no-store
+strict-transport-security: max-age=31536000; includeSubDomains
+content-security-policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; connect-src 'self' https://challenges.cloudflare.com
+permissions-policy: geolocation=(), microphone=(), camera=(), browsing-topics=()
+referrer-policy: strict-origin-when-cross-origin
+x-content-type-options: nosniff
+x-frame-options: SAMEORIGIN
+Date: Mon, 19 Oct 2026 09:23:51 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+<!doctype html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Sign in · slop-detect</title><meta name="robots" content="noindex, nofollow"/><link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Libre+Franklin:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"><style>
+  :root{
+    color-scheme:light;
+
+HTTP/1.1 200 OK
+transfer-encoding: chunked
+date: Mon, 19 Oct 2026 09:23:51 GMT
+content-type: text/html; charset=utf-8
+access-control-allow-origin: *
+cache-control: public, max-age=0, must-revalidate
+etag: "d51ef011f57673c01e51eeb116726818"
+strict-transport-security: max-age=31536000; includeSubDomains
+x-request-id: 5e3bf7c2-b73b-4f94-b10a-7db26b91a23d
+content-security-policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; connect-src 'self' https://challenges.cloudflare.com
+permissions-policy: geolocation=(), microphone=(), camera=(), browsing-topics=()
+referrer-policy: strict-origin-when-cross-origin
+x-content-type-options: nosniff
+x-frame-options: SAMEORIGIN
+x-server-env: dev
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+<!doctype html>
+<!-- impeccable-disable italic-serif-display -- intentional editorial specimen pinned by landing.test.js -->
+
+=== CF-07 SHARE SURFACES HAPPY & FAILURE ===
+GET /score/linear.app -> HTTP 200
+GET /score/never-scanned-domain-xyz.invalid -> HTTP 404
+GET /report/linear.app -> HTTP 200
+GET /badge/linear.app.svg -> HTTP 200
+GET /r/nonexistent999 -> HTTP 404
+GET /leaderboard -> HTTP 200
+GET /directory -> HTTP 200
+GET /docs -> HTTP 200
+GET /brand -> HTTP 200
+GET /blog -> HTTP 200
+GET /DESIGN.md -> HTTP 200
+GET /.well-known/mcp.json -> HTTP 200
+GET /llms.txt -> HTTP 200
+GET /api/health -> HTTP 200
+GET /api/patterns -> HTTP 200

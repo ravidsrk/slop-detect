@@ -27,17 +27,19 @@ function readingMinutes(body: string) {
 }
 
 const PAGE_CSS = `
-  .bp-main{max-width:680px;margin:0 auto;padding:48px var(--pad-x) 24px}
+  .bp-main{max-width:680px;margin:0 auto;padding:48px var(--pad-x) 48px}
   .bp-back{display:inline-block;font-family:var(--mono);font-size:12.5px;color:var(--text-4);margin-bottom:22px}
   .bp-back:hover{color:var(--text)}
-  .bp-title{font-family:var(--serif);font-weight:500;font-size:clamp(30px,4.4vw,44px);line-height:1.1;letter-spacing:-0.02em;color:var(--text);margin:0 0 8px}
-  .bp-meta{font-family:var(--mono);font-size:12.5px;color:var(--text-4);margin-bottom:30px}
+  .bp-title{font-family:var(--serif);font-weight:500;font-size:clamp(30px,4vw,42px);line-height:1.15;letter-spacing:-0.02em;color:var(--text);margin:0 0 10px;text-wrap:balance}
+  .bp-meta{font-family:var(--mono);font-size:12.5px;color:var(--text-4);margin-bottom:24px}
+  .bp-fig{margin:0 0 26px;border:1px solid var(--border);border-radius:var(--r-6);background:var(--panel);overflow:hidden}
+  .bp-fig img{display:block;width:100%;height:auto}
 
   /* prose — Libre Franklin body, Newsreader headings, the design code block */
   .prose{font-family:var(--sans);font-size:var(--fs-body);line-height:1.7;color:var(--text-2)}
-  .prose h2{font-family:var(--serif);font-weight:600;font-size:var(--fs-h3);line-height:1.1;letter-spacing:-0.01em;color:var(--text);margin:34px 0 10px}
-  .prose h3{font-family:var(--serif);font-weight:600;font-size:var(--fs-serif-row);line-height:1.15;color:var(--text);margin:26px 0 6px}
-  .prose h4{font-family:var(--serif);font-weight:600;font-size:18px;color:var(--text);margin:22px 0 6px}
+  .prose h2{font-family:var(--serif);font-weight:600;font-size:var(--fs-h3);line-height:1.22;letter-spacing:-0.01em;color:var(--text);margin:34px 0 12px}
+  .prose h3{font-family:var(--serif);font-weight:600;font-size:var(--fs-serif-row);line-height:1.3;color:var(--text);margin:26px 0 8px}
+  .prose h4{font-family:var(--serif);font-weight:600;font-size:18px;line-height:1.35;color:var(--text);margin:22px 0 6px}
   .prose p{margin:0 0 16px}
   .prose ul{margin:0 0 16px;padding-left:22px}
   .prose li{margin:6px 0}
@@ -47,7 +49,7 @@ const PAGE_CSS = `
   .prose code{font-family:var(--mono);font-size:0.92em;color:var(--text)}
   /* fenced code: the design dark code block */
   .prose pre{background:#16170F;border-radius:var(--r-5);padding:18px 20px;overflow:auto;margin:0 0 18px}
-  .prose pre code{font-family:var(--mono);font-size:var(--fs-code);line-height:1.85;color:#C9CABF;background:none;white-space:pre}
+  .prose pre code{font-family:var(--mono);font-size:var(--fs-code);line-height:1.75;color:#C9CABF;background:none;white-space:pre}
 
   .bp-twin{margin-top:34px;padding-top:18px;border-top:1px solid var(--border);font-family:var(--mono);font-size:12.5px;color:var(--text-4)}
   .bp-twin a{color:var(--clean-text);text-decoration:underline;text-underline-offset:2px}
@@ -127,6 +129,17 @@ export async function onRequestGet({ params, request }) {
             <div class="bp-meta">
               {post.date} · {readingMinutes(post.body)} min read
             </div>
+            {post.image ? (
+              <figure class="bp-fig">
+                <img
+                  src={post.image}
+                  alt={post.imageAlt || post.title}
+                  loading="lazy"
+                  width="1200"
+                  height="675"
+                />
+              </figure>
+            ) : null}
             <div class="prose">{rawHtml(mdToHtml(post.body))}</div>
           </article>
           <div class="bp-twin">

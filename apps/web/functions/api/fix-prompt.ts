@@ -26,13 +26,19 @@ export async function onRequestPost({ request, env, waitUntil, scanImpl = scanHa
   let result = body?.result;
   const scannedMode = !result && !!body?.url;
 
-  // Mode 2: scan first. Forward axes/preset so a multi-axis fix prompt is
-  // possible via { url, axes: ['design','copy'] }.
+  // Mode 2: scan first. Forward axes/preset/designMd so a multi-axis fix prompt is
+  // possible via { url, axes: ['design','copy'], designMd: 'auto' }.
   if (scannedMode) {
     const scanReq = new Request(request.url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: body.url, axes: body.axes, preset: body.preset, share: false }),
+      body: JSON.stringify({
+        url: body.url,
+        axes: body.axes,
+        preset: body.preset,
+        designMd: body.designMd,
+        share: false,
+      }),
     });
     const scanRes = await scanImpl({ request: scanReq, env, waitUntil });
     result = await scanRes.json();

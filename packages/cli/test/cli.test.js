@@ -80,3 +80,40 @@ test('--timeout with --remote exits 2 before any scan', () => {
   expect(r.status).toBe(2);
   expect(r.stderr).toMatch(/--timeout applies to local Playwright navigation only/);
 });
+
+test('--version and -V exit 0 and print version + definitions version', () => {
+  for (const flag of ['--version', '-V']) {
+    const r = run([flag]);
+    expect(r.status).toBe(0);
+    expect(r.stdout).toMatch(/^slop-detect 0\.8\.0 \(defs 2026\.\d+\)/);
+  }
+});
+
+test('invalid --fail-under value exits 2 with a clear message', () => {
+  for (const bad of ['Z', '150', '-5', 'bogus']) {
+    const r = run(['https://example.com', '--fail-under', bad]);
+    expect(r.status).toBe(2);
+    expect(r.stderr).toMatch(/Invalid --fail-under value/);
+  }
+});
+
+test('valid --fail-under (grade or score) is accepted at parse time', () => {
+  for (const ok of ['B', 'A+', '15', '0']) {
+    const r = run(['--fail-under', ok]);
+    expect(r.status).toBe(2); // no URL -> prints help
+    expect(r.stderr).not.toMatch(/Invalid --fail-under/);
+    expect(r.stdout).toMatch(/Usage:/);
+  }
+});
+
+test('--design-md with local file path and --remote exits 2 before any scan', () => {
+  const r = run(['https://example.com', '--remote', '--design-md', './DESIGN.md']);
+  expect(r.status).toBe(2);
+  expect(r.stderr).toMatch(/--design-md with --remote requires "auto" or an http\(s\) URL/);
+});
+
+test('--init-design-md with --remote exits 2 before any scan', () => {
+  const r = run(['https://example.com', '--remote', '--init-design-md']);
+  expect(r.status).toBe(2);
+  expect(r.stderr).toMatch(/--init-design-md requires local DOM token extraction/);
+});

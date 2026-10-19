@@ -1,7 +1,14 @@
 // Unit tests for the copy-slop axis (#08). Pure functions — no browser needed.
 // Run with: vitest run packages/core/test/copy.test.js
 import { test, expect } from 'vitest';
-import { scoreCopy, combineAxes, COPY_PATTERNS, gradeForScore } from '@slop-detect/core';
+import {
+  scoreCopy,
+  combineAxes,
+  COPY_PATTERNS,
+  gradeForScore,
+  buildFixPrompt,
+  formatEvidence,
+} from '@slop-detect/core';
 
 function ctx(text, extra = {}) {
   const wordCount = extra.wordCount ?? (text ? text.split(/\s+/).filter(Boolean).length : 0);
@@ -115,4 +122,39 @@ test('combineAxes clamps to 100', () => {
 test('grade follows score monotonically', () => {
   expect(gradeForScore(0)).toBe('A+');
   expect(gradeForScore(100).startsWith('F') || gradeForScore(100) === 'F').toBeTruthy();
+});
+
+test('every triggered copy pattern has a concrete evidence formatter and appears in buildFixPrompt', () => {
+  const copyRes = scoreCopy(SLOP);
+  const triggeredCopy = copyRes.patterns.filter((p) => p.triggered);
+  expect(triggeredCopy.length).toBeGreaterThanOrEqual(4);
+  for (const p of triggeredCopy) {
+    const formatted = formatEvidence(p);
+    expect(typeof formatted).toBe('string');
+    expect(formatted.length).toBeGreaterThan(10);
+  }
+  const prompt = buildFixPrompt({
+    url: 'https://acme.example',
+    score: copyRes.score,
+    tier: copyRes.tier,
+    patterns: [],
+    axes: { copy: copyRes },
+    system: {
+      score: 65,
+      tier: 'Drifting',
+      drift: [{ id: 'fonts.declared', message: 'font(s) in use but not in the system: inter' }],
+    },
+    aeo: {
+      score: 70,
+      maxScore: 100,
+      tier: 'Partial',
+      failed: [{ id: 'site.llmsTxt', label: '/llms.txt', weight: 7, fix: 'Publish /llms.txt' }],
+    },
+  });
+  expect(prompt).toContain('What we found on YOUR page:');
+  expect(prompt).toContain('buzzword hit(s)');
+  expect(prompt).toContain('Design system drift');
+  expect(prompt).toContain('fonts.declared');
+  expect(prompt).toContain('Agent-readiness (AEO) gaps');
+  expect(prompt).toContain('site.llmsTxt');
 });

@@ -7,7 +7,7 @@
 //
 // Any other request falls through to next() — the static index.html SPA.
 
-import { PATTERNS, DEFINITIONS_VERSION } from '@slop-detect/core';
+import { PATTERNS, COPY_PATTERNS, AEO_CHECKS, DEFINITIONS_VERSION } from '@slop-detect/core';
 
 const ORIGIN = 'https://slop-detect.com';
 
@@ -15,7 +15,7 @@ function agentView() {
   return {
     name: 'Slop Detector',
     description:
-      'Score any landing page against the AI-design-slop fingerprint. Deterministic, weighted 0-100 scoring of the CSS and copy tells that Cursor, v0, Lovable and Bolt converged on, on real headless Chromium. Plus an AEO axis: can AI engines read & cite a page.',
+      'Score any landing page against the AI-design-slop fingerprint. Deterministic, weighted 0-100 scoring of the CSS and copy tells that Cursor, v0, Lovable and Bolt converged on, on real headless Chromium. Plus DESIGN.md system compliance and an AEO axis: can AI engines read & cite a page.',
     url: ORIGIN,
     license: 'MIT',
     repository: 'https://github.com/ravidsrk/slop-detect',
@@ -23,6 +23,9 @@ function agentView() {
     catalogue: {
       definitionsVersion: DEFINITIONS_VERSION,
       patternCount: PATTERNS.length,
+      copyPatternCount: COPY_PATTERNS.length,
+      aeoCheckCount: AEO_CHECKS.length,
+      axes: ['design', 'copy', 'system', 'aeo'],
       tiers: { clean: '0-9', mild: '10-27', heavy: '28+' },
     },
     capabilities: [
@@ -87,9 +90,18 @@ function agentView() {
     discovery: {
       llmsTxt: `${ORIGIN}/llms.txt`,
       llmsFullTxt: `${ORIGIN}/llms-full.txt`,
+      apiLlmsTxt: `${ORIGIN}/api/llms.txt`,
+      developersLlmsTxt: `${ORIGIN}/developers/llms.txt`,
       markdownTwin: `${ORIGIN}/index.md`,
+      docs: `${ORIGIN}/docs`,
+      docsMarkdownTwin: `${ORIGIN}/docs.md`,
+      patternsMarkdown: `${ORIGIN}/api/patterns.md`,
+      brand: `${ORIGIN}/brand`,
+      blog: `${ORIGIN}/blog`,
+      compare: `${ORIGIN}/compare`,
       pricing: `${ORIGIN}/pricing.md`,
       privacy: `${ORIGIN}/privacy.md`,
+      terms: `${ORIGIN}/terms.md`,
       dashboard: `${ORIGIN}/dashboard`,
       directory: `${ORIGIN}/directory`,
       leaderboard: `${ORIGIN}/leaderboard`,

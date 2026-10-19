@@ -168,8 +168,8 @@ export function primaryFamily(stack) {
   return null;
 }
 
-// Parse a CSS color (hex 3/4/6/8, rgb()/rgba()) → [r,g,b] or null. oklch/named
-// colors fall back to exact-string matching in the comparator.
+// Parse a CSS color (hex 3/4/6/8, rgb()/rgba(), hsl()/hsla()) → [r,g,b] or null.
+// oklch/named colors fall back to exact-string matching in the comparator.
 export function parseCssColor(str) {
   const s = String(str || '')
     .trim()
@@ -186,6 +186,32 @@ export function parseCssColor(str) {
   }
   m = s.match(/^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/);
   if (m) return [Number(m[1]), Number(m[2]), Number(m[3])];
+  m = s.match(/^hsla?\(\s*([\d.]+)(?:deg)?[\s,]+([\d.]+)%[\s,]+([\d.]+)%/);
+  if (m) {
+    const h = (((Number(m[1]) % 360) + 360) % 360) / 360;
+    const sat = Math.max(0, Math.min(100, Number(m[2]))) / 100;
+    const l = Math.max(0, Math.min(100, Number(m[3]))) / 100;
+    if (sat === 0) {
+      const v = Math.round(l * 255);
+      return [v, v, v];
+    }
+    const q = l < 0.5 ? l * (1 + sat) : l + sat - l * sat;
+    const p = 2 * l - q;
+    const hue2rgb = (t) => {
+      let tt = t;
+      if (tt < 0) tt += 1;
+      if (tt > 1) tt -= 1;
+      if (tt < 1 / 6) return p + (q - p) * 6 * tt;
+      if (tt < 1 / 2) return q;
+      if (tt < 2 / 3) return p + (q - p) * (2 / 3 - tt) * 6;
+      return p;
+    };
+    return [
+      Math.round(hue2rgb(h + 1 / 3) * 255),
+      Math.round(hue2rgb(h) * 255),
+      Math.round(hue2rgb(h - 1 / 3) * 255),
+    ];
+  }
   return null;
 }
 
@@ -493,4 +519,129 @@ export function scoreSystemCompliance(parsed, observed) {
     checks,
     drift,
   };
+}
+
+// ── DESIGN.md generator (bootstrap from observed DOM tokens) ─────────────────
+function toHexColor(str) {
+  const rgb = parseCssColor(str);
+  if (!rgb) return String(str || '').trim();
+  return (
+    '#' +
+    rgb
+      .map((n) =>
+        Math.max(0, Math.min(255, Math.round(n)))
+          .toString(16)
+          .padStart(2, '0')
+      )
+      .join('')
+      .toUpperCase()
+  );
+}
+
+export function generateDesignMd(
+  observed: any = {},
+  opts: { name?: string; url?: string } = {}
+): string {
+  const obs = observed || {};
+  const name = opts.name || 'Site Design System';
+
+  // 1. Collect concrete font families sorted by frequency.
+  const tally = obs.fonts || {};
+  const totalFonts = Object.values<number>(tally).reduce((a, b) => a + b, 0);
+  const famCounts = new Map<string, number>();
+  for (const [stack, count] of Object.entries<number>(tally)) {
+    const fam = primaryFamily(stack);
+    if (fam) famCounts.set(fam, (famCounts.get(fam) || 0) + count);
+  }
+  const sortedFonts = [...famCounts.entries()]
+    .filter(([, n]) => !totalFonts || n / totalFonts >= 0.05)
+    .sort((a, b) => b[1] - a[1])
+    .map(([fam]) => fam);
+
+  const h1Fam =
+    (Array.isArray(obs.headings) &&
+      obs.headings[0]?.fontFamily &&
+      primaryFamily(obs.headings[0].fontFamily)) ||
+    sortedFonts[0] ||
+    'system-ui';
+  const bodyFam = sortedFonts[0] || h1Fam;
+  const extraFonts = sortedFonts.filter((f) => f !== h1Fam && f !== bodyFam);
+
+  // 2. Collect palette colors (surface, heading ink, CTA fills).
+  const surfaceHex = obs.surface ? toHexColor(obs.surface) : '#FFFFFF';
+  const headingHex =
+    Array.isArray(obs.headings) && obs.headings[0]?.color
+      ? toHexColor(obs.headings[0].color)
+      : '#181815';
+  const ctaHexes: string[] = [];
+  for (const c of obs.ctas || []) {
+    if (!c?.bg) continue;
+    const hx = toHexColor(c.bg);
+    if (hx && !ctaHexes.some((existing) => colorsMatch(existing, hx, 6))) {
+      ctaHexes.push(hx);
+    }
+  }
+  const primaryCta = ctaHexes[0] || headingHex;
+
+  // 3. Collect corner radii scale.
+  const radii = Array.isArray(obs.radii)
+    ? [
+        ...new Set<number>(
+          obs.radii
+            .map((r: number) => Math.round(Number(r)))
+            .filter((r: number) => Number.isFinite(r))
+        ),
+      ].sort((a, b) => a - b)
+    : [];
+  const radiusKeys = ['sm', 'md', 'lg', 'xl', '2xl', '3xl'];
+
+  const colorLines = [
+    `  surface: "${surfaceHex}"`,
+    `  ink: "${headingHex}"`,
+    `  primary: "${primaryCta}"`,
+    ...ctaHexes.slice(1, 5).map((hx, idx) => `  accent_${idx + 1}: "${hx}"`),
+  ];
+
+  const typoLines = [
+    `  h1:`,
+    `    fontFamily: "${h1Fam}"`,
+    `  body:`,
+    `    fontFamily: "${bodyFam}"`,
+    ...extraFonts.slice(0, 4).map((f, idx) => `  font_${idx + 1}:\n    fontFamily: "${f}"`),
+  ];
+
+  const roundedLines = (radii.length ? radii.slice(0, 6) : [4, 8]).map(
+    (r, i) => `  ${radiusKeys[i] || `r${i + 1}`}: ${r}px`
+  );
+
+  return `---
+name: "${name.replace(/"/g, '\\"')}"
+colors:
+${colorLines.join('\n')}
+typography:
+${typoLines.join('\n')}
+rounded:
+${roundedLines.join('\n')}
+components:
+  button-primary:
+    backgroundColor: "{colors.primary}"
+    textColor: "{colors.surface}"
+---
+
+# ${name} — Design System (\`DESIGN.md\`)
+
+${opts.url ? `Extracted from live DOM tokens at \`${opts.url}\`.\n\n` : ''}## Normative Tokens
+
+- **Surface**: \`${surfaceHex}\`
+- **Primary / Ink**: \`${headingHex}\`
+- **CTA Accent**: \`${primaryCta}\`
+- **Typography**: Heading \`${h1Fam}\`, Body \`${bodyFam}\`
+- **Corner Radius Scale**: ${(radii.length ? radii : [4, 8]).map((r) => `${r}px`).join(', ')}
+
+Verify alignment anytime with:
+
+\`\`\`bash
+npx slop-detect ${opts.url || '<url>'} --design-md ./DESIGN.md
+\`\`\`
+`;
 }

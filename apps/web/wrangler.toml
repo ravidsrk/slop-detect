@@ -15,6 +15,7 @@ binding = "BROWSER"
 [[kv_namespaces]]
 binding = "RATE_LIMIT"
 id = "c5aad4cb07e7405e86c3cf1aebcae772"
+preview_id = "be2494e78b8e40bcbe42757f2a3ac1e7"
 
 # KV namespace for shareable scan results, OG card cache, and badge cache.
 # Created via the Cloudflare API on 2026-05-28. Powers /r/:id, /og/:id.png,
@@ -22,6 +23,7 @@ id = "c5aad4cb07e7405e86c3cf1aebcae772"
 [[kv_namespaces]]
 binding = "RESULTS"
 id = "f8bbc9f7a16948a2995215321e679115"
+preview_id = "cda8560802c04fe6b4ba356a6115a478"
 
 # ── Preview KV (T-29 staging story; see docs/STAGING.md) ──────────────────────
 # PR previews MUST NOT share production KV. After H-01 lands, create the

@@ -48,7 +48,7 @@ const REPORT_CSS = `
   .rpt-sec{padding:30px 0}
   .rpt-sec + .rpt-sec{border-top:1px solid var(--border-2)}
   .rpt-led{margin-bottom:16px}
-  .rpt-h1{font-family:var(--serif);font-weight:500;font-size:clamp(32px,5vw,46px);line-height:1.0;letter-spacing:-0.02em;color:var(--text);margin:2px 0 8px;word-break:break-word}
+  .rpt-h1{font-family:var(--serif);font-weight:500;font-size:clamp(32px,5vw,46px);line-height:1.12;letter-spacing:-0.02em;color:var(--text);margin:2px 0 8px;word-break:break-word}
   .rpt-meta{font-family:var(--mono);font-size:12.5px;color:var(--text-4)}
 
   /* the two summary cards: fingerprint + design-system compliance */
@@ -56,9 +56,9 @@ const REPORT_CSS = `
   .rpt-cards.one{grid-template-columns:1fr}
   .rcard{border:1px solid var(--border);border-radius:8px;background:var(--panel);padding:20px 22px}
   .rcard-k{font-family:var(--mono);font-size:12px;color:var(--text-4);letter-spacing:0;margin-bottom:14px}
-  .rcard-big{font-family:var(--serif);font-weight:500;font-size:56px;line-height:0.82;letter-spacing:-0.03em}
+  .rcard-big{font-family:var(--serif);font-weight:500;font-size:56px;line-height:0.9;letter-spacing:-0.03em;font-variant-numeric:tabular-nums}
   .rcard-big small{font-family:var(--serif);font-size:22px;color:var(--text-6);letter-spacing:-0.01em}
-  .rcard-sub{font-family:var(--mono);font-size:14px;font-weight:700;margin-top:12px}
+  .rcard-sub{font-family:var(--mono);font-size:14px;font-weight:700;margin-top:12px;font-variant-numeric:tabular-nums}
   .rcard-note{font-family:var(--mono);font-size:12px;color:var(--text-4);line-height:1.6;margin-top:8px}
   .rcard-note code{background:var(--bg-2);border-radius:3px;padding:1px 5px}
 
@@ -71,9 +71,9 @@ const REPORT_CSS = `
   .rlist .rw{margin-left:auto;color:var(--heavy-text);font-family:var(--mono);font-size:13px;font-weight:700;flex:none;white-space:nowrap}
 
   /* history table */
-  .rtable{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:13px}
+  .rtable{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
   .rtable caption{text-align:left}
-  .rtable th{text-align:left;padding:9px 14px 9px 0;border-bottom:1.5px solid #181815;color:var(--text-4);font-weight:500;font-size:11.5px;white-space:nowrap}
+  .rtable th{text-align:left;padding:9px 14px 9px 0;border-bottom:1.5px solid #181815;color:var(--text-4);font-weight:500;font-size:12px;white-space:nowrap}
   .rtable td{text-align:left;padding:9px 14px 9px 0;border-bottom:1px solid var(--row-inner);color:var(--text-2);white-space:nowrap}
   .rtable .rt-dim{color:var(--text-6)}
 
@@ -155,6 +155,9 @@ export async function onRequestGet({ params, request, env }) {
             </div>
             <div class="rcard-note">
               {latest?.patternsFlagged}/{latest?.patternsTotal} patterns triggered
+              {latest?.axes?.copy
+                ? ` · copy ${latest.axes.copy.score}/100 (${latest.axes.copy.tier})`
+                : ''}
               {latest?.definitionsVersion ? ` · defs ${latest.definitionsVersion}` : ''}
             </div>
           </div>
@@ -298,9 +301,14 @@ export async function onRequestGet({ params, request, env }) {
       <body class="report">
         <header class="rpt-top">
           <LogoLockup href={`${origin}/`} />
-          <button id="rptPrint" class="rpt-print" type="button">
-            print / save PDF
-          </button>
+          <div style="display:flex;gap:10px;align-items:center">
+            <a class="rpt-print" href={`${origin}/score/${encodeURIComponent(domain)}`}>
+              interactive 3D hub →
+            </a>
+            <button id="rptPrint" class="rpt-print" type="button">
+              print / save PDF
+            </button>
+          </div>
         </header>
         <main class="rpt">
           <section class="rpt-sec">

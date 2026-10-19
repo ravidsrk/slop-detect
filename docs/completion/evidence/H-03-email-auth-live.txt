@@ -1,0 +1,39 @@
+=== RESEND DOMAIN VERIFICATION (slop-detect.com) ===
+{
+  "id": "badb6232-19aa-4cbd-9fec-32369d1097b9",
+  "name": "slop-detect.com",
+  "status": "verified",
+  "region": "us-east-1",
+  "records": [
+    {
+      "record": "DKIM",
+      "name": "resend._domainkey",
+      "type": "TXT",
+      "status": "verified"
+    },
+    {
+      "record": "SPF",
+      "name": "send",
+      "type": "MX",
+      "status": "verified"
+    },
+    {
+      "record": "SPF",
+      "name": "send",
+      "type": "TXT",
+      "status": "verified"
+    },
+    {
+      "record": "SPF",
+      "name": "rsend",
+      "type": "CNAME",
+      "status": "verified"
+    }
+  ]
+}
+
+=== DNS EMAIL-AUTH CHECK (SPF / DKIM / DMARC) ===
+email-auth for slop-detect.com: PASS
+  PASS spf: v=spf1 include:amazonses.com ~all
+  PASS dkim: v=DKIM1; k=rsa; p=MIGfMA…
+  PASS dmarc: v=DMARC1; p=quarantine; rua=mailto:dmarc@slop-detect.com (p=quarantine)

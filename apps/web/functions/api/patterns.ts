@@ -5,7 +5,14 @@
 // This is what keeps "The N rules" panel honest as patterns are added — the UI
 // reads from here instead of a stale inline <ol>.
 
-import { PATTERNS, DEFINITIONS_VERSION } from '@slop-detect/core';
+import {
+  PATTERNS,
+  COPY_PATTERNS,
+  AEO_CHECKS,
+  SYSTEM_CHECKS,
+  PRESETS,
+  DEFINITIONS_VERSION,
+} from '@slop-detect/core';
 
 export async function onRequestGet() {
   const patterns = PATTERNS.map((p) => ({
@@ -17,11 +24,41 @@ export async function onRequestGet() {
     since: p.since || 'baseline',
   }));
 
+  const copyPatterns = (COPY_PATTERNS as any[]).map((p) => ({
+    id: p.id,
+    label: p.label,
+    short: p.short,
+    category: p.category || 'copy',
+    weight: p.weight,
+    since: p.since || '2026.08',
+  }));
+
+  const aeoChecks = (AEO_CHECKS as any[]).map((c) => ({
+    id: c.id,
+    label: c.label,
+    severity: c.severity || 'recommended',
+    required: c.severity === 'required',
+    weight: c.weight,
+  }));
+
+  const systemChecks = SYSTEM_CHECKS.map((c) => ({
+    id: c.id,
+    label: c.label,
+    weight: c.weight,
+  }));
+
   return new Response(
     JSON.stringify({
       version: DEFINITIONS_VERSION,
       count: patterns.length,
       patterns,
+      copyCount: copyPatterns.length,
+      copyPatterns,
+      aeoCount: aeoChecks.length,
+      aeoChecks,
+      systemCount: systemChecks.length,
+      systemChecks,
+      presets: Object.keys(PRESETS),
     }),
     {
       headers: {

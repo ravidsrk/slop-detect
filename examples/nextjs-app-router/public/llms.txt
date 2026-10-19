@@ -1,0 +1,7 @@
+# Next.js App Router Reference
+
+> Minimal Next.js 15 reference integration for slop-detect (4-axis design, copy, DESIGN.md, and AEO scoring).
+
+## Docs
+- [Homepage](/)
+- [Design System](/DESIGN.md)
