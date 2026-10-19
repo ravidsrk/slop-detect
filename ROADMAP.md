@@ -2,7 +2,7 @@
 
 > **Deterministic, zero-LLM verification for the AI-generated web across four axes: Design Slop, Copy Slop, `DESIGN.md` System Compliance, and AEO / Generative Engine Optimization.**
 >
-> Live site: **[slop-detect.com](https://slop-detect.com)** · CLI: `npx slop-detect <url>` · MCP: `npx -y slop-detect-mcp` · Action: `@slop-detect/action`
+> Live site: **[slop-detect.com](https://slop-detect.com)** · CLI: `npx slop-detect <url>` · MCP: `npx -y slop-detect-mcp` · Action: `ravidsrk/slop-detect/packages/action@v0.8.0`
 
 ---
 
@@ -16,9 +16,10 @@ All foundational infrastructure, core axes, and distribution channels from the v
   - **Axis 03 — System Compliance (`DESIGN.md`)**: 5 token compliance checks (`fonts.declared`, `colors.cta`, `colors.surface`, `colors.headings`, `radii.scale`) + `generateDesignMd()` (`--init-design-md`).
   - **Axis 04 — AEO (Agent-Readable Readiness)**: 8 crawler & content-negotiation checks (`html.reachable`, `bot.notBlocked`, `robots.aiAllowed`, `html.indexable`, `md.twin`, `html.linkAlternate`, `site.llmsTxt`, `html.vary`).
 - **Live Edge Platform (`https://slop-detect.com`)**:
-  - Real headless Chromium scanning on Cloudflare Workers Browser Rendering (`POST /api/scan`), dynamic SVG shields (`GET /api/badge`), OpenAPI 3.1 (`GET /openapi.json`), Markdown content negotiation (`Accept: text/markdown`), `/leaderboard`, `/directory`, `/compare`, `/docs`, `/blog`, `/brand`, `/r/:id`, `/score/:domain`, `/report/:domain`, and double opt-in continuity monitoring (`POST /api/watch`, `/dashboard`).
-- **Developer Ecosystem (`v0.8.0` on npm)**:
-  - `npx slop-detect <url>` (`slop-detect@0.8.0`), `npx -y slop-detect-mcp` (`slop-detect-mcp@0.8.0`), and `@slop-detect/action` with sticky PR grade tables.
+  - Real headless Chromium scanning on Cloudflare Workers Browser Rendering (`POST /api/scan`), dynamic SVG shields (`GET /badge/:domain.svg`), OpenAPI 3.1 (`GET /openapi.json`), Markdown content negotiation (`Accept: text/markdown`), `/leaderboard`, `/directory`, `/compare`, `/docs`, `/blog`, `/brand`, `/r/:id`, `/score/:domain`, `/report/:domain`, and double opt-in continuity monitoring (`POST /api/watch`, `/dashboard`).
+- **Developer Ecosystem (`v0.8.0`)**:
+  - npm: `npx slop-detect <url>` (`slop-detect@0.8.0`) and `npx -y slop-detect-mcp` (`slop-detect-mcp@0.8.0`).
+  - GitHub Action: `uses: ravidsrk/slop-detect/packages/action@v0.8.0`, with sticky PR grade tables.
 
 ---
 
