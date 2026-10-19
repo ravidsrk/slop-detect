@@ -4,6 +4,8 @@
 >
 > Live site: **[slop-detect.com](https://slop-detect.com)** · CLI: `npx slop-detect <url>` · MCP: `npx -y slop-detect-mcp` · Action: `ravidsrk/slop-detect/packages/action@v0.8.0`
 
+> **Under review — proposed v4:** [`docs/research/roadmap-v4/REPORT.md`](docs/research/roadmap-v4/REPORT.md) audits this v3 roadmap's citations (16 of 123 claims fabricated, 38 need correction) and proposes reordering it: fix measurements first, then calibrate, then promote rules on evidence. Until it is accepted, treat the `research:backed` labels below with caution.
+
 ---
 
 ## 1. Shipped Baseline (`v0.8.0` · `definitions@2026.09`)
