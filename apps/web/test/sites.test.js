@@ -686,36 +686,36 @@ function paginate(kv) {
 
 const DAY = 24 * 60 * 60 * 1000;
 const daysAgo = (n) => new Date(Date.now() - n * DAY).toISOString();
-const queueOf = (kv) =>
-  kv.store.has('lv:rejected') ? JSON.parse(kv.store.get('lv:rejected').value) : [];
 const watchRow = (domain, over = {}) =>
   JSON.stringify({ domain, email: 'o@x.io', listed: true, verified: false, ...over });
 
-test('cleanup deletes an expired-claim legacy row, then drops it once the final state is seen', async () => {
+const pendingOf = (kv) =>
+  kv.store.has('lv:pending') ? JSON.parse(kv.store.get('lv:pending').value) : {};
+
+test('cleanup deletes an expired-claim legacy row and drops it from the queue', async () => {
   const kv = makeKv({
     'l:stale.example.com': legacyRow(),
     'w:stale.example.com': watchRow('stale.example.com', { updatedAt: daysAgo(30) }),
+    'l:orphan.example.com': legacyRow(),
     'l:keep.example.com': legacyRow(),
     'w:keep.example.com': watchRow('keep.example.com', { verified: true }),
-    'lv:rejected': JSON.stringify(['stale.example.com']),
+    'lv:rejected': JSON.stringify(['stale.example.com', 'orphan.example.com']),
   });
   const r = await cleanupLegacyListings(kv);
-  expect(r.deleted).toBe(1);
+  expect(r.deleted).toBe(2);
   expect(kv.store.has('l:stale.example.com')).toBe(false);
-  expect(queueOf(kv)).toContain('stale.example.com'); // re-observed next run
+  expect(kv.store.has('l:orphan.example.com')).toBe(false);
+  expect(kv.store.has('lv:rejected')).toBe(false); // deletion is final
   // A legacy row with a listed+verified watch is never deleted; it's indexed.
   expect(kv.store.has('l:keep.example.com')).toBe(true);
   expect(JSON.parse(kv.store.get('lv:verified').value)).toEqual(['keep.example.com']);
-  const r2 = await cleanupLegacyListings(kv);
-  expect(r2.skipped).toBe(1); // gone + unverified watch = final
-  expect(kv.store.has('lv:rejected')).toBe(false);
   expect((await listAllSites(kv)).map((x) => x.domain)).toEqual(['keep.example.com']);
 });
 
 test('a row still within the confirmation window is never deleted, even if every read is stale', async () => {
   // Claim made 2 days ago; its confirm token (7d) may still be clicked. Every
-  // watch read returns the stale UNVERIFIED value, as an eventually
-  // consistent KV can — cleanup must not delete on that evidence.
+  // watch read returns the UNVERIFIED value, as an eventually consistent KV
+  // can after a confirm — cleanup must not delete on that evidence.
   const kv = makeKv({
     'l:recent.example.com': legacyRow(),
     'w:recent.example.com': watchRow('recent.example.com', { updatedAt: daysAgo(2) }),
@@ -724,7 +724,7 @@ test('a row still within the confirmation window is never deleted, even if every
   const r = await cleanupLegacyListings(kv);
   expect(r.pending).toBe(1);
   expect(kv.store.has('l:recent.example.com')).toBe(true);
-  expect(queueOf(kv)).toEqual(['recent.example.com']);
+  expect(Object.keys(pendingOf(kv))).toEqual(['recent.example.com']);
 
   // Same with a live confirm-token marker, even when the watch claim looks old.
   const kv2 = makeKv({
@@ -752,47 +752,93 @@ test('issuing a confirm token writes the per-domain marker that blocks cleanup',
   expect(kv.store.has('wvd:mark.example.com')).toBe(true);
 });
 
-test('a missing listing with a listed+verified watch is repaired, and kept queued until seen', async () => {
+test('cleanup never writes a listing (confirm and scans are the only writers)', async () => {
   const kv = makeKv({
-    'w:fix.example.com': watchRow('fix.example.com', {
-      verified: true,
-      lastScore: 4,
-      lastGrade: 'A',
-      lastTier: 'Clean',
-      lastId: 'abc',
-    }),
-    'lv:rejected': JSON.stringify(['fix.example.com']),
+    // Listed+verified watch whose row is missing: NOT repaired by cleanup.
+    'w:fix.example.com': watchRow('fix.example.com', { verified: true, lastScore: 4 }),
+    'l:old.example.com': legacyRow(),
+    'w:old.example.com': watchRow('old.example.com', { updatedAt: daysAgo(30) }),
+    'l:ok.example.com': legacyRow(),
+    'w:ok.example.com': watchRow('ok.example.com', { verified: true }),
+    'lv:rejected': JSON.stringify(['fix.example.com', 'old.example.com', 'ok.example.com']),
   });
-  const r = await cleanupLegacyListings(kv);
-  expect(r.restored).toBe(1);
-  const row = kv.store.get('l:fix.example.com');
-  expect(row.metadata.v).toBe(1);
-  expect(JSON.parse(row.value)).toMatchObject({ domain: 'fix.example.com', score: 4, id: 'abc' });
-  expect(queueOf(kv)).toEqual(['fix.example.com']);
-  const r2 = await cleanupLegacyListings(kv);
-  expect(r2.skipped).toBe(1); // v:1 row observed: final
-  expect(kv.store.has('lv:rejected')).toBe(false);
-});
-
-test('a failed restore is retried on the next run', async () => {
-  const kv = makeKv({
-    'w:retry.example.com': watchRow('retry.example.com', { verified: true }),
-    'lv:rejected': JSON.stringify(['retry.example.com']),
-  });
+  const listingWrites = [];
   const origPut = kv.put.bind(kv);
-  let fail = true;
   kv.put = async (k, v, o) => {
-    if (fail && k === 'l:retry.example.com') throw new Error('KV write failed');
+    if (k.startsWith('l:')) listingWrites.push(k);
     return origPut(k, v, o);
   };
-  const r1 = await cleanupLegacyListings(kv);
-  expect(r1.errors).toBe(1);
-  expect(kv.store.has('l:retry.example.com')).toBe(false);
-  expect(queueOf(kv)).toEqual(['retry.example.com']); // still queued
-  fail = false;
-  const r2 = await cleanupLegacyListings(kv);
-  expect(r2.restored).toBe(1);
-  expect(kv.store.get('l:retry.example.com').metadata.v).toBe(1);
+  await cleanupLegacyListings(kv);
+  expect(listingWrites).toEqual([]);
+  expect(kv.store.has('l:fix.example.com')).toBe(false);
+});
+
+test('an unsubscribe landing mid-cleanup is not undone', async () => {
+  const kv = makeKv({
+    'l:bye.example.com': legacyRow(),
+    'w:bye.example.com': watchRow('bye.example.com', { verified: true }),
+    'lv:rejected': JSON.stringify(['bye.example.com']),
+  });
+  // performUnsubscribe runs right after cleanup reads the (verified) watch.
+  const origGet = kv.get.bind(kv);
+  let unsubscribed = false;
+  kv.get = async (k) => {
+    const v = await origGet(k);
+    if (k === 'w:bye.example.com' && !unsubscribed) {
+      unsubscribed = true;
+      await performUnsubscribe(kv, 'bye.example.com', 'o@x.io');
+    }
+    return v;
+  };
+  await cleanupLegacyListings(kv);
+  expect(unsubscribed, 'the simulated unsubscribe actually ran').toBe(true);
+  expect(kv.store.has('l:bye.example.com')).toBe(false);
+  expect(kv.store.has('w:bye.example.com')).toBe(false);
+  kv.get = origGet;
+  await cleanupLegacyListings(kv); // a later run doesn't bring it back either
+  expect(kv.store.has('l:bye.example.com')).toBe(false);
+});
+
+test('parked pending rows are re-examined at most weekly and do not starve the queue or walk', async () => {
+  const seed = {};
+  const rejected = [];
+  // 300 undecidable rows (no claim timestamp) in the queue…
+  for (let i = 0; i < 300; i++) {
+    const d = `p${String(i).padStart(3, '0')}.example.com`;
+    seed[`l:${d}`] = legacyRow();
+    seed[`w:${d}`] = watchRow(d);
+    rejected.push(d);
+  }
+  // …plus unclassified orphans only the namespace walk can find.
+  for (let i = 0; i < 40; i++) seed[`l:u${String(i).padStart(3, '0')}.example.com`] = legacyRow();
+  seed['lv:rejected'] = JSON.stringify(rejected);
+  const kv = paginate(makeKv(seed));
+  const orphansLeft = () => [...kv.store.keys()].filter((k) => /^l:u/.test(k)).length;
+
+  const now = Date.now();
+  const r1 = await cleanupLegacyListings(kv, { now });
+  expect(r1.pending).toBe(150); // queue budget
+  expect(r1.deleted).toBe(40); // the walk still ran on its own budget
+  expect(orphansLeft()).toBe(0);
+  const r2 = await cleanupLegacyListings(kv, { now: now + 1000 });
+  expect(r2.pending).toBe(150); // the other half, not the already-parked ones
+  expect(Object.keys(pendingOf(kv)).length).toBe(300);
+  expect(kv.store.has('lv:rejected')).toBe(false);
+  // Before the retry time: nothing is re-examined.
+  const r3 = await cleanupLegacyListings(kv, { now: now + 2 * DAY });
+  expect(r3.processed).toBe(0);
+  // After a week the parked rows come due again (bounded by the queue budget).
+  const r4 = await cleanupLegacyListings(kv, { now: now + 8 * DAY });
+  expect(r4.pending).toBe(150);
+  // Parked rows are hidden on the read path without spending its check budget.
+  let watchReads = 0;
+  const origGet = kv.get.bind(kv);
+  kv.get = async (k) => {
+    if (k.startsWith('w:')) watchReads++;
+    return origGet(k);
+  };
+  expect(await listAllSites(kv)).toEqual([]);
+  expect(watchReads).toBe(0);
 });
 
 test('cleanup leaves a row that was replaced by a confirmed v:1 row', async () => {
@@ -807,37 +853,34 @@ test('cleanup leaves a row that was replaced by a confirmed v:1 row', async () =
 test('cleanup is bounded per run and makes progress across runs', async () => {
   const seed = {};
   const rejected = [];
-  // Orphans (no watch, no live token): deletable.
   for (let i = 0; i < 250; i++) {
     const d = `r${String(i).padStart(3, '0')}.example.com`;
     seed[`l:${d}`] = legacyRow();
     rejected.push(d);
   }
-  // Plus unclassified legacy orphans the read path never reached.
   for (let i = 0; i < 30; i++) seed[`l:u${String(i).padStart(3, '0')}.example.com`] = legacyRow();
   seed['lv:rejected'] = JSON.stringify(rejected);
   const kv = paginate(makeKv(seed));
   const legacyLeft = () => [...kv.store.keys()].filter((k) => k.startsWith('l:')).length;
 
   const r1 = await cleanupLegacyListings(kv);
-  expect(r1.processed).toBe(200);
-  expect(legacyLeft()).toBe(80);
-  for (let i = 0; i < 5 && legacyLeft() > 0; i++) {
-    const r = await cleanupLegacyListings(kv);
-    expect(r.processed).toBeLessThanOrEqual(200);
-  }
+  expect(r1.processed).toBe(180); // 150 queue + 30 walk
+  expect(legacyLeft()).toBe(100);
+  const r2 = await cleanupLegacyListings(kv);
+  expect(r2.processed).toBe(100);
   expect(legacyLeft()).toBe(0);
-  // Final states observed: the queue fully drains.
-  for (let i = 0; i < 3; i++) await cleanupLegacyListings(kv);
   expect(kv.store.has('lv:rejected')).toBe(false);
 
-  // A small per-run cap still advances through unclassified rows.
+  // A small walk budget still advances through unclassified rows.
   const kv2 = paginate(
     makeKv(
       Object.fromEntries(Array.from({ length: 5 }, (_, i) => [`l:w${i}.example.com`, legacyRow()]))
     )
   );
-  for (let i = 0; i < 6; i++) await cleanupLegacyListings(kv2, { max: 2 });
+  const runs = [];
+  for (let i = 0; i < 3; i++)
+    runs.push((await cleanupLegacyListings(kv2, { walkMax: 2 })).processed);
+  expect(runs).toEqual([2, 2, 1]);
   expect([...kv2.store.keys()].filter((k) => k.startsWith('l:'))).toEqual([]);
 });
 
