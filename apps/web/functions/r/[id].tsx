@@ -33,6 +33,7 @@ import {
   AxisStrip,
   SystemAeoCards,
   FixesPanel,
+  BreakdownUnavailable,
   ShareEmbed,
 } from '../_result.js';
 
@@ -152,6 +153,7 @@ export async function onRequestGet({ params, env, request }) {
     fixPrompt: assembleFixPrompt(slim, view),
     badgeMd,
     domain,
+    aeoUrl: slim.finalUrl || slim.url,
   });
 
   const head = (
@@ -192,20 +194,28 @@ export async function onRequestGet({ params, env, request }) {
           </div>
         </section>
 
-        <section class="result-section">
-          <div class="rs-ledger">
-            <SectionLedger tag="" label="category overview" />
-          </div>
-          <CategoryBars categories={view.categories} />
-        </section>
+        {view.breakdownAvailable ? (
+          <>
+            <section class="result-section">
+              <div class="rs-ledger">
+                <SectionLedger tag="" label="category overview" />
+              </div>
+              <CategoryBars categories={view.categories} />
+            </section>
 
-        <section class="result-section">
-          <Breakdown
-            categories={view.categories}
-            flaggedTotal={view.flaggedTotal}
-            patternsTotal={view.patternsTotal}
-          />
-        </section>
+            <section class="result-section">
+              <Breakdown
+                categories={view.categories}
+                flaggedTotal={view.flaggedTotal}
+                patternsTotal={view.patternsTotal}
+              />
+            </section>
+          </>
+        ) : (
+          <section class="result-section">
+            <BreakdownUnavailable slim={slim} origin={origin} />
+          </section>
+        )}
 
         <section class="result-section">
           <div class="rs-ledger">
@@ -222,7 +232,12 @@ export async function onRequestGet({ params, env, request }) {
         </section>
 
         <section class="result-section">
-          <FixesPanel fixes={view.fixes} domain={domain} />
+          <FixesPanel
+            fixes={view.fixes}
+            domain={domain}
+            driftCount={(slim.system?.drift || []).length}
+            breakdownAvailable={view.breakdownAvailable}
+          />
         </section>
 
         <section class="result-section">
