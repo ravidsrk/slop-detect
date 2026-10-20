@@ -346,11 +346,12 @@ function analyzeInvisibleCharacters(rawText: string) {
   }
 
   // Count U+200B, U+2060, U+FEFF inside word tokens (between letters),
-  // U+200D not between Extended_Pictographic emoji,
-  // U+200C not adjacent to Arabic/Persian/Devanagari/Bengali script letters.
-  const chars = Array.from(withoutUrls);
+  // U+200D inside words when not part of an emoji/modifier ZWJ sequence,
+  // U+200C inside words when not adjacent to Arabic/Persian/Devanagari/Bengali script letters.
+  const chars = Array.from(withoutValidFlags);
   const isLetter = (c?: string) => Boolean(c && /\p{L}/u.test(c));
-  const isEmoji = (c?: string) => Boolean(c && /\p{Extended_Pictographic}/u.test(c));
+  const isEmojiOrModifier = (c?: string) =>
+    Boolean(c && /[\p{Extended_Pictographic}\p{Emoji_Modifier}\uFE0E\uFE0F\u20E3]/u.test(c));
   const isZwnjScript = (c?: string) =>
     Boolean(c && /[\p{Script=Arabic}\p{Script=Devanagari}\p{Script=Bengali}]/u.test(c));
 
@@ -364,18 +365,20 @@ function analyzeInvisibleCharacters(rawText: string) {
       totalZeroWidth++;
       if (isLetter(prev) && isLetter(next)) {
         inWordInvisibles++;
-      } else {
-        inWordInvisibles++;
       }
     } else if (cp === 0x200d) {
-      if (!isEmoji(prev) && !isEmoji(next)) {
+      if (!isEmojiOrModifier(prev) && !isEmojiOrModifier(next)) {
         totalZeroWidth++;
-        inWordInvisibles++;
+        if (isLetter(prev) && isLetter(next)) {
+          inWordInvisibles++;
+        }
       }
     } else if (cp === 0x200c) {
       if (!isZwnjScript(prev) && !isZwnjScript(next)) {
         totalZeroWidth++;
-        inWordInvisibles++;
+        if (isLetter(prev) && isLetter(next)) {
+          inWordInvisibles++;
+        }
       }
     }
   }
@@ -665,17 +668,17 @@ export const COPY_PATTERNS = [
     },
   },
 
-  // ── C8. UNICODE ARTIFACTS (FIX-11: U+202F never triggers; script-aware) ─
+  // ── C8. UNICODE ARTIFACTS (retired in FIX-11: split into hidden_tag_characters, invisible_characters, fake_bold_math_alnum) ─
   {
     id: 'unicode_artifacts',
     label: 'Invisible Unicode or mathematical fake-bold characters in text',
     short: 'Unicode tells',
     axis: 'copy',
     category: 'copy',
-    weight: 4,
+    weight: 0,
     tier: 'Warning',
     statistical: false,
-    status: 'active',
+    status: 'retired',
     evidenceGrade: 'standard',
     era: 'baseline',
     modelFamilies: [],
@@ -683,27 +686,24 @@ export const COPY_PATTERNS = [
     likelihoodRatio: null,
     fpRate: null,
     fpRatePre2022: null,
-    match: ({ text }: any) => {
-      const stats = analyzeInvisibleCharacters(text || '');
-      const total = stats.inWordInvisibles + stats.tagChars + stats.mathAlnum;
-      return {
-        zeroWidth: stats.zeroWidth,
-        inWordInvisibles: stats.inWordInvisibles,
-        tagChars: stats.tagChars,
-        narrowNbsp: stats.narrowNbsp,
-        nbsp: stats.nbsp,
-        mathAlnum: stats.mathAlnum,
-        total,
-        // FIX-11: narrowNbsp (U+202F) is French/typographic punctuation and NEVER triggers.
-        triggered: stats.inWordInvisibles >= 2 || stats.tagChars >= 1 || stats.mathAlnum >= 4,
-      };
-    },
+    match: () => ({
+      zeroWidth: 0,
+      inWordInvisibles: 0,
+      tagChars: 0,
+      narrowNbsp: 0,
+      nbsp: 0,
+      mathAlnum: 0,
+      total: 0,
+      retired: true,
+      replacedBy: ['hidden_tag_characters', 'invisible_characters', 'fake_bold_math_alnum'],
+      triggered: false,
+    }),
   },
 
-  // ── C9. EMOJI BULLET HEADERS (C-09 expanded lead emoji set) ──────────────
+  // ── C9. EMOJI BULLET HEADERS (legacy scored emoji list) ───────────────────
   {
     id: 'emoji_bullet_headers',
-    label: 'Emoji-prefixed bullet/headers (🚀 ✅ ✨ 🧠 🔹 📌 as list markers)',
+    label: 'Emoji-prefixed bullet/headers (🚀 ✅ ✨ as list markers)',
     short: 'Emoji bullets',
     axis: 'copy',
     category: 'copy',
@@ -720,7 +720,7 @@ export const COPY_PATTERNS = [
     fpRatePre2022: null,
     match: ({ headings, paragraphs }: any) => {
       const lead =
-        /^\s*(?:[\u2705\u2728\u2734\u2733\u2B50\u26A1]|\u{1F680}|\u{1F525}|\u{1F4A1}|\u{1F389}|\u{1F44D}|\u{1F64C}|\u{1F4AA}|\u{1F6E0}|\u{1F449}|\u{1F9E0}|\u{1F539}|\u{1F4CC})/u;
+        /^\s*(?:[\u2705\u2728\u2734\u2733\u2B50\u26A1]|\u{1F680}|\u{1F525}|\u{1F4A1}|\u{1F389}|\u{1F44D}|\u{1F64C}|\u{1F4AA}|\u{1F6E0}|\u{1F449})/u;
       const lines = [...(headings || []), ...(paragraphs || [])];
       let count = 0;
       const samples: string[] = [];
@@ -789,17 +789,17 @@ export const COPY_PATTERNS = [
     },
   },
 
-  // ── FIX-11c. FAKE BOLD MATH ALNUM (weight 0 under K-04) ──────────────────
+  // ── FIX-11c. FAKE BOLD MATH ALNUM (keeps shipped weight 4) ───────────────
   {
     id: 'fake_bold_math_alnum',
     label: 'Mathematical Alphanumeric Symbols used as fake bold/italic in prose',
     short: 'Fake-bold Unicode',
     axis: 'copy',
     category: 'copy',
-    weight: 0,
+    weight: 4,
     tier: 'Suggestion',
     statistical: false,
-    status: 'review',
+    status: 'active',
     evidenceGrade: 'standard',
     era: '2024-gpt4',
     modelFamilies: [],
@@ -1235,10 +1235,13 @@ export const COPY_PATTERNS = [
     likelihoodRatio: null,
     fpRate: null,
     fpRatePre2022: null,
-    match: ({ headings, links }: any) => {
+    match: ({ headings, listItems, links }: any) => {
       const lead =
         /^\s*(?:[\u2705\u2728\u2734\u2733\u2B50\u26A1]|\u{1F680}|\u{1F525}|\u{1F4A1}|\u{1F389}|\u{1F44D}|\u{1F64C}|\u{1F4AA}|\u{1F6E0}|\u{1F449}|\u{1F9E0}|\u{1F539}|\u{1F4CC})/u;
-      const items = Array.isArray(headings) ? headings : [];
+      const items = [
+        ...(Array.isArray(headings) ? headings : []),
+        ...(Array.isArray(listItems) ? listItems : []),
+      ];
       let count = 0;
       for (const h of items) {
         if (lead.test(h)) count++;

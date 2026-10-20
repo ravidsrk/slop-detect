@@ -1,16 +1,52 @@
 <!doctype html>
-<html lang="en">
+<!-- Synthetic pioneer-archetype fixture (minimal design-engineer notes style; NOT an archived capture of rauno.me). -->
+<html lang="en" style="color-scheme: light;">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Rauno Freiberg — Design Engineer</title>
+    <title>Interaction Design &amp; Direct Manipulation Notes</title>
   </head>
-  <body style="background-color: rgb(252, 252, 252); color: rgb(22, 22, 22); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-    <main>
-      <article>
-        <h1 style="font-size: 24px; text-align: left; color: rgb(22, 22, 22);">Rauno Freiberg</h1>
-        <p style="font-size: 15px; color: rgb(56, 56, 56); line-height: 1.65;">
-          Crafting interfaces, interaction details, and invisible software systems. Previously Staff Design Engineer at Vercel and Basement Studio. Writing notes on physical feel, audio feedback, and direct manipulation in web software.
+  <body
+    style="background-color: rgb(252, 252, 252); color: rgb(22, 22, 22); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0;"
+  >
+    <header data-rect="0,0,1280,56" style="background-color: rgb(252, 252, 252); color: rgb(22, 22, 22);">
+      <nav data-rect="320,16,640,28">
+        <a href="/craft" data-rect="320,18,60,22" style="color: rgb(22, 22, 22); font-size: 14px;">Craft</a>
+        <a href="/notes" data-rect="400,18,60,22" style="color: rgb(22, 22, 22); font-size: 14px;">Notes</a>
+        <a href="/colophon" data-rect="480,18,80,22" style="color: rgb(22, 22, 22); font-size: 14px;">Colophon</a>
+      </nav>
+    </header>
+    <main data-rect="0,56,1280,1200">
+      <article data-rect="320,100,640,900" style="background-color: rgb(252, 252, 252);">
+        <h1
+          data-rect="320,110,480,36"
+          style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 24px; line-height: 32px; text-align: left; letter-spacing: -0.3px; color: rgb(22, 22, 22);"
+        >
+          Invisible details in interactive software
+        </h1>
+        <p
+          data-rect="320,160,620,110"
+          style="font-size: 15px; line-height: 25px; color: rgb(48, 48, 48);"
+        >
+          Software feels responsive when interface elements obey physical conservation of momentum rather than arbitrary fixed-duration easing curves. When a user flicks a sheet or scrubs a timeline, interrupting the gesture mid-flight should preserve the instantaneous velocity vector so the element settles naturally without a discontinuous jump in position.
+        </p>
+        <h2
+          data-rect="320,290,460,28"
+          style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 18px; line-height: 26px; text-align: left; color: rgb(22, 22, 22);"
+        >
+          Hit targets, spring physics, and audio tactility
+        </h2>
+        <p
+          data-rect="320,330,620,110"
+          style="font-size: 15px; line-height: 25px; color: rgb(48, 48, 48);"
+        >
+          Small visual controls often need expanded invisible hit regions that bias toward the cursor trajectory. Pairing critically damped springs with subtle, low-pass filtered synthesizer clicks gives radial dials and keyboard launchers the tactile certainty of hardware switches while respecting system reduced-motion preferences.
+        </p>
+        <p
+          data-rect="320,460,620,110"
+          style="font-size: 15px; line-height: 25px; color: rgb(48, 48, 48);"
+        >
+          Restraint in typography and surface chrome keeps attention on the work itself. A single monochrome ramp, tabular numerals for counters, and crisp 1px hairlines age better than decorative gradients or heavy drop shadows.
         </p>
       </article>
     </main>

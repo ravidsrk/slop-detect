@@ -22,31 +22,116 @@ const LONG_PROSE_PADDING =
   'Every query plan is logged with microsecond latency histograms so on-call teams can isolate slow joins before customers notice any degradation. ' +
   'Backups run hourly to object storage in three availability zones with automated point-in-time recovery verification every morning. ';
 
-describe('#231 FIX-11: Unicode artifacts split + French U+202F exclusion', () => {
-  test('French narrow no-break spaces (U+202F) before punctuation never trigger unicode_artifacts or invisible_characters', () => {
-    const french =
-      'Pourquoi choisir notre plateforme\u202F? Voici trois raisons\u202F: la vitesse\u202F; la sécurité\u202F! ' +
-      '«\u202FNous avons réduit nos coûts de moitié\u202F» déclare notre client principal. ' +
+describe('#231 FIX-11 & #299: Unicode artifacts split, script-aware exclusions, and weight gate', () => {
+  test('flag emoji, woman-technologist ZWJ emoji, Persian ZWNJ paragraph, and French "10 000 €" stay silent', () => {
+    const cleanMultilingual =
+      'Our distributed teams in \u{1F1FA}\u{1F1F8} and \u{1F1EF}\u{1F1F5} include every \u{1F469}\u{1F3FD}\u200D\u{1F4BB} engineer. ' +
+      'Pricing starts at 10\u202F000\u202F€ per year\u202F! ' +
+      'ما می‌خواهیم برنامه‌نویسی و نرم‌افزارهای مقیاس‌پذیر را برای تیم‌های مهندسی ساده‌تر کنیم. ' +
       LONG_PROSE_PADDING +
       LONG_PROSE_PADDING;
-    const res = scoreCopy({ text: french, proseWordCount: 320, wordCount: 320 });
+    const res = scoreCopy({ text: cleanMultilingual, proseWordCount: 340, wordCount: 340 });
     expect(res.patterns.find((p) => p.id === 'unicode_artifacts').triggered).toBe(false);
+    expect(res.patterns.find((p) => p.id === 'hidden_tag_characters').triggered).toBe(false);
     expect(res.patterns.find((p) => p.id === 'invisible_characters').triggered).toBe(false);
+    expect(res.patterns.find((p) => p.id === 'fake_bold_math_alnum').triggered).toBe(false);
+    expect(res.score).toBe(0);
   });
 
-  test('hidden_tag_characters catches U+E0000..U+E007F tag smuggling and fake_bold_math_alnum catches U+1D400 letters', () => {
-    const tagged = 'Normal visible sentence\u{E0041}\u{E0042}\u{E0043} with hidden tags.';
-    const resTag = scoreCopy({ text: tagged, proseWordCount: 20, wordCount: 20 });
-    // Artifact patterns run even on < 150 prose words!
+  test('Tags-block paragraph triggers weight-0 hidden_tag_characters and does not change copy score; two in-word ZWSP trigger invisible_characters while one does not; fake_bold_math_alnum keeps weight 4', () => {
+    const cleanText = LONG_PROSE_PADDING + LONG_PROSE_PADDING;
+    const baseScore = scoreCopy({ text: cleanText, proseWordCount: 320, wordCount: 320 }).score;
+    expect(baseScore).toBe(0);
+
+    // Tags-block codepoint alone must NOT move copy score (0 -> 0)
+    const tagged = cleanText + ' Normal sentence\u{E0041} with a Tags-block codepoint.';
+    const resTag = scoreCopy({ text: tagged, proseWordCount: 325, wordCount: 325 });
     const tagPat = resTag.patterns.find((p) => p.id === 'hidden_tag_characters');
     expect(tagPat.triggered).toBe(true);
     expect(tagPat.status).toBe('review');
     expect(tagPat.weight).toBe(0);
-    expect(resTag.evidence.find((e) => e.id === 'hidden_tag_characters').scoreDelta).toBe(0);
+    expect(resTag.patterns.find((p) => p.id === 'unicode_artifacts').triggered).toBe(false);
+    expect(resTag.score).toBe(baseScore);
 
-    const mathBold = 'Check out \uD835\uDDD4\uD835\uDDD6\uD835\uDDE0\uD835\uDDD8 today.';
-    const resMath = scoreCopy({ text: mathBold, proseWordCount: 10, wordCount: 10 });
-    expect(resMath.patterns.find((p) => p.id === 'fake_bold_math_alnum').triggered).toBe(true);
+    // One in-word ZWSP does NOT trigger invisible_characters; two in-word ZWSP DO trigger at weight 0
+    const oneZwsp = cleanText + ' One in-word re\u200Bact token.';
+    const resOne = scoreCopy({ text: oneZwsp, proseWordCount: 325, wordCount: 325 });
+    expect(resOne.patterns.find((p) => p.id === 'invisible_characters').triggered).toBe(false);
+
+    const twoZwsp = cleanText + ' Two in-word re\u200Bact and de\u200Bploy tokens.';
+    const resTwo = scoreCopy({ text: twoZwsp, proseWordCount: 325, wordCount: 325 });
+    const invPat = resTwo.patterns.find((p) => p.id === 'invisible_characters');
+    expect(invPat.triggered).toBe(true);
+    expect(invPat.weight).toBe(0);
+    expect(resTwo.score).toBe(0);
+
+    // fake_bold_math_alnum keeps shipped weight 4 while unicode_artifacts stays retired
+    const mathBold = cleanText + ' Check out \uD835\uDDD4\uD835\uDDD6\uD835\uDDE0\uD835\uDDD8 today.';
+    const resMath = scoreCopy({ text: mathBold, proseWordCount: 325, wordCount: 325 });
+    const fbPat = resMath.patterns.find((p) => p.id === 'fake_bold_math_alnum');
+    expect(fbPat.triggered).toBe(true);
+    expect(fbPat.weight).toBe(4);
+    expect(resMath.patterns.find((p) => p.id === 'unicode_artifacts').ruleStatus).toBe('retired');
+    expect(COPY_PATTERNS.find((p) => p.id === 'unicode_artifacts').status).toBe('retired');
+    expect(resMath.score).toBe(4);
+  });
+});
+
+describe('#273 C-09 & #299: emoji_bullet_headers vs emoji_heading_ratio weight gate', () => {
+  test('three headings with only 🧠/🔹/📌 leave emoji_bullet_headers and copy score unchanged; emoji_heading_ratio triggers at 2/6 and not 1/6 or 3/20; CTA emoji are evidence only', () => {
+    const newEmojiHeadings = [
+      '🧠 Smart Routing',
+      '🔹 Edge Caching',
+      '📌 Instant Rollback',
+      'Architecture',
+      'Security',
+      'Pricing',
+    ];
+    const resNewEmoji = scoreCopy({
+      text: LONG_PROSE_PADDING + LONG_PROSE_PADDING,
+      headings: newEmojiHeadings,
+      paragraphs: [LONG_PROSE_PADDING, LONG_PROSE_PADDING],
+      wordCount: 320,
+      proseWordCount: 320,
+    });
+    expect(resNewEmoji.patterns.find((p) => p.id === 'emoji_bullet_headers').triggered).toBe(false);
+    expect(resNewEmoji.patterns.find((p) => p.id === 'emoji_heading_ratio').triggered).toBe(true);
+    expect(resNewEmoji.score).toBe(0);
+
+    const ratioRule = COPY_PATTERNS.find((p) => p.id === 'emoji_heading_ratio');
+    expect(ratioRule.weight).toBe(0);
+    expect(ratioRule.status).toBe('review');
+
+    // 2 of 6 items triggers (33.3% >= 30%)
+    const twoOfSix = ratioRule.match({
+      headings: ['🧠 First', '🔹 Second', 'Third', 'Fourth', 'Fifth', 'Sixth'],
+      listItems: [],
+      links: [{ text: '🚀 Start free' }],
+    });
+    expect(twoOfSix.triggered).toBe(true);
+    expect(twoOfSix.ctaEmoji).toBe(1);
+
+    // 1 of 6 items does NOT trigger
+    const oneOfSix = ratioRule.match({
+      headings: ['🧠 First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth'],
+      listItems: [],
+      links: [{ text: '🚀 Start free' }, { text: '✨ Demo' }],
+    });
+    expect(oneOfSix.triggered).toBe(false);
+    expect(oneOfSix.ctaEmoji).toBe(2);
+
+    // 3 of 20 items (15% < 30%) does NOT trigger
+    const threeOfTwenty = ratioRule.match({
+      headings: [
+        '🧠 1',
+        '🔹 2',
+        '📌 3',
+        ...Array.from({ length: 17 }, (_, i) => `Plain heading ${i + 4}`),
+      ],
+      listItems: [],
+      links: [{ text: '🚀 Launch' }],
+    });
+    expect(threeOfTwenty.triggered).toBe(false);
   });
 });
 

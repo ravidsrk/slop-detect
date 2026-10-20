@@ -614,49 +614,34 @@ export function evaluateDefaultKits(
   return results;
 }
 
-// ── D-11 (#250): Design typicality (k-NN distance to human reference set) ────
-// 25 reference vectors over [gridAdherence, distinctTypeSizes, maxRadiusPx, paddingCV, sectionCount]
-// anchored around the human reference medians (gridAdherence ~0.62, distinctTypeSizes ~8, maxRadiusPx ~50).
-export const HUMAN_TYPICALITY_REFERENCE: number[][] = [
-  [0.62, 8, 50, 0.35, 6],
-  [0.58, 7, 16, 0.42, 5],
-  [0.66, 9, 999, 0.31, 7],
-  [0.54, 6, 8, 0.48, 4],
-  [0.71, 10, 24, 0.28, 8],
-  [0.6, 8, 12, 0.38, 6],
-  [0.49, 7, 4, 0.52, 5],
-  [0.68, 9, 32, 0.33, 7],
-  [0.55, 8, 64, 0.41, 6],
-  [0.63, 6, 0, 0.45, 5],
-  [0.74, 11, 48, 0.29, 9],
-  [0.52, 7, 16, 0.44, 5],
-  [0.61, 8, 40, 0.36, 6],
-  [0.65, 9, 20, 0.34, 7],
-  [0.57, 7, 8, 0.39, 5],
-  [0.69, 10, 100, 0.3, 8],
-  [0.48, 5, 6, 0.55, 4],
-  [0.64, 8, 28, 0.37, 6],
-  [0.59, 8, 14, 0.4, 6],
-  [0.72, 9, 80, 0.27, 7],
-  [0.53, 6, 12, 0.46, 5],
-  [0.67, 9, 36, 0.32, 7],
-  [0.6, 8, 24, 0.36, 6],
-  [0.56, 7, 18, 0.43, 5],
-  [0.63, 8, 50, 0.35, 6],
-];
+// ── D-11 (#250): Design typicality (k-NN distance to caller-supplied human reference set) ──
+// No unlicensed corpus or hand-entered reference vectors are committed in the repository.
+// When no licensed reference set is loaded, HUMAN_TYPICALITY_REFERENCE is null and
+// computeDesignTypicality returns null.
+export const HUMAN_TYPICALITY_REFERENCE: number[][] | null = null;
 
-export function computeDesignTypicality(
-  featureVector: number[],
-  referenceSet: number[][] = HUMAN_TYPICALITY_REFERENCE,
-  k: number = 25,
-): {
+export interface DesignTypicalityResult {
   meanDistance: number;
   percentile: number;
+  atypicalityPercentile: number;
   k: number;
+  referenceCount: number;
+  scoreDelta: 0;
   scored: false;
-} {
-  if (!Array.isArray(featureVector) || featureVector.length === 0 || referenceSet.length === 0) {
-    return { meanDistance: 0, percentile: 50, k: 0, scored: false };
+}
+
+export function computeDesignTypicality(
+  featureVector: number[] | null | undefined,
+  referenceSet: number[][] | null | undefined = HUMAN_TYPICALITY_REFERENCE,
+  k: number = 25,
+): DesignTypicalityResult | null {
+  if (
+    !Array.isArray(featureVector) ||
+    featureVector.length === 0 ||
+    !Array.isArray(referenceSet) ||
+    referenceSet.length < 2
+  ) {
+    return null;
   }
   const dim = featureVector.length;
   const n = referenceSet.length;
@@ -678,27 +663,48 @@ export function computeDesignTypicality(
   const zVec = featureVector.map((v, d) => (v - means[d]) / sds[d]);
   const zRefs = referenceSet.map((row) => row.slice(0, dim).map((v, d) => (v - means[d]) / sds[d]));
 
-  const dists = zRefs
-    .map((zr) => {
-      let sq = 0;
-      for (let d = 0; d < dim; d++) {
-        const diff = zVec[d] - (zr[d] ?? 0);
-        sq += diff * diff;
-      }
-      return Math.sqrt(sq);
-    })
-    .sort((a, b) => a - b);
+  const euclidean = (a: number[], b: number[]) => {
+    let sq = 0;
+    for (let d = 0; d < dim; d++) {
+      const diff = (a[d] ?? 0) - (b[d] ?? 0);
+      sq += diff * diff;
+    }
+    return Math.sqrt(sq);
+  };
 
-  const kEff = Math.min(k, dists.length);
+  const targetDists = zRefs.map((zr) => euclidean(zVec, zr)).sort((a, b) => a - b);
+  const kEff = Math.min(k, targetDists.length);
   const meanDistance =
-    Math.round((dists.slice(0, kEff).reduce((s, v) => s + v, 0) / kEff) * 1000) / 1000;
+    Math.round((targetDists.slice(0, kEff).reduce((s, v) => s + v, 0) / kEff) * 1000) / 1000;
 
-  // Map distance to a 0-100 typicality percentile (closer to reference center => higher typicality)
-  const percentile = Math.max(0, Math.min(100, Math.round(100 * Math.exp(-0.35 * meanDistance))));
+  // Leave-one-out k-NN mean distance for each reference item to form the empirical reference distribution.
+  const kRef = Math.min(k, Math.max(1, n - 1));
+  const refKnnDists = zRefs.map((zr, idx) => {
+    const otherDists: number[] = [];
+    for (let j = 0; j < n; j++) {
+      if (j === idx) continue;
+      otherDists.push(euclidean(zr, zRefs[j]));
+    }
+    otherDists.sort((a, b) => a - b);
+    const sum = otherDists.slice(0, kRef).reduce((s, v) => s + v, 0);
+    return Math.round((sum / kRef) * 1000) / 1000;
+  });
+
+  // True empirical rank percentile against the reference distribution:
+  // percentile = share of reference items whose k-NN distance is >= target meanDistance
+  // (100 = most typical / closest to reference cluster; 0 = further than all reference items).
+  const countGreaterOrEqual = refKnnDists.filter((d) => d >= meanDistance).length;
+  const countLessOrEqual = refKnnDists.filter((d) => d <= meanDistance).length;
+  const percentile = Math.round((countGreaterOrEqual / n) * 100);
+  const atypicalityPercentile = Math.round((countLessOrEqual / n) * 100);
+
   return {
     meanDistance,
     percentile,
+    atypicalityPercentile,
     k: kEff,
+    referenceCount: n,
+    scoreDelta: 0,
     scored: false,
   };
 }

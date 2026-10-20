@@ -1,12 +1,15 @@
-// #300 K-05: Pioneer regression fixtures (committed HTML snapshots, zero network).
-// Verifies that canonical human-crafted pioneer pages (Stripe, Linear, Vercel, Rauno)
-// score Clean (< 10) on both the design and copy axes, and that Inter/Geist alone
-// (without co-occurring slop tells) add 0 points via the D-08 co-signal post-pass rule.
+// #300 K-05: Pioneer regression fixtures (committed synthetic pioneer-archetype HTML fixtures, zero network).
+// Runs the real buildPageScript() / pattern.extract(ctx) / extractTextContext() pipeline against
+// committed HTML fixtures with full DOM structure and fails if any pioneer result is Heavy or if
+// any extractor throws. Note: these fixtures are synthetic pioneer-archetype HTML pages (not
+// archived captures of live stripe.com or linear.app); published self-scans and quarterly live
+// delta runs stay parked for the browser-runner slice.
 
 import { test, expect, describe } from 'vitest';
 import { readFileSync } from 'node:fs';
 import {
   PATTERNS,
+  buildPageScript,
   scorePatterns,
   scoreCopy,
   assemblePatternResults,
@@ -16,73 +19,407 @@ function loadPioneerHtml(name) {
   return readFileSync(new URL(`./fixtures/pioneers/${name}.html`, import.meta.url), 'utf8');
 }
 
-// Parse a committed pioneer HTML snapshot into lightweight signal + text observations
-// so the test runs deterministically in < 20ms with zero network or headless browser.
-function evaluatePioneerSnapshot(html) {
-  const h1Match = html.match(/<h1\b[^>]*style=(?:"([^"]*)"|'([^']*)')[^>]*>([\s\S]*?)<\/h1>/i);
-  const bodyStyleMatch = html.match(/<body\b[^>]*style=(?:"([^"]*)"|'([^']*)')/i);
-  const h1Style = h1Match ? h1Match[1] || h1Match[2] || '' : '';
-  const bodyStyle = bodyStyleMatch ? bodyStyleMatch[1] || bodyStyleMatch[2] || '' : '';
-
-  const fontMatch = (h1Style || bodyStyle).match(/font-family\s*:\s*([^;]+)/i);
-  const fontFamily = fontMatch ? fontMatch[1].trim() : '-apple-system, sans-serif';
-  const lowerFont = fontFamily.toLowerCase();
-  const isInterOrGeist = lowerFont.includes('inter') || lowerFont.includes('geist');
-  const isCentered = /text-align\s*:\s*center/i.test(h1Style);
-
-  const signals = {};
-  for (const p of PATTERNS) {
-    signals[p.id] = { triggered: false };
-  }
-
-  if (isInterOrGeist) {
-    signals.slop_fonts = {
-      triggered: true,
-      ratio: 1,
-      slopCount: 5,
-      total: 5,
-      heroFam: fontFamily,
-      heroIsSlop: true,
-      interOrGeistOnly: true,
-      secondaryOnly: false,
-    };
-  }
-  if (isInterOrGeist && isCentered) {
-    signals.centered_hero = {
-      triggered: true,
-      centered: true,
-      fontSize: 56,
-      family: fontFamily,
-      slopFont: true,
-    };
-  }
-
-  const { patterns } = assemblePatternResults(signals);
-  const designResult = scorePatterns(patterns);
-
-  // Extract visible prose from paragraphs and headings
-  const textBlocks = [...html.matchAll(/<(?:h1|h2|h3|p)\b[^>]*>([\s\S]*?)<\/(?:h1|h2|h3|p)>/gi)].map(
-    (m) => m[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
-  );
-  const fullText = textBlocks.join('\n\n');
-  const words = fullText.split(/\s+/).filter(Boolean).length;
-  const copyResult = scoreCopy({
-    text: fullText,
-    headings: textBlocks.slice(0, 2),
-    paragraphs: textBlocks.slice(1),
-    wordCount: words,
-    proseWordCount: words,
-  });
-
-  return { designResult, copyResult };
+function camelToKebab(s) {
+  return s.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
 }
 
-describe('K-05 (#300): Pioneer HTML snapshot regression suite', () => {
+function kebabToCamel(s) {
+  return s.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+}
+
+function parseStyleString(styleStr = '') {
+  const map = {};
+  for (const part of String(styleStr).split(';')) {
+    const idx = part.indexOf(':');
+    if (idx === -1) continue;
+    const k = part.slice(0, idx).trim().toLowerCase();
+    const v = part.slice(idx + 1).trim();
+    if (k) {
+      map[k] = v;
+      map[kebabToCamel(k)] = v;
+    }
+  }
+  return map;
+}
+
+function matchesSingleSelector(el, sel) {
+  const s = sel.trim();
+  if (!s || !el || !el.tagName) return false;
+  if (s === '*') return true;
+  if (s === ':root') return el.tagName === 'HTML';
+  // Handle simple attribute selectors like meta[name="viewport"], a[href], [role="button"], [class*="card"]
+  const attrRe = /^([a-z0-9_-]+)?\[([a-z0-9_:-]+)(?:([*^$~|]?=)(?:"([^"]*)"|'([^']*)'|([^\]]*)))?\]$/i;
+  const m = s.match(attrRe);
+  if (m) {
+    const [, tagPart, attrName, op, v1, v2, v3] = m;
+    if (tagPart && el.tagName.toLowerCase() !== tagPart.toLowerCase()) return false;
+    const rawVal = el.getAttribute(attrName);
+    if (!op) return rawVal !== null;
+    const target = v1 ?? v2 ?? v3 ?? '';
+    if (rawVal === null) return false;
+    if (op === '=') return rawVal === target;
+    if (op === '*=') return rawVal.toLowerCase().includes(target.toLowerCase());
+    if (op === '^=') return rawVal.toLowerCase().startsWith(target.toLowerCase());
+    if (op === '$=') return rawVal.toLowerCase().endsWith(target.toLowerCase());
+    return false;
+  }
+  if (s.startsWith('.')) {
+    const cls = (el.getAttribute('class') || '').split(/\s+/);
+    return cls.includes(s.slice(1));
+  }
+  if (s.startsWith('#')) {
+    return el.getAttribute('id') === s.slice(1);
+  }
+  // Ignore pseudo-selectors like a[href]:not(...)
+  if (s.includes(':')) {
+    const base = s.split(':')[0];
+    return base ? matchesSingleSelector(el, base) : false;
+  }
+  return el.tagName.toLowerCase() === s.toLowerCase();
+}
+
+function matchesSelectorList(el, selector) {
+  if (!selector) return false;
+  const parts = String(selector)
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
+  for (const part of parts) {
+    if (part.startsWith(':scope')) continue;
+    const tokens = part.split(/\s+/).filter((t) => t !== '>');
+    if (tokens.length === 1) {
+      if (matchesSingleSelector(el, tokens[0])) return true;
+    } else if (tokens.length > 1) {
+      if (!matchesSingleSelector(el, tokens[tokens.length - 1])) continue;
+      let cur = el.parentElement;
+      let idx = tokens.length - 2;
+      while (cur && idx >= 0) {
+        if (matchesSingleSelector(cur, tokens[idx])) idx--;
+        cur = cur.parentElement;
+      }
+      if (idx < 0) return true;
+    }
+  }
+  return false;
+}
+
+function buildDomFromHtml(html) {
+  const voidTags = new Set(['meta', 'link', 'img', 'br', 'hr', 'input', 'source']);
+  const allElements = [];
+
+  class MockElement {
+    constructor(tagName, attrs = {}, parent = null) {
+      this.tagName = tagName.toUpperCase();
+      this.nodeType = 1;
+      this.attrs = {};
+      for (const [k, v] of Object.entries(attrs)) {
+        this.attrs[k.toLowerCase()] = v;
+      }
+      this.parentElement = parent;
+      this.children = [];
+      this.childNodes = [];
+      this._textParts = [];
+      this.inlineStyle = parseStyleString(this.attrs.style || '');
+      this.style = {
+        ...this.inlineStyle,
+        getPropertyValue: (prop) => this.inlineStyle[camelToKebab(prop)] || '',
+      };
+      this.id = this.attrs.id || '';
+      this.className = this.attrs.class || '';
+      this.href = this.attrs.href || '';
+      this.disabled = 'disabled' in this.attrs;
+      const classTokens = String(this.className).split(/\s+/).filter(Boolean);
+      this.classList = {
+        contains: (c) => classTokens.includes(c),
+        [Symbol.iterator]: () => classTokens[Symbol.iterator](),
+      };
+    }
+
+    get textContent() {
+      const own = this._textParts.join('');
+      const childText = this.children.map((c) => c.textContent).join(' ');
+      return [own, childText].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+    }
+
+    get innerText() {
+      return this.textContent;
+    }
+
+    getAttribute(name) {
+      const k = String(name).toLowerCase();
+      return Object.prototype.hasOwnProperty.call(this.attrs, k) ? this.attrs[k] : null;
+    }
+
+    hasAttribute(name) {
+      return Object.prototype.hasOwnProperty.call(this.attrs, String(name).toLowerCase());
+    }
+
+    getBoundingClientRect() {
+      const raw = this.attrs['data-rect'];
+      if (raw) {
+        const [left, top, width, height] = raw.split(',').map((n) => parseFloat(n) || 0);
+        return {
+          left,
+          top,
+          width,
+          height,
+          right: left + width,
+          bottom: top + height,
+          x: left,
+          y: top,
+        };
+      }
+      if (this.tagName === 'HTML' || this.tagName === 'BODY') {
+        return { left: 0, top: 0, width: 1280, height: 1400, right: 1280, bottom: 1400, x: 0, y: 0 };
+      }
+      if (this.tagName === 'HEAD' || this.tagName === 'META' || this.tagName === 'TITLE') {
+        return { left: 0, top: 0, width: 0, height: 0, right: 0, bottom: 0, x: 0, y: 0 };
+      }
+      return { left: 80, top: 100, width: 600, height: 40, right: 680, bottom: 140, x: 80, y: 100 };
+    }
+
+    matches(sel) {
+      return matchesSelectorList(this, sel);
+    }
+
+    closest(sel) {
+      let cur = this;
+      while (cur) {
+        if (matchesSelectorList(cur, sel)) return cur;
+        cur = cur.parentElement;
+      }
+      return null;
+    }
+
+    querySelectorAll(sel) {
+      const results = [];
+      const walk = (node) => {
+        for (const child of node.children) {
+          if (matchesSelectorList(child, sel)) results.push(child);
+          walk(child);
+        }
+      };
+      walk(this);
+      return results;
+    }
+
+    querySelector(sel) {
+      return this.querySelectorAll(sel)[0] || null;
+    }
+
+    getClientRects() {
+      const r = this.getBoundingClientRect();
+      return r.width > 0 && r.height > 0 ? [r] : [];
+    }
+  }
+
+  const root = new MockElement('document');
+  let current = root;
+  const tagRe = /<!--[\s\S]*?-->|<(\/?)([a-zA-Z0-9-]+)([^>]*?)(\/?)>|([^<]+)/g;
+  let match;
+  while ((match = tagRe.exec(html)) !== null) {
+    if (match[0].startsWith('<!--')) continue;
+    const [, closing, tagName, attrStr, selfClosing, textNode] = match;
+    if (textNode !== undefined) {
+      const cleaned = textNode
+        .replace(/&amp;/g, '&')
+        .replace(/&mdash;/g, '—')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (cleaned && current) {
+        current._textParts.push(cleaned);
+        current.childNodes.push({ nodeType: 3, textContent: cleaned });
+      }
+      continue;
+    }
+    const lowerTag = tagName.toLowerCase();
+    if (closing) {
+      let p = current;
+      while (p && p !== root && p.tagName.toLowerCase() !== lowerTag) {
+        p = p.parentElement;
+      }
+      if (p && p !== root) current = p.parentElement || root;
+      continue;
+    }
+    const attrs = {};
+    const attrParse = /([a-zA-Z0-9_:-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g;
+    let am;
+    while ((am = attrParse.exec(attrStr || '')) !== null) {
+      attrs[am[1]] = am[2] ?? am[3] ?? am[4] ?? '';
+    }
+    const el = new MockElement(lowerTag, attrs, current === root ? null : current);
+    current.children.push(el);
+    current.childNodes.push(el);
+    allElements.push(el);
+    if (!selfClosing && !voidTags.has(lowerTag)) {
+      current = el;
+    }
+  }
+
+  const htmlEl = allElements.find((e) => e.tagName === 'HTML') || new MockElement('html');
+  const headEl = allElements.find((e) => e.tagName === 'HEAD') || new MockElement('head');
+  const bodyEl = allElements.find((e) => e.tagName === 'BODY') || new MockElement('body');
+  const titleEl = allElements.find((e) => e.tagName === 'TITLE');
+
+  const computeStyle = (el) => {
+    const inherited = {};
+    let cur = el;
+    const chain = [];
+    while (cur) {
+      chain.unshift(cur);
+      cur = cur.parentElement;
+    }
+    for (const node of chain) {
+      if (node.inlineStyle?.fontFamily) inherited.fontFamily = node.inlineStyle.fontFamily;
+      if (node.inlineStyle?.color) inherited.color = node.inlineStyle.color;
+      if (node.inlineStyle?.colorScheme) inherited.colorScheme = node.inlineStyle.colorScheme;
+    }
+    const own = el?.inlineStyle || {};
+    const isHidden = el?.tagName === 'HEAD' || el?.tagName === 'META' || el?.tagName === 'TITLE';
+    const base = {
+      display: isHidden ? 'none' : own.display || 'block',
+      visibility: own.visibility || 'visible',
+      opacity: own.opacity || '1',
+      position: own.position || 'static',
+      fontFamily: own.fontFamily || inherited.fontFamily || '-apple-system, sans-serif',
+      fontSize: own.fontSize || '16px',
+      fontWeight: own.fontWeight || '400',
+      fontStyle: own.fontStyle || 'normal',
+      lineHeight: own.lineHeight || '24px',
+      letterSpacing: own.letterSpacing || '0px',
+      textAlign: own.textAlign || 'left',
+      textTransform: own.textTransform || 'none',
+      color: own.color || inherited.color || 'rgb(17, 17, 17)',
+      backgroundColor: own.backgroundColor || 'rgba(0, 0, 0, 0)',
+      backgroundImage: own.backgroundImage || 'none',
+      backgroundClip: own.backgroundClip || 'border-box',
+      webkitBackgroundClip: own.webkitBackgroundClip || 'border-box',
+      webkitTextFillColor: own.webkitTextFillColor || '',
+      borderRadius: own.borderRadius || '0px',
+      borderTopWidth: own.borderTopWidth || '0px',
+      borderLeftWidth: own.borderLeftWidth || '0px',
+      borderRightWidth: own.borderRightWidth || '0px',
+      borderBottomWidth: own.borderBottomWidth || '0px',
+      borderTopColor: own.borderTopColor || 'rgba(0, 0, 0, 0)',
+      borderLeftColor: own.borderLeftColor || 'rgba(0, 0, 0, 0)',
+      borderRightColor: own.borderRightColor || 'rgba(0, 0, 0, 0)',
+      borderBottomColor: own.borderBottomColor || 'rgba(0, 0, 0, 0)',
+      boxShadow: own.boxShadow || 'none',
+      backdropFilter: own.backdropFilter || 'none',
+      webkitBackdropFilter: own.webkitBackdropFilter || 'none',
+      filter: own.filter || 'none',
+      animationName: own.animationName || 'none',
+      animationDuration: own.animationDuration || '0s',
+      animationIterationCount: own.animationIterationCount || '1',
+      transitionDuration: own.transitionDuration || '0s',
+      transitionProperty: own.transitionProperty || 'none',
+      transform: own.transform || 'none',
+      gridTemplateColumns: own.gridTemplateColumns || 'none',
+      gridColumnEnd: own.gridColumnEnd || 'auto',
+      overflow: own.overflow || 'visible',
+      overflowX: own.overflowX || 'visible',
+      overflowY: own.overflowY || 'visible',
+      textOverflow: own.textOverflow || 'clip',
+      whiteSpace: own.whiteSpace || 'normal',
+      outlineWidth: own.outlineWidth || '2px',
+      outlineStyle: own.outlineStyle || 'auto',
+      colorScheme: own.colorScheme || inherited.colorScheme || 'light',
+      getPropertyValue(prop) {
+        const k = kebabToCamel(prop);
+        return this[k] ?? own[prop] ?? '';
+      },
+    };
+    return base;
+  };
+
+  const fontAttr = bodyEl.getAttribute('data-fonts') || '';
+  const loadedFaces = fontAttr
+    .split(',')
+    .map((f) => f.trim())
+    .filter(Boolean)
+    .map((family) => ({ family, status: 'loaded' }));
+
+  const doc = {
+    title: titleEl ? titleEl.textContent : '',
+    documentElement: Object.assign(htmlEl, {
+      scrollWidth: 1280,
+      clientWidth: 1280,
+    }),
+    head: headEl,
+    body: Object.assign(bodyEl, {
+      scrollHeight: 1400,
+    }),
+    fonts: loadedFaces,
+    images: allElements.filter((e) => e.tagName === 'IMG'),
+    styleSheets: [],
+    querySelectorAll: (sel) => {
+      if (sel === '*') return allElements;
+      return root.querySelectorAll(sel);
+    },
+    querySelector: (sel) => root.querySelector(sel),
+    elementFromPoint: () => bodyEl,
+  };
+
+  const win = {
+    innerWidth: 1280,
+    innerHeight: 800,
+    getComputedStyle: computeStyle,
+    matchMedia: () => ({ matches: false }),
+  };
+
+  return { doc, win, computeStyle, MockElement };
+}
+
+// Execute the real buildPageScript() (all PATTERNS.extract, CRAFT_CHECKS.extract, and extractTextContext)
+// against a committed pioneer HTML fixture.
+export function evaluatePioneerSnapshot(html, { extraPatterns = [] } = {}) {
+  const { doc, win, computeStyle, MockElement } = buildDomFromHtml(html);
+  const prevDoc = globalThis.document;
+  const prevWin = globalThis.window;
+  const prevGcs = globalThis.getComputedStyle;
+  const prevEl = globalThis.Element;
+  const prevCss = globalThis.CSS;
+  const prevLoc = globalThis.location;
+
+  globalThis.document = doc;
+  globalThis.window = win;
+  globalThis.getComputedStyle = computeStyle;
+  globalThis.Element = MockElement;
+  globalThis.CSS = { supports: () => true };
+  globalThis.location = { href: 'https://pioneer.example/' };
+
+  try {
+    const script = buildPageScript();
+    const raw = new Function(`return ${script}`)();
+    for (const extra of extraPatterns) {
+      raw.signals[extra.id] = extra.extract({
+        visible: doc.querySelectorAll('*'),
+      });
+    }
+    const { patterns, patternsErrored } = assemblePatternResults(raw.signals);
+    const designResult = scorePatterns(patterns);
+    const copyResult = scoreCopy(raw.text);
+    return { raw, patterns, patternsErrored, designResult, copyResult };
+  } finally {
+    globalThis.document = prevDoc;
+    globalThis.window = prevWin;
+    globalThis.getComputedStyle = prevGcs;
+    globalThis.Element = prevEl;
+    globalThis.CSS = prevCss;
+    globalThis.location = prevLoc;
+  }
+}
+
+describe('K-05 (#300): Pioneer HTML fixture regression suite (real page-script extractors)', () => {
   for (const pioneer of ['stripe', 'linear', 'vercel', 'rauno']) {
-    test(`${pioneer}.html scores Clean (< 10) on design and copy axes`, () => {
+    test(`${pioneer}.html runs all real extractors with 0 errors and scores Clean (< 10) on design and copy axes`, () => {
       const html = loadPioneerHtml(pioneer);
-      expect(html.length).toBeGreaterThan(200);
-      const { designResult, copyResult } = evaluatePioneerSnapshot(html);
+      expect(html.length).toBeGreaterThan(800);
+      const { patterns, patternsErrored, designResult, copyResult } =
+        evaluatePioneerSnapshot(html);
+      expect(patterns.length).toBe(PATTERNS.length);
+      expect(patternsErrored).toBe(0);
+      expect(designResult.tier).not.toBe('Heavy');
       expect(designResult.score).toBeLessThan(10);
       expect(designResult.tier).toBe('Clean');
       expect(copyResult.score).toBeLessThan(8);
@@ -90,17 +427,34 @@ describe('K-05 (#300): Pioneer HTML snapshot regression suite', () => {
     });
   }
 
-  test('Linear (Inter only) and Vercel (Geist only) trigger slop_fonts with interOrGeistOnly=true and receive 0 points via slop_fonts_co_signal', () => {
+  test('Linear (Inter only) and Vercel (Geist only) trigger real slop_fonts.extract with interOrGeistOnly=true and receive 0 points via slop_fonts_co_signal', () => {
     const linear = evaluatePioneerSnapshot(loadPioneerHtml('linear'));
+    expect(linear.raw.signals.slop_fonts.triggered).toBe(true);
+    expect(linear.raw.signals.slop_fonts.interOrGeistOnly).toBe(true);
     expect(linear.designResult.score).toBe(0);
     expect(linear.designResult.adjustments.some((a) => a.ruleId === 'slop_fonts_co_signal')).toBe(
       true
     );
 
     const vercel = evaluatePioneerSnapshot(loadPioneerHtml('vercel'));
+    expect(vercel.raw.signals.slop_fonts.triggered).toBe(true);
+    expect(vercel.raw.signals.slop_fonts.interOrGeistOnly).toBe(true);
     expect(vercel.designResult.score).toBe(0);
     expect(vercel.designResult.adjustments.some((a) => a.ruleId === 'slop_fonts_co_signal')).toBe(
       true
     );
+  });
+
+  test('fails if an extractor throws or if a page triggers Heavy slop patterns', () => {
+    const heavyHtml = `<!doctype html>
+      <html><body data-fonts="Space Grotesk" style="background-color: rgb(250, 246, 238); font-family: 'Space Grotesk', sans-serif;">
+        <h1 data-rect="340,120,600,90" style="font-family: 'Space Grotesk', sans-serif; font-size: 76px; text-align: center; letter-spacing: -5px; background-image: linear-gradient(90deg, rgb(99, 102, 241), rgb(236, 72, 153)); -webkit-background-clip: text; background-clip: text;">
+          Supercharge your next-generation AI workflow platform today
+        </h1>
+        <button data-rect="540,240,200,48" style="background-color: rgb(99, 102, 241); color: rgb(255,255,255); box-shadow: 0 10px 32px rgba(139, 92, 246, 0.6);">Get started</button>
+      </body></html>`;
+    const res = evaluatePioneerSnapshot(heavyHtml);
+    expect(res.designResult.tier).toBe('Heavy');
+    expect(res.designResult.score).toBeGreaterThanOrEqual(28);
   });
 });

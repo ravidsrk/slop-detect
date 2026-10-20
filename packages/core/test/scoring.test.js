@@ -137,5 +137,5 @@ test('every PATTERN has a unique id, valid lifecycle metadata, and an extract fn
     }
     expect(typeof pat.extract === 'function').toBeTruthy();
   }
-  expect(PATTERNS.length).toBe(43);
+  expect(PATTERNS.length).toBe(45);
 });

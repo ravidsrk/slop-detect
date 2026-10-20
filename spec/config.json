@@ -2,7 +2,7 @@
   "spec_version": "2026.11",
   "definitions_version": "2026.11",
   "design_md_spec_version": "alpha",
-  "pattern_count": 43,
+  "pattern_count": 45,
   "copy_pattern_count": 26,
   "aeo_check_count": 16,
   "system_check_count": 9,

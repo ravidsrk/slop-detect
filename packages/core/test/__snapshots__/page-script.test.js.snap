@@ -5,7 +5,7 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
     // Polyfill esbuild's name helpers (identity: page-side .name is unused).
     // NOTE: this wrapper must never spell the helper's identifier
     // (double underscore + "name") — the test requires each spelling declared.
-    
+
     function createColorHelpers() {
   let _ctx = null;
   try {
@@ -816,42 +816,44 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
   if (!family) return "";
   const stack = String(family).split(",").map((f) => f.trim().replace(/^['"]|['"]$/g, "").toLowerCase()).filter(Boolean);
   if (stack.length === 0) return "";
-  const fontsSet = docFonts !== void 0 ? docFonts : typeof document !== "undefined" && document.fonts ? document.fonts : null;
-  if (!fontsSet) return stack[0];
+  const fontsSet = docFonts !== void 0 ? docFonts : typeof document !== "undefined" && document.fonts ? document.fonts : void 0;
+  if (fontsSet === void 0 || fontsSet === null) return stack[0];
   const faces = [];
-  try {
-    if (typeof fontsSet.forEach === "function") {
-      fontsSet.forEach((face) => {
-        if (face && face.family) {
-          faces.push({
-            family: String(face.family).replace(/^['"]|['"]$/g, "").toLowerCase(),
-            status: String(face.status || "loaded")
-          });
-        }
+  const pushFace = (face) => {
+    if (face && face.family) {
+      faces.push({
+        family: String(face.family).replace(/^['"]|['"]$/g, "").toLowerCase(),
+        status: String(face.status || "unloaded").toLowerCase()
       });
-    } else if (Array.isArray(fontsSet)) {
-      for (const face of fontsSet) {
-        if (face && face.family) {
-          faces.push({
-            family: String(face.family).replace(/^['"]|['"]$/g, "").toLowerCase(),
-            status: String(face.status || "loaded")
-          });
-        }
-      }
     }
-  } catch (e) {
-    return stack[0];
+  };
+  try {
+    if (typeof fontsSet[Symbol.iterator] === "function") {
+      for (const face of fontsSet) pushFace(face);
+    } else if (typeof fontsSet.forEach === "function") {
+      fontsSet.forEach(pushFace);
+    } else if (Array.isArray(fontsSet)) {
+      for (const face of fontsSet) pushFace(face);
+    }
+  } catch {
+    return "";
   }
-  if (faces.length === 0) return stack[0];
   const systemFallbacks = /* @__PURE__ */ new Set([
     "system-ui",
     "-apple-system",
     "blinkmacsystemfont",
     "segoe ui",
-    "roboto",
     "helvetica",
     "helvetica neue",
     "arial",
+    "georgia",
+    "times",
+    "times new roman",
+    "courier",
+    "courier new",
+    "verdana",
+    "tahoma",
+    "trebuchet ms",
     "sans-serif",
     "serif",
     "monospace",
@@ -860,19 +862,15 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
     "ui-monospace"
   ]);
   for (const candidate of stack) {
-    if (systemFallbacks.has(candidate)) return candidate;
-    const matching = faces.filter(
-      (f) => f.family === candidate || candidate.startsWith(f.family) || f.family.startsWith(candidate)
+    const loadedMatch = faces.some(
+      (f) => f.status === "loaded" && (f.family === candidate || candidate.startsWith(f.family + " ") || candidate.startsWith(f.family + "-") || f.family.startsWith(candidate + " ") || f.family.startsWith(candidate + "-"))
     );
-    if (matching.length > 0) {
-      if (matching.some((f) => f.status === "loaded")) return candidate;
-      continue;
-    }
-    return candidate;
+    if (loadedMatch) return candidate;
+    if (systemFallbacks.has(candidate)) return candidate;
   }
-  return stack[stack.length - 1] || "";
+  return "";
 }
-    const SLOP_FONT_PREFIXES = ["inter","geist","space grotesk","space-grotesk","plus jakarta sans","plus-jakarta","plus jakarta","dm sans","dm-sans","outfit","sora","syne","fraunces","general sans","general-sans","satoshi","cal sans","cal-sans","switzer","clash display","clash-display","manrope","playfair display","playfair","lora","dm serif","dm-serif","instrument serif","instrument-serif","jetbrains mono","jetbrains-mono","fira code","fira-code"];
+    const SLOP_FONT_PREFIXES = ["inter","geist","space grotesk","space-grotesk","instrument serif","instrument-serif","general sans","general-sans","satoshi","plus jakarta sans","plus-jakarta","plus jakarta","manrope","dm sans","dm-sans","cal sans","cal-sans","switzer","clash display","clash-display"];
     const PRIMARY_SLOP_FONT_PREFIXES = ["inter","geist","space grotesk","space-grotesk","plus jakarta sans","plus-jakarta","plus jakarta","dm sans","dm-sans","outfit","sora","syne","fraunces","general sans","general-sans","satoshi","cal sans","cal-sans","switzer","clash display","clash-display"];
     const SECONDARY_SLOP_FONT_PREFIXES = ["manrope","playfair display","playfair","lora","dm serif","dm-serif","instrument serif","instrument-serif","jetbrains mono","jetbrains-mono","fira code","fira-code"];
     const ACCENT_SERIF_PREFIXES = ["instrument serif","instrument-serif","fraunces","playfair","lora","ibm plex serif","spectral","tinos","cormorant"];
@@ -912,7 +910,7 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
     };
 
     const signals = {};
-    
+
     try {
       signals["slop_fonts"] = ((ctx) => {
       const { visible, isSlopFont: isSlopFont2, isAccentSerif: isAccentSerif2, resolveRenderedFont: resolveRenderedFont2, h1 } = ctx;
@@ -926,10 +924,6 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
         "plus jakarta",
         "dm sans",
         "dm-sans",
-        "outfit",
-        "sora",
-        "syne",
-        "fraunces",
         "general sans",
         "general-sans",
         "satoshi",
@@ -941,17 +935,8 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
       ];
       const secondaryPrefixes = [
         "manrope",
-        "playfair display",
-        "playfair",
-        "lora",
-        "dm serif",
-        "dm-serif",
         "instrument serif",
-        "instrument-serif",
-        "jetbrains mono",
-        "jetbrains-mono",
-        "fira code",
-        "fira-code"
+        "instrument-serif"
       ];
       const resolveFam = (fam) => {
         if (typeof resolveRenderedFont2 === "function") return resolveRenderedFont2(fam);
@@ -976,7 +961,9 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
         seen.add(el);
         total++;
         const resolved = resolveFam(fam);
-        const slop = typeof resolveRenderedFont2 === "function" ? isSlopFont2(resolved) : isSlopFont2(fam);
+        const slop = Boolean(
+          resolved && (typeof resolveRenderedFont2 === "function" ? isSlopFont2(resolved) : isSlopFont2(fam))
+        );
         if (slop) {
           slopCount++;
           if (isPrimary(fam)) primaryCount++;
@@ -990,12 +977,16 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
         }
       }
       const heroRawFam = h1 ? getComputedStyle(h1).fontFamily : "";
-      const heroFam = resolveFam(heroRawFam) || heroRawFam;
-      const heroIsSlop = typeof resolveRenderedFont2 === "function" ? isSlopFont2(heroFam) : isSlopFont2(heroRawFam);
+      const heroResolved = resolveFam(heroRawFam);
+      const heroIsSlop = Boolean(
+        heroResolved && (typeof resolveRenderedFont2 === "function" ? isSlopFont2(heroResolved) : isSlopFont2(heroRawFam))
+      );
       const heroIsPrimary = isPrimary(heroRawFam);
+      const heroIsSecondary = isSecondary(heroRawFam);
+      const heroIsInterOrGeist = Boolean(heroResolved) && (heroResolved.startsWith("inter") || heroResolved.startsWith("geist"));
       const ratio = total ? slopCount / total : 0;
-      const secondaryOnly = slopCount > 0 && primaryCount === 0 && !heroIsPrimary;
-      const interOrGeistOnly = slopCount > 0 && interOrGeistCount === slopCount && (!heroIsSlop || heroFam.startsWith("inter") || heroFam.startsWith("geist"));
+      const secondaryOnly = (slopCount > 0 || heroIsSlop) && primaryCount === 0 && !heroIsPrimary && (secondaryCount > 0 || heroIsSecondary);
+      const interOrGeistOnly = (slopCount > 0 || heroIsSlop) && interOrGeistCount === slopCount && (!heroIsSlop || heroIsInterOrGeist);
       return {
         slopCount,
         primaryCount,
@@ -1003,16 +994,74 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
         total,
         ratio: +ratio.toFixed(3),
         heroIsSlop,
-        heroFam: heroRawFam || heroFam,
-        resolvedHeroFam: heroFam,
+        heroFam: heroRawFam,
+        resolvedHeroFam: heroResolved,
         secondaryOnly,
         interOrGeistOnly,
+        interLifecycleStatus: "decaying",
         accentSerifItalicCount: accentSerifWords,
-        triggered: heroIsSlop || ratio >= 0.45
+        triggered: heroIsSlop || ratio >= 0.6
       };
     })(ctx);
     } catch (e) {
       signals["slop_fonts"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["slop_fonts_2026"] = ((ctx) => {
+      const { visible, resolveRenderedFont: resolveRenderedFont2, h1 } = ctx;
+      const newPrefixes = [
+        "syne",
+        "fraunces",
+        "outfit",
+        "sora",
+        "playfair display",
+        "playfair",
+        "lora",
+        "dm serif",
+        "dm-serif",
+        "jetbrains mono",
+        "jetbrains-mono",
+        "fira code",
+        "fira-code"
+      ];
+      const resolveFam = (fam) => {
+        if (typeof resolveRenderedFont2 === "function") return resolveRenderedFont2(fam);
+        if (!fam) return "";
+        return String(fam).toLowerCase().replace(/['"]/g, "").split(",")[0].trim();
+      };
+      const matchesNew = (fam) => {
+        const r = resolveFam(fam);
+        return Boolean(r && newPrefixes.some((p) => r.startsWith(p)));
+      };
+      let matchCount = 0;
+      let total = 0;
+      const seen = /* @__PURE__ */ new Set();
+      for (const el of visible) {
+        if (!el.textContent || !el.textContent.trim()) continue;
+        const cs = getComputedStyle(el);
+        const fam = cs.fontFamily;
+        if (!fam || seen.has(el)) continue;
+        seen.add(el);
+        total++;
+        if (matchesNew(fam)) matchCount++;
+      }
+      const heroRawFam = h1 ? getComputedStyle(h1).fontFamily : "";
+      const heroResolved = resolveFam(heroRawFam);
+      const heroMatches = matchesNew(heroRawFam);
+      const ratio = total ? matchCount / total : 0;
+      return {
+        matchCount,
+        total,
+        ratio: +ratio.toFixed(3),
+        heroFam: heroRawFam,
+        resolvedHeroFam: heroResolved,
+        heroMatches,
+        triggered: heroMatches || ratio >= 0.45
+      };
+    })(ctx);
+    } catch (e) {
+      signals["slop_fonts_2026"] = { triggered: false, error: e.message };
     }
 
     try {
@@ -1164,6 +1213,58 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
           right: parseColor2(cs.borderRightColor),
           bottom: parseColor2(cs.borderBottomColor)
         };
+        const colorDiffers = (sideCol, otherSideKeys) => {
+          if (!sideCol || sideCol.a <= 0.3) return false;
+          for (const k of otherSideKeys) {
+            if (widths[k] > 0 && colors[k] && colors[k].a > 0.1) {
+              if (typeof deltaEOklab2 === "function") {
+                if (deltaEOklab2(sideCol, colors[k]) <= 0.02) return false;
+              } else if (Math.abs(sideCol.r - colors[k].r) <= 5 && Math.abs(sideCol.g - colors[k].g) <= 5 && Math.abs(sideCol.b - colors[k].b) <= 5) {
+                return false;
+              }
+            }
+          }
+          return true;
+        };
+        const otherMax = Math.max(widths.left, widths.right, widths.bottom);
+        const topStripe = widths.top >= 3 && otherMax < widths.top - 1 && colorDiffers(colors.top, ["left", "right", "bottom"]);
+        const leftStripe = widths.left >= 3 && Math.max(widths.top, widths.right, widths.bottom) < widths.left - 1 && colorDiffers(colors.left, ["top", "right", "bottom"]);
+        if (topStripe || leftStripe) {
+          stripeCards++;
+          if (sides.length < 5) {
+            sides.push(topStripe ? "top" : "left");
+          }
+        }
+      }
+      return { stripeCards, sides, triggered: stripeCards >= 2 };
+    })(ctx);
+    } catch (e) {
+      signals["accent_stripe"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["accent_stripe_2026"] = ((ctx) => {
+      const { visible, parseColor: parseColor2, deltaEOklab: deltaEOklab2 } = ctx;
+      let stripeCards = 0;
+      const sides = [];
+      for (const el of visible) {
+        const role = typeof el.getAttribute === "function" ? (el.getAttribute("role") || "").toLowerCase() : "";
+        if (role === "alert" || role === "note" || role === "status") continue;
+        const cs = getComputedStyle(el);
+        const r = el.getBoundingClientRect();
+        if (r.width < 100 || r.height < 60) continue;
+        const widths = {
+          top: parseFloat(cs.borderTopWidth) || 0,
+          left: parseFloat(cs.borderLeftWidth) || 0,
+          right: parseFloat(cs.borderRightWidth) || 0,
+          bottom: parseFloat(cs.borderBottomWidth) || 0
+        };
+        const colors = {
+          top: parseColor2(cs.borderTopColor),
+          left: parseColor2(cs.borderLeftColor),
+          right: parseColor2(cs.borderRightColor),
+          bottom: parseColor2(cs.borderBottomColor)
+        };
         const radius = parseFloat(cs.borderRadius) || 0;
         const colorDiffers = (sideCol, otherSideKeys) => {
           if (!sideCol || sideCol.a <= 0.3) return false;
@@ -1178,20 +1279,20 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
           }
           return true;
         };
-        const topStripe = widths.top >= 2 && Math.max(widths.left, widths.right, widths.bottom) < widths.top - 1 && radius > 0 && colorDiffers(colors.top, ["left", "right", "bottom"]);
-        const leftStripe = widths.left >= 2 && Math.max(widths.top, widths.right, widths.bottom) < widths.left - 1 && colorDiffers(colors.left, ["top", "right", "bottom"]);
+        const topStripe2px = widths.top >= 2 && widths.top < 3 && Math.max(widths.left, widths.right, widths.bottom) < widths.top - 1 && colorDiffers(colors.top, ["left", "right", "bottom"]);
+        const leftStripe2px = widths.left >= 2 && widths.left < 3 && Math.max(widths.top, widths.right, widths.bottom) < widths.left - 1 && colorDiffers(colors.left, ["top", "right", "bottom"]);
         const bottomStripe = widths.bottom >= 2 && Math.max(widths.top, widths.left, widths.right) < widths.bottom - 1 && radius > 0 && colorDiffers(colors.bottom, ["top", "left", "right"]);
-        if (topStripe || leftStripe || bottomStripe) {
+        if (topStripe2px || leftStripe2px || bottomStripe) {
           stripeCards++;
           if (sides.length < 5) {
-            sides.push(topStripe ? "top" : leftStripe ? "left" : "bottom");
+            sides.push(topStripe2px ? "top-2px" : leftStripe2px ? "left-2px" : "bottom");
           }
         }
       }
       return { stripeCards, sides, triggered: stripeCards >= 2 };
     })(ctx);
     } catch (e) {
-      signals["accent_stripe"] = { triggered: false, error: e.message };
+      signals["accent_stripe_2026"] = { triggered: false, error: e.message };
     }
 
     try {
@@ -1352,6 +1453,7 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
           triggered: false
         };
       }
+      const datePat = /^(?:(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\\.?\\s+\\d{1,2}(?:,?\\s+\\d{4})?|(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\\.?\\s+\\d{4}|\\d{4}[-/.]\\d{1,2}(?:[-/.]\\d{1,2})?|\\d{1,2}[-/.]\\d{1,2}[-/.]\\d{2,4}|\\d{1,2}\\s+(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\\.?(?:\\s+\\d{4})?|q[1-4]\\s+\\d{4})$/i;
       const samples = [];
       const nodeIds = [];
       let matchedHeadings = 0;
@@ -1359,8 +1461,9 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
         const hr = h.getBoundingClientRect();
         let foundForHeading = false;
         for (const el of visible) {
-          if (el === h || /^(H[1-6]|BUTTON|NAV|FOOTER|TABLE|TR|TD|TH)$/.test(el.tagName)) continue;
-          if (typeof el.closest === "function" && el.closest("nav, footer, button, table")) continue;
+          if (el === h || /^(H[1-6]|BUTTON|NAV|FOOTER|TABLE|TR|TD|TH|TIME)$/.test(el.tagName)) continue;
+          if (typeof el.closest === "function" && el.closest("nav, footer, button, table, time")) continue;
+          if (typeof el.getAttribute === "function" && el.getAttribute("datetime")) continue;
           const r = el.getBoundingClientRect();
           if (r.bottom > hr.top + 8 || r.bottom < hr.top - 48) continue;
           if (Math.abs(r.left - hr.left) > 300 && Math.abs(r.left + r.width / 2 - (hr.left + hr.width / 2)) > 200) {
@@ -1368,6 +1471,7 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
           }
           const txt = (el.textContent || "").trim();
           if (!txt || txt.length < 2 || txt.length > 50) continue;
+          if (datePat.test(txt)) continue;
           const words = txt.split(/\\s+/).filter(Boolean);
           if (words.length === 0 || words.length > 6) continue;
           const cs = getComputedStyle(el);
@@ -1381,7 +1485,8 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
           foundForHeading = true;
           const mode = transformCaps ? "transform" : sourceCaps ? "source" : "tracked";
           if (samples.length < 5) samples.push({ text: txt.slice(0, 35), mode });
-          const nid = \`\${el.tagName.toLowerCase()}:\${Math.round(r.top)}:\${txt.slice(0, 20)}\`;
+          const tag = el.tagName ? el.tagName.toLowerCase() : "div";
+          const nid = el.id ? "#" + el.id : \`\${tag}:\${Math.round(r.top || 0)}:\${txt.slice(0, 20)}\`;
           if (!nodeIds.includes(nid)) nodeIds.push(nid);
           break;
         }
@@ -1507,8 +1612,16 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
     try {
       signals["numbered_steps"] = ((ctx) => {
       const { visible } = ctx;
-      const numberPat = /^(?:step\\s*)?(\\d{1,2})(?:[.):]|\\s*[—-])?\\s*/i;
+      const numberPat = /^(?:(?:step|sec(?:tion)?|part|phase)\\s*)?(?:0[.:])?0?(\\d{1,2})(?:[.):]|\\s*[—·•-])?(?:\\s|$)/i;
       const parents = /* @__PURE__ */ new Map();
+      const addToGroup = (key, n, nid) => {
+        if (!key) return;
+        if (!parents.has(key)) parents.set(key, { numbers: /* @__PURE__ */ new Set(), count: 0, nodeIds: [] });
+        const group = parents.get(key);
+        group.numbers.add(n);
+        group.count += 1;
+        if (!group.nodeIds.includes(nid)) group.nodeIds.push(nid);
+      };
       for (const el of visible) {
         if (typeof el.closest === "function" && el.closest("table, nav")) continue;
         const txt = (el.textContent || "").trim();
@@ -1516,15 +1629,20 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
         if (!m) continue;
         const n = parseInt(m[1], 10);
         if (n < 1 || n > 9) continue;
-        if (!el.parentElement) continue;
-        const key = el.parentElement;
-        if (!parents.has(key)) parents.set(key, { numbers: /* @__PURE__ */ new Set(), count: 0, nodeIds: [] });
-        const group = parents.get(key);
-        group.numbers.add(n);
-        group.count += 1;
         const r = typeof el.getBoundingClientRect === "function" ? el.getBoundingClientRect() : { top: 0 };
         const tag = el.tagName ? el.tagName.toLowerCase() : "div";
-        group.nodeIds.push(\`\${tag}:\${Math.round(r.top || 0)}:\${txt.slice(0, 20)}\`);
+        const nid = el.id ? "#" + el.id : \`\${tag}:\${Math.round(r.top || 0)}:\${txt.slice(0, 20)}\`;
+        if (el.parentElement) {
+          addToGroup(el.parentElement, n, nid);
+          if (el.parentElement.parentElement) {
+            addToGroup(el.parentElement.parentElement, n, nid);
+          }
+        } else {
+          addToGroup("__root__", n, nid);
+        }
+        if (/^(?:step|sec(?:tion)?|part|phase|0[.:])/i.test(txt)) {
+          addToGroup("__prefixed__", n, nid);
+        }
       }
       let bestRun = 0;
       let bestNodeIds = [];
@@ -2731,7 +2849,7 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
     }
 
     const craftSignals = {};
-    
+
     try {
       craftSignals["gray_on_color"] = ((ctx) => {
       const { visible, parseColor: parseColor2, rgbToHsl: rgbToHsl2, channelSpread: channelSpread2, effectiveBackground } = ctx;
@@ -2943,6 +3061,7 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
         return { triggered: false, probedCount: 0, missingFirst5: 0, missingRatio: 0 };
       }
       let globalOutlineSuppressed = false;
+      let stylesheetPseudoFocusRing = false;
       try {
         for (const sheet of Array.from(document.styleSheets)) {
           let rules;
@@ -2955,6 +3074,9 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
           for (const rule of Array.from(rules)) {
             const sel = String(rule.selectorText || "");
             const cssText = String(rule.cssText || "");
+            if (/:focus(?:-visible)?::(?:after|before)/i.test(sel) && /outline|box-shadow|border/i.test(cssText)) {
+              stylesheetPseudoFocusRing = true;
+            }
             if (/:focus/.test(sel) && /outline\\s*:\\s*(?:none|0(?:px)?)\\b/i.test(cssText) && !/box-shadow|border-color|ring/i.test(cssText)) {
               globalOutlineSuppressed = true;
             }
@@ -2966,16 +3088,30 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
       let missingCount = 0;
       focusables.forEach((el, idx) => {
         const cs = getComputedStyle(el);
+        let hasPseudoRing = stylesheetPseudoFocusRing || el.getAttribute?.("data-pseudo-focus-ring") === "true";
+        if (!hasPseudoRing) {
+          try {
+            const afterCs = getComputedStyle(el, "::after");
+            const beforeCs = getComputedStyle(el, "::before");
+            if (afterCs && (afterCs.boxShadow && afterCs.boxShadow !== "none" || afterCs.outlineStyle && afterCs.outlineStyle !== "none" && parseFloat(afterCs.outlineWidth) > 0) || beforeCs && (beforeCs.boxShadow && beforeCs.boxShadow !== "none" || beforeCs.outlineStyle && beforeCs.outlineStyle !== "none" && parseFloat(beforeCs.outlineWidth) > 0)) {
+              hasPseudoRing = true;
+            }
+          } catch {
+          }
+        }
         const inlineOutlineNone = el.style && (el.style.outline === "none" || el.style.outline === "0" || el.style.outlineWidth === "0px");
-        const classSuppressesFocus = /\\bfocus:outline-none\\b/.test(String(el.className || "")) && !/\\bfocus(?:-visible)?:ring\\b|\\bfocus(?:-visible)?:border\\b/.test(String(el.className || ""));
-        const noIndicator = inlineOutlineNone || classSuppressesFocus || globalOutlineSuppressed && cs.outlineStyle === "none";
+        const inlineHasReplacement = Boolean(el.style && (el.style.boxShadow && el.style.boxShadow !== "none" || el.style.borderColor));
+        const classSuppressesFocus = /\\bfocus:outline-none\\b/.test(String(el.className || "")) && !/\\bfocus(?:-visible)?:ring\\b|\\bfocus(?:-visible)?:border\\b|\\bfocus(?:-visible)?:after:ring\\b/.test(
+          String(el.className || "")
+        );
+        const noIndicator = !hasPseudoRing && (inlineOutlineNone && !inlineHasReplacement || classSuppressesFocus || globalOutlineSuppressed && cs.outlineStyle === "none");
         if (noIndicator) {
           missingCount++;
           if (idx < 5) missingFirst5++;
         }
       });
       const missingRatio = Math.round(missingCount / focusables.length * 100) / 100;
-      const triggered = missingFirst5 >= 2 || focusables.length >= 2 && missingRatio >= 0.5;
+      const triggered = missingFirst5 >= 1 || focusables.length >= 2 && missingRatio >= 0.5;
       return {
         triggered,
         probedCount: focusables.length,
@@ -3118,6 +3254,39 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
     try {
       craftSignals["generic_control_labels"] = ((ctx) => {
       const { visible } = ctx;
+      const genericLabels = /* @__PURE__ */ new Set([
+        "learn more",
+        "read more",
+        "click here",
+        "more",
+        "here",
+        "get started",
+        "submit",
+        "go",
+        "link",
+        "button",
+        "details",
+        "view more",
+        "see more"
+      ]);
+      const placeholderAltNames = /* @__PURE__ */ new Set([
+        "image",
+        "photo",
+        "picture",
+        "graphic",
+        "icon",
+        "logo",
+        "hero",
+        "hero image",
+        "banner",
+        "screenshot",
+        "placeholder",
+        "untitled",
+        "img",
+        "pic",
+        "avatar",
+        "thumbnail"
+      ]);
       const genericHits = [];
       const badAlts = [];
       const getAccName = (el) => {
@@ -3142,14 +3311,14 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
           if (!alt) continue;
           const lowerAlt = alt.toLowerCase();
           const src = (el.getAttribute("src") || "").split("?")[0].split("/").pop() || "";
-          if (PLACEHOLDER_ALT_NAMES.has(lowerAlt) || src && lowerAlt === src.toLowerCase() || /\\.(?:png|jpe?g|webp|gif|svg|avif)$/i.test(alt)) {
+          if (placeholderAltNames.has(lowerAlt) || src && lowerAlt === src.toLowerCase() || /\\.(?:png|jpe?g|webp|gif|svg|avif)$/i.test(alt)) {
             badAlts.push(alt.slice(0, 40));
           }
           continue;
         }
         if (el.tagName === "A" || el.tagName === "BUTTON" || el.getAttribute("role") === "button") {
           const accName = getAccName(el);
-          if (GENERIC_LABELS.has(accName)) {
+          if (genericLabels.has(accName)) {
             const target = el.getAttribute("href") || el.getAttribute("data-action") || el.tagName;
             genericHits.push({ name: accName, target });
           }
@@ -3171,26 +3340,78 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
     try {
       craftSignals["form_no_failure_feedback"] = ((ctx) => {
       if (ctx && ctx.formProbe) {
-        return evaluateFormFailureFeedback(ctx.formProbe);
+        const probe = ctx.formProbe;
+        if (probe.formPresent === false) {
+          return { triggered: false, status: "na", requestsMade: 0 };
+        }
+        const wasProbed = Boolean(probe.submittedEmpty || probe.submittedInvalid || probe.probed);
+        if (!wasProbed) {
+          return {
+            triggered: false,
+            status: "unknown",
+            reason: "form_not_probed",
+            requestsMade: 0
+          };
+        }
+        const hasInvalidPseudo = Boolean(
+          probe.hasInvalidPseudo || probe.hasRequiredField || probe.nativeInvalid
+        );
+        const hasAriaInvalid = Boolean(probe.hasAriaInvalid || probe.hasInvalidAria);
+        const hasVisibleErrorText2 = Boolean(
+          probe.hasVisibleErrorText || (probe.visibleErrorCount ?? 0) > 0 || probe.errorMessageShown
+        );
+        const hasHandler = Boolean(
+          probe.requestBlocked || probe.hasSubmitHandler || probe.preventedDefault
+        );
+        const hasFeedback = hasInvalidPseudo || hasAriaInvalid || hasVisibleErrorText2 || hasHandler;
+        return {
+          triggered: !hasFeedback,
+          status: hasFeedback ? "pass" : "fail",
+          hasInvalidPseudo,
+          hasAriaInvalid,
+          hasVisibleErrorText: hasVisibleErrorText2,
+          requestBlocked: Boolean(probe.requestBlocked),
+          requestsMade: 0
+        };
       }
       const form = document.querySelector("form");
-      if (!form) return { triggered: false, status: "na" };
-      const inputs = Array.from(form.querySelectorAll('input:not([type="hidden"]):not([type="submit"]), textarea, select'));
-      if (inputs.length === 0) return { triggered: false, status: "na" };
+      if (!form) return { triggered: false, status: "na", requestsMade: 0 };
+      const inputs = Array.from(
+        form.querySelectorAll('input:not([type="hidden"]):not([type="submit"]), textarea, select')
+      );
+      if (inputs.length === 0) return { triggered: false, status: "na", requestsMade: 0 };
       const hasRequiredOrValidation = inputs.some(
-        (inp) => inp.hasAttribute("required") || inp.getAttribute("aria-required") === "true" || inp.getAttribute("aria-invalid") === "true" || inp.hasAttribute("pattern")
+        (inp) => inp.hasAttribute("required") || inp.getAttribute("aria-required") === "true" || inp.getAttribute("aria-invalid") === "true" || inp.hasAttribute("pattern") || typeof inp.matches === "function" && inp.matches(":invalid")
       );
-      const hasErrorRegion = Boolean(
-        form.querySelector('[role="alert"], [aria-live], .error, [data-error]')
-      );
-      const noValidate = form.hasAttribute("novalidate");
-      const triggered = noValidate && !hasRequiredOrValidation && !hasErrorRegion;
+      const errEl = form.querySelector('[role="alert"], [aria-live], .error, [data-error]');
+      const hasVisibleErrorText = Boolean(errEl && (errEl.textContent || "").trim().length > 0);
+      if (hasRequiredOrValidation || hasVisibleErrorText) {
+        return {
+          formPresent: true,
+          hasInvalidPseudo: hasRequiredOrValidation,
+          hasVisibleErrorText,
+          status: "pass",
+          triggered: false,
+          requestsMade: 0
+        };
+      }
+      const wasProbedAttr = form.getAttribute("data-probed-empty") === "true" || form.hasAttribute("novalidate");
+      if (!wasProbedAttr) {
+        return {
+          formPresent: true,
+          status: "unknown",
+          reason: "form_not_probed",
+          triggered: false,
+          requestsMade: 0
+        };
+      }
       return {
         formPresent: true,
-        hasRequiredOrValidation,
-        hasErrorRegion,
-        status: triggered ? "fail" : "pass",
-        triggered
+        hasInvalidPseudo: false,
+        hasVisibleErrorText: false,
+        status: "fail",
+        triggered: true,
+        requestsMade: 0
       };
     })(ctx);
     } catch (e) {
@@ -3531,7 +3752,7 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
 
     // System axis: observe fonts/colors/radii (scored caller-side).
     let systemContext = null;
-    
+
 
     return {
       title: document.title,
@@ -3555,7 +3776,7 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
     // Polyfill esbuild's name helpers (identity: page-side .name is unused).
     // NOTE: this wrapper must never spell the helper's identifier
     // (double underscore + "name") — the test requires each spelling declared.
-    
+
     function createColorHelpers() {
   let _ctx = null;
   try {
@@ -4366,42 +4587,44 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
   if (!family) return "";
   const stack = String(family).split(",").map((f) => f.trim().replace(/^['"]|['"]$/g, "").toLowerCase()).filter(Boolean);
   if (stack.length === 0) return "";
-  const fontsSet = docFonts !== void 0 ? docFonts : typeof document !== "undefined" && document.fonts ? document.fonts : null;
-  if (!fontsSet) return stack[0];
+  const fontsSet = docFonts !== void 0 ? docFonts : typeof document !== "undefined" && document.fonts ? document.fonts : void 0;
+  if (fontsSet === void 0 || fontsSet === null) return stack[0];
   const faces = [];
-  try {
-    if (typeof fontsSet.forEach === "function") {
-      fontsSet.forEach((face) => {
-        if (face && face.family) {
-          faces.push({
-            family: String(face.family).replace(/^['"]|['"]$/g, "").toLowerCase(),
-            status: String(face.status || "loaded")
-          });
-        }
+  const pushFace = (face) => {
+    if (face && face.family) {
+      faces.push({
+        family: String(face.family).replace(/^['"]|['"]$/g, "").toLowerCase(),
+        status: String(face.status || "unloaded").toLowerCase()
       });
-    } else if (Array.isArray(fontsSet)) {
-      for (const face of fontsSet) {
-        if (face && face.family) {
-          faces.push({
-            family: String(face.family).replace(/^['"]|['"]$/g, "").toLowerCase(),
-            status: String(face.status || "loaded")
-          });
-        }
-      }
     }
-  } catch (e) {
-    return stack[0];
+  };
+  try {
+    if (typeof fontsSet[Symbol.iterator] === "function") {
+      for (const face of fontsSet) pushFace(face);
+    } else if (typeof fontsSet.forEach === "function") {
+      fontsSet.forEach(pushFace);
+    } else if (Array.isArray(fontsSet)) {
+      for (const face of fontsSet) pushFace(face);
+    }
+  } catch {
+    return "";
   }
-  if (faces.length === 0) return stack[0];
   const systemFallbacks = /* @__PURE__ */ new Set([
     "system-ui",
     "-apple-system",
     "blinkmacsystemfont",
     "segoe ui",
-    "roboto",
     "helvetica",
     "helvetica neue",
     "arial",
+    "georgia",
+    "times",
+    "times new roman",
+    "courier",
+    "courier new",
+    "verdana",
+    "tahoma",
+    "trebuchet ms",
     "sans-serif",
     "serif",
     "monospace",
@@ -4410,19 +4633,15 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
     "ui-monospace"
   ]);
   for (const candidate of stack) {
-    if (systemFallbacks.has(candidate)) return candidate;
-    const matching = faces.filter(
-      (f) => f.family === candidate || candidate.startsWith(f.family) || f.family.startsWith(candidate)
+    const loadedMatch = faces.some(
+      (f) => f.status === "loaded" && (f.family === candidate || candidate.startsWith(f.family + " ") || candidate.startsWith(f.family + "-") || f.family.startsWith(candidate + " ") || f.family.startsWith(candidate + "-"))
     );
-    if (matching.length > 0) {
-      if (matching.some((f) => f.status === "loaded")) return candidate;
-      continue;
-    }
-    return candidate;
+    if (loadedMatch) return candidate;
+    if (systemFallbacks.has(candidate)) return candidate;
   }
-  return stack[stack.length - 1] || "";
+  return "";
 }
-    const SLOP_FONT_PREFIXES = ["inter","geist","space grotesk","space-grotesk","plus jakarta sans","plus-jakarta","plus jakarta","dm sans","dm-sans","outfit","sora","syne","fraunces","general sans","general-sans","satoshi","cal sans","cal-sans","switzer","clash display","clash-display","manrope","playfair display","playfair","lora","dm serif","dm-serif","instrument serif","instrument-serif","jetbrains mono","jetbrains-mono","fira code","fira-code"];
+    const SLOP_FONT_PREFIXES = ["inter","geist","space grotesk","space-grotesk","instrument serif","instrument-serif","general sans","general-sans","satoshi","plus jakarta sans","plus-jakarta","plus jakarta","manrope","dm sans","dm-sans","cal sans","cal-sans","switzer","clash display","clash-display"];
     const PRIMARY_SLOP_FONT_PREFIXES = ["inter","geist","space grotesk","space-grotesk","plus jakarta sans","plus-jakarta","plus jakarta","dm sans","dm-sans","outfit","sora","syne","fraunces","general sans","general-sans","satoshi","cal sans","cal-sans","switzer","clash display","clash-display"];
     const SECONDARY_SLOP_FONT_PREFIXES = ["manrope","playfair display","playfair","lora","dm serif","dm-serif","instrument serif","instrument-serif","jetbrains mono","jetbrains-mono","fira code","fira-code"];
     const ACCENT_SERIF_PREFIXES = ["instrument serif","instrument-serif","fraunces","playfair","lora","ibm plex serif","spectral","tinos","cormorant"];
@@ -4462,7 +4681,7 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
     };
 
     const signals = {};
-    
+
     try {
       signals["slop_fonts"] = ((ctx) => {
       const { visible, isSlopFont: isSlopFont2, isAccentSerif: isAccentSerif2, resolveRenderedFont: resolveRenderedFont2, h1 } = ctx;
@@ -4476,10 +4695,6 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
         "plus jakarta",
         "dm sans",
         "dm-sans",
-        "outfit",
-        "sora",
-        "syne",
-        "fraunces",
         "general sans",
         "general-sans",
         "satoshi",
@@ -4491,17 +4706,8 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
       ];
       const secondaryPrefixes = [
         "manrope",
-        "playfair display",
-        "playfair",
-        "lora",
-        "dm serif",
-        "dm-serif",
         "instrument serif",
-        "instrument-serif",
-        "jetbrains mono",
-        "jetbrains-mono",
-        "fira code",
-        "fira-code"
+        "instrument-serif"
       ];
       const resolveFam = (fam) => {
         if (typeof resolveRenderedFont2 === "function") return resolveRenderedFont2(fam);
@@ -4526,7 +4732,9 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
         seen.add(el);
         total++;
         const resolved = resolveFam(fam);
-        const slop = typeof resolveRenderedFont2 === "function" ? isSlopFont2(resolved) : isSlopFont2(fam);
+        const slop = Boolean(
+          resolved && (typeof resolveRenderedFont2 === "function" ? isSlopFont2(resolved) : isSlopFont2(fam))
+        );
         if (slop) {
           slopCount++;
           if (isPrimary(fam)) primaryCount++;
@@ -4540,12 +4748,16 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
         }
       }
       const heroRawFam = h1 ? getComputedStyle(h1).fontFamily : "";
-      const heroFam = resolveFam(heroRawFam) || heroRawFam;
-      const heroIsSlop = typeof resolveRenderedFont2 === "function" ? isSlopFont2(heroFam) : isSlopFont2(heroRawFam);
+      const heroResolved = resolveFam(heroRawFam);
+      const heroIsSlop = Boolean(
+        heroResolved && (typeof resolveRenderedFont2 === "function" ? isSlopFont2(heroResolved) : isSlopFont2(heroRawFam))
+      );
       const heroIsPrimary = isPrimary(heroRawFam);
+      const heroIsSecondary = isSecondary(heroRawFam);
+      const heroIsInterOrGeist = Boolean(heroResolved) && (heroResolved.startsWith("inter") || heroResolved.startsWith("geist"));
       const ratio = total ? slopCount / total : 0;
-      const secondaryOnly = slopCount > 0 && primaryCount === 0 && !heroIsPrimary;
-      const interOrGeistOnly = slopCount > 0 && interOrGeistCount === slopCount && (!heroIsSlop || heroFam.startsWith("inter") || heroFam.startsWith("geist"));
+      const secondaryOnly = (slopCount > 0 || heroIsSlop) && primaryCount === 0 && !heroIsPrimary && (secondaryCount > 0 || heroIsSecondary);
+      const interOrGeistOnly = (slopCount > 0 || heroIsSlop) && interOrGeistCount === slopCount && (!heroIsSlop || heroIsInterOrGeist);
       return {
         slopCount,
         primaryCount,
@@ -4553,16 +4765,74 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
         total,
         ratio: +ratio.toFixed(3),
         heroIsSlop,
-        heroFam: heroRawFam || heroFam,
-        resolvedHeroFam: heroFam,
+        heroFam: heroRawFam,
+        resolvedHeroFam: heroResolved,
         secondaryOnly,
         interOrGeistOnly,
+        interLifecycleStatus: "decaying",
         accentSerifItalicCount: accentSerifWords,
-        triggered: heroIsSlop || ratio >= 0.45
+        triggered: heroIsSlop || ratio >= 0.6
       };
     })(ctx);
     } catch (e) {
       signals["slop_fonts"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["slop_fonts_2026"] = ((ctx) => {
+      const { visible, resolveRenderedFont: resolveRenderedFont2, h1 } = ctx;
+      const newPrefixes = [
+        "syne",
+        "fraunces",
+        "outfit",
+        "sora",
+        "playfair display",
+        "playfair",
+        "lora",
+        "dm serif",
+        "dm-serif",
+        "jetbrains mono",
+        "jetbrains-mono",
+        "fira code",
+        "fira-code"
+      ];
+      const resolveFam = (fam) => {
+        if (typeof resolveRenderedFont2 === "function") return resolveRenderedFont2(fam);
+        if (!fam) return "";
+        return String(fam).toLowerCase().replace(/['"]/g, "").split(",")[0].trim();
+      };
+      const matchesNew = (fam) => {
+        const r = resolveFam(fam);
+        return Boolean(r && newPrefixes.some((p) => r.startsWith(p)));
+      };
+      let matchCount = 0;
+      let total = 0;
+      const seen = /* @__PURE__ */ new Set();
+      for (const el of visible) {
+        if (!el.textContent || !el.textContent.trim()) continue;
+        const cs = getComputedStyle(el);
+        const fam = cs.fontFamily;
+        if (!fam || seen.has(el)) continue;
+        seen.add(el);
+        total++;
+        if (matchesNew(fam)) matchCount++;
+      }
+      const heroRawFam = h1 ? getComputedStyle(h1).fontFamily : "";
+      const heroResolved = resolveFam(heroRawFam);
+      const heroMatches = matchesNew(heroRawFam);
+      const ratio = total ? matchCount / total : 0;
+      return {
+        matchCount,
+        total,
+        ratio: +ratio.toFixed(3),
+        heroFam: heroRawFam,
+        resolvedHeroFam: heroResolved,
+        heroMatches,
+        triggered: heroMatches || ratio >= 0.45
+      };
+    })(ctx);
+    } catch (e) {
+      signals["slop_fonts_2026"] = { triggered: false, error: e.message };
     }
 
     try {
@@ -4714,6 +4984,58 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
           right: parseColor2(cs.borderRightColor),
           bottom: parseColor2(cs.borderBottomColor)
         };
+        const colorDiffers = (sideCol, otherSideKeys) => {
+          if (!sideCol || sideCol.a <= 0.3) return false;
+          for (const k of otherSideKeys) {
+            if (widths[k] > 0 && colors[k] && colors[k].a > 0.1) {
+              if (typeof deltaEOklab2 === "function") {
+                if (deltaEOklab2(sideCol, colors[k]) <= 0.02) return false;
+              } else if (Math.abs(sideCol.r - colors[k].r) <= 5 && Math.abs(sideCol.g - colors[k].g) <= 5 && Math.abs(sideCol.b - colors[k].b) <= 5) {
+                return false;
+              }
+            }
+          }
+          return true;
+        };
+        const otherMax = Math.max(widths.left, widths.right, widths.bottom);
+        const topStripe = widths.top >= 3 && otherMax < widths.top - 1 && colorDiffers(colors.top, ["left", "right", "bottom"]);
+        const leftStripe = widths.left >= 3 && Math.max(widths.top, widths.right, widths.bottom) < widths.left - 1 && colorDiffers(colors.left, ["top", "right", "bottom"]);
+        if (topStripe || leftStripe) {
+          stripeCards++;
+          if (sides.length < 5) {
+            sides.push(topStripe ? "top" : "left");
+          }
+        }
+      }
+      return { stripeCards, sides, triggered: stripeCards >= 2 };
+    })(ctx);
+    } catch (e) {
+      signals["accent_stripe"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      signals["accent_stripe_2026"] = ((ctx) => {
+      const { visible, parseColor: parseColor2, deltaEOklab: deltaEOklab2 } = ctx;
+      let stripeCards = 0;
+      const sides = [];
+      for (const el of visible) {
+        const role = typeof el.getAttribute === "function" ? (el.getAttribute("role") || "").toLowerCase() : "";
+        if (role === "alert" || role === "note" || role === "status") continue;
+        const cs = getComputedStyle(el);
+        const r = el.getBoundingClientRect();
+        if (r.width < 100 || r.height < 60) continue;
+        const widths = {
+          top: parseFloat(cs.borderTopWidth) || 0,
+          left: parseFloat(cs.borderLeftWidth) || 0,
+          right: parseFloat(cs.borderRightWidth) || 0,
+          bottom: parseFloat(cs.borderBottomWidth) || 0
+        };
+        const colors = {
+          top: parseColor2(cs.borderTopColor),
+          left: parseColor2(cs.borderLeftColor),
+          right: parseColor2(cs.borderRightColor),
+          bottom: parseColor2(cs.borderBottomColor)
+        };
         const radius = parseFloat(cs.borderRadius) || 0;
         const colorDiffers = (sideCol, otherSideKeys) => {
           if (!sideCol || sideCol.a <= 0.3) return false;
@@ -4728,20 +5050,20 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
           }
           return true;
         };
-        const topStripe = widths.top >= 2 && Math.max(widths.left, widths.right, widths.bottom) < widths.top - 1 && radius > 0 && colorDiffers(colors.top, ["left", "right", "bottom"]);
-        const leftStripe = widths.left >= 2 && Math.max(widths.top, widths.right, widths.bottom) < widths.left - 1 && colorDiffers(colors.left, ["top", "right", "bottom"]);
+        const topStripe2px = widths.top >= 2 && widths.top < 3 && Math.max(widths.left, widths.right, widths.bottom) < widths.top - 1 && colorDiffers(colors.top, ["left", "right", "bottom"]);
+        const leftStripe2px = widths.left >= 2 && widths.left < 3 && Math.max(widths.top, widths.right, widths.bottom) < widths.left - 1 && colorDiffers(colors.left, ["top", "right", "bottom"]);
         const bottomStripe = widths.bottom >= 2 && Math.max(widths.top, widths.left, widths.right) < widths.bottom - 1 && radius > 0 && colorDiffers(colors.bottom, ["top", "left", "right"]);
-        if (topStripe || leftStripe || bottomStripe) {
+        if (topStripe2px || leftStripe2px || bottomStripe) {
           stripeCards++;
           if (sides.length < 5) {
-            sides.push(topStripe ? "top" : leftStripe ? "left" : "bottom");
+            sides.push(topStripe2px ? "top-2px" : leftStripe2px ? "left-2px" : "bottom");
           }
         }
       }
       return { stripeCards, sides, triggered: stripeCards >= 2 };
     })(ctx);
     } catch (e) {
-      signals["accent_stripe"] = { triggered: false, error: e.message };
+      signals["accent_stripe_2026"] = { triggered: false, error: e.message };
     }
 
     try {
@@ -4902,6 +5224,7 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
           triggered: false
         };
       }
+      const datePat = /^(?:(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\\.?\\s+\\d{1,2}(?:,?\\s+\\d{4})?|(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\\.?\\s+\\d{4}|\\d{4}[-/.]\\d{1,2}(?:[-/.]\\d{1,2})?|\\d{1,2}[-/.]\\d{1,2}[-/.]\\d{2,4}|\\d{1,2}\\s+(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\\.?(?:\\s+\\d{4})?|q[1-4]\\s+\\d{4})$/i;
       const samples = [];
       const nodeIds = [];
       let matchedHeadings = 0;
@@ -4909,8 +5232,9 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
         const hr = h.getBoundingClientRect();
         let foundForHeading = false;
         for (const el of visible) {
-          if (el === h || /^(H[1-6]|BUTTON|NAV|FOOTER|TABLE|TR|TD|TH)$/.test(el.tagName)) continue;
-          if (typeof el.closest === "function" && el.closest("nav, footer, button, table")) continue;
+          if (el === h || /^(H[1-6]|BUTTON|NAV|FOOTER|TABLE|TR|TD|TH|TIME)$/.test(el.tagName)) continue;
+          if (typeof el.closest === "function" && el.closest("nav, footer, button, table, time")) continue;
+          if (typeof el.getAttribute === "function" && el.getAttribute("datetime")) continue;
           const r = el.getBoundingClientRect();
           if (r.bottom > hr.top + 8 || r.bottom < hr.top - 48) continue;
           if (Math.abs(r.left - hr.left) > 300 && Math.abs(r.left + r.width / 2 - (hr.left + hr.width / 2)) > 200) {
@@ -4918,6 +5242,7 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
           }
           const txt = (el.textContent || "").trim();
           if (!txt || txt.length < 2 || txt.length > 50) continue;
+          if (datePat.test(txt)) continue;
           const words = txt.split(/\\s+/).filter(Boolean);
           if (words.length === 0 || words.length > 6) continue;
           const cs = getComputedStyle(el);
@@ -4931,7 +5256,8 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
           foundForHeading = true;
           const mode = transformCaps ? "transform" : sourceCaps ? "source" : "tracked";
           if (samples.length < 5) samples.push({ text: txt.slice(0, 35), mode });
-          const nid = \`\${el.tagName.toLowerCase()}:\${Math.round(r.top)}:\${txt.slice(0, 20)}\`;
+          const tag = el.tagName ? el.tagName.toLowerCase() : "div";
+          const nid = el.id ? "#" + el.id : \`\${tag}:\${Math.round(r.top || 0)}:\${txt.slice(0, 20)}\`;
           if (!nodeIds.includes(nid)) nodeIds.push(nid);
           break;
         }
@@ -5057,8 +5383,16 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
     try {
       signals["numbered_steps"] = ((ctx) => {
       const { visible } = ctx;
-      const numberPat = /^(?:step\\s*)?(\\d{1,2})(?:[.):]|\\s*[—-])?\\s*/i;
+      const numberPat = /^(?:(?:step|sec(?:tion)?|part|phase)\\s*)?(?:0[.:])?0?(\\d{1,2})(?:[.):]|\\s*[—·•-])?(?:\\s|$)/i;
       const parents = /* @__PURE__ */ new Map();
+      const addToGroup = (key, n, nid) => {
+        if (!key) return;
+        if (!parents.has(key)) parents.set(key, { numbers: /* @__PURE__ */ new Set(), count: 0, nodeIds: [] });
+        const group = parents.get(key);
+        group.numbers.add(n);
+        group.count += 1;
+        if (!group.nodeIds.includes(nid)) group.nodeIds.push(nid);
+      };
       for (const el of visible) {
         if (typeof el.closest === "function" && el.closest("table, nav")) continue;
         const txt = (el.textContent || "").trim();
@@ -5066,15 +5400,20 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
         if (!m) continue;
         const n = parseInt(m[1], 10);
         if (n < 1 || n > 9) continue;
-        if (!el.parentElement) continue;
-        const key = el.parentElement;
-        if (!parents.has(key)) parents.set(key, { numbers: /* @__PURE__ */ new Set(), count: 0, nodeIds: [] });
-        const group = parents.get(key);
-        group.numbers.add(n);
-        group.count += 1;
         const r = typeof el.getBoundingClientRect === "function" ? el.getBoundingClientRect() : { top: 0 };
         const tag = el.tagName ? el.tagName.toLowerCase() : "div";
-        group.nodeIds.push(\`\${tag}:\${Math.round(r.top || 0)}:\${txt.slice(0, 20)}\`);
+        const nid = el.id ? "#" + el.id : \`\${tag}:\${Math.round(r.top || 0)}:\${txt.slice(0, 20)}\`;
+        if (el.parentElement) {
+          addToGroup(el.parentElement, n, nid);
+          if (el.parentElement.parentElement) {
+            addToGroup(el.parentElement.parentElement, n, nid);
+          }
+        } else {
+          addToGroup("__root__", n, nid);
+        }
+        if (/^(?:step|sec(?:tion)?|part|phase|0[.:])/i.test(txt)) {
+          addToGroup("__prefixed__", n, nid);
+        }
       }
       let bestRun = 0;
       let bestNodeIds = [];
@@ -6281,7 +6620,7 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
     }
 
     const craftSignals = {};
-    
+
     try {
       craftSignals["gray_on_color"] = ((ctx) => {
       const { visible, parseColor: parseColor2, rgbToHsl: rgbToHsl2, channelSpread: channelSpread2, effectiveBackground } = ctx;
@@ -6493,6 +6832,7 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
         return { triggered: false, probedCount: 0, missingFirst5: 0, missingRatio: 0 };
       }
       let globalOutlineSuppressed = false;
+      let stylesheetPseudoFocusRing = false;
       try {
         for (const sheet of Array.from(document.styleSheets)) {
           let rules;
@@ -6505,6 +6845,9 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
           for (const rule of Array.from(rules)) {
             const sel = String(rule.selectorText || "");
             const cssText = String(rule.cssText || "");
+            if (/:focus(?:-visible)?::(?:after|before)/i.test(sel) && /outline|box-shadow|border/i.test(cssText)) {
+              stylesheetPseudoFocusRing = true;
+            }
             if (/:focus/.test(sel) && /outline\\s*:\\s*(?:none|0(?:px)?)\\b/i.test(cssText) && !/box-shadow|border-color|ring/i.test(cssText)) {
               globalOutlineSuppressed = true;
             }
@@ -6516,16 +6859,30 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
       let missingCount = 0;
       focusables.forEach((el, idx) => {
         const cs = getComputedStyle(el);
+        let hasPseudoRing = stylesheetPseudoFocusRing || el.getAttribute?.("data-pseudo-focus-ring") === "true";
+        if (!hasPseudoRing) {
+          try {
+            const afterCs = getComputedStyle(el, "::after");
+            const beforeCs = getComputedStyle(el, "::before");
+            if (afterCs && (afterCs.boxShadow && afterCs.boxShadow !== "none" || afterCs.outlineStyle && afterCs.outlineStyle !== "none" && parseFloat(afterCs.outlineWidth) > 0) || beforeCs && (beforeCs.boxShadow && beforeCs.boxShadow !== "none" || beforeCs.outlineStyle && beforeCs.outlineStyle !== "none" && parseFloat(beforeCs.outlineWidth) > 0)) {
+              hasPseudoRing = true;
+            }
+          } catch {
+          }
+        }
         const inlineOutlineNone = el.style && (el.style.outline === "none" || el.style.outline === "0" || el.style.outlineWidth === "0px");
-        const classSuppressesFocus = /\\bfocus:outline-none\\b/.test(String(el.className || "")) && !/\\bfocus(?:-visible)?:ring\\b|\\bfocus(?:-visible)?:border\\b/.test(String(el.className || ""));
-        const noIndicator = inlineOutlineNone || classSuppressesFocus || globalOutlineSuppressed && cs.outlineStyle === "none";
+        const inlineHasReplacement = Boolean(el.style && (el.style.boxShadow && el.style.boxShadow !== "none" || el.style.borderColor));
+        const classSuppressesFocus = /\\bfocus:outline-none\\b/.test(String(el.className || "")) && !/\\bfocus(?:-visible)?:ring\\b|\\bfocus(?:-visible)?:border\\b|\\bfocus(?:-visible)?:after:ring\\b/.test(
+          String(el.className || "")
+        );
+        const noIndicator = !hasPseudoRing && (inlineOutlineNone && !inlineHasReplacement || classSuppressesFocus || globalOutlineSuppressed && cs.outlineStyle === "none");
         if (noIndicator) {
           missingCount++;
           if (idx < 5) missingFirst5++;
         }
       });
       const missingRatio = Math.round(missingCount / focusables.length * 100) / 100;
-      const triggered = missingFirst5 >= 2 || focusables.length >= 2 && missingRatio >= 0.5;
+      const triggered = missingFirst5 >= 1 || focusables.length >= 2 && missingRatio >= 0.5;
       return {
         triggered,
         probedCount: focusables.length,
@@ -6668,6 +7025,39 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
     try {
       craftSignals["generic_control_labels"] = ((ctx) => {
       const { visible } = ctx;
+      const genericLabels = /* @__PURE__ */ new Set([
+        "learn more",
+        "read more",
+        "click here",
+        "more",
+        "here",
+        "get started",
+        "submit",
+        "go",
+        "link",
+        "button",
+        "details",
+        "view more",
+        "see more"
+      ]);
+      const placeholderAltNames = /* @__PURE__ */ new Set([
+        "image",
+        "photo",
+        "picture",
+        "graphic",
+        "icon",
+        "logo",
+        "hero",
+        "hero image",
+        "banner",
+        "screenshot",
+        "placeholder",
+        "untitled",
+        "img",
+        "pic",
+        "avatar",
+        "thumbnail"
+      ]);
       const genericHits = [];
       const badAlts = [];
       const getAccName = (el) => {
@@ -6692,14 +7082,14 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
           if (!alt) continue;
           const lowerAlt = alt.toLowerCase();
           const src = (el.getAttribute("src") || "").split("?")[0].split("/").pop() || "";
-          if (PLACEHOLDER_ALT_NAMES.has(lowerAlt) || src && lowerAlt === src.toLowerCase() || /\\.(?:png|jpe?g|webp|gif|svg|avif)$/i.test(alt)) {
+          if (placeholderAltNames.has(lowerAlt) || src && lowerAlt === src.toLowerCase() || /\\.(?:png|jpe?g|webp|gif|svg|avif)$/i.test(alt)) {
             badAlts.push(alt.slice(0, 40));
           }
           continue;
         }
         if (el.tagName === "A" || el.tagName === "BUTTON" || el.getAttribute("role") === "button") {
           const accName = getAccName(el);
-          if (GENERIC_LABELS.has(accName)) {
+          if (genericLabels.has(accName)) {
             const target = el.getAttribute("href") || el.getAttribute("data-action") || el.tagName;
             genericHits.push({ name: accName, target });
           }
@@ -6721,26 +7111,78 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
     try {
       craftSignals["form_no_failure_feedback"] = ((ctx) => {
       if (ctx && ctx.formProbe) {
-        return evaluateFormFailureFeedback(ctx.formProbe);
+        const probe = ctx.formProbe;
+        if (probe.formPresent === false) {
+          return { triggered: false, status: "na", requestsMade: 0 };
+        }
+        const wasProbed = Boolean(probe.submittedEmpty || probe.submittedInvalid || probe.probed);
+        if (!wasProbed) {
+          return {
+            triggered: false,
+            status: "unknown",
+            reason: "form_not_probed",
+            requestsMade: 0
+          };
+        }
+        const hasInvalidPseudo = Boolean(
+          probe.hasInvalidPseudo || probe.hasRequiredField || probe.nativeInvalid
+        );
+        const hasAriaInvalid = Boolean(probe.hasAriaInvalid || probe.hasInvalidAria);
+        const hasVisibleErrorText2 = Boolean(
+          probe.hasVisibleErrorText || (probe.visibleErrorCount ?? 0) > 0 || probe.errorMessageShown
+        );
+        const hasHandler = Boolean(
+          probe.requestBlocked || probe.hasSubmitHandler || probe.preventedDefault
+        );
+        const hasFeedback = hasInvalidPseudo || hasAriaInvalid || hasVisibleErrorText2 || hasHandler;
+        return {
+          triggered: !hasFeedback,
+          status: hasFeedback ? "pass" : "fail",
+          hasInvalidPseudo,
+          hasAriaInvalid,
+          hasVisibleErrorText: hasVisibleErrorText2,
+          requestBlocked: Boolean(probe.requestBlocked),
+          requestsMade: 0
+        };
       }
       const form = document.querySelector("form");
-      if (!form) return { triggered: false, status: "na" };
-      const inputs = Array.from(form.querySelectorAll('input:not([type="hidden"]):not([type="submit"]), textarea, select'));
-      if (inputs.length === 0) return { triggered: false, status: "na" };
+      if (!form) return { triggered: false, status: "na", requestsMade: 0 };
+      const inputs = Array.from(
+        form.querySelectorAll('input:not([type="hidden"]):not([type="submit"]), textarea, select')
+      );
+      if (inputs.length === 0) return { triggered: false, status: "na", requestsMade: 0 };
       const hasRequiredOrValidation = inputs.some(
-        (inp) => inp.hasAttribute("required") || inp.getAttribute("aria-required") === "true" || inp.getAttribute("aria-invalid") === "true" || inp.hasAttribute("pattern")
+        (inp) => inp.hasAttribute("required") || inp.getAttribute("aria-required") === "true" || inp.getAttribute("aria-invalid") === "true" || inp.hasAttribute("pattern") || typeof inp.matches === "function" && inp.matches(":invalid")
       );
-      const hasErrorRegion = Boolean(
-        form.querySelector('[role="alert"], [aria-live], .error, [data-error]')
-      );
-      const noValidate = form.hasAttribute("novalidate");
-      const triggered = noValidate && !hasRequiredOrValidation && !hasErrorRegion;
+      const errEl = form.querySelector('[role="alert"], [aria-live], .error, [data-error]');
+      const hasVisibleErrorText = Boolean(errEl && (errEl.textContent || "").trim().length > 0);
+      if (hasRequiredOrValidation || hasVisibleErrorText) {
+        return {
+          formPresent: true,
+          hasInvalidPseudo: hasRequiredOrValidation,
+          hasVisibleErrorText,
+          status: "pass",
+          triggered: false,
+          requestsMade: 0
+        };
+      }
+      const wasProbedAttr = form.getAttribute("data-probed-empty") === "true" || form.hasAttribute("novalidate");
+      if (!wasProbedAttr) {
+        return {
+          formPresent: true,
+          status: "unknown",
+          reason: "form_not_probed",
+          triggered: false,
+          requestsMade: 0
+        };
+      }
       return {
         formPresent: true,
-        hasRequiredOrValidation,
-        hasErrorRegion,
-        status: triggered ? "fail" : "pass",
-        triggered
+        hasInvalidPseudo: false,
+        hasVisibleErrorText: false,
+        status: "fail",
+        triggered: true,
+        requestsMade: 0
       };
     })(ctx);
     } catch (e) {
@@ -7081,7 +7523,7 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
 
     // System axis: observe fonts/colors/radii (scored caller-side).
     let systemContext = null;
-    
+
     const extractSystemContext = function extractSystemContext() {
   const out = {
     fonts: {},
@@ -7217,7 +7659,7 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
   return out;
 };
     try { systemContext = extractSystemContext(); } catch (e) { systemContext = { error: e.message }; }
-    
+
 
     return {
       title: document.title,

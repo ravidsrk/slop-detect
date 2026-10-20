@@ -1,30 +1,81 @@
 <!doctype html>
-<html lang="en">
+<!-- Synthetic pioneer-archetype fixture (developer cloud style using Geist alone; NOT an archived capture of vercel.com). -->
+<html lang="en" style="color-scheme: light;">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Vercel — Develop. Preview. Ship.</title>
+    <title>Edge Network &amp; Immutable Preview Deployments</title>
   </head>
-  <body style="background-color: rgb(255, 255, 255); color: rgb(23, 23, 23); font-family: 'Geist', -apple-system, sans-serif;">
-    <header>
-      <nav>
-        <a href="/docs" style="color: rgb(23, 23, 23);">Docs</a>
-        <a href="/templates" style="color: rgb(23, 23, 23);">Templates</a>
-        <a href="/enterprise" style="color: rgb(23, 23, 23);">Enterprise</a>
+  <body
+    data-fonts="Geist"
+    style="background-color: rgb(255, 255, 255); color: rgb(23, 23, 23); font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif; margin: 0;"
+  >
+    <header data-rect="0,0,1280,64" style="background-color: rgb(255, 255, 255); color: rgb(23, 23, 23);">
+      <nav data-rect="40,14,1200,36">
+        <a href="/docs" data-rect="40,18,70,24" style="color: rgb(23, 23, 23); font-size: 14px;">Docs</a>
+        <a href="/templates" data-rect="130,18,90,24" style="color: rgb(23, 23, 23); font-size: 14px;">Templates</a>
+        <a href="/integrations" data-rect="240,18,100,24" style="color: rgb(23, 23, 23); font-size: 14px;">Integrations</a>
+        <a href="/enterprise" data-rect="360,18,90,24" style="color: rgb(23, 23, 23); font-size: 14px;">Enterprise</a>
+        <a href="/pricing" data-rect="470,18,70,24" style="color: rgb(23, 23, 23); font-size: 14px;">Pricing</a>
       </nav>
     </header>
-    <main>
-      <section>
-        <h1 style="font-family: 'Geist', -apple-system, sans-serif; font-size: 52px; text-align: left; letter-spacing: -0.03em; color: rgb(23, 23, 23);">
-          Your complete platform for the web
+    <main data-rect="0,64,1280,1600">
+      <section data-rect="80,110,1120,400" style="background-color: rgb(255, 255, 255);">
+        <h1
+          data-rect="80,130,720,120"
+          style="font-family: 'Geist', -apple-system, sans-serif; font-size: 54px; line-height: 60px; text-align: left; letter-spacing: -1.2px; color: rgb(23, 23, 23);"
+        >
+          Build, preview, and ship web applications at the edge
         </h1>
-        <p style="font-size: 18px; color: rgb(64, 64, 64); line-height: 1.6;">
-          Vercel provides the developer tools and cloud infrastructure to build, scale, and secure a faster, more personalized web. Push git branches to preview URLs and deploy to a global edge network with zero configuration.
+        <p
+          data-rect="80,270,660,96"
+          style="font-size: 18px; line-height: 28px; color: rgb(56, 56, 56); letter-spacing: 0px;"
+        >
+          Every Git push builds in an isolated container and publishes an immutable preview URL with production-equivalent TLS, routing rules, and environment bindings. Reviewers leave inline comments pinned to DOM nodes and inspect Core Web Vitals before merging pull requests into the main branch.
         </p>
-        <a href="/new" style="background-color: rgb(23, 23, 23); color: rgb(255, 255, 255); padding: 12px 20px; border-radius: 6px;">
-          Start Deploying
-        </a>
+        <div data-rect="80,390,360,48">
+          <a
+            href="/new"
+            data-rect="80,390,160,42"
+            style="background-color: rgb(23, 23, 23); color: rgb(255, 255, 255); font-size: 15px; border-radius: 6px; padding: 10px 18px;"
+          >
+            Start deploying
+          </a>
+          <a
+            href="/cli"
+            data-rect="260,390,150,42"
+            style="background-color: rgb(255, 255, 255); color: rgb(23, 23, 23); font-size: 15px; border-radius: 6px; padding: 10px 18px;"
+          >
+            Install CLI
+          </a>
+        </div>
+      </section>
+
+      <section data-rect="80,540,1120,420" style="background-color: rgb(250, 250, 250);">
+        <h2
+          data-rect="80,570,580,44"
+          style="font-family: 'Geist', -apple-system, sans-serif; font-size: 32px; line-height: 40px; text-align: left; color: rgb(23, 23, 23);"
+        >
+          Incremental static regeneration and zero-downtime rollbacks
+        </h2>
+        <p
+          data-rect="80,630,680,96"
+          style="font-size: 16px; line-height: 26px; color: rgb(56, 56, 56);"
+        >
+          Cache dynamic responses at regional PoPs and revalidate individual cache tags on demand via webhook or server action without rebuilding the entire site. Content updates propagate globally in under 300ms while stale-while-revalidate headers keep tail latency flat during traffic spikes.
+        </p>
+        <p
+          data-rect="80,740,680,96"
+          style="font-size: 16px; line-height: 26px; color: rgb(56, 56, 56);"
+        >
+          Because build artifacts are content-addressed and retained in object storage, rolling back a broken release takes a single atomic pointer swap in the routing table with zero cold-start penalty or DNS propagation delay.
+        </p>
       </section>
     </main>
+    <footer data-rect="0,1000,1280,140" style="background-color: rgb(250, 250, 250); color: rgb(56, 56, 56);">
+      <a href="/status" data-rect="80,1030,90,24" style="color: rgb(56, 56, 56); font-size: 14px;">Status</a>
+      <a href="/legal/privacy" data-rect="190,1030,90,24" style="color: rgb(56, 56, 56); font-size: 14px;">Privacy</a>
+      <a href="/legal/terms" data-rect="300,1030,90,24" style="color: rgb(56, 56, 56); font-size: 14px;">Terms</a>
+    </footer>
   </body>
 </html>
