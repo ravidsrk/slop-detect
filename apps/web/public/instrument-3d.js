@@ -437,13 +437,14 @@
     var redrawQueued = false;
     function redrawStill() {
       if (!REDUCED_MOTION || redrawQueued) return;
-      state.morph = state.targetMorph;
-      state.explode = state.targetExplode;
-      state.yaw = state.targetYaw;
-      state.pitch = state.targetPitch;
       redrawQueued = true;
       requestAnimationFrame(function () {
         redrawQueued = false;
+        // Read the targets at paint time so every change since queuing lands.
+        state.morph = state.targetMorph;
+        state.explode = state.targetExplode;
+        state.yaw = state.targetYaw;
+        state.pitch = state.targetPitch;
         renderFrame();
       });
     }
@@ -484,6 +485,12 @@
           redrawStill();
         } else {
           wake();
+          // Loop paused (canvas hidden below 768px, offscreen, or background tab):
+          // nothing will ease the morph, so snap the visible readout + lists now.
+          if (!looping) {
+            state.morph = state.targetMorph;
+            syncReadout();
+          }
         }
       });
     }

@@ -448,11 +448,12 @@ export function resultScript(opts: {
   function turnstileToken(){
     return new Promise(function(resolve){
       var host=document.getElementById('aeoTurnstile');
-      var done=false,wid=null;
-      function finish(t){if(done)return;done=true;try{if(wid!==null&&window.turnstile)window.turnstile.remove(wid);}catch(_){}resolve(t||null);}
+      var done=false,wid=null,timer=null;
+      function finish(t){if(done)return;done=true;if(timer)clearTimeout(timer);try{if(wid!==null&&window.turnstile)window.turnstile.remove(wid);}catch(_){}wid=null;resolve(t||null);}
       if(!host){finish(null);return;}
-      setTimeout(function(){finish(null);},8000);
+      timer=setTimeout(function(){finish(null);},8000);
       function render(){
+        if(done)return; // timed out before the script loaded: never leave a stray widget
         try{
           wid=window.turnstile.render(host,{
             sitekey:window.__TURNSTILE_SITEKEY||'0x4AAAAAADWirXpm1gXBhB5E',

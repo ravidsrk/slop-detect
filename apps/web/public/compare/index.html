@@ -440,6 +440,8 @@
     if (deltaEl) {
       if (corpusState === 'loading') {
         deltaEl.textContent = 'Loading corpus benchmarks…';
+      } else if (corpusState === 'error') {
+        deltaEl.textContent = 'Corpus unavailable: could not load the benchmark records, so no comparison. Run a live scan instead.';
       } else if (isScored(siteA) && isScored(siteB)) {
         var diff = siteB.score - siteA.score;
         if (diff === 0) {
@@ -453,7 +455,7 @@
         var missing = [siteA ? null : domA, siteB ? null : domB, siteA && !isScored(siteA) ? domA : null, siteB && !isScored(siteB) ? domB : null].filter(Boolean);
         deltaEl.textContent = 'No comparison: ' + missing.join(' and ') + ' ha' + (missing.length === 1 ? 's' : 've') + ' no successful scan on record.';
       }
-      if (corpusState !== 'loading' && isScored(siteA) && isScored(siteB) && !(cleanVector(siteA) && cleanVector(siteB))) {
+      if (corpusState === 'ready' && isScored(siteA) && isScored(siteB) && !(cleanVector(siteA) && cleanVector(siteB))) {
         deltaEl.textContent += ' Per-category radar unavailable: the corpus records totals only.';
       }
     }

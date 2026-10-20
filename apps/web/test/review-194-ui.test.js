@@ -254,13 +254,13 @@ function compareScript() {
   return blocks.find((b) => b.includes('leaderboard.json'));
 }
 
-async function runCompare(a, b) {
+async function runCompare(a, b, fetchImpl = async () => new Response(JSON.stringify(LEADERBOARD))) {
   const doc = makeDocument();
   doc.getElementById('cmpA').value = a;
   doc.getElementById('cmpB').value = b;
   vi.stubGlobal('document', doc);
   vi.stubGlobal('location', { search: '' });
-  vi.stubGlobal('fetch', async () => new Response(JSON.stringify(LEADERBOARD)));
+  vi.stubGlobal('fetch', fetchImpl);
   new Function(compareScript())();
   const before = {
     a: doc.getElementById('cardA').innerHTML,
@@ -326,15 +326,21 @@ test('x-ray inspector text is exposed; only its canvas is aria-hidden', () => {
 
 // ── hero instrument (threads 4312665129, 4312665167) ──────────────────────────
 function makeCtx() {
-  const counter = { clears: 0 };
+  // `frame` records every drawing call since the last clearRect, so two paints of
+  // the same state produce identical frames.
+  const counter = { clears: 0, frame: [] };
   const ctx = new Proxy(
     {},
     {
       get(t, k) {
-        if (k === 'clearRect') return () => counter.clears++;
+        if (k === 'clearRect')
+          return () => {
+            counter.clears++;
+            counter.frame = [];
+          };
         if (k === 'measureText') return () => ({ width: 10 });
         if (k in t) return t[k];
-        return () => {};
+        return (...args) => counter.frame.push(`${String(k)}(${args.join(',')})`);
       },
       set(t, k, v) {
         t[k] = v;
@@ -445,4 +451,101 @@ test('hero tell lists are rebuilt only when the active tell set changes', () => 
   expect(frames).toBeGreaterThan(30);
   expect(writes).toBeGreaterThan(0);
   expect(writes).toBeLessThan(frames / 3);
+});
+
+// ── PR #219 follow-ups ────────────────────────────────────────────────────────
+test('reduced motion: a queued repaint draws changes made after it was queued', () => {
+  // Same end state reached two ways must paint the same frame.
+  const queued = bootInstrument({ reduced: true });
+  const slider = queued.doc.getElementById('stageMorphRange');
+  slider.value = '40';
+  slider.fire('input'); // queues a repaint
+  queued.doc.getElementById('stageExplodeBtn').fire('click'); // changes target before it runs
+  expect(queued.step()).toBe(1);
+  const queuedFrame = queued.counter.frame.join(';');
+
+  const stepped = bootInstrument({ reduced: true });
+  const slider2 = stepped.doc.getElementById('stageMorphRange');
+  slider2.value = '40';
+  slider2.fire('input');
+  stepped.step();
+  stepped.doc.getElementById('stageExplodeBtn').fire('click');
+  stepped.step();
+  expect(queuedFrame).toBe(stepped.counter.frame.join(';'));
+});
+
+test('de-slop still updates the readout while the hero canvas is hidden', () => {
+  const h = bootInstrument({ reduced: false });
+  h.io(false); // e.g. <768px: .stage-canvas-wrap is display:none
+  h.step();
+  expect(h.raf.length).toBe(0);
+  const score = h.doc.getElementById('stageScoreNum');
+  expect(score.textContent).not.toBe('0');
+  h.doc.getElementById('stageDeslopBtn').fire('click');
+  expect(score.textContent).toBe('0');
+  expect(h.doc.getElementById('stageTellsList').innerHTML).toMatch(/st-tell-clean/);
+});
+
+test('compare: a corpus fetch failure does not claim missing scan history', async () => {
+  const r = await runCompare('stripe.com', 'bolt.new', async () => {
+    throw new Error('offline');
+  });
+  expect(r.a).toMatch(/Corpus unavailable/);
+  expect(r.delta).toMatch(/Corpus unavailable/);
+  expect(r.delta).not.toMatch(/no successful scan/);
+});
+
+test('live AEO: a Turnstile script that loads after the timeout never renders a widget', async () => {
+  vi.useFakeTimers();
+  try {
+    const doc = makeDocument();
+    const btn = doc.getElementById('runAeoBtn');
+    doc.getElementById('aeoTurnstile');
+    let script = null;
+    doc.head.appendChild = (c) => {
+      script = c;
+    };
+    const win = {};
+    const calls = [];
+    vi.stubGlobal('document', doc);
+    vi.stubGlobal('window', win);
+    vi.stubGlobal('navigator', {});
+    vi.stubGlobal('fetch', async (url, init) => {
+      calls.push(init);
+      return new Response(JSON.stringify({ error: 'turnstile_required' }), { status: 403 });
+    });
+    new Function(resultScript({ shareText: 's', shareUrl: 'u', domain: 'ex.com' }))();
+    btn.fire('click');
+    await vi.advanceTimersByTimeAsync(8000);
+    expect(calls.length).toBe(1); // gave up and let the server decide
+    expect(calls[0].headers['X-Turnstile-Token']).toBeUndefined();
+
+    const render = vi.fn(() => 'late');
+    win.turnstile = { render, remove: vi.fn() };
+    script.onload(); // the slow script finally arrives
+    expect(render).not.toHaveBeenCalled();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test('live AEO: a successful token cancels the timeout', async () => {
+  vi.useFakeTimers();
+  try {
+    const doc = makeDocument();
+    const btn = doc.getElementById('runAeoBtn');
+    doc.getElementById('aeoTurnstile');
+    vi.stubGlobal('document', doc);
+    vi.stubGlobal('window', {
+      turnstile: { render: (h, o) => (o.callback('t'), 'w'), remove() {} },
+    });
+    vi.stubGlobal('navigator', {});
+    vi.stubGlobal('fetch', () => new Promise(() => {})); // keep the probe in flight
+    new Function(resultScript({ shareText: 's', shareUrl: 'u', domain: 'ex.com' }))();
+    btn.fire('click');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(vi.getTimerCount()).toBe(0);
+  } finally {
+    vi.useRealTimers();
+  }
 });
