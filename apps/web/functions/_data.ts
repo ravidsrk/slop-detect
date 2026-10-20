@@ -1207,33 +1207,41 @@ export async function deleteListing(kv, domain) {
 // scan; `scanned` counts raw rows examined (kept or not).
 //
 // Legacy rows (no `v` marker) were created before a listing required an
-// email-verified claim, so they're checked against their watch here: a row
-// whose watch is listed+verified is shown; anything else is hidden and lazily
-// deleted. The read path never WRITES a row (greptile P1 on #218: a rewrite
-// racing performUnsubscribe could resurrect a removed listing) — verified
-// legacy rows are re-stamped by recordScanForWatch on the next sweep scan.
-// Watch checks are capped by `legacyBudget` (a shared { left } counter);
-// once spent, remaining unmarked rows are hidden (fail closed) and cleaned up
-// on a later request (greptile P2 on #218).
+// email-verified claim, so each one is checked against its watch once: a row
+// whose watch is listed+verified is shown and its domain recorded in the
+// legacy-verified index (lv:verified); anything else is hidden and lazily
+// deleted. Indexed domains are shown without a re-check, so the bounded
+// per-request budget only spends on unchecked rows and makes progress across
+// requests (greptile P1/P2 on #218).
+//
+// The read path never writes a LISTING row (a rewrite racing
+// performUnsubscribe could resurrect a removed listing). A stale index entry
+// is harmless: removal deletes the l: row itself, and every row written since
+// the verified-only rule carries `v`, so only surviving legacy rows ever
+// consult the index.
 export async function listSites(
   kv,
   {
     limit = 200,
     cursor = null,
-    legacyBudget = { left: LEGACY_CHECKS_PER_REQUEST },
-  }: { limit?: number; cursor?: string | null; legacyBudget?: { left: number } } = {}
+    legacy = null,
+  }: { limit?: number; cursor?: string | null; legacy?: LegacyState | null } = {}
 ) {
   if (!kv) return { sites: [], cursor: null, complete: true, scanned: 0 };
+  const own = !legacy;
+  const state = legacy || (await loadLegacyState(kv));
   const res = await kv.list({ prefix: 'l:', limit, cursor: cursor || undefined });
   const keys = res.keys || [];
   const sites = [];
   for (const k of keys) {
     const m = k.metadata || {};
     const domain = k.name.replace(/^l:/, '');
-    if (!m.v) {
-      if (legacyBudget.left <= 0) continue;
-      legacyBudget.left--;
+    if (!m.v && !state.verified.has(domain)) {
+      if (state.left <= 0) continue; // budget spent: hide (fail closed) for now
+      state.left--;
       if (!(await isLegacyListingVerified(kv, domain))) continue;
+      state.verified.add(domain);
+      state.added.push(domain);
     }
     sites.push({
       domain,
@@ -1246,6 +1254,7 @@ export async function listSites(
       listedAt: m.at || null,
     });
   }
+  if (own) await flushLegacyState(kv, state);
   return {
     sites,
     cursor: res.list_complete ? null : res.cursor || null,
@@ -1254,8 +1263,38 @@ export async function listSites(
   };
 }
 
-// Max watch lookups for unmarked legacy rows in one directory request.
+// Max watch lookups for unchecked legacy rows in one directory request.
 const LEGACY_CHECKS_PER_REQUEST = 50;
+const LEGACY_INDEX_KEY = 'lv:verified';
+const LEGACY_INDEX_MAX = 5000;
+
+type LegacyState = { left: number; verified: Set<string>; added: string[] };
+
+async function loadLegacyState(kv): Promise<LegacyState> {
+  let list = [];
+  try {
+    const raw = await kv.get(LEGACY_INDEX_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(parsed)) list = parsed.filter((d) => typeof d === 'string');
+  } catch {
+    /* unreadable index: every legacy row is re-checked within the budget */
+  }
+  return { left: LEGACY_CHECKS_PER_REQUEST, verified: new Set(list), added: [] };
+}
+
+// Merge newly verified legacy domains into the index (re-read first to narrow
+// lost updates between concurrent requests; a lost add only costs a re-check).
+async function flushLegacyState(kv, state: LegacyState) {
+  if (!state.added.length) return;
+  try {
+    const current = await loadLegacyState(kv);
+    for (const d of state.added) current.verified.add(d);
+    const merged = [...current.verified].slice(-LEGACY_INDEX_MAX);
+    await kv.put(LEGACY_INDEX_KEY, JSON.stringify(merged), { expirationTtl: LISTING_TTL });
+  } catch {
+    /* best-effort: rows are simply re-checked on a later request */
+  }
+}
 
 // True when a pre-verification listing row is backed by a listed AND verified
 // watch. Otherwise the row is deleted (delete-only: it can never resurrect a
@@ -1275,18 +1314,20 @@ async function isLegacyListingVerified(kv, domain) {
 // Walk the directory (paginates internally), BOUNDED so a large catalogue can't
 // turn a public page render into an unbounded KV scan / memory blowout. Stops
 // after `max` RAW rows scanned (default 5000), counting rows hidden by the
-// legacy filter too, and shares one legacy watch-check budget across pages.
+// legacy filter too, and shares one legacy budget + index across pages.
 export async function listAllSites(kv, { max = 5000 } = {}) {
+  if (!kv) return [];
   const out = [];
   let cursor = null;
   let scanned = 0;
-  const legacyBudget = { left: LEGACY_CHECKS_PER_REQUEST };
+  const legacy = await loadLegacyState(kv);
   do {
-    const r = await listSites(kv, { limit: Math.min(1000, max - scanned), cursor, legacyBudget });
+    const r = await listSites(kv, { limit: Math.min(1000, max - scanned), cursor, legacy });
     out.push(...r.sites);
     scanned += r.scanned;
     cursor = r.cursor;
   } while (cursor && scanned < max);
+  await flushLegacyState(kv, legacy);
   return out.slice(0, max);
 }
 

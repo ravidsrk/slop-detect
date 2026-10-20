@@ -10,6 +10,7 @@ import {
   deleteListing,
   listSites,
   listAllSites,
+  performUnsubscribe,
   recordScanForWatch,
   getWatch,
   putWatch,
@@ -470,7 +471,7 @@ test('listSites hides and removes legacy rows from unverified claims (pre-verifi
   expect(domains).toEqual(['verified.example.com']);
 });
 
-test('a directory read never rewrites a legacy row, so an unsubscribe racing it cannot resurrect it', async () => {
+test('a directory read racing an unsubscribe cannot resurrect the removed listing', async () => {
   const kv = makeKv({
     'l:racy.example.com': {
       value: JSON.stringify({ domain: 'racy.example.com', score: 2 }),
@@ -483,14 +484,15 @@ test('a directory read never rewrites a legacy row, so an unsubscribe racing it 
       verified: true,
     }),
   });
-  // Simulate performUnsubscribe landing after the watch check passed and the
-  // row was read, i.e. just before any rewrite of the row.
+  // performUnsubscribe lands right after listSites' watch check reads the
+  // still-verified watch: it removes the listing row and the watch.
   const origGet = kv.get.bind(kv);
+  let unsubscribed = false;
   kv.get = async (k) => {
     const v = await origGet(k);
-    if (k === 'l:racy.example.com') {
-      kv.store.delete('l:racy.example.com');
-      kv.store.delete('w:racy.example.com');
+    if (k === 'w:racy.example.com' && !unsubscribed) {
+      unsubscribed = true;
+      await performUnsubscribe(kv, 'racy.example.com', 'o@x.io');
     }
     return v;
   };
@@ -500,11 +502,43 @@ test('a directory read never rewrites a legacy row, so an unsubscribe racing it 
     if (k.startsWith('l:')) listingWrites.push(k);
     return origPut(k, v, o);
   };
-  const { sites } = await listSites(kv);
-  // The verified row is served (its watch check passed before the unsubscribe)…
-  expect(sites.map((x) => x.domain)).toEqual(['racy.example.com']);
-  // …but the read path wrote nothing, so a concurrent removal stays removed.
-  expect(listingWrites).toEqual([]);
+  await listSites(kv);
+  expect(unsubscribed, 'the simulated removal actually ran').toBe(true);
+  expect(listingWrites, 'the read path never writes a listing row').toEqual([]);
+  expect(kv.store.has('l:racy.example.com'), 'listing stays removed').toBe(false);
+  expect(kv.store.has('w:racy.example.com'), 'watch stays removed').toBe(false);
+  // A later directory read doesn't bring it back either.
+  kv.get = origGet;
+  const again = await listSites(kv);
+  expect(again.sites).toEqual([]);
+});
+
+test('valid legacy listings beyond one request budget become visible on later requests', async () => {
+  const seed = {};
+  for (let i = 0; i < 51; i++) {
+    const d = `ok${String(i).padStart(3, '0')}.example.com`;
+    seed[`l:${d}`] = { value: '{}', metadata: { s: 1, at: '2026-01-01' } };
+    seed[`w:${d}`] = JSON.stringify({ domain: d, email: 'o@x.io', listed: true, verified: true });
+  }
+  const kv = makeKv(seed);
+  let watchReads = 0;
+  const origGet = kv.get.bind(kv);
+  kv.get = async (k) => {
+    if (k.startsWith('w:')) watchReads++;
+    return origGet(k);
+  };
+  const first = await listAllSites(kv);
+  expect(first.length).toBe(50); // bounded: one row still pending
+  expect(watchReads).toBe(50);
+  watchReads = 0;
+  const second = await listAllSites(kv);
+  expect(second.length).toBe(51); // progress carried across requests
+  expect(watchReads).toBe(1); // only the previously unchecked row
+  watchReads = 0;
+  expect((await listAllSites(kv)).length).toBe(51);
+  expect(watchReads).toBe(0); // steady state: no per-row reads
+  // Listing rows themselves were never rewritten.
+  expect(kv.store.get('l:ok000.example.com').metadata.v).toBeUndefined();
 });
 
 test('legacy cleanup is bounded per request: watch checks capped, rows scanned capped', async () => {
