@@ -236,7 +236,7 @@ test('watch funnel: subscribed once, confirmed, unsubscribed (re-POSTs excluded)
     request: watchReq({ domain: 'funnel.example.com', email: 'owner@funnel.example.com' }),
     env,
   });
-  const token = await issueWatchToken(kv, 'funnel.example.com');
+  const token = await issueWatchToken(kv, 'funnel.example.com', 'owner@funnel.example.com');
   const conf = await confirmGet({
     request: { url: `https://slop-detect.com/api/watch/confirm?token=${token}` },
     env,

@@ -219,7 +219,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
   // email is throttled, so the consent record and monitoring are unaffected.
   if (alertsLive && !watch.verified && (await watchVerifyAllowed(env.RATE_LIMIT, email))) {
     try {
-      const token = await issueWatchToken(env.RESULTS, domain);
+      const token = await issueWatchToken(env.RESULTS, domain, email);
       if (token) {
         const confirmUrl = `${origin}/api/watch/confirm?token=${token}`;
         // Transactional footer: postal + privacy, no unsubscribe line (a

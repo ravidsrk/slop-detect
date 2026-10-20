@@ -31,6 +31,7 @@ import {
   isSameSiteRedirect,
   fetchAllowedUrl,
   recordScanForWatch,
+  domainOf,
   bumpOpsStats,
   bumpFlowStats,
 } from '../_shared.js';
@@ -220,7 +221,8 @@ export async function onRequestPost({ request, env, waitUntil }) {
     // Two distinct refusals, named honestly: a private/internal destination is
     // the SSRF case; a public but unrelated domain is a cross-site redirect.
     // Same-site hops (apex→www, apex→app subdomain) are normal and allowed —
-    // the result is recorded under the final host via finalUrl/slimResult.
+    // the result is recorded under the final host via finalUrl/slimResult, and
+    // a watch on the requested domain is still updated (see persistence below).
     if (!isAllowedUrl(finalNavUrl)) {
       deferOps({ status: 400 });
       return json(
@@ -366,7 +368,20 @@ export async function onRequestPost({ request, env, waitUntil }) {
         // rank against peers. Best-effort: persistence must never break a scan.
         await recordScan(env.RESULTS, slim);
         // If this domain is being monitored, refresh baseline/regression on top.
-        const monitoring = await recordScanForWatch(env.RESULTS, slim);
+        // A same-site redirect (example.com → app.example.com) records the
+        // result under the FINAL host, but the watch lives under the REQUESTED
+        // domain (the sweep scans `https://<watch.domain>`), so update that
+        // watch too — finalUrl stays untouched in the result and slim.
+        const requestedDomain = domainOf(url);
+        let monitoring = null;
+        if (requestedDomain && requestedDomain !== slim.domain) {
+          monitoring = await recordScanForWatch(env.RESULTS, {
+            ...slim,
+            domain: requestedDomain,
+          });
+        }
+        const finalMonitoring = await recordScanForWatch(env.RESULTS, slim);
+        monitoring = monitoring || finalMonitoring;
         if (monitoring) result.monitoring = monitoring;
       } catch (e) {
         // Sharing/monitoring is best-effort; never fail a scan over it — but do

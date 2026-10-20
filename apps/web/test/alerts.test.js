@@ -182,9 +182,9 @@ test('sweep respects max and records errors without aborting', async () => {
 // ── token + confirm flow ─────────────────────────────────────────────────────
 test('issue/consume token is single-use', async () => {
   const kv = makeKv();
-  const token = await issueWatchToken(kv, 'example.com');
+  const token = await issueWatchToken(kv, 'example.com', 'O@x.io');
   expect(token && token.length >= 16).toBeTruthy();
-  expect(await consumeWatchToken(kv, token)).toBe('example.com');
+  expect(await consumeWatchToken(kv, token)).toEqual({ domain: 'example.com', email: 'o@x.io' });
   expect(await consumeWatchToken(kv, token), 'second use is rejected').toBe(null);
 });
 
@@ -192,7 +192,7 @@ test('GET /api/watch/confirm flips the watch to verified', async () => {
   const kv = makeKv({
     'w:example.com': JSON.stringify({ domain: 'example.com', email: 'o@x.io', verified: false }),
   });
-  const token = await issueWatchToken(kv, 'example.com');
+  const token = await issueWatchToken(kv, 'example.com', 'o@x.io');
   const res = await confirmGet({
     request: { url: `https://slop-detect.com/api/watch/confirm?token=${token}` },
     env: { RESULTS: kv },
@@ -200,6 +200,45 @@ test('GET /api/watch/confirm flips the watch to verified', async () => {
   expect(res.status).toBe(200);
   expect(await res.text()).toMatch(/all set/i);
   expect((await getWatch(kv, 'example.com')).verified).toBe(true);
+});
+
+test('a token issued to a replaced unverified claim cannot verify the new email', async () => {
+  // Attacker claims the domain with their own address and receives a token…
+  const kv = makeKv({
+    'w:example.com': JSON.stringify({
+      domain: 'example.com',
+      email: 'attacker@evil.io',
+      verified: false,
+      listed: true,
+    }),
+  });
+  const token = await issueWatchToken(kv, 'example.com', 'attacker@evil.io');
+  // …then replaces the unverified claim with the victim's address.
+  await kv.put(
+    'w:example.com',
+    JSON.stringify({ domain: 'example.com', email: 'victim@x.io', verified: false, listed: true })
+  );
+  const res = await confirmGet({
+    request: { url: `https://slop-detect.com/api/watch/confirm?token=${token}` },
+    env: { RESULTS: kv },
+  });
+  expect(res.status).toBe(410);
+  const w = await getWatch(kv, 'example.com');
+  expect(w.verified).toBe(false);
+  expect(kv.store.has('l:example.com'), 'no public listing published').toBe(false);
+});
+
+test('a legacy domain-only token no longer verifies a watch', async () => {
+  const kv = makeKv({
+    'w:example.com': JSON.stringify({ domain: 'example.com', email: 'o@x.io', verified: false }),
+    'wv:legacytoken': 'example.com',
+  });
+  const res = await confirmGet({
+    request: { url: 'https://slop-detect.com/api/watch/confirm?token=legacytoken' },
+    env: { RESULTS: kv },
+  });
+  expect(res.status).toBe(410);
+  expect((await getWatch(kv, 'example.com')).verified).toBe(false);
 });
 
 test('GET /api/watch/confirm rejects a bad/expired token with 410', async () => {

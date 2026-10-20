@@ -153,19 +153,25 @@ export async function putWatch(kv, watch) {
 }
 
 // ── Double-opt-in verification tokens ─────────────────────────────────────────
-// A token maps to a domain (wv:<token> → domain). The owner clicks a link
-// carrying the token to set watch.verified=true. Tokens are single-use and
-// expire; an unverified watch never receives alert email.
+// A token maps to the CLAIM it was issued for: wv:<token> → {domain, email}.
+// The owner clicks a link carrying the token to set watch.verified=true — but
+// only if the watch is still claimed by the email that received the token. An
+// unverified claim can be replaced by a different email, so a domain-only token
+// would let an old link verify the NEW address (greptile P1 on PR #217).
+// Tokens are single-use and expire; an unverified watch never receives alerts.
 const VERIFY_TTL = 60 * 60 * 24 * 7; // 7 days to confirm
 
-export async function issueWatchToken(kv, domain) {
-  if (!kv || !domain) return null;
+export async function issueWatchToken(kv, domain, email) {
+  if (!kv || !domain || !email) return null;
   const token = newId(32); // 32 url-safe chars ≈ 165 bits
-  await kv.put(`wv:${token}`, domain, { expirationTtl: VERIFY_TTL });
+  const claim = { domain, email: String(email).trim().toLowerCase() };
+  await kv.put(`wv:${token}`, JSON.stringify(claim), { expirationTtl: VERIFY_TTL });
   return token;
 }
 
-// Resolve + burn a token. Returns the domain it confirmed, or null if unknown/expired.
+// Resolve + burn a token. Returns the {domain, email} claim it was issued for,
+// or null if unknown/expired. Legacy domain-only tokens resolve with
+// email:null, which the confirm route treats as no longer valid.
 //
 // NOTE: get-then-delete is not atomic, and Workers KV has no compare-and-delete
 // primitive, so two requests racing the SAME token within the (eventually
@@ -173,12 +179,23 @@ export async function issueWatchToken(kv, domain) {
 // benign: re-confirming a watch just re-sets verified:true (idempotent), and a
 // raced dashboard token only mints a second session for the SAME owner email.
 // True hard single-use would require a Durable Object; not worth it for this.
-export async function consumeWatchToken(kv, token) {
+export async function consumeWatchToken(
+  kv,
+  token
+): Promise<{ domain: string; email: string | null } | null> {
   if (!kv || !token) return null;
-  const domain = await kv.get(`wv:${token}`);
-  if (!domain) return null;
+  const raw = await kv.get(`wv:${token}`);
+  if (!raw) return null;
   await kv.delete(`wv:${token}`);
-  return domain;
+  try {
+    const claim = JSON.parse(raw);
+    if (claim && typeof claim === 'object' && claim.domain) {
+      return { domain: String(claim.domain), email: claim.email ? String(claim.email) : null };
+    }
+  } catch {
+    /* legacy plain-domain value */
+  }
+  return { domain: raw, email: null };
 }
 
 // ── Dashboard magic-link tokens (P2b) ────────────────────────────────────────
@@ -1142,6 +1159,10 @@ function listingMeta(record) {
     id: record.id,
     t: (record.title || '').slice(0, 60),
     at: record.listedAt,
+    // `v` marks a row written under the verified-only rule (every setListing
+    // caller gates on watch.verified). Rows without it predate that rule and
+    // are re-checked against their watch by listSites (greptile P2 on #217).
+    v: 1,
   };
 }
 
@@ -1183,13 +1204,21 @@ export async function deleteListing(kv, domain) {
 
 // Enumerate the directory from KV list metadata (cheap — no per-row get).
 // Returns { sites, cursor, complete }. `cursor` paginates the raw KV scan.
+//
+// Legacy rows (no `v` marker) were created before a listing required an
+// email-verified claim, so they're checked against their watch here: a row
+// whose watch is listed+verified is kept and re-stamped; anything else is
+// hidden and lazily deleted. After one pass only marked rows remain, so the
+// steady state stays a single list() call.
 export async function listSites(kv, { limit = 200, cursor = null } = {}) {
   if (!kv) return { sites: [], cursor: null, complete: true };
   const res = await kv.list({ prefix: 'l:', limit, cursor: cursor || undefined });
-  const sites = (res.keys || []).map((k) => {
+  const sites = [];
+  for (const k of res.keys || []) {
     const m = k.metadata || {};
     const domain = k.name.replace(/^l:/, '');
-    return {
+    if (!m.v && !(await reconcileLegacyListing(kv, domain))) continue;
+    sites.push({
       domain,
       url: `https://${domain}`,
       score: m.s ?? null,
@@ -1198,13 +1227,32 @@ export async function listSites(kv, { limit = 200, cursor = null } = {}) {
       id: m.id ?? null,
       title: m.t || null,
       listedAt: m.at || null,
-    };
-  });
+    });
+  }
   return {
     sites,
     cursor: res.list_complete ? null : res.cursor || null,
     complete: !!res.list_complete,
   };
+}
+
+// Returns true when a pre-verification listing row is backed by a listed AND
+// verified watch (and re-stamps it); otherwise removes it and returns false.
+// Best-effort: a KV hiccup hides the row for this render rather than serving
+// an unverified listing.
+async function reconcileLegacyListing(kv, domain) {
+  try {
+    const watch = await getWatch(kv, domain);
+    if (watch && watch.listed && watch.verified) {
+      const record = await getListing(kv, domain);
+      if (record) await setListing(kv, record);
+      return true;
+    }
+    await deleteListing(kv, domain);
+  } catch {
+    /* hide on error; reconciled on a later render or scan */
+  }
+  return false;
 }
 
 // Walk the directory (paginates internally), BOUNDED so a large catalogue can't

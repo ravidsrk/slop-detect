@@ -422,3 +422,48 @@ test('recordScanForWatch reconciles away a stale row when the watch is not liste
   await recordScanForWatch(kv, slim({ id: 'r9', score: 7, grade: 'A-', tier: 'Clean' }));
   expect(await getListing(kv, 'example.com'), 'stale row reconciled away').toBe(null);
 });
+
+test('listSites hides and removes legacy rows from unverified claims (pre-verification listings)', async () => {
+  // Rows written before listings required verification carry no `v` marker.
+  const legacyMeta = (s) => ({ s, g: 'A', tr: 'Clean', id: null, t: '', at: '2026-01-01' });
+  const kv = makeKv({
+    'l:unverified.example.com': {
+      value: JSON.stringify({ domain: 'unverified.example.com', score: 3 }),
+      metadata: legacyMeta(3),
+    },
+    'w:unverified.example.com': JSON.stringify({
+      domain: 'unverified.example.com',
+      email: 'a@x.io',
+      listed: true,
+      verified: false,
+    }),
+    'l:orphan.example.com': {
+      value: JSON.stringify({ domain: 'orphan.example.com', score: 4 }),
+      metadata: legacyMeta(4),
+    },
+    'l:verified.example.com': {
+      value: JSON.stringify({ domain: 'verified.example.com', score: 5, listedAt: '2026-01-01' }),
+      metadata: legacyMeta(5),
+    },
+    'w:verified.example.com': JSON.stringify({
+      domain: 'verified.example.com',
+      email: 'b@x.io',
+      listed: true,
+      verified: true,
+    }),
+  });
+  const { sites } = await listSites(kv);
+  expect(sites.map((s) => s.domain)).toEqual(['verified.example.com']);
+  // Lazy cleanup: unverified/orphan rows are gone; the verified one is re-stamped.
+  expect(kv.store.has('l:unverified.example.com')).toBe(false);
+  expect(kv.store.has('l:orphan.example.com')).toBe(false);
+  expect(kv.store.get('l:verified.example.com').metadata.v).toBe(1);
+  // /api/sites serves the filtered view too.
+  const res = await sitesGet({
+    request: { url: 'https://slop-detect.com/api/sites' },
+    env: { RESULTS: kv },
+  });
+  const body = await res.json();
+  const domains = (body.sites || []).map((s) => s.domain);
+  expect(domains).toEqual(['verified.example.com']);
+});
