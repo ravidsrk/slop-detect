@@ -425,7 +425,7 @@ test('recordScanForWatch reconciles away a stale row when the watch is not liste
   expect(await getListing(kv, 'example.com'), 'stale row reconciled away').toBe(null);
 });
 
-test('listSites hides and removes legacy rows from unverified claims (pre-verification listings)', async () => {
+test('listSites hides (without deleting) legacy rows from unverified claims (pre-verification listings)', async () => {
   // Rows written before listings required verification carry no `v` marker.
   const legacyMeta = (s) => ({ s, g: 'A', tr: 'Clean', id: null, t: '', at: '2026-01-01' });
   const kv = makeKv({
@@ -456,10 +456,14 @@ test('listSites hides and removes legacy rows from unverified claims (pre-verifi
   });
   const { sites } = await listSites(kv);
   expect(sites.map((s) => s.domain)).toEqual(['verified.example.com']);
-  // Lazy cleanup: unverified/orphan rows are gone; the verified one is shown
-  // but NOT rewritten on the read path (re-stamping is left to the next scan).
-  expect(kv.store.has('l:unverified.example.com')).toBe(false);
-  expect(kv.store.has('l:orphan.example.com')).toBe(false);
+  // The read path neither deletes nor rewrites listing rows: rejected rows are
+  // hidden and recorded in lv:rejected; the verified one is shown as-is.
+  expect(kv.store.has('l:unverified.example.com')).toBe(true);
+  expect(kv.store.has('l:orphan.example.com')).toBe(true);
+  expect(JSON.parse(kv.store.get('lv:rejected').value).sort()).toEqual([
+    'orphan.example.com',
+    'unverified.example.com',
+  ]);
   expect(kv.store.get('l:verified.example.com').metadata.v).toBeUndefined();
   // /api/sites serves the filtered view too.
   const res = await sitesGet({
@@ -513,6 +517,43 @@ test('a directory read racing an unsubscribe cannot resurrect the removed listin
   expect(again.sites).toEqual([]);
 });
 
+test('a listing confirmed while a directory read checks the legacy row is not deleted', async () => {
+  // Legacy row + still-unverified watch: the read path will classify it as
+  // rejected. Confirmation lands right after the watch read, verifying the
+  // watch and writing a fresh v:1 row for the same domain.
+  const kv = makeKv({
+    'l:late.example.com': {
+      value: JSON.stringify({ domain: 'late.example.com', score: 2 }),
+      metadata: { s: 2, g: 'A', tr: 'Clean', id: null, t: '', at: '2026-01-01' },
+    },
+    'w:late.example.com': JSON.stringify({
+      domain: 'late.example.com',
+      email: 'o@x.io',
+      listed: true,
+      verified: false,
+    }),
+  });
+  const origGet = kv.get.bind(kv);
+  let confirmed = false;
+  kv.get = async (k) => {
+    const v = await origGet(k);
+    if (k === 'w:late.example.com' && !confirmed) {
+      confirmed = true;
+      await verifyWatch(kv, 'late.example.com');
+      await setListing(kv, { domain: 'late.example.com', score: 3, grade: 'A', tier: 'Clean' });
+    }
+    return v;
+  };
+  const first = await listSites(kv);
+  expect(confirmed, 'the simulated confirm actually ran').toBe(true);
+  expect(first.sites).toEqual([]); // classified from the pre-confirm read
+  // The confirmed row survived the read and is served from now on.
+  expect(kv.store.get('l:late.example.com').metadata.v).toBe(1);
+  kv.get = origGet;
+  const again = await listSites(kv);
+  expect(again.sites.map((x) => x.domain)).toEqual(['late.example.com']);
+});
+
 test('valid legacy listings beyond one request budget become visible on later requests', async () => {
   const seed = {};
   for (let i = 0; i < 51; i++) {
@@ -559,11 +600,18 @@ test('legacy cleanup is bounded per request: watch checks capped, rows scanned c
   const first = await listAllSites(kv);
   expect(first).toEqual([]);
   expect(watchReads).toBe(50); // one request's legacy budget
-  expect([...kv.store.keys()].filter((k) => k.startsWith('l:')).length).toBe(70);
-  // The remaining cleanup continues on later requests.
-  await listAllSites(kv);
-  await listAllSites(kv);
-  expect([...kv.store.keys()].filter((k) => k.startsWith('l:')).length).toBe(0);
+  // Classification continues on later requests (rejected rows stay hidden and
+  // are never re-checked once indexed)…
+  watchReads = 0;
+  expect(await listAllSites(kv)).toEqual([]);
+  expect(watchReads).toBe(50);
+  watchReads = 0;
+  expect(await listAllSites(kv)).toEqual([]);
+  expect(watchReads).toBe(20);
+  watchReads = 0;
+  expect(await listAllSites(kv)).toEqual([]);
+  expect(watchReads).toBe(0); // steady state
+  expect(JSON.parse(kv.store.get('lv:rejected').value).length).toBe(120);
 
   // Raw rows scanned (not just rows returned) bound the walk.
   const big = makeKv(seed);
