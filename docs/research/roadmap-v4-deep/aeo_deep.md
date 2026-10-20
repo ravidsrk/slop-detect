@@ -15,10 +15,12 @@
 
 **Evidence grades**
 
+> **Grade terminology.** In these research notes, "measured" means *measured in a published study*. It is **not** the issue label `evidence:measured`, which is reserved for lift measured on slop-detect's own calibration corpus (K-01); nothing qualifies for that label yet. When the notes were turned into issues, items resting on outside studies were labelled `evidence:hypothesis` (or `evidence:standard` where a spec such as WCAG backs them).
+
 | Grade | Meaning |
 |---|---|
 | standard | normative spec text, or a first-party vendor doc about the vendor's own system |
-| measured | a peer-reviewed or arXiv study with data |
+| measured | a peer-reviewed or arXiv study with data (published measurement; see note above) |
 | practitioner | a vendor blog or SEO-industry measurement |
 | hypothesis | none of the above |
 

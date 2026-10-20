@@ -59,7 +59,7 @@ Only verified sources are used. Every claim below links to the note that quotes 
 
 **Where slop-detect stands against Impeccable.**
 - Impeccable (771,577 npm downloads a month) now scans live URLs too, so headless Chromium is no longer a differentiator.
-- Ours is a calibrated score with tiers, the AEO axis, the CI/API surface and the no-install hosted scanner ([github_ecosystem.md](docs/research/roadmap-v4-deep/github_ecosystem.md)).
+- Ours is a deterministic score with tiers (not yet calibrated; see K-01), the AEO axis, the CI/API surface and the no-install hosted scanner ([github_ecosystem.md](docs/research/roadmap-v4-deep/github_ecosystem.md)).
 - A google/design.md issue (#181) asks for exactly what `check_design_system` already does: rendered-page `DESIGN.md` conformance.
 
 **What users ask for**, in order ([discourse_deep.md §3](docs/research/roadmap-v4-deep/discourse_deep.md)):
@@ -72,7 +72,7 @@ The most common objection is still that "these defaults predate AI" (12 authors)
 ## 3. Principles
 
 1. **Eligibility and defects over taste.** Report provenance; never score it. Craft defects get their own axis and never feed Clean/Mild/Heavy.
-2. **Weight 0 until proven.** Every new or changed style rule ships at weight 0 with a `review` status. It is promoted only at a definitions bump, once the held-out calibration set shows a likelihood ratio of at least 3 and no worse Heavy false-positive rate ([K-04](https://github.com/ravidsrk/slop-detect/issues/299)).
+2. **Weight 0 until proven.** Every new rule, and every change that broadens what an existing rule fires on, ships at weight 0 with a `review` status. Corrections that make a shipped rule measure what it already claims to (parser fixes and colour-syntax parity such as FIX-05/FIX-06, false-positive exclusions) and weight *reductions* or demotions (such as halving `purple_accent` in FIX-06) may ship at a definitions bump with re-scored deltas published. A rule's weight goes up, or a new rule gets weight, only at a definitions bump, once the held-out calibration set shows a likelihood ratio of at least 3 and no worse Heavy false-positive rate ([K-04](https://github.com/ravidsrk/slop-detect/issues/299)).
 3. **Never say "AI-generated".** Say "matches N AI-default patterns", with evidence and confidence ([K-06](https://github.com/ravidsrk/slop-detect/issues/301)). No third-party grades are published without opt-in ([FIX-04](https://github.com/ravidsrk/slop-detect/issues/224)).
 4. **Measure on held-out data.** Splits are grouped by domain, and the held-out set is locked before any tuning. Published false-positive rates and promotion gates use only the held-out set ([K-01](https://github.com/ravidsrk/slop-detect/issues/213)).
 5. **Versioned, comparable scores.** Any change that can move a score bumps `DEFINITIONS_VERSION`, re-scores the corpus and publishes the deltas. Scores from different versions are never compared without re-scoring.

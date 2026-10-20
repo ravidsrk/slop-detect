@@ -222,7 +222,7 @@ Every arXiv ID below was fetched from `arxiv.org/html/<id>` on 2026-10-20, apart
 
 ## 3. Candidate roadmap items
 
-Evidence grades follow K-02: measured, standard, practitioner, hypothesis.
+Evidence grades use K-02's names (measured, standard, practitioner, hypothesis), but here "measured" means measured in a published study, not on slop-detect's corpus. Issues built from these notes label such items `evidence:hypothesis` (or `evidence:standard` where WCAG backs a craft check).
 
 ### 3.1 Site mode: multi-page aggregation with an eligibility gate
 - **Build:**

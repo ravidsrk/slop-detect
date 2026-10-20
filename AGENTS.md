@@ -100,8 +100,11 @@ which exercises both runners end-to-end.
   `roadmap:v4` with one `evidence:*` grade (`measured` means lift measured on our
   own calibration corpus — nothing else qualifies), one `priority:*` and a release
   milestone; the tracking issue is #336. `research:backed` is retired.
-- New or changed style rules ship at weight 0 (`rule:weight-0`) and are promoted
-  only through the K-04 gate on the held-out calibration set. Never write UI or
+- New rules, and changes that broaden what an existing rule fires on, ship at
+  weight 0 (`rule:weight-0`); weight only goes up through the K-04 gate on the
+  held-out calibration set. Correctness fixes (parser fixes, colour-syntax
+  parity, false-positive exclusions) and weight reductions or demotions may ship at a definitions bump
+  with re-scored deltas published. Never write UI or
   API copy that calls a page "AI-generated" (K-06).
 - Cite only sources you opened; quote numbers exactly. See
   `docs/research/roadmap-v4/REPORT.md` for why (v3 shipped fabricated citations).

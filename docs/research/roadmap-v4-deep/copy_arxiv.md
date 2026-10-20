@@ -5,7 +5,7 @@ Research date: 2026-10-20. Scope: work that is new relative to `docs/research/ro
 **Tags.**
 - **[V]** means I opened the primary source this session and the quoted number appears there. Most arXiv items were read from the arXiv abstract page. Where I also read the full text (arXiv HTML, or PDF text extracted with pypdf), the entry says so.
 - **[U]** means unverified: a secondary source, or a number I could not find in the primary text.
-- **Evidence grades** follow K-02: measured, standard, practitioner, hypothesis.
+- **Evidence grades** use K-02's names (measured, standard, practitioner, hypothesis), but here "measured" means measured in a published study, not on slop-detect's corpus. Issues built from these notes label such items `evidence:hypothesis`.
 - **Heuristic** marks any threshold I propose. None of them comes from a source.
 
 **Integrity notes from this pass.**
