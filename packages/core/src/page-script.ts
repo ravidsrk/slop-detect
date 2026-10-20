@@ -29,10 +29,12 @@ export interface BuildPageScriptOptions {
   patterns?: Array<{ id: string; extract: (ctx: any) => unknown }>;
 }
 
-/** Runner context passed alongside page data; reserved for future boundary checks. */
+/** Runner context passed alongside page data. */
 export interface DetectBlockedContext {
   url?: string;
   finalUrl?: string;
+  /** Number of patterns the page script extracted (default: full catalogue). */
+  extractedPatterns?: number;
 }
 
 // ── Anti-bot / dead-page heuristics ─────────────────────────────────────────
@@ -85,7 +87,12 @@ export function detectBlocked(
   // is gating content behind a JS auth wall. ChatGPT/Cursor/etc do this.
   const noContent = !title && !h1;
   const thinDom = visibleCount < 10;
-  const thinSignals = patternsWithEvidence < 4;
+  // Evidence floor: 4 for full-catalogue runners. A caller that extracted only a
+  // small subset (e.g. the 3-pattern `minimal` preset) passes how many patterns
+  // it extracted so the floor never exceeds what the page could have produced.
+  const extracted = _ctx?.extractedPatterns;
+  const minEvidence = typeof extracted === 'number' && extracted > 0 ? Math.min(4, extracted) : 4;
+  const thinSignals = patternsWithEvidence < minEvidence;
   if (noContent || thinDom || thinSignals) {
     // Three honest variants of "cannot judge": nothing rendered; a titled
     // page too thin to judge (example.com: title + H1, 4 visible elements);

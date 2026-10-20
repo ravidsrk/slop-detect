@@ -222,7 +222,8 @@ export function buildPageEvaluateScript(
   if (Array.isArray(patternsOrOpts)) {
     return buildPageScript({ ...opts, patterns: patternsOrOpts });
   }
-  return buildPageScript(patternsOrOpts || {});
+  // Legacy `(opts)` form, or `(undefined, opts)` meaning "all built-in patterns".
+  return buildPageScript({ ...(patternsOrOpts || {}), ...opts });
 }
 
 function normalizeAxes(axes) {
@@ -261,7 +262,9 @@ export function assembleScanResult(raw: any, opts: AssembleScanResultOptions = {
   const url = opts.url || data.url;
 
   if (isPageData) {
-    const blocked = detectBlocked(data);
+    const blocked = detectBlocked(data, {
+      extractedPatterns: Object.keys(data.signals || {}).length,
+    });
     if (blocked) {
       return {
         url,

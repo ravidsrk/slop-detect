@@ -145,3 +145,28 @@ test('buildFixPrompt reads AEO check message + severity from the real report sha
   expect(prompt).toContain('GPTBot is disallowed by robots.txt');
   expect(prompt).not.toContain('Add the missing signal.');
 });
+
+test('assembleScanResult scores a small extracted subset (minimal preset) instead of blocking it', () => {
+  const minimal = getPatterns('minimal');
+  expect(minimal.length).toBeLessThan(4);
+  const raw = pageData(['slop_fonts']);
+  raw.signals = Object.fromEntries(minimal.map((p) => [p.id, raw.signals[p.id]]));
+  const result = assembleScanResult(raw, { patterns: minimal });
+  expect(result.blocked).toBeUndefined();
+  expect(result.patternsTotal).toBe(minimal.length);
+  expect(result.patternsFlagged).toBe(1);
+  expect(typeof result.score).toBe('number');
+
+  // Bot walls and empty renders are still caught for a subset.
+  expect(assembleScanResult({ ...raw, title: 'Just a moment...' }).code).toBe(
+    'cloudflare_challenge'
+  );
+  expect(assembleScanResult({ ...raw, title: '', h1Text: null }).code).toBe('empty_page');
+  expect(assembleScanResult({ ...raw, visibleCount: 3 }).code).toBe('empty_page');
+});
+
+test('buildPageEvaluateScript(undefined, opts) keeps opts and uses every pattern', () => {
+  const script = buildPageEvaluateScript(undefined, { includeSystem: true });
+  expect(script).toContain('systemContext = extractSystemContext()');
+  for (const p of PATTERNS) expect(script).toContain(`signals[${JSON.stringify(p.id)}]`);
+});
