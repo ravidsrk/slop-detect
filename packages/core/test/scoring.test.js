@@ -124,14 +124,18 @@ test('applyPreset is fail-open on an unknown preset (returns full set)', () => {
 });
 
 // ── catalogue integrity ──────────────────────────────────────────────────────
-test('every PATTERN has a unique id, a positive weight, and a detect/extract fn', () => {
+test('every PATTERN has a unique id, valid lifecycle metadata, and an extract fn', () => {
   const ids = new Set();
   for (const pat of PATTERNS) {
     expect(pat.id && !ids.has(pat.id)).toBeTruthy();
     ids.add(pat.id);
-    expect(typeof pat.weight === 'number' && pat.weight > 0).toBeTruthy();
+    expect(typeof pat.weight === 'number' && pat.weight >= 0).toBeTruthy();
+    if (pat.status === 'review' || pat.status === 'retired') {
+      expect(pat.weight).toBe(0);
+    } else {
+      expect(pat.weight > 0).toBeTruthy();
+    }
     expect(typeof pat.extract === 'function').toBeTruthy();
   }
-  // README/CLI claim 27 design patterns — keep that promise honest.
-  expect(PATTERNS.length).toBe(27);
+  expect(PATTERNS.length).toBe(43);
 });
