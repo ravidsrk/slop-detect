@@ -2,7 +2,7 @@
 
 > Pure four-axis detection engine for AI-design-slop patterns, LLM copy tells, `DESIGN.md` system compliance, and AEO crawler readiness. Runtime-agnostic — runs in Node, Cloudflare Workers, or the browser.
 
-This is the heart of [`slop-detect`](https://github.com/ravidsrk/slop-detect). It exports the full set of rule definitions (27 design patterns + 9 copy patterns + 8 AEO checks + `DESIGN.md` parser/comparator as of `definitions@2026.09`), the scoring functions, remediation prompt builder, and the DOM-side page evaluation script — without ever touching a browser directly. You bring the runner; this package brings the rules.
+This is the heart of [`slop-detect`](https://github.com/ravidsrk/slop-detect). It exports the full set of rule definitions (27 design patterns + 9 copy patterns + 8 AEO checks + `DESIGN.md` parser/comparator as of `definitions@2026.10`), the scoring functions, remediation prompt builder, and the DOM-side page evaluation script — without ever touching a browser directly. You bring the runner; this package brings the rules.
 
 ## Install
 
@@ -41,7 +41,7 @@ console.log(`${result.score}/100 — ${result.tier} (${result.grade})`);
 
 | Export | Purpose |
 |---|---|
-| `DEFINITIONS_VERSION` | Current versioned ruleset string (`"2026.09"`) |
+| `DEFINITIONS_VERSION` | Current versioned ruleset string (`"2026.10"`) |
 | `PATTERNS` | Array of 27 design rule definitions (`{ id, label, short, category, weight, extract }`) |
 | `COPY_PATTERNS` | Array of 9 prose/copy rule definitions (`{ id, label, short, weight, match }`) |
 | `AEO_CHECKS` | Array of 8 Answer Engine Optimization checks (`html.reachable`, `bot.notBlocked`, `robots.aiAllowed`, `html.indexable`, `md.twin`, `html.linkAlternate`, `site.llmsTxt`, `html.vary`) |

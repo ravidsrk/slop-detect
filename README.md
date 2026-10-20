@@ -44,7 +44,7 @@ https://news.ycombinator.com
 
 By April 2026, AI-generated landing pages had collapsed onto a measurable visual fingerprint. Inter font, purple-to-blue gradient hero, "Now in Beta" pill badge, gradient-letter testimonial avatars, identical icon-topped feature cards. [Adrian Krebs's study](https://www.adriankrebs.ch/blog/design-slop/) scored ~1,400 Show HN submissions with Playwright and found **67% carried detectable AI-design fingerprints**.
 
-`slop-detect` reproduces Krebs's methodology, adds the signals Meng To identified in his [May 2026 Aura tutorial](https://x.com/MengTo/status/2058893181740359863), integrates typography & contrast tells from [Impeccable](https://github.com/pbakaus/impeccable), and packages the four-axis engine (`definitions@2026.09`) across four surfaces:
+`slop-detect` reproduces Krebs's methodology, adds the signals Meng To identified in his [May 2026 Aura tutorial](https://x.com/MengTo/status/2058893181740359863), integrates typography & contrast tells from [Impeccable](https://github.com/pbakaus/impeccable), and packages the four-axis engine (`definitions@2026.10`) across four surfaces:
 
 - 🟢 **`slop-detect`**, Playwright-based CLI, run from your terminal or CI
 - 🟢 **`slop-detect.com`**, drop-in web UI & interactive 3D telemetry workbench
@@ -146,8 +146,13 @@ domain and emails you when it regresses to slop between redesigns:
 # Start monitoring (double opt-in: you confirm via an emailed link)
 curl -s -X POST -H 'Content-Type: application/json' \
   https://slop-detect.com/api/watch \
-  -d '{"url":"https://your-site.com","email":"you@example.com","list":true,"system":true}'
+  -d '{"domain":"your-site.com","email":"you@example.com","list":true,"system":true}'
 ```
+
+> **Status:** sign-ups are open and every baseline is recorded, but regression
+> **alert emails + the daily sweep are not switched on yet** — until they are,
+> subscribing puts you on the waitlist (the API says so honestly:
+> `alertsActive: false`). Nothing is emailed before you confirm, ever.
 
 Add `"system": true` and the daily sweep also checks the domain against its own
 `DESIGN.md`, emailing you when the page **drifts off its declared design
@@ -157,8 +162,8 @@ Every monitored domain gets a print-friendly client report at
 (magic-link sign-in, no password, with self-serve JSON export and erasure) shows every domain on your email in one view.
 
 `list: true` also opts the domain into the public, crawlable
-[**directory**](https://slop-detect.com/directory) of scored sites, an
-owner-gated catalogue with a real backlink to each listed site. See also
+[**directory**](https://slop-detect.com/directory) of scored sites — the listing
+goes public only after the claim is email-verified. See also
 [**The State of AI Design Slop**](https://slop-detect.com/leaderboard), a
 reproducible scan of well-known landing pages (how much of the web now reads as
 AI-generated, and who's still clean). We only store
@@ -169,7 +174,7 @@ layer, free during the current validation phase.
 
 ## The 27 patterns
 
-`definitions@2026.09`, versioned ruleset. Scores from a given definition
+`definitions@2026.10`, versioned ruleset. Scores from a given definition
 version are comparable; the version ships in every result (`definitionsVersion`).
 Browse and filter all rules interactively at [`slop-detect.com/docs`](https://slop-detect.com/docs#catalogue).
 
@@ -419,7 +424,7 @@ See [ROADMAP.md](ROADMAP.md) for the full strategic plan. Shipped through `v0.8.
 - [x] **OG share cards**: auto-generated 1200×630 image per result (`/og/<id>.png`)
 - [x] **Letter grades + verdict**: A+→F grade and a one-liner on every score
 - [x] **Embeddable SVG badge**: `slop-detect.com/badge/<domain>.svg` + copy-paste snippets
-- [x] **Versioned slop definitions**: scores tagged with `definitionsVersion` (`2026.09`)
+- [x] **Versioned slop definitions**: scores tagged with `definitionsVersion` (`2026.10` as of the launch-readiness pass)
 - [x] **GitHub Action**: sticky PR comment + pass/fail status check on preview URLs
 - [x] **MCP server** (`slop-detect-mcp`) with `scan_page`, `check_aeo`, `check_design_system`, and `fix_prompt`
 - [x] **Public REST API** with key-based rate-limit tiers ([API.md](apps/web/API.md))

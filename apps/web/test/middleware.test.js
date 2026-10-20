@@ -362,6 +362,21 @@ test('GET and OPTIONS responses carry X-Request-Id', async () => {
   expect(resOpt.headers.get('X-Request-Id')).toBeTruthy();
 });
 
+test('unknown /api/* routes return a JSON 404 instead of falling through', async () => {
+  for (const path of ['/api/.env', '/api/graphql', '/api/nope/deeper']) {
+    const req = makeRequest({ method: 'GET', path });
+    const res = await onRequest(makeContext(req, {}));
+    expect(res.status, path).toBe(404);
+    expect(res.headers.get('Content-Type')).toContain('application/json');
+    const r = await res.json();
+    expect(r.error).toBe('not_found');
+  }
+  // Known nested routes still pass through to their handler.
+  const ok = makeRequest({ method: 'GET', path: '/api/watch/confirm' });
+  const resOk = await onRequest(makeContext(ok, {}));
+  expect(resOk.status).toBe(200);
+});
+
 test('the computed ID is forwarded to the handler on a cloned request', async () => {
   // Real Request (unlike the POJO doubles above) so forwardWithId can clone.
   const req = new Request('https://slop-detect.com/api/scan', {

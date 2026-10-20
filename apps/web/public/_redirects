@@ -7,3 +7,9 @@
 # /docs. Owned here so the docs task does not also touch _redirects.
 /methodology /docs 301
 /methodology/* /docs 301
+
+# Bare legal/pricing paths serve their Markdown twins instead of falling
+# through to the homepage with a 200.
+/pricing /pricing.md 200
+/terms /terms.md 200
+/privacy /privacy.md 200

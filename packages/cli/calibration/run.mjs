@@ -10,6 +10,14 @@
 //
 // Accuracy is computed ONLY over rows with a confirmed `label`. Rows with
 // label:null are printed as predictions for a human to confirm and promote.
+//
+// Failed scans are COUNTED, not silently dropped: the summary reports
+// `failed`, every JSON row carries its error + the pattern ids that fired (so
+// a corpus can be re-analyzed offline), and --check fails on a labeled ERROR
+// too (an unscannable reference site is a regression, not a skip).
+// Remote scans are paced (CALIBRATION_SPACING_MS, default 1500) so a growing
+// corpus doesn't self-throttle into a pile of 429-ERRORs that used to vanish
+// from the accuracy denominator.
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { scanRemote, scanUrl } from '../src/detector.js';
@@ -26,6 +34,9 @@ const entries = corpus.entries || [];
 const scan = (url) =>
   local ? scanUrl(url, { axes: ['design'] }) : scanRemote(url, { axes: ['design'] });
 
+const SPACING_MS = local ? 0 : Number(process.env.CALIBRATION_SPACING_MS ?? 1500);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 const TIERS = ['Clean', 'Mild', 'Heavy'];
 const pad = (s, n) => String(s).padEnd(n);
 
@@ -41,14 +52,19 @@ console.log(
 console.log(`${pad('url', 38)} ${pad('expect', 7)} ${pad('predict', 7)} ${pad('score', 6)} ok`);
 console.log('-'.repeat(70));
 
-for (const e of entries) {
+let failed = 0;
+for (const [i, e] of entries.entries()) {
+  if (i > 0 && SPACING_MS > 0) await sleep(SPACING_MS);
   let predicted = 'ERROR',
     score = '-',
-    ok = '';
+    ok = '',
+    error = null,
+    triggered = [];
   try {
     const r = await scan(e.url);
     predicted = r.tier;
     score = r.score;
+    triggered = (r.patterns || []).filter((p) => p.triggered).map((p) => p.id);
     if (e.label) {
       labeled++;
       const hit = predicted === e.label;
@@ -59,9 +75,20 @@ for (const e of entries) {
       ok = '· (unlabeled)';
     }
   } catch (err) {
-    ok = `! ${err.message?.slice(0, 30)}`;
+    failed++;
+    error = err.message || String(err);
+    if (e.label) labeled++;
+    ok = `! ${error.slice(0, 30)}`;
   }
-  rows.push({ url: e.url, expected: e.label, predicted, score, builtWith: e.builtWith });
+  rows.push({
+    url: e.url,
+    expected: e.label,
+    predicted,
+    score,
+    builtWith: e.builtWith,
+    triggered,
+    error,
+  });
   console.log(
     `${pad(e.url.replace(/^https?:\/\//, ''), 38)} ${pad(e.label || '—', 7)} ${pad(predicted, 7)} ${pad(score, 6)} ${ok}`
   );
@@ -70,7 +97,7 @@ for (const e of entries) {
 const accuracy = labeled ? correct / labeled : 0;
 console.log('-'.repeat(70));
 console.log(
-  `\nLabeled: ${labeled}  ·  Correct: ${correct}  ·  Accuracy: ${(accuracy * 100).toFixed(1)}%`
+  `\nLabeled: ${labeled}  ·  Correct: ${correct}  ·  Failed scans: ${failed} (counted as wrong)  ·  Accuracy: ${(accuracy * 100).toFixed(1)}%`
 );
 console.log('\nConfusion (rows = expected, cols = predicted):');
 console.log(`${pad('', 8)}${TIERS.map((t) => pad(t, 7)).join('')}`);
@@ -89,6 +116,7 @@ const report = {
   mode: local ? 'local' : 'remote',
   labeled,
   correct,
+  failed,
   accuracy,
   rows,
   confusion,
@@ -98,13 +126,12 @@ if (jsonOut) {
   console.log(`\nWrote ${jsonOut}`);
 }
 
-// In --check mode, a confirmed-label miss is a regression → fail.
+// In --check mode, a confirmed-label miss — or a labeled site that failed to
+// scan at all — is a regression → fail.
 if (check) {
-  const misses = rows.filter(
-    (r) => r.expected && r.predicted !== 'ERROR' && r.predicted !== r.expected
-  );
+  const misses = rows.filter((r) => r.expected && r.predicted !== r.expected);
   if (misses.length) {
-    console.error(`\n✗ ${misses.length} confirmed-label mismatch(es).`);
+    console.error(`\n✗ ${misses.length} confirmed-label mismatch(es) (ERROR counts as a miss).`);
     process.exit(1);
   }
 }

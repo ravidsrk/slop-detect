@@ -20,7 +20,7 @@ page looks machine-generated, not that it is bad.
 - [Brand & identity](https://slop-detect.com/brand): The design system, and the
   dogfood proof that this site passes its own detector.
 - [Pattern catalogue (JSON)](https://slop-detect.com/api/patterns): Every design
-  and copy pattern, with weights and the current definitions version (`2026.09`).
+  and copy pattern, with weights and the current definitions version (`2026.10`).
   Markdown twin: https://slop-detect.com/api/patterns.md.
 - [Blog](https://slop-detect.com/blog): research essays on how the score works,
   why fixed detectors decay, 2026.09 four-axis calibration, and AEO for
@@ -57,8 +57,10 @@ page looks machine-generated, not that it is bad.
 ## Keep it clean (monitoring)
 
 - [Monitor a domain](https://slop-detect.com/#monitor): `POST /api/watch`
-  `{ domain, email, system?, list? }`: daily re-scans, regression + design-drift
-  email alerts (double opt-in; nothing sent until confirmed).
+  `{ domain, email, system?, list? }`: monitoring WAITLIST — the baseline is
+  recorded now; daily re-scans and regression + design-drift email alerts
+  (double opt-in; nothing sent until confirmed) activate at launch. The API
+  reports `alertsActive: false` until then.
 - [Dashboard](https://slop-detect.com/dashboard): every monitored domain on one
   email, magic-link sign-in (`POST /api/dashboard/link`).
 - Client report per domain: `https://slop-detect.com/report/<domain>`

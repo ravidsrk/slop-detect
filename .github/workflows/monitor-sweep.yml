@@ -2,11 +2,17 @@ name: monitor-sweep
 
 # Daily trigger for the monitoring sweep (re-scan watched domains, email owners
 # on a new regression). The work runs in the Pages Function /api/cron/sweep;
-# this just pokes it on a schedule. Disabled-by-default: with no CRON_SECRET it
-# skips with a notice rather than failing.
+# this just pokes it on a schedule.
+#
+# OFF until explicitly enabled: scheduled runs only execute when the repo
+# variable MONITORING_ENABLED is "true" — otherwise the job shows as SKIPPED
+# in the Actions UI instead of a green check that checked nothing (which is
+# how disabled monitoring hid for months). A manual run always executes and
+# fails loudly if CRON_SECRET is missing.
 #
 # To enable: set repo secret CRON_SECRET (must match the Pages env var of the
-# same name). Optionally set repo variable SWEEP_URL (defaults to production).
+# same name) and repo variable MONITORING_ENABLED=true. Optionally set repo
+# variable SWEEP_URL (defaults to production).
 
 on:
   schedule:
@@ -15,6 +21,7 @@ on:
 
 jobs:
   sweep:
+    if: vars.MONITORING_ENABLED == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Trigger sweep
@@ -23,8 +30,8 @@ jobs:
           SWEEP_URL: ${{ vars.SWEEP_URL }}
         run: |
           if [ -z "$CRON_SECRET" ]; then
-            echo "::notice::CRON_SECRET not set — monitoring sweep is disabled. Skipping."
-            exit 0
+            echo "::error::CRON_SECRET not set — monitoring is not configured. Set the repo secret (matching the Pages env var) or leave MONITORING_ENABLED unset."
+            exit 1
           fi
           url="${SWEEP_URL:-https://slop-detect.com/api/cron/sweep}"
           code=$(curl -sS -o /tmp/sweep.json -w '%{http_code}' -X POST \

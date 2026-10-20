@@ -523,8 +523,9 @@ export function MonitorCard({ domain }) {
           Keep {target} on-system between redesigns.
         </h2>
         <p class="mon-body">
-          A daily re-scan, and a regression or design-drift email the moment a redesign slips back
-          into slop. Scanning stays free; this remembers a domain over time.
+          Join the waitlist: the baseline is recorded now, and daily re-scans with regression and
+          design-drift emails switch on at launch. Scanning stays free; this remembers a domain over
+          time.
         </p>
         <form class="mon-form" id="watchForm" novalidate>
           <label class="sr-only" for="watchDomain">

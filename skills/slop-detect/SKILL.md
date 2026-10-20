@@ -12,7 +12,7 @@ compatibility: Requires internet access. Uses the public slop-detect.com API (no
 
 # slop-detect
 
-Score any landing page against the versioned four-axis telemetry engine (`definitions@2026.09`):
+Score any landing page against the versioned four-axis telemetry engine (`definitions@2026.10`):
 1. **Design Slop (27 CSS/DOM patterns)** — deterministic live-DOM inspection derived from Adrian Krebs's study of 1,400 Show HN submissions, Meng To's Aura study, and Impeccable typography/contrast rules.
 2. **Copy Slop (9 prose patterns)** — density-calibrated text analysis catching LLM buzzwords, em-dash overload, "not just X — it's Y" antithesis, tricolons, and formulaic openers/closers.
 3. **System Axis (`DESIGN.md` compliance)** — relative per-site audit checking whether the live DOM honors the site's own declared `DESIGN.md` tokens (fonts, palette, corner radii).
@@ -33,7 +33,7 @@ Trigger phrases (non-exhaustive):
 - "detect design slop", "v0 detector", "slop score"
 - Any URL pasted with a vague "what do you think of this?" — run a scan first
 
-## Four-axis catalogue (`definitions@2026.09`)
+## Four-axis catalogue (`definitions@2026.10`)
 
 ### Axis 1: The 27 design patterns (lower score = cleaner)
 

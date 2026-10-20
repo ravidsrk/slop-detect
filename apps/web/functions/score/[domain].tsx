@@ -12,7 +12,7 @@
 // reused by /r and /report). This page only fetches the persisted record, derives
 // the rank, and composes — it does not re-implement components or re-style tokens.
 //
-// Claim model (MNR-12): the dofollow backlink to the site is the incentive to CLAIM.
+// Claim model (MNR-12): the directory backlink to the site is the incentive to CLAIM.
 // It appears only once the owner verifies via the claim form (POST /api/watch
 // { list:true }). Unclaimed domains show the claim form and no backlink, so we never
 // hand SEO juice to an arbitrary URL. Anti-slop by construction (flat light system).

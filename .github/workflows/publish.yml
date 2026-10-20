@@ -12,15 +12,36 @@ name: publish
 #               packages. Without it the job fails fast (it does not silently
 #               no-op), so a release can never appear to succeed while npm stays
 #               stale.
+# Note: the workspace name is @slop-detect/core, but core's `prepack` renames
+# it to the unscoped `slop-detect-core` before packing, so that is the name
+# that lands on npm (no npm org needed).
 #
 # Publish order matters: `slop-detect` (CLI) depends on `@slop-detect/core`,
 # so core must land first.
+#
+# Packing matters just as much: the CLI depends on core via "workspace:*",
+# which plain `npm publish` leaves UNREWRITTEN — the published CLI would be
+# uninstallable. So each package is packed with `bun pm pack` (which rewrites
+# workspace:* to the real version), the tarball is asserted workspace-free,
+# and the TARBALL is what gets published.
+#
+# Manual runs are dry-runs unless `dry_run: false` is chosen explicitly, so
+# rehearsing a release can never half-publish it.
 
 on:
   push:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Pack + verify only; do not publish'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write # npm --provenance
 
 concurrency:
   group: publish-npm
@@ -41,7 +62,8 @@ jobs:
         with:
           bun-version: 1.4.2
 
-      - name: Preflight — NPM_TOKEN present
+      - name: Preflight — NPM_TOKEN present (real publishes only)
+        if: github.event_name != 'workflow_dispatch' || inputs.dry_run == false
         run: |
           if [ -z "${{ secrets.NPM_TOKEN }}" ]; then
             echo "::error::NPM_TOKEN must be set as a repo secret to publish."
@@ -70,20 +92,55 @@ jobs:
             fi
           done
 
-      - name: Publish @slop-detect/core
-        working-directory: packages/core
-        run: npm publish --access public
+      # Pack with bun (rewrites workspace:* → real version), then assert no
+      # tarball still carries a workspace: spec before anything is published.
+      - name: Pack all three packages (bun pm pack)
+        run: |
+          mkdir -p tarballs
+          for pkg in core cli mcp; do
+            (cd "packages/$pkg" && bun pm pack)
+            mv packages/$pkg/*.tgz tarballs/
+          done
+          ls -la tarballs
+          for t in tarballs/*.tgz; do
+            if tar -xzOf "$t" package/package.json | grep -q 'workspace:'; then
+              echo "::error::$t still contains a workspace: dependency — refusing to publish an uninstallable package."
+              exit 1
+            fi
+          done
+
+      # Smoke the packed CLI before publishing: install the tarballs in a clean
+      # dir (core tarball satisfies the CLI's dependency) and run the binary.
+      - name: Install-smoke the packed tarballs
+        run: |
+          SMOKE="$(mktemp -d)"
+          cd "$SMOKE"
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund "$GITHUB_WORKSPACE"/tarballs/*.tgz
+          ./node_modules/.bin/slop-detect --help >/dev/null
+          echo "packed CLI installs and runs"
+
+      - name: Resolve publish mode
+        id: mode
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" != "false" ]; then
+            echo "args=--dry-run" >> "$GITHUB_OUTPUT"
+            echo "Manual dry-run: packing verified, nothing will be published."
+          else
+            echo "args=--provenance" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish slop-detect-core
+        run: npm publish tarballs/slop-detect-core-*.tgz --access public ${{ steps.mode.outputs.args }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish slop-detect (CLI)
-        working-directory: packages/cli
-        run: npm publish --access public
+        run: npm publish tarballs/slop-detect-[0-9]*.tgz --access public ${{ steps.mode.outputs.args }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish slop-detect-mcp
-        working-directory: packages/mcp
-        run: npm publish --access public
+        run: npm publish tarballs/slop-detect-mcp-*.tgz --access public ${{ steps.mode.outputs.args }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

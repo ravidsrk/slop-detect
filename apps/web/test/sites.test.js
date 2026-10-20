@@ -11,7 +11,16 @@ import {
   listSites,
   recordScanForWatch,
   getWatch,
+  putWatch,
 } from '../functions/_shared.ts';
+
+// Flip a stored watch to email-verified (what the confirm click does), so
+// listing activation can be exercised without the token/email plumbing.
+async function verifyWatch(kv, domain) {
+  const w = await getWatch(kv, domain);
+  w.verified = true;
+  await putWatch(kv, w);
+}
 import { onRequestGet as sitesGet } from '../functions/api/sites.ts';
 import { onRequestGet as directoryGet } from '../functions/directory.tsx';
 import { onRequestPost as watchPost } from '../functions/api/watch.ts';
@@ -148,7 +157,7 @@ test('GET /api/sites returns 503 without storage', async () => {
 });
 
 // ── GET /directory (server-rendered HTML) ────────────────────────────────────
-test('/directory renders a DOFOLLOW backlink to each listed site', async () => {
+test('/directory renders a rel="ugc nofollow" link to each listed site', async () => {
   const kv = makeKv();
   await setListing(kv, slim({ domain: 'example.com', score: 8, grade: 'A-', tier: 'Clean' }));
   const res = await directoryGet({
@@ -158,7 +167,9 @@ test('/directory renders a DOFOLLOW backlink to each listed site', async () => {
   expect(res.status).toBe(200);
   const html = await res.text();
   expect(html, 'links out to the site').toMatch(/href="https:\/\/example\.com"/);
-  expect(html, 'the backlink must be dofollow').not.toMatch(/rel=["']?nofollow/i);
+  expect(html, 'user-submitted links carry no ranking credit').toMatch(
+    /href="https:\/\/example\.com" rel="ugc nofollow noopener"/
+  );
   expect(html, 'emits ItemList JSON-LD for SEO').toMatch(/application\/ld\+json/);
   // Anti-slop self-check: the directory must not wear the tells it detects.
   // Case-sensitive on the font names (matching ui.test.js): the page embeds the
@@ -200,8 +211,20 @@ test('POST /api/watch { list:true } lists the domain; { list:false } delists it'
   });
   let j = await res.json();
   expect(j.listed).toBe(true);
+  // Unverified claim: listing intent is recorded but NOT public yet — an
+  // unproven email can never publish a directory link.
+  expect(j.directoryUrl).toBe(null);
+  expect(await getListing(kv, 'example.com'), 'no public row before verification').toBe(null);
+
+  // After email verification, re-subscribing activates the public listing.
+  await verifyWatch(kv, 'example.com');
+  res = await watchPost({
+    request: postReq({ domain: 'example.com', email: 'o@x.io', list: true }),
+    env,
+  });
+  j = await res.json();
   expect(j.directoryUrl.endsWith('/directory')).toBeTruthy();
-  expect(await getListing(kv, 'example.com'), 'listing created').toBeTruthy();
+  expect(await getListing(kv, 'example.com'), 'listing created once verified').toBeTruthy();
 
   // Re-subscribe with list:false → delisted, monitoring intact.
   res = await watchPost({
@@ -226,6 +249,11 @@ test('omitting `list` on re-subscribe preserves the listing state', async () => 
     }),
   });
   const env = { RESULTS: kv };
+  await watchPost({
+    request: postReq({ domain: 'example.com', email: 'o@x.io', list: true }),
+    env,
+  });
+  await verifyWatch(kv, 'example.com');
   await watchPost({
     request: postReq({ domain: 'example.com', email: 'o@x.io', list: true }),
     env,
@@ -263,10 +291,15 @@ test('unsubscribing a listed domain also delists it', async () => {
   expect(await getListing(kv, 'example.com')).toBe(null);
 });
 
-test('a claimed domain cannot be listed/hijacked by a different email', async () => {
-  // owner@x.io already claims + lists example.com.
+test('a VERIFIED claimed domain cannot be listed/hijacked by a different email', async () => {
+  // owner@x.io already claims (verified) + lists example.com.
   const kv = makeKv({
-    'w:example.com': JSON.stringify({ domain: 'example.com', email: 'owner@x.io', listed: true }),
+    'w:example.com': JSON.stringify({
+      domain: 'example.com',
+      email: 'owner@x.io',
+      listed: true,
+      verified: true,
+    }),
     'l:example.com': JSON.stringify({
       domain: 'example.com',
       score: 6,
@@ -288,6 +321,37 @@ test('a claimed domain cannot be listed/hijacked by a different email', async ()
   const watch = await getWatch(kv, 'example.com');
   expect(watch.email).toBe('owner@x.io');
   expect(await getListing(kv, 'example.com'), 'listing survives the hijack attempt').toBeTruthy();
+});
+
+test('an UNVERIFIED claim does not lock the domain against a different email', async () => {
+  // squatter@evil.io typed an email against owner.com but never confirmed it.
+  const kv = makeKv({
+    'w:example.com': JSON.stringify({
+      domain: 'example.com',
+      email: 'squatter@evil.io',
+      listed: true,
+      verified: false,
+    }),
+    'l:example.com': JSON.stringify({
+      domain: 'example.com',
+      score: 6,
+      grade: 'A',
+      tier: 'Clean',
+      listedAt: 'orig',
+    }),
+  });
+  const env = { RESULTS: kv };
+  // The real owner claims it: allowed (201), and the squatter's stale public
+  // row is removed until the new claim verifies.
+  const res = await watchPost({
+    request: postReq({ domain: 'example.com', email: 'owner@x.io', list: true }),
+    env,
+  });
+  expect(res.status).toBe(201);
+  const watch = await getWatch(kv, 'example.com');
+  expect(watch.email).toBe('owner@x.io');
+  expect(watch.verified).toBe(false);
+  expect(await getListing(kv, 'example.com')).toBe(null);
 });
 
 test('/directory labels a listed-but-unscored domain "Pending", not "Unlisted"', async () => {
@@ -317,6 +381,7 @@ test('recordScanForWatch refreshes the listing for a listed, watched domain', as
       domain: 'example.com',
       email: 'o@x.io',
       listed: true,
+      verified: true,
       baselineScore: 6,
       baselineTier: 'Clean',
     }),
