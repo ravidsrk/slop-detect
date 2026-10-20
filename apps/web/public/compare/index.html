@@ -310,16 +310,11 @@
 </footer>
 <script>
 (function(){
+  // Corpus records (public/leaderboard.json) carry score/grade/tier/patternsFlagged
+  // but no per-pattern list, and unscannable sites are recorded as scored:false
+  // with a reason. Render exactly that: no invented grades, tells, or radar shapes.
   var byDomain = {};
-  var FALLBACK = {
-    'stripe.com': { domain: 'stripe.com', score: 0, grade: 'A+', tier: 'Clean', category: 'saas', builtWith: 'custom', triggered: [] },
-    'news.ycombinator.com': { domain: 'news.ycombinator.com', score: 0, grade: 'A+', tier: 'Clean', category: 'classic', builtWith: 'custom', triggered: [] },
-    'vercel.com': { domain: 'vercel.com', score: 8, grade: 'A-', tier: 'Clean', category: 'saas', builtWith: 'nextjs', triggered: [{ id: 'slop_fonts', short: 'Geist font', weight: 8 }] },
-    'linear.app': { domain: 'linear.app', score: 15, grade: 'B', tier: 'Mild', category: 'saas', builtWith: 'custom', triggered: [{ id: 'slop_fonts', short: 'Default font', weight: 8 }, { id: 'perma_dark_mode', short: 'Dark surface', weight: 4 }, { id: 'pill_buttons', short: 'Pill buttons', weight: 3 }] },
-    'bolt.new': { domain: 'bolt.new', score: 32, grade: 'D+', tier: 'Heavy', category: 'ai-builder', builtWith: 'bolt', triggered: [{ id: 'slop_fonts', short: 'Default font', weight: 8 }, { id: 'gradient_text', short: 'Gradient H1', weight: 6 }, { id: 'purple_accent', short: 'Purple accent', weight: 5 }, { id: 'glassmorphism', short: 'Glass blur', weight: 5 }, { id: 'glow_shadows', short: 'Glow shadow', weight: 4 }] },
-    'lovable.dev': { domain: 'lovable.dev', score: 29, grade: 'D+', tier: 'Heavy', category: 'ai-builder', builtWith: 'lovable', triggered: [{ id: 'slop_fonts', short: 'Default font', weight: 8 }, { id: 'cream_default_bg', short: 'Cream bg', weight: 7 }, { id: 'gradient_backgrounds', short: 'Gradients', weight: 6 }, { id: 'centered_hero', short: 'Centered hero', weight: 5 }] }
-  };
-  Object.keys(FALLBACK).forEach(function(k){ byDomain[k] = FALLBACK[k]; });
+  var corpusState = 'loading'; // 'loading' | 'ready' | 'error'
 
   var CAT_MAP = {
     slop_fonts: 0, tight_tracking: 0, all_caps_labels: 0,
@@ -329,15 +324,19 @@
     ai_sparkle_badges: 4, unsplash_stock: 4, gradient_avatars: 4
   };
 
+  function isScored(site) {
+    return !!site && site.scored !== false && typeof site.score === 'number';
+  }
+
+  // A per-category vector only when the record carries its real triggered list;
+  // null otherwise (the radar then shows just its guide rings).
   function cleanVector(site) {
+    if (!isScored(site) || !Array.isArray(site.triggered)) return null;
+    if (!site.triggered.length && site.patternsFlagged > 0) return null;
     var vec = [1, 1, 1, 1, 1];
-    var trig = (site && site.triggered) || [];
-    if (!trig.length && site && site.score > 0) {
-      var pen = Math.min(0.75, site.score / 55);
-      return [1 - pen, 1 - pen * 0.8, 1 - pen * 0.7, 1 - pen * 0.9, 1 - pen * 0.5];
-    }
-    trig.forEach(function(t){
-      var idx = CAT_MAP[t.id] != null ? CAT_MAP[t.id] : 3;
+    site.triggered.forEach(function(t){
+      var idx = CAT_MAP[t.id];
+      if (idx == null) return;
       vec[idx] = Math.max(0.18, vec[idx] - (t.weight || 4) / 22);
     });
     return vec;
@@ -363,21 +362,36 @@
     if (!el) return;
     if (!site) {
       el.innerHTML = '<div class="arena-dom">' + esc(dom) + '</div>' +
-        '<div class="arena-meta">Not in static corpus</div>' +
-        '<div class="arena-tells">Run a live Chromium scan to score this domain.</div>' +
-        '<a class="arena-link" href="/?url=' + encodeURIComponent(dom) + '">Scan ' + esc(dom) + ' live →</a>';
+        (corpusState === 'loading'
+          ? '<div class="arena-meta">Loading corpus record…</div>'
+          : '<div class="arena-meta">' + (corpusState === 'error' ? 'Corpus unavailable' : 'Not in static corpus') + '</div>' +
+            '<div class="arena-tells">Run a live Chromium scan to score this domain.</div>' +
+            '<a class="arena-link" href="/?url=' + encodeURIComponent(dom) + '">Scan ' + esc(dom) + ' live →</a>');
+      return;
+    }
+    if (!isScored(site)) {
+      el.innerHTML = '<div class="arena-dom" style="color:' + colorHex + '">' + esc(site.domain) + '</div>' +
+        '<div class="arena-meta">No successful scan on record' + (site.builtWith ? ' · ' + esc(site.builtWith) : '') + '</div>' +
+        '<div class="arena-tells">Corpus scan failed' + (site.reason ? ': ' + esc(site.reason) : '') + '. No grade recorded.</div>' +
+        '<a class="arena-link" href="/?url=' + encodeURIComponent(site.domain) + '">Scan ' + esc(site.domain) + ' live →</a>';
       return;
     }
     var tc = tierColor(site.tier);
-    var tells = (site.triggered || []).slice(0, 3).map(function(t){ return esc(t.short || t.label || t.id) + ' (+' + (t.weight || 0) + ')'; }).join(' · ');
+    var trig = Array.isArray(site.triggered) ? site.triggered : [];
+    var flagged = typeof site.patternsFlagged === 'number' ? site.patternsFlagged : trig.length;
+    var tells = trig.slice(0, 3).map(function(t){ return esc(t.short || t.label || t.id) + ' (+' + (t.weight || 0) + ')'; }).join(' · ');
+    var tellsHtml = tells ||
+      (flagged === 0
+        ? '✓ 0 patterns flagged on record'
+        : flagged + ' pattern' + (flagged === 1 ? '' : 's') + ' flagged on record · per-category breakdown unavailable');
     el.innerHTML =
       '<div class="arena-dom" style="color:' + colorHex + '">' + esc(site.domain) + '</div>' +
-      '<div class="arena-score-row" title="Slop score scale (lower is better): 0–9 Clean (A+/A/A-) · 10–27 Mild (B+/B/B-/C+/C) · 28+ Heavy (C-/D+/D/F)">' +
+      '<div class="arena-score-row" title="Slop score scale (lower is better): 0–9 Clean (A+/A/A-) · 10–27 Mild (B+/B/B-/C) · 28+ Heavy (D+/D/F)">' +
         '<span class="arena-num">' + site.score + '<small>/100</small></span>' +
-        '<span class="arena-grade" style="color:' + tc + '">· ' + esc(site.grade || 'A') + '</span>' +
+        '<span class="arena-grade" style="color:' + tc + '">· ' + esc(site.grade) + '</span>' +
       '</div>' +
       '<div class="arena-meta">Slop score · lower is better · ' + esc(site.tier) + (site.builtWith ? ' · ' + esc(site.builtWith) : '') + '</div>' +
-      '<div class="arena-tells">' + (tells || '✓ 0 patterns triggered on record') + '</div>' +
+      '<div class="arena-tells">' + tellsHtml + '</div>' +
       '<a class="arena-link" href="/score/' + encodeURIComponent(site.domain) + '">Open score hub →</a>';
   }
 
@@ -395,8 +409,8 @@
     }
     var rOuter = [0,1,2,3,4].map(function(i){ return pt(i, R); }).join(' ');
     var rInner = [0,1,2,3,4].map(function(i){ return pt(i, R * 0.5); }).join(' ');
-    var vecA = cleanVector(siteA || { score: 15 });
-    var vecB = cleanVector(siteB || { score: 30 });
+    var vecA = cleanVector(siteA);
+    var vecB = cleanVector(siteB);
     var axes = [0,1,2,3,4].map(function(i){
       var a = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
       var lx = cx + (R + 12) * Math.cos(a);
@@ -409,8 +423,8 @@
       '<polygon points="' + rOuter + '" fill="none" stroke="#DBDDD6" stroke-width="1"/>' +
       '<polygon points="' + rInner + '" fill="none" stroke="#E4E6DF" stroke-width="1"/>' +
       axes +
-      '<polygon points="' + poly(vecB) + '" fill="rgba(201,64,46,0.12)" stroke="#A83223" stroke-width="1.8" stroke-dasharray="4 3"/>' +
-      '<polygon points="' + poly(vecA) + '" fill="rgba(31,168,94,0.16)" stroke="#0E6B3A" stroke-width="2"/>';
+      (vecB ? '<polygon points="' + poly(vecB) + '" fill="rgba(201,64,46,0.12)" stroke="#A83223" stroke-width="1.8" stroke-dasharray="4 3"/>' : '') +
+      (vecA ? '<polygon points="' + poly(vecA) + '" fill="rgba(31,168,94,0.16)" stroke="#0E6B3A" stroke-width="2"/>' : '');
   }
 
   function updateComparison() {
@@ -424,7 +438,9 @@
 
     var deltaEl = document.getElementById('cmpDeltaSummary');
     if (deltaEl) {
-      if (siteA && siteB) {
+      if (corpusState === 'loading') {
+        deltaEl.textContent = 'Loading corpus benchmarks…';
+      } else if (isScored(siteA) && isScored(siteB)) {
         var diff = siteB.score - siteA.score;
         if (diff === 0) {
           deltaEl.textContent = siteA.domain + ' and ' + siteB.domain + ' tie at ' + siteA.score + '/100.';
@@ -434,7 +450,11 @@
           deltaEl.textContent = cleaner.domain + ' is ' + Math.abs(diff) + ' pts cleaner than ' + heavier.domain + ' (' + cleaner.score + '/100 vs ' + heavier.score + '/100).';
         }
       } else {
-        deltaEl.textContent = 'Comparing ' + domA + ' vs ' + domB + ' · outer radar ring = 100% clean.';
+        var missing = [siteA ? null : domA, siteB ? null : domB, siteA && !isScored(siteA) ? domA : null, siteB && !isScored(siteB) ? domB : null].filter(Boolean);
+        deltaEl.textContent = 'No comparison: ' + missing.join(' and ') + ' ha' + (missing.length === 1 ? 's' : 've') + ' no successful scan on record.';
+      }
+      if (corpusState !== 'loading' && isScored(siteA) && isScored(siteB) && !(cleanVector(siteA) && cleanVector(siteB))) {
+        deltaEl.textContent += ' Per-category radar unavailable: the corpus records totals only.';
       }
     }
   }
@@ -459,19 +479,20 @@
   updateComparison();
 
   fetch('/leaderboard.json').then(function(r){ return r.ok ? r.json() : null; }).then(function(data){
-    if (!data || !Array.isArray(data.sites)) return;
+    if (!data || !Array.isArray(data.sites)) { corpusState = 'error'; updateComparison(); return; }
+    corpusState = 'ready';
     var dl = document.getElementById('corpusDomains');
     data.sites.forEach(function(s){
-      if (!s || !s.scored || !s.domain) return;
+      if (!s || !s.domain) return;
       byDomain[s.domain.toLowerCase()] = s;
-      if (dl) {
+      if (dl && isScored(s)) {
         var opt = document.createElement('option');
         opt.value = s.domain;
         dl.appendChild(opt);
       }
     });
     updateComparison();
-  }).catch(function(){});
+  }).catch(function(){ corpusState = 'error'; updateComparison(); });
 })();
 </script>
 </body>

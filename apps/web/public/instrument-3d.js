@@ -307,6 +307,7 @@
       };
     }
 
+    var lastTellsKey = null;
     function syncReadout() {
       var m = currentMetrics();
       if (elScore) {
@@ -347,6 +348,15 @@
         elDeslopBtn.textContent =
           state.morph > 0.5 ? 'Reset to raw specimen ↺' : 'De-slop to 0/100 →';
       }
+      // Rebuild the two HTML lists only when the active tell set changes; during a
+      // morph syncReadout runs every frame but the set changes a handful of times.
+      var tellsKey = m.activeTells
+        .map(function (t) {
+          return t.code;
+        })
+        .join('|');
+      if (tellsKey === lastTellsKey) return;
+      lastTellsKey = tellsKey;
       if (elTellsList) {
         if (m.activeTells.length === 0) {
           elTellsList.innerHTML =
@@ -422,6 +432,22 @@
       }
     }
 
+    // Reduced motion: there is no animation loop, so every interaction snaps the
+    // eased values to their targets and paints exactly one frame.
+    var redrawQueued = false;
+    function redrawStill() {
+      if (!REDUCED_MOTION || redrawQueued) return;
+      state.morph = state.targetMorph;
+      state.explode = state.targetExplode;
+      state.yaw = state.targetYaw;
+      state.pitch = state.targetPitch;
+      redrawQueued = true;
+      requestAnimationFrame(function () {
+        redrawQueued = false;
+        renderFrame();
+      });
+    }
+
     // Wire specimen tabs
     document.querySelectorAll('[data-specimen]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -436,6 +462,7 @@
           b.setAttribute('aria-pressed', active ? 'true' : 'false');
         });
         syncReadout();
+        redrawStill();
       });
     });
 
@@ -444,6 +471,7 @@
         state.targetMorph = clamp(Number(elMorphSlider.value) / 100, 0, 1);
         state.morph = state.targetMorph;
         syncReadout();
+        redrawStill();
       });
     }
 
@@ -453,6 +481,9 @@
         if (REDUCED_MOTION) {
           state.morph = state.targetMorph;
           syncReadout();
+          redrawStill();
+        } else {
+          wake();
         }
       });
     }
@@ -462,6 +493,7 @@
         state.targetExplode = state.targetExplode > 0.6 ? 0.28 : 1.0;
         elExplodeBtn.textContent =
           state.targetExplode > 0.6 ? 'Collapse layers ◳' : 'Explode 3D stack ◳';
+        redrawStill();
       });
     }
 
@@ -487,6 +519,7 @@
       state.dragStartY = e.clientY;
       state.targetYaw = clamp(state.targetYaw + dx * 0.007, -1.15, 0.45);
       state.targetPitch = clamp(state.targetPitch + dy * 0.006, 0.15, 0.85);
+      redrawStill();
     });
 
     function endDrag() {
@@ -514,7 +547,33 @@
       }
     }
     resize();
-    window.addEventListener('resize', resize);
+    window.addEventListener('resize', function () {
+      resize();
+      redrawStill();
+    });
+
+    // Pause the animation loop while the stage is not on screen: scrolled past,
+    // hidden by CSS (display:none never intersects), or the tab is backgrounded.
+    var onScreen = true;
+    var looping = false;
+    function shouldAnimate() {
+      return !REDUCED_MOTION && onScreen && !(document.hidden === true);
+    }
+    function wake() {
+      if (looping || !shouldAnimate()) return;
+      looping = true;
+      requestAnimationFrame(renderFrame);
+    }
+    if (typeof IntersectionObserver !== 'undefined') {
+      new IntersectionObserver(function (entries) {
+        onScreen = entries.some(function (e) {
+          return e.isIntersecting;
+        });
+        if (onScreen) resize();
+        wake();
+      }).observe(canvas);
+    }
+    document.addEventListener('visibilitychange', wake);
 
     function drawPlaneContent(pIdx, y, cam, m) {
       var pw = 132;
@@ -975,8 +1034,11 @@
 
       ctx.restore();
 
-      if (!REDUCED_MOTION) {
+      if (shouldAnimate()) {
+        looping = true;
         requestAnimationFrame(renderFrame);
+      } else {
+        looping = false;
       }
     }
 
@@ -991,11 +1053,13 @@
         state.liveScanPhase = 0;
         if (elLiveBanner) elLiveBanner.hidden = false;
         syncReadout();
+        redrawStill();
       },
       stopLiveScan: function () {
         state.liveScanActive = false;
         if (elLiveBanner) elLiveBanner.hidden = true;
         syncReadout();
+        redrawStill();
       },
       setSpecimen: function (key) {
         if (SPECIMENS[key]) {
@@ -1003,7 +1067,7 @@
           state.targetMorph = key === 'clean' ? 1 : 0;
           state.morph = state.targetMorph;
           syncReadout();
-          if (REDUCED_MOTION) renderFrame();
+          redrawStill();
         }
       },
     };
