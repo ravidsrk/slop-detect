@@ -1203,21 +1203,38 @@ export async function deleteListing(kv, domain) {
 }
 
 // Enumerate the directory from KV list metadata (cheap — no per-row get).
-// Returns { sites, cursor, complete }. `cursor` paginates the raw KV scan.
+// Returns { sites, cursor, complete, scanned }. `cursor` paginates the raw KV
+// scan; `scanned` counts raw rows examined (kept or not).
 //
 // Legacy rows (no `v` marker) were created before a listing required an
 // email-verified claim, so they're checked against their watch here: a row
-// whose watch is listed+verified is kept and re-stamped; anything else is
-// hidden and lazily deleted. After one pass only marked rows remain, so the
-// steady state stays a single list() call.
-export async function listSites(kv, { limit = 200, cursor = null } = {}) {
-  if (!kv) return { sites: [], cursor: null, complete: true };
+// whose watch is listed+verified is shown; anything else is hidden and lazily
+// deleted. The read path never WRITES a row (greptile P1 on #218: a rewrite
+// racing performUnsubscribe could resurrect a removed listing) — verified
+// legacy rows are re-stamped by recordScanForWatch on the next sweep scan.
+// Watch checks are capped by `legacyBudget` (a shared { left } counter);
+// once spent, remaining unmarked rows are hidden (fail closed) and cleaned up
+// on a later request (greptile P2 on #218).
+export async function listSites(
+  kv,
+  {
+    limit = 200,
+    cursor = null,
+    legacyBudget = { left: LEGACY_CHECKS_PER_REQUEST },
+  }: { limit?: number; cursor?: string | null; legacyBudget?: { left: number } } = {}
+) {
+  if (!kv) return { sites: [], cursor: null, complete: true, scanned: 0 };
   const res = await kv.list({ prefix: 'l:', limit, cursor: cursor || undefined });
+  const keys = res.keys || [];
   const sites = [];
-  for (const k of res.keys || []) {
+  for (const k of keys) {
     const m = k.metadata || {};
     const domain = k.name.replace(/^l:/, '');
-    if (!m.v && !(await reconcileLegacyListing(kv, domain))) continue;
+    if (!m.v) {
+      if (legacyBudget.left <= 0) continue;
+      legacyBudget.left--;
+      if (!(await isLegacyListingVerified(kv, domain))) continue;
+    }
     sites.push({
       domain,
       url: `https://${domain}`,
@@ -1233,40 +1250,43 @@ export async function listSites(kv, { limit = 200, cursor = null } = {}) {
     sites,
     cursor: res.list_complete ? null : res.cursor || null,
     complete: !!res.list_complete,
+    scanned: keys.length,
   };
 }
 
-// Returns true when a pre-verification listing row is backed by a listed AND
-// verified watch (and re-stamps it); otherwise removes it and returns false.
-// Best-effort: a KV hiccup hides the row for this render rather than serving
-// an unverified listing.
-async function reconcileLegacyListing(kv, domain) {
+// Max watch lookups for unmarked legacy rows in one directory request.
+const LEGACY_CHECKS_PER_REQUEST = 50;
+
+// True when a pre-verification listing row is backed by a listed AND verified
+// watch. Otherwise the row is deleted (delete-only: it can never resurrect a
+// removed listing) and false is returned. A KV hiccup hides the row for this
+// request rather than serving an unverified listing.
+async function isLegacyListingVerified(kv, domain) {
   try {
     const watch = await getWatch(kv, domain);
-    if (watch && watch.listed && watch.verified) {
-      const record = await getListing(kv, domain);
-      if (record) await setListing(kv, record);
-      return true;
-    }
+    if (watch && watch.listed && watch.verified) return true;
     await deleteListing(kv, domain);
   } catch {
-    /* hide on error; reconciled on a later render or scan */
+    /* hide on error; reconciled on a later request or scan */
   }
   return false;
 }
 
 // Walk the directory (paginates internally), BOUNDED so a large catalogue can't
-// turn a public page render into an unbounded KV scan / memory blowout. Stops at
-// `max` listings (default 5000) — well above validation scale; revisit with a
-// real index if the directory ever approaches it.
+// turn a public page render into an unbounded KV scan / memory blowout. Stops
+// after `max` RAW rows scanned (default 5000), counting rows hidden by the
+// legacy filter too, and shares one legacy watch-check budget across pages.
 export async function listAllSites(kv, { max = 5000 } = {}) {
   const out = [];
   let cursor = null;
+  let scanned = 0;
+  const legacyBudget = { left: LEGACY_CHECKS_PER_REQUEST };
   do {
-    const r = await listSites(kv, { limit: 1000, cursor });
+    const r = await listSites(kv, { limit: Math.min(1000, max - scanned), cursor, legacyBudget });
     out.push(...r.sites);
+    scanned += r.scanned;
     cursor = r.cursor;
-  } while (cursor && out.length < max);
+  } while (cursor && scanned < max);
   return out.slice(0, max);
 }
 

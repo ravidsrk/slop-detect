@@ -9,6 +9,7 @@ import {
   getListing,
   deleteListing,
   listSites,
+  listAllSites,
   recordScanForWatch,
   getWatch,
   putWatch,
@@ -454,10 +455,11 @@ test('listSites hides and removes legacy rows from unverified claims (pre-verifi
   });
   const { sites } = await listSites(kv);
   expect(sites.map((s) => s.domain)).toEqual(['verified.example.com']);
-  // Lazy cleanup: unverified/orphan rows are gone; the verified one is re-stamped.
+  // Lazy cleanup: unverified/orphan rows are gone; the verified one is shown
+  // but NOT rewritten on the read path (re-stamping is left to the next scan).
   expect(kv.store.has('l:unverified.example.com')).toBe(false);
   expect(kv.store.has('l:orphan.example.com')).toBe(false);
-  expect(kv.store.get('l:verified.example.com').metadata.v).toBe(1);
+  expect(kv.store.get('l:verified.example.com').metadata.v).toBeUndefined();
   // /api/sites serves the filtered view too.
   const res = await sitesGet({
     request: { url: 'https://slop-detect.com/api/sites' },
@@ -466,4 +468,78 @@ test('listSites hides and removes legacy rows from unverified claims (pre-verifi
   const body = await res.json();
   const domains = (body.sites || []).map((s) => s.domain);
   expect(domains).toEqual(['verified.example.com']);
+});
+
+test('a directory read never rewrites a legacy row, so an unsubscribe racing it cannot resurrect it', async () => {
+  const kv = makeKv({
+    'l:racy.example.com': {
+      value: JSON.stringify({ domain: 'racy.example.com', score: 2 }),
+      metadata: { s: 2, g: 'A', tr: 'Clean', id: null, t: '', at: '2026-01-01' },
+    },
+    'w:racy.example.com': JSON.stringify({
+      domain: 'racy.example.com',
+      email: 'o@x.io',
+      listed: true,
+      verified: true,
+    }),
+  });
+  // Simulate performUnsubscribe landing after the watch check passed and the
+  // row was read, i.e. just before any rewrite of the row.
+  const origGet = kv.get.bind(kv);
+  kv.get = async (k) => {
+    const v = await origGet(k);
+    if (k === 'l:racy.example.com') {
+      kv.store.delete('l:racy.example.com');
+      kv.store.delete('w:racy.example.com');
+    }
+    return v;
+  };
+  const listingWrites = [];
+  const origPut = kv.put.bind(kv);
+  kv.put = async (k, v, o) => {
+    if (k.startsWith('l:')) listingWrites.push(k);
+    return origPut(k, v, o);
+  };
+  const { sites } = await listSites(kv);
+  // The verified row is served (its watch check passed before the unsubscribe)…
+  expect(sites.map((x) => x.domain)).toEqual(['racy.example.com']);
+  // …but the read path wrote nothing, so a concurrent removal stays removed.
+  expect(listingWrites).toEqual([]);
+});
+
+test('legacy cleanup is bounded per request: watch checks capped, rows scanned capped', async () => {
+  const seed = {};
+  for (let i = 0; i < 120; i++) {
+    seed[`l:orphan${String(i).padStart(3, '0')}.example.com`] = {
+      value: '{}',
+      metadata: { s: 1, at: '2026-01-01' },
+    };
+  }
+  const kv = makeKv(seed);
+  let watchReads = 0;
+  const origGet = kv.get.bind(kv);
+  kv.get = async (k) => {
+    if (k.startsWith('w:')) watchReads++;
+    return origGet(k);
+  };
+  const first = await listAllSites(kv);
+  expect(first).toEqual([]);
+  expect(watchReads).toBe(50); // one request's legacy budget
+  expect([...kv.store.keys()].filter((k) => k.startsWith('l:')).length).toBe(70);
+  // The remaining cleanup continues on later requests.
+  await listAllSites(kv);
+  await listAllSites(kv);
+  expect([...kv.store.keys()].filter((k) => k.startsWith('l:')).length).toBe(0);
+
+  // Raw rows scanned (not just rows returned) bound the walk.
+  const big = makeKv(seed);
+  let listed = 0;
+  const origList = big.list.bind(big);
+  big.list = async (opts) => {
+    const r = await origList(opts);
+    listed += r.keys.length;
+    return r;
+  };
+  await listAllSites(big, { max: 30 });
+  expect(listed).toBe(30);
 });
