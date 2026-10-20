@@ -12,7 +12,14 @@ import {
 
 function ctx(text, extra = {}) {
   const wordCount = extra.wordCount ?? (text ? text.split(/\s+/).filter(Boolean).length : 0);
-  return { text, headings: extra.headings || [], paragraphs: extra.paragraphs || [], wordCount };
+  const proseWordCount = extra.proseWordCount ?? (wordCount >= 40 ? Math.max(wordCount, 300) : wordCount);
+  return {
+    text,
+    headings: extra.headings || [],
+    paragraphs: extra.paragraphs || [],
+    wordCount,
+    proseWordCount,
+  };
 }
 
 const SLOP = ctx(
@@ -74,7 +81,7 @@ test('em-dash overload needs density, not a single dash', () => {
   expect(emPattern.triggered).toBe(false);
 });
 
-test('unicode_artifacts catches mathematical fake-bold letters', () => {
+test('fake_bold_math_alnum catches mathematical fake-bold letters at weight 4 while unicode_artifacts is retired', () => {
   // 𝗹𝗲𝘃𝗲𝗿𝗮𝗴𝗲 / 𝗯𝗿𝗮𝗻𝗱 — the U+1D400 block abused as styling. Padded past the
   // 40-word "thin" floor so the copy axis actually judges it.
   const fakeBold =
@@ -83,15 +90,19 @@ test('unicode_artifacts catches mathematical fake-bold letters', () => {
     'Connect your calendar, set your hours, and we text patients when a slot opens up. ' +
     'Most clinics fill three to five extra slots a week without any extra effort at all from staff.';
   const r = scoreCopy(ctx(fakeBold));
+  const fb = r.patterns.find((p) => p.id === 'fake_bold_math_alnum');
+  expect(fb.triggered).toBe(true);
+  expect(fb.weight).toBe(4);
+  expect(fb.evidence.mathAlnum >= 4).toBeTruthy();
   const u = r.patterns.find((p) => p.id === 'unicode_artifacts');
-  expect(u.triggered).toBe(true);
-  expect(u.evidence.mathAlnum >= 4).toBeTruthy();
+  expect(u.triggered).toBe(false);
+  expect(u.weight).toBe(0);
 });
 
-test('unicode_artifacts does not fire on ordinary clean copy', () => {
-  const u = scoreCopy(CLEAN).patterns.find((p) => p.id === 'unicode_artifacts');
-  expect(u.triggered).toBe(false);
-  expect(u.evidence.mathAlnum).toBe(0);
+test('fake_bold_math_alnum does not fire on ordinary clean copy', () => {
+  const fb = scoreCopy(CLEAN).patterns.find((p) => p.id === 'fake_bold_math_alnum');
+  expect(fb.triggered).toBe(false);
+  expect(fb.evidence.mathAlnum).toBe(0);
 });
 
 test('combineAxes: max score + multi-axis penalty', () => {

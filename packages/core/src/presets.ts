@@ -32,7 +32,15 @@ export const PRESETS = {
     description:
       'Brand-surface tells a marketer can act on: fonts, colours, ' +
       'gradients, hero treatment. Skips structural/code-level signals.',
-    include: ['fonts', 'colors', 'images', 'centered_hero', 'hero_eyebrow_pill', 'all_caps_labels'],
+    include: [
+      'fonts',
+      'colors',
+      'images',
+      'centered_hero',
+      'hero_eyebrow_pill',
+      'all_caps_labels',
+      'eyebrow_label',
+    ],
   },
   minimal: {
     id: 'minimal',
@@ -40,6 +48,20 @@ export const PRESETS = {
     description:
       'The three most-cited dead-giveaways only: slop fonts, ' + 'VibeCode purple, gradient text.',
     only: ['slop_fonts', 'purple_accent', 'gradient_text'],
+  },
+  editorial: {
+    id: 'editorial',
+    label: 'Editorial / publication',
+    description:
+      'Suppresses warm-cream and serif editorial kit signals on genuine editorial publications (D-06, D-13).',
+    exclude: ['cream_default_bg', 'editorial_cream_kit'],
+  },
+  devtool: {
+    id: 'devtool',
+    label: 'Developer tool / CLI docs',
+    description:
+      'Suppresses monospace heading and dark-mode signals on developer and CLI documentation sites (D-14).',
+    exclude: ['display_mono_heading', 'perma_dark_mode'],
   },
 };
 

@@ -3,9 +3,19 @@
 // navigate, then evaluate the string returned by buildPageScript().
 
 import { PATTERNS } from './patterns.js';
+import { CRAFT_CHECKS } from './craft.js';
+import { extractMadeWith } from './calibration.js';
 import { createColorHelpers } from './color.js';
 import { createVisibilityHelpers } from './visibility.js';
-import { isSlopFont, isAccentSerif, SLOP_FONT_PREFIXES, ACCENT_SERIF_PREFIXES } from './fonts.js';
+import {
+  isSlopFont,
+  isAccentSerif,
+  resolveRenderedFont,
+  SLOP_FONT_PREFIXES,
+  PRIMARY_SLOP_FONT_PREFIXES,
+  SECONDARY_SLOP_FONT_PREFIXES,
+  ACCENT_SERIF_PREFIXES,
+} from './fonts.js';
 import { extractTextContext } from './text.js';
 import { extractSystemContext } from './system.js';
 
@@ -14,6 +24,8 @@ export interface PageScriptData {
   h1Text?: string;
   visibleCount?: number;
   signals?: Record<string, { triggered?: boolean; error?: string; [key: string]: unknown }>;
+  craftSignals?: Record<string, { triggered?: boolean; error?: string; [key: string]: unknown }>;
+  madeWith?: unknown;
   url?: string;
 }
 
@@ -136,12 +148,24 @@ export function buildPageScript(opts: BuildPageScriptOptions = {}): string {
     )
     .join('\n');
 
+  const craftCalls = CRAFT_CHECKS.map(
+    (c) => `
+    try {
+      craftSignals[${JSON.stringify(c.id)}] = (${c.extract.toString()})(ctx);
+    } catch (e) {
+      craftSignals[${JSON.stringify(c.id)}] = { triggered: false, error: e.message };
+    }`
+  ).join('\n');
+
   const serialized = [
     patternCalls,
+    craftCalls,
     createColorHelpers.toString(),
     createVisibilityHelpers.toString(),
     isSlopFont.toString(),
     isAccentSerif.toString(),
+    resolveRenderedFont.toString(),
+    extractMadeWith.toString(),
     extractTextContext.toString(),
     opts.includeSystem ? extractSystemContext.toString() : '',
   ].join('\n');
@@ -156,7 +180,10 @@ export function buildPageScript(opts: BuildPageScriptOptions = {}): string {
     ${createVisibilityHelpers.toString()}
     ${isSlopFont.toString()}
     ${isAccentSerif.toString()}
+    ${resolveRenderedFont.toString()}
     const SLOP_FONT_PREFIXES = ${JSON.stringify(SLOP_FONT_PREFIXES)};
+    const PRIMARY_SLOP_FONT_PREFIXES = ${JSON.stringify(PRIMARY_SLOP_FONT_PREFIXES)};
+    const SECONDARY_SLOP_FONT_PREFIXES = ${JSON.stringify(SECONDARY_SLOP_FONT_PREFIXES)};
     const ACCENT_SERIF_PREFIXES = ${JSON.stringify(ACCENT_SERIF_PREFIXES)};
 
     const colorHelpers = createColorHelpers();
@@ -171,24 +198,37 @@ export function buildPageScript(opts: BuildPageScriptOptions = {}): string {
     const ctx = {
       visible, h1,
       parseColor: colorHelpers.parseColor,
+      parseColorRaw: colorHelpers.parseColorRaw,
       rgbToHsl: colorHelpers.rgbToHsl,
+      rgbToOklab: colorHelpers.rgbToOklab,
+      rgbToOklch: colorHelpers.rgbToOklch,
+      deltaEOklab: colorHelpers.deltaEOklab,
+      extractColorStrings: colorHelpers.extractColorStrings,
+      extractGradientStops: colorHelpers.extractGradientStops,
       isPurple: colorHelpers.isPurple,
       isDark: colorHelpers.isDark,
       isMidGrey: colorHelpers.isMidGrey,
+      isNeutral: colorHelpers.isNeutral,
       relativeLuminance: colorHelpers.relativeLuminance,
       contrastRatio: colorHelpers.contrastRatio,
+      apcaContrast: colorHelpers.apcaContrast,
       channelSpread: colorHelpers.channelSpread,
       effectiveBackground: colorHelpers.effectiveBackground,
-      isSlopFont, isAccentSerif,
-      SLOP_FONT_PREFIXES, ACCENT_SERIF_PREFIXES,
+      isSlopFont, isAccentSerif, resolveRenderedFont,
+      SLOP_FONT_PREFIXES, PRIMARY_SLOP_FONT_PREFIXES, SECONDARY_SLOP_FONT_PREFIXES, ACCENT_SERIF_PREFIXES,
       // inHero is consumed by the declarative rules engine for heroOnly specs.
-      // isVisible / inViewport / isNeutral were never consumed by any pattern,
-      // so they are omitted (the visible array is already pre-filtered).
       inHero: visHelpers.inHero
     };
 
     const signals = {};
     ${patternCalls}
+
+    const craftSignals = {};
+    ${craftCalls}
+
+    const extractMadeWith = ${extractMadeWith.toString()};
+    let madeWith = null;
+    try { madeWith = extractMadeWith(document); } catch (e) { madeWith = { error: e.message }; }
 
     // Copy axis: extract page text in-DOM (scored caller-side by scoreCopy).
     const extractTextContext = ${extractTextContext.toString()};
@@ -215,8 +255,10 @@ export function buildPageScript(opts: BuildPageScriptOptions = {}): string {
       h1Font: h1 ? getComputedStyle(h1).fontFamily : null,
       visibleCount: visible.length,
       signals,
+      craftSignals,
+      madeWith,
       textContext,
       systemContext
     };
-  })();`;
+  })();`.replace(/[ \t]+$/gm, '');
 }
