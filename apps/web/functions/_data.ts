@@ -1204,7 +1204,11 @@ export async function deleteListing(kv, domain) {
 
 // Enumerate the directory from KV list metadata (cheap — no per-row get).
 // Returns { sites, cursor, complete, scanned }. `cursor` paginates the raw KV
-// scan; `scanned` counts raw rows examined (kept or not).
+// scan; `scanned` counts rows that cost work beyond key iteration (returned
+// rows and rows that needed a watch read). Legacy rows skipped without a read
+// (already in lv:rejected, or over the check budget) are NOT counted, so a
+// block of hidden legacy rows can't starve later valid listings out of
+// listAllSites' row limit (greptile P1 on #340).
 //
 // Legacy rows (no `v` marker) were created before a listing required an
 // email-verified claim, so each one is checked against its watch once: a row
@@ -1235,12 +1239,17 @@ export async function listSites(
   const res = await kv.list({ prefix: 'l:', limit, cursor: cursor || undefined });
   const keys = res.keys || [];
   const sites = [];
+  let skippedFree = 0;
   for (const k of keys) {
     const m = k.metadata || {};
     const domain = k.name.replace(/^l:/, '');
     if (!m.v && !state.verified.has(domain)) {
-      if (state.rejected.has(domain)) continue; // checked before: stays hidden
-      if (state.left <= 0) continue; // budget spent: hide (fail closed) for now
+      // Checked before (stays hidden) or budget spent (hidden, fail closed):
+      // no read, so these don't count toward the caller's row limit.
+      if (state.rejected.has(domain) || state.left <= 0) {
+        skippedFree++;
+        continue;
+      }
       state.left--;
       const ok = await isLegacyListingVerified(kv, domain);
       if (ok === null) continue; // KV hiccup: hide now, re-check later
@@ -1268,7 +1277,7 @@ export async function listSites(
     sites,
     cursor: res.list_complete ? null : res.cursor || null,
     complete: !!res.list_complete,
-    scanned: keys.length,
+    scanned: keys.length - skippedFree,
   };
 }
 
@@ -1276,7 +1285,11 @@ export async function listSites(
 const LEGACY_CHECKS_PER_REQUEST = 50;
 const LEGACY_VERIFIED_KEY = 'lv:verified';
 const LEGACY_REJECTED_KEY = 'lv:rejected';
-const LEGACY_INDEX_MAX = 5000;
+const LEGACY_INDEX_MAX = 20000;
+// Hard cap on KV list() pages per directory walk: hidden legacy rows don't
+// count toward `max`, so this bounds the key iteration itself. Legacy rows
+// are a finite, non-growing set (every new row carries `v`).
+const DIRECTORY_MAX_LIST_PAGES = 50;
 
 type LegacyState = {
   left: number;
@@ -1344,20 +1357,23 @@ async function isLegacyListingVerified(kv, domain): Promise<boolean | null> {
 
 // Walk the directory (paginates internally), BOUNDED so a large catalogue can't
 // turn a public page render into an unbounded KV scan / memory blowout. Stops
-// after `max` RAW rows scanned (default 5000), counting rows hidden by the
-// legacy filter too, and shares one legacy budget + index across pages.
+// after `max` costed rows (default 5000; see listSites' `scanned`) or
+// DIRECTORY_MAX_LIST_PAGES list() pages, whichever comes first, and shares one
+// legacy budget + index across pages.
 export async function listAllSites(kv, { max = 5000 } = {}) {
   if (!kv) return [];
   const out = [];
   let cursor = null;
   let scanned = 0;
+  let pages = 0;
   const legacy = await loadLegacyState(kv);
   do {
     const r = await listSites(kv, { limit: Math.min(1000, max - scanned), cursor, legacy });
     out.push(...r.sites);
     scanned += r.scanned;
     cursor = r.cursor;
-  } while (cursor && scanned < max);
+    pages++;
+  } while (cursor && scanned < max && pages < DIRECTORY_MAX_LIST_PAGES);
   await flushLegacyState(kv, legacy);
   return out.slice(0, max);
 }

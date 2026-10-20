@@ -625,3 +625,41 @@ test('legacy cleanup is bounded per request: watch checks capped, rows scanned c
   await listAllSites(big, { max: 30 });
   expect(listed).toBe(30);
 });
+
+test('a block of rejected legacy rows larger than the row limit cannot hide a later confirmed listing', async () => {
+  // Paginating KV: honors limit + cursor like Workers KV list().
+  const seed = {};
+  const rejected = [];
+  for (let i = 0; i < 40; i++) {
+    const d = `a${String(i).padStart(3, '0')}.example.com`;
+    seed[`l:${d}`] = { value: '{}', metadata: { s: 1, at: '2026-01-01' } };
+    rejected.push(d);
+  }
+  seed['lv:rejected'] = JSON.stringify(rejected);
+  const kv = makeKv(seed);
+  await setListing(kv, { domain: 'zz-confirmed.example.com', score: 2, grade: 'A', tier: 'Clean' });
+  kv.list = async ({ prefix = '', limit = 1000, cursor } = {}) => {
+    const names = [...kv.store.keys()].filter((n) => n.startsWith(prefix)).sort();
+    const start = cursor ? Number(cursor) : 0;
+    const page = names.slice(start, start + limit);
+    const next = start + page.length;
+    return {
+      keys: page.map((n) => ({ name: n, metadata: kv.store.get(n).metadata })),
+      list_complete: next >= names.length,
+      cursor: next >= names.length ? undefined : String(next),
+    };
+  };
+  let watchReads = 0;
+  const origGet = kv.get.bind(kv);
+  kv.get = async (k) => {
+    if (k.startsWith('w:')) watchReads++;
+    return origGet(k);
+  };
+  // Row limit (30) is smaller than the block of 40 rejected rows ahead of it.
+  for (let i = 0; i < 2; i++) {
+    const sites = await listAllSites(kv, { max: 30 });
+    expect(sites.map((x) => x.domain)).toEqual(['zz-confirmed.example.com']);
+  }
+  expect(watchReads).toBe(0); // rejected rows are skipped without reads
+  expect(kv.store.has('l:a000.example.com'), 'still read-only: nothing deleted').toBe(true);
+});
