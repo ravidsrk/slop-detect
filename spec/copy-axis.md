@@ -18,10 +18,10 @@ Module: `packages/core/src/copyPatterns.ts`. Scoring: `scoreCopy()` and `scoreMu
 | `formulaic_closers` | Essay-style closers | 4 | ≥1 match in final 25% of blocks or ≥2 matches anywhere ("In conclusion", "Ultimately,") |
 | `rule_of_three` | Rule-of-three adjective tricolons | 4 | ≥3 "word, word, and word" constructions with density ≥5/1000 words (co-occurrence gated) |
 | `whether_youre` | "Whether you're X or Y" | 3 | ≥1 audience-spanning whether/or construction |
-| `unicode_artifacts` | Invisible Unicode + math-alphanumeric artifacts | 4 | Zero-width chars (excluding French U+202F), tag chars, or ≥4 math-alphanumeric fake-bold letters |
+| `unicode_artifacts` | Invisible Unicode + math-alphanumeric artifacts (retired) | 0 | Retired aggregate superseded by `hidden_tag_characters`, `invisible_characters`, and `fake_bold_math_alnum` |
 | `hidden_tag_characters` | Unicode Tags block (U+E0000–U+E007F) | 0 | Any character in the Unicode Tags block used for hidden prompt smuggling (review, artifact) |
-| `invisible_characters` | Zero-width / soft-hyphen / bidi invisible chars | 0 | Zero-width spaces, soft hyphens, word joiners, or bidi overrides outside French U+202F (review, artifact) |
-| `fake_bold_math_alnum` | Mathematical Alphanumeric Symbols (U+1D400–U+1D7FF) | 0 | ≥4 characters from Mathematical Alphanumeric Symbols used as fake bold/italic (review, artifact) |
+| `invisible_characters` | Zero-width / soft-hyphen / bidi invisible chars | 0 | ≥2 in-word invisible characters outside French U+202F, emoji ZWJ, and Persian/Arabic ZWNJ (review, artifact) |
+| `fake_bold_math_alnum` | Mathematical Alphanumeric Symbols (U+1D400–U+1D7FF) | 4 | ≥4 characters from Mathematical Alphanumeric Symbols used as fake bold/italic (active, artifact) |
 | `emoji_bullet_headers` | Emoji-prefixed bullet/headers | 3 | ≥3 lines starting with marketing emoji (🚀 ✅ ✨ etc.) |
 | `emoji_heading_ratio` | High emoji-prefixed heading ratio | 0 | ≥3 emoji headings and ≥30% of H1–H3 headings start with an emoji (review) |
 | `chatbot_markup_leak` | Chatbot citation / markup token leak | 0 | Leaked `contentReference[oaicite:...]`, `cite turn0search0`, `[citation:N]`, `<antThinking>` (review, artifact) |

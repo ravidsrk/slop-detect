@@ -1,31 +1,81 @@
 <!doctype html>
+<!-- Synthetic pioneer-archetype fixture (dark issue-tracker style using Inter alone; NOT an archived capture of linear.app). -->
 <html lang="en" style="color-scheme: dark;">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Linear — Plan and build products</title>
+    <title>Issue Tracking &amp; Product Cycle Planning</title>
   </head>
-  <body style="background-color: rgb(8, 9, 10); color: rgb(247, 248, 248); font-family: 'Inter Variable', Inter, -apple-system, sans-serif; color-scheme: dark;">
-    <header>
-      <nav>
-        <a href="/features" style="color: rgb(247, 248, 248);">Features</a>
-        <a href="/method" style="color: rgb(247, 248, 248);">Method</a>
-        <a href="/customers" style="color: rgb(247, 248, 248);">Customers</a>
-        <a href="/changelog" style="color: rgb(247, 248, 248);">Changelog</a>
+  <body
+    data-fonts="Inter"
+    style="background-color: rgb(8, 9, 10); color: rgb(247, 248, 248); font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color-scheme: dark; margin: 0;"
+  >
+    <header data-rect="0,0,1280,64" style="background-color: rgb(8, 9, 10); color: rgb(247, 248, 248);">
+      <nav data-rect="40,14,1200,36">
+        <a href="/features" data-rect="40,18,80,24" style="color: rgb(247, 248, 248); font-size: 14px;">Features</a>
+        <a href="/method" data-rect="140,18,75,24" style="color: rgb(247, 248, 248); font-size: 14px;">Method</a>
+        <a href="/customers" data-rect="235,18,90,24" style="color: rgb(247, 248, 248); font-size: 14px;">Customers</a>
+        <a href="/changelog" data-rect="345,18,90,24" style="color: rgb(247, 248, 248); font-size: 14px;">Changelog</a>
+        <a href="/login" data-rect="1120,18,70,24" style="color: rgb(247, 248, 248); font-size: 14px;">Log in</a>
       </nav>
     </header>
-    <main>
-      <section>
-        <h1 style="font-family: 'Inter Variable', Inter, sans-serif; font-size: 56px; text-align: left; letter-spacing: -0.02em; color: rgb(247, 248, 248);">
-          Linear is a purpose-built tool for planning and building products
+    <main data-rect="0,64,1280,1600">
+      <section data-rect="80,110,1120,400" style="background-color: rgb(8, 9, 10);">
+        <h1
+          data-rect="80,130,760,130"
+          style="font-family: 'Inter', -apple-system, sans-serif; font-size: 56px; line-height: 62px; text-align: left; letter-spacing: -1.1px; color: rgb(247, 248, 248);"
+        >
+          Purpose-built software for planning and building products
         </h1>
-        <p style="font-size: 18px; color: rgb(212, 212, 216); line-height: 1.6;">
-          Meet the system for modern software development. Track issues, cycles, and product roadmaps with keyboard-first speed and sub-50ms local sync. Designed for product teams that care about craft, speed, and clarity in every workflow.
+        <p
+          data-rect="80,280,660,96"
+          style="font-size: 18px; line-height: 28px; color: rgb(236, 238, 240); letter-spacing: 0px;"
+        >
+          Track engineering issues, sprint cycles, and multi-quarter product roadmaps with keyboard-first navigation and sub-50ms local IndexedDB synchronization. Every transition, filter, and triage shortcut executes against an optimistic local store before syncing delta packets over WebSockets so teams never wait on spinners during standup or incident response.
         </p>
-        <a href="/signup" style="background-color: rgb(230, 230, 230); color: rgb(8, 9, 10); padding: 10px 18px; border-radius: 8px;">
-          Start building
-        </a>
+        <div data-rect="80,400,360,48">
+          <a
+            href="/signup"
+            data-rect="80,400,160,42"
+            style="background-color: rgb(247, 248, 248); color: rgb(8, 9, 10); font-size: 15px; border-radius: 8px; padding: 10px 18px;"
+          >
+            Start building
+          </a>
+          <a
+            href="/docs"
+            data-rect="260,400,150,42"
+            style="background-color: transparent; color: rgb(247, 248, 248); font-size: 15px; padding: 10px 18px;"
+          >
+            Read documentation
+          </a>
+        </div>
+      </section>
+
+      <section data-rect="80,550,1120,420" style="background-color: rgb(8, 9, 10);">
+        <h2
+          data-rect="80,580,580,44"
+          style="font-family: 'Inter', -apple-system, sans-serif; font-size: 34px; line-height: 42px; text-align: left; color: rgb(247, 248, 248);"
+        >
+          Cycles, triage queues, and Git automation
+        </h2>
+        <p
+          data-rect="80,640,680,96"
+          style="font-size: 16px; line-height: 26px; color: rgb(236, 238, 240);"
+        >
+          Link pull requests from GitHub or GitLab to move issues automatically from in-progress to merged when branch checks pass. Triage queues isolate incoming bug reports, customer escalations, and telemetry alerts from active cycle commitments so engineers keep uninterrupted focus while product leads review scope trade-offs with real velocity charts.
+        </p>
+        <p
+          data-rect="80,750,680,96"
+          style="font-size: 16px; line-height: 26px; color: rgb(236, 238, 240);"
+        >
+          Command menus bind every action to a two-key chord: assign owners, attach milestone dates, filter by label, or copy branch names without lifting your hands from the keyboard. Workspace data exports cleanly to Postgres or BigQuery on an hourly schedule for custom reporting.
+        </p>
       </section>
     </main>
+    <footer data-rect="0,1020,1280,140" style="background-color: rgb(8, 9, 10); color: rgb(236, 238, 240);">
+      <a href="/security" data-rect="80,1050,90,24" style="color: rgb(236, 238, 240); font-size: 14px;">Security</a>
+      <a href="/privacy" data-rect="190,1050,90,24" style="color: rgb(236, 238, 240); font-size: 14px;">Privacy</a>
+      <a href="/terms" data-rect="300,1050,90,24" style="color: rgb(236, 238, 240); font-size: 14px;">Terms</a>
+    </footer>
   </body>
 </html>

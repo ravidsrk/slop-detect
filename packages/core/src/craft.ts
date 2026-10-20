@@ -146,18 +146,44 @@ export function evaluateFocusIndicators(
   items: Array<{
     tag?: string;
     text?: string;
-    hasVisibleFocusIndicator: boolean;
+    hasVisibleFocusIndicator?: boolean;
+    outlineWidth?: string | number;
+    outlineStyle?: string;
+    boxShadow?: string;
+    borderChanged?: boolean;
+    backgroundChanged?: boolean;
+    hasPseudoFocusRing?: boolean;
+    pseudoFocusRing?: boolean;
+    afterFocusRing?: boolean;
+    beforeFocusRing?: boolean;
   }>,
 ) {
   if (!Array.isArray(items) || items.length === 0) {
     return { triggered: false, probedCount: 0, missingFirst5: 0, missingCount: 0, missingRatio: 0 };
   }
+  const hasIndicator = (x: any): boolean => {
+    if (!x) return false;
+    const hasPseudo = Boolean(
+      x.hasPseudoFocusRing || x.pseudoFocusRing || x.afterFocusRing || x.beforeFocusRing,
+    );
+    if (hasPseudo) return true;
+    if (typeof x.hasVisibleFocusIndicator === 'boolean') {
+      return x.hasVisibleFocusIndicator;
+    }
+    const outlineStyle = String(x.outlineStyle ?? '').toLowerCase();
+    const outlineWidth = parseFloat(String(x.outlineWidth ?? '0')) || 0;
+    const hasOutline = outlineStyle !== '' && outlineStyle !== 'none' && outlineWidth > 0;
+    const hasBoxShadow = Boolean(x.boxShadow && x.boxShadow !== 'none');
+    const hasReplacement = hasBoxShadow || Boolean(x.borderChanged) || Boolean(x.backgroundChanged);
+    return hasOutline || hasReplacement;
+  };
   const capped = items.slice(0, 15);
   const first5 = capped.slice(0, 5);
-  const missingFirst5 = first5.filter((x) => !x.hasVisibleFocusIndicator).length;
-  const missingCount = capped.filter((x) => !x.hasVisibleFocusIndicator).length;
+  const missingFirst5 = first5.filter((x) => !hasIndicator(x)).length;
+  const missingCount = capped.filter((x) => !hasIndicator(x)).length;
   const missingRatio = Math.round((missingCount / capped.length) * 100) / 100;
-  const triggered = missingFirst5 >= 2 || (capped.length >= 2 && missingRatio >= 0.5);
+  // One missing visible focus indicator among the first five controls triggers (#258).
+  const triggered = missingFirst5 >= 1 || (capped.length >= 2 && missingRatio >= 0.5);
   return {
     triggered,
     probedCount: capped.length,
@@ -165,7 +191,7 @@ export function evaluateFocusIndicators(
     missingCount,
     missingRatio,
     samples: capped
-      .filter((x) => !x.hasVisibleFocusIndicator)
+      .filter((x) => !hasIndicator(x))
       .slice(0, 5)
       .map((x) => x.text || x.tag || 'control'),
   };
@@ -238,33 +264,63 @@ export function evaluateDeadCtas(
 }
 
 // Pure helper for F-09 (#264) form empty-submit failure feedback.
-export function evaluateFormFailureFeedback(probe: {
-  formPresent?: boolean;
-  submittedEmpty?: boolean;
-  hasInvalidPseudo?: boolean;
-  hasAriaInvalid?: boolean;
-  hasVisibleErrorText?: boolean;
-  requestBlocked?: boolean;
-} | null | undefined) {
-  if (!probe || !probe.formPresent) {
-    return { triggered: false, status: 'na' as const };
+export function evaluateFormFailureFeedback(
+  probe:
+    | {
+        formPresent?: boolean;
+        submittedEmpty?: boolean;
+        submittedInvalid?: boolean;
+        probed?: boolean;
+        hasInvalidPseudo?: boolean;
+        hasRequiredField?: boolean;
+        nativeInvalid?: boolean;
+        hasAriaInvalid?: boolean;
+        hasInvalidAria?: boolean;
+        hasVisibleErrorText?: boolean;
+        visibleErrorCount?: number;
+        errorMessageShown?: boolean;
+        requestBlocked?: boolean;
+        hasSubmitHandler?: boolean;
+        preventedDefault?: boolean;
+      }
+    | null
+    | undefined,
+) {
+  if (!probe || probe.formPresent === false) {
+    return { triggered: false, status: 'na' as const, requestsMade: 0 };
   }
-  if (!probe.submittedEmpty) {
-    return { triggered: false, status: 'pass' as const };
+  const wasProbed = Boolean(probe.submittedEmpty || probe.submittedInvalid || probe.probed);
+  if (!wasProbed) {
+    // An unprobed form must be 'unknown' or 'na', NEVER 'pass' (#264).
+    return {
+      triggered: false,
+      status: 'unknown' as const,
+      reason: 'form_not_probed',
+      requestsMade: 0,
+    };
   }
-  const hasFeedback = Boolean(
-    probe.hasInvalidPseudo ||
-      probe.hasAriaInvalid ||
-      probe.hasVisibleErrorText ||
-      probe.requestBlocked,
+  const hasInvalidPseudo = Boolean(
+    probe.hasInvalidPseudo || probe.hasRequiredField || probe.nativeInvalid,
   );
+  const hasAriaInvalid = Boolean(probe.hasAriaInvalid || probe.hasInvalidAria);
+  const hasVisibleErrorText = Boolean(
+    probe.hasVisibleErrorText ||
+      (probe.visibleErrorCount ?? 0) > 0 ||
+      probe.errorMessageShown,
+  );
+  const hasHandler = Boolean(
+    probe.requestBlocked || probe.hasSubmitHandler || probe.preventedDefault,
+  );
+  const hasFeedback =
+    hasInvalidPseudo || hasAriaInvalid || hasVisibleErrorText || hasHandler;
   return {
     triggered: !hasFeedback,
     status: (hasFeedback ? 'pass' : 'fail') as 'pass' | 'fail',
-    hasInvalidPseudo: Boolean(probe.hasInvalidPseudo),
-    hasAriaInvalid: Boolean(probe.hasAriaInvalid),
-    hasVisibleErrorText: Boolean(probe.hasVisibleErrorText),
+    hasInvalidPseudo,
+    hasAriaInvalid,
+    hasVisibleErrorText,
     requestBlocked: Boolean(probe.requestBlocked),
+    requestsMade: 0,
   };
 }
 
@@ -586,6 +642,7 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
 
       // Check stylesheet rules for explicit outline: none / 0 without focus replacement
       let globalOutlineSuppressed = false;
+      let stylesheetPseudoFocusRing = false;
       try {
         for (const sheet of Array.from(document.styleSheets)) {
           let rules: any;
@@ -598,6 +655,9 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
           for (const rule of Array.from(rules) as any[]) {
             const sel = String(rule.selectorText || '');
             const cssText = String(rule.cssText || '');
+            if (/:focus(?:-visible)?::(?:after|before)/i.test(sel) && /outline|box-shadow|border/i.test(cssText)) {
+              stylesheetPseudoFocusRing = true;
+            }
             if (
               /:focus/.test(sel) &&
               /outline\s*:\s*(?:none|0(?:px)?)\b/i.test(cssText) &&
@@ -615,15 +675,33 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
       let missingCount = 0;
       focusables.forEach((el: any, idx: number) => {
         const cs = getComputedStyle(el);
+        let hasPseudoRing = stylesheetPseudoFocusRing || el.getAttribute?.('data-pseudo-focus-ring') === 'true';
+        if (!hasPseudoRing) {
+          try {
+            const afterCs = getComputedStyle(el, '::after');
+            const beforeCs = getComputedStyle(el, '::before');
+            if (
+              (afterCs && ((afterCs.boxShadow && afterCs.boxShadow !== 'none') || (afterCs.outlineStyle && afterCs.outlineStyle !== 'none' && parseFloat(afterCs.outlineWidth) > 0))) ||
+              (beforeCs && ((beforeCs.boxShadow && beforeCs.boxShadow !== 'none') || (beforeCs.outlineStyle && beforeCs.outlineStyle !== 'none' && parseFloat(beforeCs.outlineWidth) > 0)))
+            ) {
+              hasPseudoRing = true;
+            }
+          } catch {}
+        }
         const inlineOutlineNone =
           el.style && (el.style.outline === 'none' || el.style.outline === '0' || el.style.outlineWidth === '0px');
+        const inlineHasReplacement =
+          Boolean(el.style && ((el.style.boxShadow && el.style.boxShadow !== 'none') || el.style.borderColor));
         const classSuppressesFocus =
           /\bfocus:outline-none\b/.test(String(el.className || '')) &&
-          !/\bfocus(?:-visible)?:ring\b|\bfocus(?:-visible)?:border\b/.test(String(el.className || ''));
+          !/\bfocus(?:-visible)?:ring\b|\bfocus(?:-visible)?:border\b|\bfocus(?:-visible)?:after:ring\b/.test(
+            String(el.className || ''),
+          );
         const noIndicator =
-          inlineOutlineNone ||
-          classSuppressesFocus ||
-          (globalOutlineSuppressed && cs.outlineStyle === 'none');
+          !hasPseudoRing &&
+          ((inlineOutlineNone && !inlineHasReplacement) ||
+            classSuppressesFocus ||
+            (globalOutlineSuppressed && cs.outlineStyle === 'none'));
         if (noIndicator) {
           missingCount++;
           if (idx < 5) missingFirst5++;
@@ -631,7 +709,7 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
       });
 
       const missingRatio = Math.round((missingCount / focusables.length) * 100) / 100;
-      const triggered = missingFirst5 >= 2 || (focusables.length >= 2 && missingRatio >= 0.5);
+      const triggered = missingFirst5 >= 1 || (focusables.length >= 2 && missingRatio >= 0.5);
       return {
         triggered,
         probedCount: focusables.length,
@@ -836,6 +914,39 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
     fpRatePre2022: null,
     extract: (ctx) => {
       const { visible } = ctx;
+      const genericLabels = new Set([
+        'learn more',
+        'read more',
+        'click here',
+        'more',
+        'here',
+        'get started',
+        'submit',
+        'go',
+        'link',
+        'button',
+        'details',
+        'view more',
+        'see more',
+      ]);
+      const placeholderAltNames = new Set([
+        'image',
+        'photo',
+        'picture',
+        'graphic',
+        'icon',
+        'logo',
+        'hero',
+        'hero image',
+        'banner',
+        'screenshot',
+        'placeholder',
+        'untitled',
+        'img',
+        'pic',
+        'avatar',
+        'thumbnail',
+      ]);
       const genericHits: Array<{ name: string; target: string }> = [];
       const badAlts: string[] = [];
 
@@ -871,7 +982,7 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
           const lowerAlt = alt.toLowerCase();
           const src = (el.getAttribute('src') || '').split('?')[0].split('/').pop() || '';
           if (
-            PLACEHOLDER_ALT_NAMES.has(lowerAlt) ||
+            placeholderAltNames.has(lowerAlt) ||
             (src && lowerAlt === src.toLowerCase()) ||
             /\.(?:png|jpe?g|webp|gif|svg|avif)$/i.test(alt)
           ) {
@@ -881,7 +992,7 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
         }
         if (el.tagName === 'A' || el.tagName === 'BUTTON' || el.getAttribute('role') === 'button') {
           const accName = getAccName(el);
-          if (GENERIC_LABELS.has(accName)) {
+          if (genericLabels.has(accName)) {
             const target = el.getAttribute('href') || el.getAttribute('data-action') || el.tagName;
             genericHits.push({ name: accName, target });
           }
@@ -913,30 +1024,87 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
     fpRatePre2022: null,
     extract: (ctx) => {
       if (ctx && ctx.formProbe) {
-        return evaluateFormFailureFeedback(ctx.formProbe);
+        const probe = ctx.formProbe;
+        if (probe.formPresent === false) {
+          return { triggered: false, status: 'na', requestsMade: 0 };
+        }
+        const wasProbed = Boolean(probe.submittedEmpty || probe.submittedInvalid || probe.probed);
+        if (!wasProbed) {
+          return {
+            triggered: false,
+            status: 'unknown',
+            reason: 'form_not_probed',
+            requestsMade: 0,
+          };
+        }
+        const hasInvalidPseudo = Boolean(
+          probe.hasInvalidPseudo || probe.hasRequiredField || probe.nativeInvalid,
+        );
+        const hasAriaInvalid = Boolean(probe.hasAriaInvalid || probe.hasInvalidAria);
+        const hasVisibleErrorText = Boolean(
+          probe.hasVisibleErrorText ||
+            (probe.visibleErrorCount ?? 0) > 0 ||
+            probe.errorMessageShown,
+        );
+        const hasHandler = Boolean(
+          probe.requestBlocked || probe.hasSubmitHandler || probe.preventedDefault,
+        );
+        const hasFeedback =
+          hasInvalidPseudo || hasAriaInvalid || hasVisibleErrorText || hasHandler;
+        return {
+          triggered: !hasFeedback,
+          status: hasFeedback ? 'pass' : 'fail',
+          hasInvalidPseudo,
+          hasAriaInvalid,
+          hasVisibleErrorText,
+          requestBlocked: Boolean(probe.requestBlocked),
+          requestsMade: 0,
+        };
       }
       const form = document.querySelector('form');
-      if (!form) return { triggered: false, status: 'na' };
-      const inputs = Array.from(form.querySelectorAll('input:not([type="hidden"]):not([type="submit"]), textarea, select'));
-      if (inputs.length === 0) return { triggered: false, status: 'na' };
+      if (!form) return { triggered: false, status: 'na', requestsMade: 0 };
+      const inputs = Array.from(
+        form.querySelectorAll('input:not([type="hidden"]):not([type="submit"]), textarea, select'),
+      );
+      if (inputs.length === 0) return { triggered: false, status: 'na', requestsMade: 0 };
       const hasRequiredOrValidation = inputs.some(
         (inp: any) =>
           inp.hasAttribute('required') ||
           inp.getAttribute('aria-required') === 'true' ||
           inp.getAttribute('aria-invalid') === 'true' ||
-          inp.hasAttribute('pattern'),
+          inp.hasAttribute('pattern') ||
+          (typeof inp.matches === 'function' && inp.matches(':invalid')),
       );
-      const hasErrorRegion = Boolean(
-        form.querySelector('[role="alert"], [aria-live], .error, [data-error]'),
-      );
-      const noValidate = form.hasAttribute('novalidate');
-      const triggered = noValidate && !hasRequiredOrValidation && !hasErrorRegion;
+      const errEl = form.querySelector('[role="alert"], [aria-live], .error, [data-error]');
+      const hasVisibleErrorText = Boolean(errEl && (errEl.textContent || '').trim().length > 0);
+      if (hasRequiredOrValidation || hasVisibleErrorText) {
+        return {
+          formPresent: true,
+          hasInvalidPseudo: hasRequiredOrValidation,
+          hasVisibleErrorText,
+          status: 'pass',
+          triggered: false,
+          requestsMade: 0,
+        };
+      }
+      const wasProbedAttr =
+        form.getAttribute('data-probed-empty') === 'true' || form.hasAttribute('novalidate');
+      if (!wasProbedAttr) {
+        return {
+          formPresent: true,
+          status: 'unknown',
+          reason: 'form_not_probed',
+          triggered: false,
+          requestsMade: 0,
+        };
+      }
       return {
         formPresent: true,
-        hasRequiredOrValidation,
-        hasErrorRegion,
-        status: triggered ? 'fail' : 'pass',
-        triggered,
+        hasInvalidPseudo: false,
+        hasVisibleErrorText: false,
+        status: 'fail',
+        triggered: true,
+        requestsMade: 0,
       };
     },
   },
@@ -979,7 +1147,11 @@ export function scoreCraft(
     const raw = byId[meta.id] || {};
     const isUnknown = raw.status === 'unknown' || Boolean(raw.error);
     const isNa = raw.status === 'na';
-    const isInfoOrReview = meta.weight === 0 || meta.severity === 'info' || meta.status === 'review';
+    const isInfoOrReview =
+      raw.status === 'review' ||
+      meta.weight === 0 ||
+      meta.severity === 'info' ||
+      meta.status === 'review';
     const triggered = Boolean(raw.triggered);
 
     let status: 'pass' | 'fail' | 'review' | 'unknown' | 'na' = 'pass';

@@ -8,17 +8,19 @@ Deterministic patterns evaluated inside headless Chromium. Each pattern returns 
 
 | ID | Name | Weight | Category | Detection summary |
 |----|------|--------|----------|-------------------|
-| `slop_fonts` | AI-default font stack (Inter / Geist / Space Grotesk) | 8 | fonts | Hero or ≥60% of visible text uses primary/secondary slop fonts (confirmed via `document.fonts`) |
+| `slop_fonts` | AI-default font stack (Inter / Geist / Space Grotesk / Instrument Serif) | 8 | fonts | Hero or ≥60% of visible text uses legacy primary/secondary slop fonts (confirmed via `document.fonts`) |
+| `slop_fonts_2026` | Expanded 2026 default font stack (Syne / Fraunces / Outfit / Sora / Playfair / Lora / JetBrains Mono) | 0 | fonts | Hero or ≥45% of visible text uses expanded 2026 default font families (review) |
 | `purple_accent` | VibeCode Purple — filled indigo/violet CTAs | 4 | colors | ≥1 filled CTA/button in OKLCH hue 268–310°, C ≥ 0.10, L 0.35–0.80 (co-occurrence gated) |
 | `gradient_text` | Hero gradient text (background-clip:text) | 6 | colors | Any element uses `background-clip: text` with a CSS gradient |
 | `gradient_backgrounds` | Gradient-heavy backgrounds (area ≥15%, ≥2 sections) | 4 | colors | Gradient elements cover ≥15% of viewport area across ≥2 sections |
-| `accent_stripe` | Colored top/left/bottom card borders (the AI em-dash) | 6 | layout | ≥2 card-sized elements with ≥2px distinct colored top/left/bottom stripe (callouts excluded) |
+| `accent_stripe` | Colored top/left card borders (the AI em-dash) | 6 | layout | ≥2 card-sized elements with ≥3px distinct colored top/left stripe (callouts and uniform borders excluded) |
+| `accent_stripe_2026` | Broadened 2px or bottom colored card borders (D-07) | 0 | layout | ≥2 card-sized elements with 2px top/left or ≥2px bottom colored stripe (review) |
 | `glassmorphism` | Glassmorphism (backdrop-filter blur on translucent layers) | 4 | css | ≥2 elements with `backdrop-filter: blur()` and translucent background |
 | `colored_glows` | Big colored box-shadow glows (purple/blue/pink) | 4 | css | ≥1 element with large (≥24px blur) colored box-shadow |
 | `centered_hero` | Centered hero in generic sans (Inter-style) | 4 | layout | H1 centered, ≥28px, in a slop font stack (combined cap ≤8 with `slop_fonts`) |
 | `hero_eyebrow_pill` | Eyebrow pill above hero ("Now in beta" / "New") | 5 | layout | Rounded pill above H1 with launch/beta keywords or sparkle/rocket emoji |
 | `all_caps_labels` | All-caps section labels (retired — superseded by eyebrow_label) | 0 | fonts | ≥2 short uppercase labels with positive letter-spacing (retired at weight 0) |
-| `eyebrow_label` | Uppercase / tracked eyebrow labels above section headings | 3 | fonts | ≥3 and ≥60% of H2/H3 section headings preceded by a small tracked/uppercase eyebrow |
+| `eyebrow_label` | Uppercase / tracked eyebrow labels above section headings | 0 | fonts | ≥60% of H2/H3 section headings preceded by a small tracked/uppercase eyebrow (review) |
 | `perma_dark_mode` | Perma dark mode + medium-grey body text | 4 | colors | Dark page surface with ≥30% mid-grey body paragraphs (or dark with ≥5 paras) |
 | `icon_card_grid` | Identical feature cards with icon on top | 4 | layout | ≥3 sibling cards with top-positioned icon (SVG/img) |
 | `numbered_steps` | Numbered "1 · 2 · 3" step sequences | 3 | layout | Sibling group contains steps 1, 2, and 3 |
@@ -58,7 +60,11 @@ Definitions version: **2026.11**.
 
 ### slop_fonts (weight 8)
 
-Detects the default AI-builder font stack, separating primary slop fonts (Inter, Geist, Space Grotesk, Plus Jakarta Sans, Outfit, Sora, Syne, Fraunces) from secondary slop fonts (Manrope, Playfair Display, Lora, DM Serif, Instrument Serif, JetBrains Mono, Fira Code) and confirming loaded webfont faces via `document.fonts`. Inter or Geist alone, or secondary slop fonts alone, require at least one co-occurring design signal to add points.
+Detects the legacy default AI-builder font stack (Inter, Geist, Space Grotesk, Plus Jakarta Sans, DM Sans, General Sans, Satoshi, Cal Sans, Switzer, Clash Display, Manrope, Instrument Serif) and confirms loaded webfont faces via `document.fonts`. Inter or Geist alone, or secondary slop fonts alone, require at least one co-occurring design signal to add points.
+
+### slop_fonts_2026 (weight 0)
+
+Broadened 2026 default font stack rule (`status: "review"`, weight 0 under K-04) covering Syne, Fraunces, Outfit, Sora, Playfair Display, Lora, DM Serif, JetBrains Mono, and Fira Code when confirmed loaded via `document.fonts`.
 
 ### purple_accent (weight 4)
 
@@ -74,7 +80,11 @@ Measures the viewport area covered by opaque CSS gradient backgrounds across sec
 
 ### accent_stripe (weight 6)
 
-Finds card-sized elements (≥100×60px) with a ≥2px colored top, left, or bottom border stripe distinct from the card background, excluding single blockquote/alert callouts (`role="alert"`, `aside`, `blockquote`).
+Finds card-sized elements (≥100×60px) with a ≥3px colored top or left border stripe distinct from the other card borders, excluding alert/note/status callouts (`role="alert"|"note"|"status"`) and cards whose four borders share one colour.
+
+### accent_stripe_2026 (weight 0)
+
+Broadened card border stripe rule (`status: "review"`, weight 0 under K-04) covering 2px top/left stripes and ≥2px bottom border stripes (`accent_stripe_2026`), with the same callout and uniform-border exclusions.
 
 ### glassmorphism (weight 4)
 
@@ -96,9 +106,9 @@ Looks for a small rounded pill element within 250px above the H1, horizontally a
 
 Retired rule superseded by `eyebrow_label`. Kept in catalogue at weight 0 (`status: "retired"`) for schema continuity.
 
-### eyebrow_label (weight 3)
+### eyebrow_label (weight 0)
 
-Finds small (`≤14px`) uppercase or widely tracked (`≥0.04em`) short labels placed immediately above H2/H3 section headings. Requires ≥3 section headings and ≥60% of section headings to have an eyebrow label.
+Finds small (`≤14px`) uppercase or widely tracked (`≥0.06em`) short labels placed immediately above ≥60% of H2/H3 section headings, excluding buttons and standalone dates. Ships at weight 0 (`status: "review"`) under K-04.
 
 ### perma_dark_mode (weight 4)
 

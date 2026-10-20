@@ -260,5 +260,5 @@ export function buildPageScript(opts: BuildPageScriptOptions = {}): string {
       textContext,
       systemContext
     };
-  })();`;
+  })();`.replace(/[ \t]+$/gm, '');
 }

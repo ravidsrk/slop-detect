@@ -1134,10 +1134,10 @@ export function parseContentSignal(val: string): {
 
 // ── A-03 (#289): Prompt injection & AI manipulation detector ─────────────────
 const PROMPT_INJECTION_LEXICON = [
-  /\bignore\s+(?:all\s+)?(?:previous|prior|above)\s+instructions\b/i,
-  /\bdisregard\s+(?:all\s+)?(?:previous|prior|system)\s+(?:instructions|prompts)\b/i,
+  /\bignore\s+(?:all\s+)?(?:previous|prior|above)\s+(?:instructions|prompts|rules|directions)\b/i,
+  /\bdisregard\s+(?:all\s+)?(?:previous|prior|system)\s+(?:instructions|prompts|rules)\b/i,
   /\bsystem\s+prompt\s*:/i,
-  /\byou\s+are\s+an?\s+(?:ai|language\s+model|helpful\s+assistant)\b[^.]{0,80}\b(?:must|always|recommend|cite|rank)\b/i,
+  /\b(?:if\s+)?you\s+are\s+an?\s+(?:ai(?:\s+assistant|\s+agent|\s+model)?|llm|language\s+model|helpful\s+assistant)\b[^.!?\n]{0,120}\b(?:must|always|recommend|cite|rank|say|state|tell|report|prefer|choose)\b/i,
   /\bdo\s+not\s+mention\s+any\s+competitors\b/i,
 ];
 
@@ -1167,9 +1167,13 @@ export function detectPromptInjection(
     ) {
       let decoded = href;
       try {
-        decoded = decodeURIComponent(href);
+        decoded = decodeURIComponent(href.replace(/\+/g, ' '));
       } catch {}
-      if (/recommend|best|trusted|cite|authoritative|ignore|memory/i.test(decoded)) {
+      if (
+        /\b(?:recommend|best|trusted|authoritative|ignore|memory|remember\b[^&]*\bas\b|always\s+cite|rank\s+#?1)\b/i.test(
+          decoded
+        )
+      ) {
         findings.push({ vector: 'poisoning_link', snippet: decoded.slice(0, 140) });
       }
     }
@@ -1181,7 +1185,7 @@ export function detectPromptInjection(
   hiddenSnippets.push(...commentMatches);
   const inlineHiddenMatches =
     html.match(
-      /<[a-z0-9]+\b[^>]*(?:hidden|aria-hidden\s*=\s*["']true["']|style\s*=\s*["'][^"']*(?:display\s*:\s*none|visibility\s*:\s*hidden|opacity\s*:\s*0|font-size\s*:\s*0|left\s*:\s*-\d{3,}px)[^"']*["'])[^>]*>[\s\S]*?<\/[a-z0-9]+>/gi
+      /<[a-z0-9]+\b[^>]*(?:hidden|aria-hidden\s*=\s*["']true["']|class\s*=\s*["'][^"']*\b(?:sr-only|visually-hidden)\b[^"']*["']|style\s*=\s*["'][^"']*(?:display\s*:\s*none|visibility\s*:\s*hidden|opacity\s*:\s*0|font-size\s*:\s*0|left\s*:\s*-\d{3,}px)[^"']*["'])[^>]*>[\s\S]*?<\/[a-z0-9]+>/gi
     ) || [];
   hiddenSnippets.push(...inlineHiddenMatches);
 
@@ -1195,7 +1199,7 @@ export function detectPromptInjection(
     }
   }
 
-  // 3. Non-standard HTTP headers (X-AI-*, X-LLM-*, X-Prompt-*)
+  // 3. HTTP headers — never fire on header name alone (e.g. X-AI-Model: gpt); require lexicon match in value
   if (headers) {
     const entries: Array<[string, string]> = [];
     if (typeof (headers as Headers).forEach === 'function') {
@@ -1204,7 +1208,7 @@ export function detectPromptInjection(
       for (const [k, v] of Object.entries(headers)) entries.push([k, String(v)]);
     }
     for (const [k, v] of entries) {
-      if (/^x-(?:ai|llm|prompt|agent)-/i.test(k) || PROMPT_INJECTION_LEXICON.some((re) => re.test(v))) {
+      if (PROMPT_INJECTION_LEXICON.some((re) => re.test(v))) {
         findings.push({ vector: 'http_header', snippet: `${k}: ${v}`.slice(0, 140) });
       }
     }
@@ -1686,17 +1690,26 @@ export async function runAeoChecks(
   let mdRes: Response | null = null;
   let mdBody = '';
   let negotiatedMarkdown = false;
+  let negotiatedRes: Response | null = null;
 
-  // Probe <url>.md or advertised href first
+  // Probe canonical URL for content negotiation (Accept: text/markdown) and static twin URLs
+  const canonicalUrlStr = url.toString();
   const probeUrls = [
+    canonicalUrlStr,
     ...(advertisedHref ? [new URL(advertisedHref, url).toString()] : []),
     mdUrl,
   ];
   for (const candidateUrl of [...new Set(probeUrls)]) {
+    const isCanonicalNegotiation = candidateUrl === canonicalUrlStr;
     try {
       const r = await fetchWithTimeout(
         candidateUrl,
-        { headers: { Accept: 'text/markdown', 'User-Agent': userAgent } },
+        {
+          headers: {
+            Accept: 'text/markdown, text/x-markdown;q=0.9, text/plain;q=0.8',
+            'User-Agent': userAgent,
+          },
+        },
         timeoutMs,
         fetchImpl,
         isUrlAllowed
@@ -1705,12 +1718,26 @@ export async function runAeoChecks(
         const b = await readBodyCapped(r, MAX_HTML_BYTES, false);
         const ct = (r.headers.get('content-type') || '').toLowerCase();
         if (ct.startsWith('text/markdown') || ct.startsWith('text/x-markdown')) {
+          const check = validateMarkdownTwin(b, ct);
+          if (check.valid && b.trim() !== htmlBody.trim()) {
+            if (isCanonicalNegotiation) {
+              negotiatedMarkdown = true;
+              negotiatedRes = r;
+            }
+            if (!mdRes || !mdRes.ok) {
+              mdRes = r;
+              mdBody = b;
+            }
+            if (!isCanonicalNegotiation) break;
+          } else if (!isCanonicalNegotiation && !mdRes) {
+            mdRes = r;
+            mdBody = b;
+          }
+        } else if (!isCanonicalNegotiation && !mdRes) {
           mdRes = r;
           mdBody = b;
-          negotiatedMarkdown = true;
-          break;
         }
-      } else if (!mdRes) {
+      } else if (!isCanonicalNegotiation && !mdRes) {
         mdRes = r;
       }
     } catch {
@@ -1722,7 +1749,9 @@ export async function runAeoChecks(
   const twinCheck =
     mdRes && mdRes.ok && (mdCt.startsWith('text/markdown') || mdCt.startsWith('text/x-markdown'))
       ? validateMarkdownTwin(mdBody, mdCt)
-      : { valid: false, strippedLength: 0, reason: 'missing' };
+      : mdRes && mdRes.ok && mdCt.includes('text/html')
+        ? { valid: false, strippedLength: 0, reason: 'html_content_type' }
+        : { valid: false, strippedLength: 0, reason: 'missing' };
 
   checks.push(
     makeCheckResult(
@@ -1733,7 +1762,7 @@ export async function runAeoChecks(
         : mdRes
           ? `no valid markdown twin (${mdRes.status}, ${mdCt || 'no content-type'})`
           : 'no markdown twin',
-      twinCheck
+      { ...twinCheck, negotiatedMarkdown }
     )
   );
 
@@ -1757,7 +1786,7 @@ export async function runAeoChecks(
     );
   }
 
-  // 9. site.llmsTxt (FIX-15)
+  // 9. site.llmsTxt (FIX-15: SPA HTML 200 soft-404 counts as missing -> 'na', not a pass)
   let llmsRes: Response | null = null;
   let llmsBody = '';
   try {
@@ -1777,17 +1806,24 @@ export async function runAeoChecks(
   const llmsCt = ((llmsRes && llmsRes.headers.get('content-type')) || '').toLowerCase();
   let llmsStatus: 'pass' | 'fail' | 'na' = 'na';
   let llmsMsg = 'no /llms.txt at site root (optional)';
-  let llmsValidation: any = {};
+  let llmsValidation: any = { missing: true };
   if (!llmsRes || llmsRes.status === 404 || llmsRes.status === 410) {
     llmsStatus = 'na';
+    llmsValidation = { missing: true, reason: 'missing' };
   } else if (llmsRes.status >= 500 || llmsRes.status === 429) {
     llmsStatus = 'fail';
     llmsMsg = `/llms.txt returned ${llmsRes.status}`;
+    llmsValidation = { valid: false, missing: false, reason: `http_${llmsRes.status}` };
   } else if (llmsRes.ok) {
     llmsValidation = validateLlmsTxt(llmsBody, llmsCt);
     if (llmsValidation.valid) {
       llmsStatus = 'pass';
       llmsMsg = `/llms.txt valid (${llmsValidation.linkCount} links)`;
+    } else if (llmsValidation.reason === 'html_response') {
+      // SPA catch-all returning 200 HTML at /llms.txt is a soft-404 -> missing ('na'), not a pass
+      llmsStatus = 'na';
+      llmsMsg = '/llms.txt returned HTML (SPA soft-404 — treated as missing)';
+      llmsValidation = { ...llmsValidation, missing: true };
     } else {
       llmsStatus = 'fail';
       llmsMsg = `/llms.txt invalid (${llmsValidation.reason})`;
@@ -1795,20 +1831,29 @@ export async function runAeoChecks(
   }
   checks.push(makeCheckResult(pickCheck('site.llmsTxt'), llmsStatus, llmsMsg, llmsValidation));
 
-  // 10. html.vary (FIX-15: 'na' when site does not negotiate markdown and Vary: Accept is absent)
+  // 10. html.vary (FIX-15: applicable ONLY when markdown content negotiation is observed)
   if (htmlOk && html) {
-    const vary = (html.headers.get('vary') || '').split(',').map((s) => s.trim().toLowerCase());
-    const hasVaryAccept = vary.includes('accept') || vary.includes('*');
-    const varyStatus = hasVaryAccept ? 'pass' : negotiatedMarkdown ? 'fail' : 'na';
+    const htmlVary = (html.headers.get('vary') || '')
+      .split(',')
+      .map((s) => s.trim().toLowerCase());
+    const negVary = ((negotiatedRes && negotiatedRes.headers.get('vary')) || '')
+      .split(',')
+      .map((s) => s.trim().toLowerCase());
+    const hasVaryAccept =
+      htmlVary.includes('accept') ||
+      htmlVary.includes('*') ||
+      negVary.includes('accept') ||
+      negVary.includes('*');
+    const varyStatus = !negotiatedMarkdown ? 'na' : hasVaryAccept ? 'pass' : 'fail';
     checks.push(
       makeCheckResult(
         pickCheck('html.vary'),
         varyStatus,
-        hasVaryAccept
-          ? 'Vary: Accept present'
-          : negotiatedMarkdown
-            ? 'Negotiated markdown twin served without Vary: Accept'
-            : 'Site does not negotiate markdown — Vary: Accept not applicable',
+        !negotiatedMarkdown
+          ? 'Site does not negotiate markdown — Vary: Accept not applicable'
+          : hasVaryAccept
+            ? 'Vary: Accept present on negotiated response'
+            : 'Negotiated markdown twin served without Vary: Accept',
         { hasVaryAccept, negotiatedMarkdown }
       )
     );

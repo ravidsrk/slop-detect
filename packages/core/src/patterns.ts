@@ -8,10 +8,10 @@
 // browser via buildPageScript(), so it must be 100% self-contained.
 
 export const PATTERNS = [
-  // ── 1. SLOP FONTS (D-08 + FIX-20) ─────────────────────────────────────────
+  // ── 1. SLOP FONTS (legacy scored families, D-08 document.fonts check + FIX-20) ─
   {
     id: 'slop_fonts',
-    label: 'AI-default font stack (Inter / Geist / Space Grotesk / Syne / Fraunces)',
+    label: 'AI-default font stack (Inter / Geist / Space Grotesk / Instrument Serif)',
     short: 'Slop fonts',
     category: 'fonts',
     weight: 8,
@@ -35,10 +35,6 @@ export const PATTERNS = [
         'plus jakarta',
         'dm sans',
         'dm-sans',
-        'outfit',
-        'sora',
-        'syne',
-        'fraunces',
         'general sans',
         'general-sans',
         'satoshi',
@@ -50,17 +46,8 @@ export const PATTERNS = [
       ];
       const secondaryPrefixes = [
         'manrope',
-        'playfair display',
-        'playfair',
-        'lora',
-        'dm serif',
-        'dm-serif',
         'instrument serif',
         'instrument-serif',
-        'jetbrains mono',
-        'jetbrains-mono',
-        'fira code',
-        'fira-code',
       ];
       const resolveFam = (fam) => {
         if (typeof resolveRenderedFont === 'function') return resolveRenderedFont(fam);
@@ -90,8 +77,10 @@ export const PATTERNS = [
         seen.add(el);
         total++;
         const resolved = resolveFam(fam);
-        const slop =
-          typeof resolveRenderedFont === 'function' ? isSlopFont(resolved) : isSlopFont(fam);
+        const slop = Boolean(
+          resolved &&
+            (typeof resolveRenderedFont === 'function' ? isSlopFont(resolved) : isSlopFont(fam)),
+        );
         if (slop) {
           slopCount++;
           if (isPrimary(fam)) primaryCount++;
@@ -105,16 +94,28 @@ export const PATTERNS = [
         }
       }
       const heroRawFam = h1 ? getComputedStyle(h1).fontFamily : '';
-      const heroFam = resolveFam(heroRawFam) || heroRawFam;
-      const heroIsSlop =
-        typeof resolveRenderedFont === 'function' ? isSlopFont(heroFam) : isSlopFont(heroRawFam);
+      const heroResolved = resolveFam(heroRawFam);
+      const heroIsSlop = Boolean(
+        heroResolved &&
+          (typeof resolveRenderedFont === 'function'
+            ? isSlopFont(heroResolved)
+            : isSlopFont(heroRawFam)),
+      );
       const heroIsPrimary = isPrimary(heroRawFam);
+      const heroIsSecondary = isSecondary(heroRawFam);
+      const heroIsInterOrGeist =
+        Boolean(heroResolved) &&
+        (heroResolved.startsWith('inter') || heroResolved.startsWith('geist'));
       const ratio = total ? slopCount / total : 0;
-      const secondaryOnly = slopCount > 0 && primaryCount === 0 && !heroIsPrimary;
+      const secondaryOnly =
+        (slopCount > 0 || heroIsSlop) &&
+        primaryCount === 0 &&
+        !heroIsPrimary &&
+        (secondaryCount > 0 || heroIsSecondary);
       const interOrGeistOnly =
-        slopCount > 0 &&
+        (slopCount > 0 || heroIsSlop) &&
         interOrGeistCount === slopCount &&
-        (!heroIsSlop || heroFam.startsWith('inter') || heroFam.startsWith('geist'));
+        (!heroIsSlop || heroIsInterOrGeist);
       // FIX-20: accentSerifWords > 0 removed from triggered; kept as evidence only.
       return {
         slopCount,
@@ -123,12 +124,82 @@ export const PATTERNS = [
         total,
         ratio: +ratio.toFixed(3),
         heroIsSlop,
-        heroFam: heroRawFam || heroFam,
-        resolvedHeroFam: heroFam,
+        heroFam: heroRawFam,
+        resolvedHeroFam: heroResolved,
         secondaryOnly,
         interOrGeistOnly,
+        interLifecycleStatus: 'decaying',
         accentSerifItalicCount: accentSerifWords,
-        triggered: heroIsSlop || ratio >= 0.45,
+        triggered: heroIsSlop || ratio >= 0.6,
+      };
+    },
+  },
+
+  // ── 1b. SLOP FONTS 2026 BROADENING (D-08 weight-0 review rule under K-04) ─
+  {
+    id: 'slop_fonts_2026',
+    label: 'Expanded 2026 default font stack (Syne / Fraunces / Outfit / Sora / Playfair / Lora / JetBrains Mono)',
+    short: '2026 slop fonts',
+    category: 'fonts',
+    weight: 0,
+    status: 'review',
+    evidenceGrade: 'practitioner',
+    era: '2025-v0',
+    modelFamilies: ['v0', 'cursor', 'lovable', 'bolt', 'claude'],
+    lastValidatedIn: '2026.11',
+    likelihoodRatio: null,
+    fpRate: null,
+    fpRatePre2022: null,
+    extract: (ctx) => {
+      const { visible, resolveRenderedFont, h1 } = ctx;
+      const newPrefixes = [
+        'syne',
+        'fraunces',
+        'outfit',
+        'sora',
+        'playfair display',
+        'playfair',
+        'lora',
+        'dm serif',
+        'dm-serif',
+        'jetbrains mono',
+        'jetbrains-mono',
+        'fira code',
+        'fira-code',
+      ];
+      const resolveFam = (fam) => {
+        if (typeof resolveRenderedFont === 'function') return resolveRenderedFont(fam);
+        if (!fam) return '';
+        return String(fam).toLowerCase().replace(/['"]/g, '').split(',')[0].trim();
+      };
+      const matchesNew = (fam) => {
+        const r = resolveFam(fam);
+        return Boolean(r && newPrefixes.some((p) => r.startsWith(p)));
+      };
+      let matchCount = 0;
+      let total = 0;
+      const seen = new Set();
+      for (const el of visible) {
+        if (!el.textContent || !el.textContent.trim()) continue;
+        const cs = getComputedStyle(el);
+        const fam = cs.fontFamily;
+        if (!fam || seen.has(el)) continue;
+        seen.add(el);
+        total++;
+        if (matchesNew(fam)) matchCount++;
+      }
+      const heroRawFam = h1 ? getComputedStyle(h1).fontFamily : '';
+      const heroResolved = resolveFam(heroRawFam);
+      const heroMatches = matchesNew(heroRawFam);
+      const ratio = total ? matchCount / total : 0;
+      return {
+        matchCount,
+        total,
+        ratio: +ratio.toFixed(3),
+        heroFam: heroRawFam,
+        resolvedHeroFam: heroResolved,
+        heroMatches,
+        triggered: heroMatches || ratio >= 0.45,
       };
     },
   },
@@ -313,14 +384,93 @@ export const PATTERNS = [
     },
   },
 
-  // ── 5. ACCENT STRIPE (D-07: >= 2px, top/left/bottom, distinct color, callout exclusion)
+  // ── 5. ACCENT STRIPE (legacy >= 3px top/left stripe with D-07 callout & uniform-border exclusions)
   {
     id: 'accent_stripe',
-    label: 'Colored top/left/bottom card borders (the AI em-dash)',
+    label: 'Colored top/left card borders (the AI em-dash)',
     short: 'Accent stripe',
     category: 'layout',
     weight: 6,
     status: 'active',
+    evidenceGrade: 'practitioner',
+    era: '2025-v0',
+    modelFamilies: ['claude', 'v0', 'cursor'],
+    lastValidatedIn: '2026.11',
+    likelihoodRatio: null,
+    fpRate: null,
+    fpRatePre2022: null,
+    extract: (ctx) => {
+      const { visible, parseColor, deltaEOklab } = ctx;
+      let stripeCards = 0;
+      const sides: string[] = [];
+      for (const el of visible) {
+        const role =
+          typeof el.getAttribute === 'function'
+            ? (el.getAttribute('role') || '').toLowerCase()
+            : '';
+        if (role === 'alert' || role === 'note' || role === 'status') continue;
+        const cs = getComputedStyle(el);
+        const r = el.getBoundingClientRect();
+        if (r.width < 100 || r.height < 60) continue;
+        const widths = {
+          top: parseFloat(cs.borderTopWidth) || 0,
+          left: parseFloat(cs.borderLeftWidth) || 0,
+          right: parseFloat(cs.borderRightWidth) || 0,
+          bottom: parseFloat(cs.borderBottomWidth) || 0,
+        };
+        const colors = {
+          top: parseColor(cs.borderTopColor),
+          left: parseColor(cs.borderLeftColor),
+          right: parseColor(cs.borderRightColor),
+          bottom: parseColor(cs.borderBottomColor),
+        };
+        const colorDiffers = (sideCol: any, otherSideKeys: Array<'top' | 'left' | 'right' | 'bottom'>) => {
+          if (!sideCol || sideCol.a <= 0.3) return false;
+          for (const k of otherSideKeys) {
+            if (widths[k] > 0 && colors[k] && colors[k].a > 0.1) {
+              if (typeof deltaEOklab === 'function') {
+                if (deltaEOklab(sideCol, colors[k]) <= 0.02) return false;
+              } else if (
+                Math.abs(sideCol.r - colors[k].r) <= 5 &&
+                Math.abs(sideCol.g - colors[k].g) <= 5 &&
+                Math.abs(sideCol.b - colors[k].b) <= 5
+              ) {
+                return false;
+              }
+            }
+          }
+          return true;
+        };
+
+        const otherMax = Math.max(widths.left, widths.right, widths.bottom);
+        const topStripe =
+          widths.top >= 3 &&
+          otherMax < widths.top - 1 &&
+          colorDiffers(colors.top, ['left', 'right', 'bottom']);
+        const leftStripe =
+          widths.left >= 3 &&
+          Math.max(widths.top, widths.right, widths.bottom) < widths.left - 1 &&
+          colorDiffers(colors.left, ['top', 'right', 'bottom']);
+
+        if (topStripe || leftStripe) {
+          stripeCards++;
+          if (sides.length < 5) {
+            sides.push(topStripe ? 'top' : 'left');
+          }
+        }
+      }
+      return { stripeCards, sides, triggered: stripeCards >= 2 };
+    },
+  },
+
+  // ── 5b. ACCENT STRIPE 2026 BROADENING (D-07 weight-0 review rule: 2px threshold + bottom borders)
+  {
+    id: 'accent_stripe_2026',
+    label: 'Broadened 2px or bottom colored card borders (D-07)',
+    short: 'Accent stripe 2026',
+    category: 'layout',
+    weight: 0,
+    status: 'review',
     evidenceGrade: 'practitioner',
     era: '2025-v0',
     modelFamilies: ['claude', 'v0', 'cursor'],
@@ -372,13 +522,14 @@ export const PATTERNS = [
           return true;
         };
 
-        const topStripe =
+        const topStripe2px =
           widths.top >= 2 &&
+          widths.top < 3 &&
           Math.max(widths.left, widths.right, widths.bottom) < widths.top - 1 &&
-          radius > 0 &&
           colorDiffers(colors.top, ['left', 'right', 'bottom']);
-        const leftStripe =
+        const leftStripe2px =
           widths.left >= 2 &&
+          widths.left < 3 &&
           Math.max(widths.top, widths.right, widths.bottom) < widths.left - 1 &&
           colorDiffers(colors.left, ['top', 'right', 'bottom']);
         const bottomStripe =
@@ -387,10 +538,10 @@ export const PATTERNS = [
           radius > 0 &&
           colorDiffers(colors.bottom, ['top', 'left', 'right']);
 
-        if (topStripe || leftStripe || bottomStripe) {
+        if (topStripe2px || leftStripe2px || bottomStripe) {
           stripeCards++;
           if (sides.length < 5) {
-            sides.push(topStripe ? 'top' : leftStripe ? 'left' : 'bottom');
+            sides.push(topStripe2px ? 'top-2px' : leftStripe2px ? 'left-2px' : 'bottom');
           }
         }
       }
@@ -605,14 +756,14 @@ export const PATTERNS = [
     },
   },
 
-  // ── 10b. EYEBROW LABEL (FIX-09: replaces all_caps_labels, weight 3) ───────
+  // ── 10b. EYEBROW LABEL (FIX-09: replaces all_caps_labels, weight 0 review under K-04) ─
   {
     id: 'eyebrow_label',
     label: 'Tracked or uppercase eyebrow labels above ≥60% of section headings',
     short: 'Eyebrow labels',
     category: 'fonts',
-    weight: 3,
-    status: 'active',
+    weight: 0,
+    status: 'review',
     evidenceGrade: 'practitioner',
     era: '2025-v0',
     modelFamilies: ['v0', 'cursor', 'claude', 'lovable'],
@@ -636,6 +787,9 @@ export const PATTERNS = [
         };
       }
 
+      const datePat =
+        /^(?:(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s+\d{1,2}(?:,?\s+\d{4})?|(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s+\d{4}|\d{4}[-/.]\d{1,2}(?:[-/.]\d{1,2})?|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}|\d{1,2}\s+(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?(?:\s+\d{4})?|q[1-4]\s+\d{4})$/i;
+
       const samples: Array<{ text: string; mode: string }> = [];
       const nodeIds: string[] = [];
       let matchedHeadings = 0;
@@ -644,8 +798,9 @@ export const PATTERNS = [
         const hr = h.getBoundingClientRect();
         let foundForHeading = false;
         for (const el of visible) {
-          if (el === h || /^(H[1-6]|BUTTON|NAV|FOOTER|TABLE|TR|TD|TH)$/.test(el.tagName)) continue;
-          if (typeof el.closest === 'function' && el.closest('nav, footer, button, table')) continue;
+          if (el === h || /^(H[1-6]|BUTTON|NAV|FOOTER|TABLE|TR|TD|TH|TIME)$/.test(el.tagName)) continue;
+          if (typeof el.closest === 'function' && el.closest('nav, footer, button, table, time')) continue;
+          if (typeof el.getAttribute === 'function' && el.getAttribute('datetime')) continue;
           const r = el.getBoundingClientRect();
           // Must sit within 48px above the heading
           if (r.bottom > hr.top + 8 || r.bottom < hr.top - 48) continue;
@@ -654,6 +809,7 @@ export const PATTERNS = [
           }
           const txt = (el.textContent || '').trim();
           if (!txt || txt.length < 2 || txt.length > 50) continue;
+          if (datePat.test(txt)) continue;
           const words = txt.split(/\s+/).filter(Boolean);
           if (words.length === 0 || words.length > 6) continue;
           const cs = getComputedStyle(el);
@@ -668,7 +824,8 @@ export const PATTERNS = [
           foundForHeading = true;
           const mode = transformCaps ? 'transform' : sourceCaps ? 'source' : 'tracked';
           if (samples.length < 5) samples.push({ text: txt.slice(0, 35), mode });
-          const nid = `${el.tagName.toLowerCase()}:${Math.round(r.top)}:${txt.slice(0, 20)}`;
+          const tag = el.tagName ? el.tagName.toLowerCase() : 'div';
+          const nid = el.id ? '#' + el.id : `${tag}:${Math.round(r.top || 0)}:${txt.slice(0, 20)}`;
           if (!nodeIds.includes(nid)) nodeIds.push(nid);
           break;
         }
@@ -836,8 +993,17 @@ export const PATTERNS = [
     fpRatePre2022: null,
     extract: (ctx) => {
       const { visible } = ctx;
-      const numberPat = /^(?:step\s*)?(\d{1,2})(?:[.):]|\s*[—-])?\s*/i;
+      const numberPat =
+        /^(?:(?:step|sec(?:tion)?|part|phase)\s*)?(?:0[.:])?0?(\d{1,2})(?:[.):]|\s*[—·•-])?(?:\s|$)/i;
       const parents = new Map();
+      const addToGroup = (key: any, n: number, nid: string) => {
+        if (!key) return;
+        if (!parents.has(key)) parents.set(key, { numbers: new Set(), count: 0, nodeIds: [] });
+        const group = parents.get(key);
+        group.numbers.add(n);
+        group.count += 1;
+        if (!group.nodeIds.includes(nid)) group.nodeIds.push(nid);
+      };
       for (const el of visible) {
         if (typeof el.closest === 'function' && el.closest('table, nav')) continue;
         const txt = (el.textContent || '').trim();
@@ -845,18 +1011,23 @@ export const PATTERNS = [
         if (!m) continue;
         const n = parseInt(m[1], 10);
         if (n < 1 || n > 9) continue;
-        if (!el.parentElement) continue;
-        const key = el.parentElement;
-        if (!parents.has(key)) parents.set(key, { numbers: new Set(), count: 0, nodeIds: [] });
-        const group = parents.get(key);
-        group.numbers.add(n);
-        group.count += 1;
         const r =
           typeof el.getBoundingClientRect === 'function'
             ? el.getBoundingClientRect()
             : { top: 0 };
         const tag = el.tagName ? el.tagName.toLowerCase() : 'div';
-        group.nodeIds.push(`${tag}:${Math.round(r.top || 0)}:${txt.slice(0, 20)}`);
+        const nid = el.id ? '#' + el.id : `${tag}:${Math.round(r.top || 0)}:${txt.slice(0, 20)}`;
+        if (el.parentElement) {
+          addToGroup(el.parentElement, n, nid);
+          if (el.parentElement.parentElement) {
+            addToGroup(el.parentElement.parentElement, n, nid);
+          }
+        } else {
+          addToGroup('__root__', n, nid);
+        }
+        if (/^(?:step|sec(?:tion)?|part|phase|0[.:])/i.test(txt)) {
+          addToGroup('__prefixed__', n, nid);
+        }
       }
       let bestRun = 0;
       let bestNodeIds: string[] = [];

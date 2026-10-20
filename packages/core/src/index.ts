@@ -53,6 +53,9 @@ export {
   isAccentSerif,
   resolveRenderedFont,
   SLOP_FONT_PREFIXES,
+  LEGACY_SLOP_FONT_PREFIXES,
+  NEW_2026_SLOP_FONT_PREFIXES,
+  SLOP_FONT_LIFECYCLE,
   PRIMARY_SLOP_FONT_PREFIXES,
   SECONDARY_SLOP_FONT_PREFIXES,
   ACCENT_SERIF_PREFIXES,
@@ -195,6 +198,8 @@ export interface ScoreAdjustment {
   delta: number;
   reason: string;
   sharedNodes?: string[];
+  patternIds?: string[];
+  labels?: string[];
 }
 
 export interface PostPassRule {
@@ -246,7 +251,17 @@ export const POST_PASS_RULES: PostPassRule[] = [
       const wSf = effectiveWeights.get('slop_fonts') ?? 0;
       if (wSf <= 0) return [];
       const ev = sf.evidence || {};
-      const requiresCoSignal = ev.secondaryOnly === true || ev.interOrGeistOnly === true;
+      const heroFamStr = String(ev.resolvedHeroFam || ev.heroFam || '')
+        .toLowerCase()
+        .replace(/['"]/g, '')
+        .trim();
+      const impliedInterOrGeistOnly =
+        ev.interOrGeistOnly === undefined &&
+        ev.secondaryOnly === undefined &&
+        Boolean(heroFamStr) &&
+        (heroFamStr.startsWith('inter') || heroFamStr.startsWith('geist'));
+      const requiresCoSignal =
+        ev.secondaryOnly === true || ev.interOrGeistOnly === true || impliedInterOrGeistOnly;
       if (!requiresCoSignal) return [];
       const otherScoredTriggered = patterns.some(
         (p) => p.id !== 'slop_fonts' && p.triggered && (effectiveWeights.get(p.id) ?? 0) > 0
@@ -299,7 +314,7 @@ export const POST_PASS_RULES: PostPassRule[] = [
   {
     id: 'overlapping_evidence_dedup',
     description:
-      'Deduplicate score contribution when two triggered patterns cite identical DOM nodeIds (FIX-19)',
+      'Deduplicate score contribution when two triggered patterns share >= 2 DOM nodeIds covering >= 50% of the smaller pattern (FIX-19); a single incidental shared node keeps both weights',
     apply(patterns, effectiveWeights) {
       const adjustments: ScoreAdjustment[] = [];
       const triggeredWithNodes = patterns.filter(
@@ -313,28 +328,39 @@ export const POST_PASS_RULES: PostPassRule[] = [
           const a = triggeredWithNodes[i];
           const b = triggeredWithNodes[j];
           const nodesA = new Set<string>(a.evidence.nodeIds);
-          const sharedNodes = (b.evidence.nodeIds as string[]).filter((n) => nodesA.has(n));
-          if (sharedNodes.length === 0) continue;
+          const nodesB = new Set<string>(b.evidence.nodeIds);
+          const sharedNodes = Array.from(nodesB).filter((n) => nodesA.has(n));
+          const minSize = Math.min(nodesA.size, nodesB.size);
+          const overlapRatio = minSize > 0 ? sharedNodes.length / minSize : 0;
+          // Partial-overlap threshold: require >= 2 shared nodes AND >= 50% of the smaller pattern.
+          // A single incidental shared node keeps both weights in full.
+          if (sharedNodes.length < 2 || overlapRatio < 0.5) continue;
           const wA = effectiveWeights.get(a.id) ?? 0;
           const wB = effectiveWeights.get(b.id) ?? 0;
           const target = wA >= wB ? b : a;
           const targetWeight = effectiveWeights.get(target.id) ?? 0;
+          const aLabel = a.label || PATTERNS_BY_ID.get(a.id)?.label || a.id;
+          const bLabel = b.label || PATTERNS_BY_ID.get(b.id)?.label || b.id;
           if (targetWeight > 0) {
             effectiveWeights.set(target.id, 0);
             adjustments.push({
               ruleId: 'overlapping_evidence_dedup',
               targetPatternId: target.id,
               delta: -targetWeight,
-              reason: `Overlapping DOM evidence with ${target.id === a.id ? b.id : a.id}`,
+              reason: `Overlapping DOM evidence between ${aLabel} (${a.id}) and ${bLabel} (${b.id})`,
               sharedNodes,
+              patternIds: [a.id, b.id],
+              labels: [aLabel, bLabel],
             });
           } else {
             adjustments.push({
               ruleId: 'overlapping_evidence_dedup',
               targetPatternId: target.id,
               delta: 0,
-              reason: `Overlapping DOM evidence with ${target.id === a.id ? b.id : a.id}`,
+              reason: `Overlapping DOM evidence between ${aLabel} (${a.id}) and ${bLabel} (${b.id})`,
               sharedNodes,
+              patternIds: [a.id, b.id],
+              labels: [aLabel, bLabel],
             });
           }
         }
@@ -348,14 +374,28 @@ export const POST_PASS_RULES: PostPassRule[] = [
 // Pure function so it's safe to call from any runtime.
 export function scorePatterns(
   patternResults: any[] = [],
-  opts: { postPassRules?: PostPassRule[]; coOccurrenceStats?: Record<string, any> } = {}
+  opts: {
+    postPassRules?: PostPassRule[];
+    coOccurrenceStats?: Record<string, any>;
+    typicalityVector?: number[];
+    typicalityReference?: number[][] | null;
+  } = {}
 ) {
   // Exclude craft checks if ever passed into scorePatterns (F-00 hard rule).
   const designInputs = (patternResults || []).filter((p) => !CRAFT_CHECK_IDS.has(p?.id));
 
   const enriched = designInputs.map((p) => {
     const def = PATTERNS_BY_ID.get(p.id);
-    const ruleStatus = p.ruleStatus || (def ? def.status : undefined) || 'active';
+    const callerOverrodeWeight =
+      typeof p.weight === 'number' &&
+      p.weight > 0 &&
+      p.status !== 'review' &&
+      p.ruleStatus !== 'review' &&
+      def &&
+      def.status === 'review' &&
+      p.weight !== def.weight;
+    const ruleStatus =
+      p.ruleStatus || (callerOverrodeWeight ? 'active' : def ? def.status : undefined) || 'active';
     const hasError = Boolean(p.evidence?.error || p.status === 'unknown');
     const isReview =
       p.status === 'review' ||
@@ -372,6 +412,7 @@ export function scorePatterns(
         : 'pass';
     return {
       ...p,
+      label: p.label || def?.label || p.id,
       status,
       ruleStatus,
       evidenceGrade: p.evidenceGrade ?? def?.evidenceGrade ?? null,
@@ -438,6 +479,12 @@ export function scorePatterns(
     }))
   );
 
+  // D-11 (#250): Typicality stays off the scored path and defaults to null when no licensed reference is loaded.
+  const typicality =
+    opts.typicalityVector && opts.typicalityReference
+      ? computeDesignTypicality(opts.typicalityVector, opts.typicalityReference)
+      : null;
+
   return {
     evidence,
     score: clamped,
@@ -452,6 +499,7 @@ export function scorePatterns(
     coverage,
     adjustments,
     confidence,
+    typicality,
     definitionsVersion: DEFINITIONS_VERSION,
   };
 }
