@@ -106,12 +106,17 @@ export function buildResultView(slim: any) {
       rule: FIXES[t.id].rule,
     }));
 
+  const flaggedTotal = slim?.patternsFlagged ?? triggered.length;
   return {
     triggered,
     categories,
     fixes,
-    flaggedTotal: slim?.patternsFlagged ?? triggered.length,
+    flaggedTotal,
     patternsTotal: slim?.patternsTotal ?? PATTERNS.length,
+    // A record that reports flagged patterns but carries no per-pattern list (e.g.
+    // a benchmark-corpus fallback) cannot be broken down: rendering its empty list
+    // would claim every category is clean. Callers show "unavailable" instead.
+    breakdownAvailable: !(flaggedTotal > 0 && triggered.length === 0),
   };
 }
 
@@ -121,6 +126,9 @@ export function buildResultView(slim: any) {
 export function assembleFixPrompt(slim: any, view: any) {
   const url = slim.finalUrl || slim.url || `https://${slim.domain}`;
   const sysDrift = slim.system?.drift || [];
+  if (view.breakdownAvailable === false && !sysDrift.length) {
+    return `${slim.domain} scored ${slim.score}/100 (tier ${slim.tier}) on the AI-design-slop detector, flagging ${view.flaggedTotal} of ${view.patternsTotal} patterns. The per-pattern breakdown for this scan was not saved; rescan ${url} (or run \`npx slop-detect ${url} --fix\`) to get the fix prompt.`;
+  }
   if (!view.fixes.length && !sysDrift.length) {
     return `${slim.domain} scored ${slim.score}/100 (tier ${slim.tier}) on the AI-design-slop detector and triggered 0 of ${view.patternsTotal} patterns. Nothing to fix on the design axis.`;
   }
@@ -199,7 +207,8 @@ export const RESULT_CSS = `
 
   /* category overview bars */
   .cbars{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
-  .cbar-item{cursor:pointer;padding:6px 8px;border-radius:4px;transition:background var(--t)}
+  .cbar-item{display:block;width:100%;text-align:left;background:transparent;border:0;font:inherit;color:inherit;cursor:pointer;padding:6px 8px;border-radius:4px;transition:background var(--t)}
+  .cbar-item > span{display:block}
   .cbar-item:hover{background:var(--bg-2)}
   .cbar-track{height:8px;border-radius:4px;background:var(--track);overflow:hidden}
   .cbar-fill{height:100%;border-radius:4px;transition:width 600ms cubic-bezier(.2,.7,.2,1)}
@@ -362,6 +371,8 @@ export function resultScript(opts: {
   fixPrompt?: string;
   badgeMd?: string;
   domain?: string;
+  /** The scanned address (finalUrl || url) — the live AEO probe checks THIS page. */
+  aeoUrl?: string;
   claim?: boolean;
 }) {
   const j = jsonForScript;
@@ -373,6 +384,7 @@ export function resultScript(opts: {
   var SHARE_TEXT=${j(opts.shareText)};
   var SHARE_URL=${j(opts.shareUrl)};
   var DOMAIN=${j(opts.domain || '')};
+  var AEO_URL=${j(opts.aeoUrl || (opts.domain ? 'https://' + opts.domain : ''))};
   var sx=document.getElementById('shareX');
   if(sx)sx.addEventListener('click',function(){window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(SHARE_TEXT)+'&url='+encodeURIComponent(SHARE_URL),'_blank','noopener');});
   var sc=document.getElementById('copyLink');
@@ -429,14 +441,51 @@ export function resultScript(opts: {
     });
   });
 
+  // /api/aeo is gated as a scan, so same-origin browser calls need a fresh,
+  // single-use Turnstile token (as the landing-page scanner sends). The widget is
+  // loaded on demand and removed after each token so a re-run gets a new one.
+  // Resolves null when Turnstile is unavailable; the server decides if that's ok.
+  function turnstileToken(){
+    return new Promise(function(resolve){
+      var host=document.getElementById('aeoTurnstile');
+      var done=false,wid=null,timer=null;
+      function finish(t){if(done)return;done=true;if(timer)clearTimeout(timer);try{if(wid!==null&&window.turnstile)window.turnstile.remove(wid);}catch(_){}wid=null;resolve(t||null);}
+      if(!host){finish(null);return;}
+      timer=setTimeout(function(){finish(null);},8000);
+      function render(){
+        if(done)return; // timed out before the script loaded: never leave a stray widget
+        try{
+          wid=window.turnstile.render(host,{
+            sitekey:window.__TURNSTILE_SITEKEY||'0x4AAAAAADWirXpm1gXBhB5E',
+            theme:'light',appearance:'interaction-only',
+            callback:function(t){finish(t);},
+            'error-callback':function(){finish(null);}
+          });
+        }catch(_){finish(null);}
+      }
+      if(window.turnstile){render();return;}
+      var s=document.createElement('script');
+      s.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      s.async=true;
+      s.onload=function(){if(window.turnstile)render();else finish(null);};
+      s.onerror=function(){finish(null);};
+      document.head.appendChild(s);
+    });
+  }
+
   var aeoBtn=document.getElementById('runAeoBtn');
-  if(aeoBtn&&DOMAIN){
+  if(aeoBtn&&AEO_URL){
     aeoBtn.addEventListener('click',function(){
       aeoBtn.disabled=true;aeoBtn.textContent='Probing AEO…';
-      fetch('/api/aeo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:'https://'+DOMAIN})})
+      turnstileToken()
+        .then(function(token){
+          var h={'Content-Type':'application/json'};
+          if(token)h['X-Turnstile-Token']=token;
+          return fetch('/api/aeo',{method:'POST',headers:h,body:JSON.stringify({url:AEO_URL})});
+        })
         .then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d};});})
         .then(function(res){
-          if(!res.ok||!res.d||!Array.isArray(res.d.checks))throw new Error((res.d&&res.d.error)||'AEO probe failed');
+          if(!res.ok||!res.d||!Array.isArray(res.d.checks))throw new Error((res.d&&(res.d.message||res.d.error))||'AEO probe failed');
           var d=res.d;
           var col=d.score>=80?'var(--clean-text)':d.score>=50?'var(--mild-text)':'var(--heavy-text)';
           var av=document.getElementById('aeoAxisVal');if(av){av.textContent=d.score+'/100';av.style.color=col;}
@@ -448,7 +497,8 @@ export function resultScript(opts: {
             var m=row.querySelector('.aeo-mark');
             if(m){m.textContent=chk.passed?'✓':'✗';m.style.color=chk.passed?'var(--clean-text)':'var(--heavy-text)';}
             var det=row.querySelector('.aeo-detail');
-            if(det&&chk.detail){det.textContent=chk.detail;det.hidden=false;}
+            var why=chk.passed?'':(chk.message||chk.detail||'');
+            if(det){det.textContent=why;det.hidden=!why;}
           });
           var foot=document.getElementById('aeoFoot');
           if(foot)foot.textContent='Evaluated live in '+((d.durationMs||0)/1000).toFixed(1)+'s · '+d.passed.length+'/'+d.checks.length+' checks passed.';
@@ -570,18 +620,43 @@ export function CategoryBars({ categories }: { categories: any[] }) {
   return (
     <div class="cbars">
       {categories.map((c) => (
-        <div class="cbar-item" data-cat-jump={c.key} title={`Jump to ${c.label} breakdown`}>
-          <div
-            class="cbar-track"
-            role="img"
-            aria-label={`${c.label}: ${c.cleanPct}% clean${c.flagged ? `, ${c.flagged} flagged` : ''}`}
-          >
-            <div class="cbar-fill" style={`width:${c.cleanPct}%;background:${tierFill(c.tier)}`} />
-          </div>
-          <div class="cbar-name">{c.label}</div>
-          <div class="cbar-sub">{c.flagged ? `+${c.weight} · ${c.flagged} flagged` : 'clean'}</div>
-        </div>
+        <button
+          type="button"
+          class="cbar-item"
+          data-cat-jump={c.key}
+          aria-controls={`bd-${c.key}`}
+          aria-label={`${c.label}: ${c.cleanPct}% clean${c.flagged ? `, ${c.flagged} flagged` : ''}. Jump to the ${c.label} breakdown`}
+          title={`Jump to ${c.label} breakdown`}
+        >
+          <span class="cbar-track" aria-hidden="true">
+            <span
+              class="cbar-fill"
+              style={`display:block;width:${c.cleanPct}%;background:${tierFill(c.tier)}`}
+            />
+          </span>
+          <span class="cbar-name">{c.label}</span>
+          <span class="cbar-sub">
+            {c.flagged ? `+${c.weight} · ${c.flagged} flagged` : 'clean'}
+          </span>
+        </button>
       ))}
+    </div>
+  );
+}
+
+// 4b. Breakdown unavailable: the record reports flagged patterns but did not keep
+// which ones. Say so plainly instead of drawing every category as clean.
+export function BreakdownUnavailable({ slim, origin = '' }: { slim: any; origin?: string }) {
+  return (
+    <div class="bd-head" style="display:block">
+      <SectionLedger tag="" label="category overview" />
+      <p class="sa-absent" style="margin-top:12px">
+        {slim.patternsFlagged} of {slim.patternsTotal} patterns flagged on record. The per-pattern
+        and per-category breakdown was not saved for this scan.{' '}
+        <a class="bs-action" href={`${origin}/?url=${encodeURIComponent(slim.domain)}`}>
+          Rescan {slim.domain} for the full breakdown →
+        </a>
+      </p>
     </div>
   );
 }
@@ -778,6 +853,7 @@ export function SystemAeoCards({ slim }: { slim: any }) {
             <span class="aeo-w">+{chk.weight}</span>
           </div>
         ))}
+        <div id="aeoTurnstile" />
         <p class="aeo-foot" id="aeoFoot">
           Eight checks, weighted to 100. Evaluated live per scan. Run a fresh scan to see pass/fail.
         </p>
@@ -1083,7 +1159,9 @@ export function Analytics({
   return (
     <div class="analytics">
       {showTime ? <ScoreOverTime points={points} /> : null}
-      <Radar categories={categories} tier={slim.tier} catAvg={catAvg} catAvgCount={catAvgCount} />
+      {categories.length ? (
+        <Radar categories={categories} tier={slim.tier} catAvg={catAvg} catAvgCount={catAvgCount} />
+      ) : null}
       {showNeighbors ? (
         <Neighbors
           categoryLabel={neighbors!.categoryLabel}
@@ -1100,13 +1178,36 @@ export function Analytics({
 
 // 9. Fixes panel: a fix card (why/fix/rule) per heaviest tell, a copy-prompt button
 // and the CLI hint; the clean empty state when nothing triggered.
-export function FixesPanel({ fixes, domain }: { fixes: any[]; domain: string }) {
+export function FixesPanel({
+  fixes,
+  domain,
+  driftCount = 0,
+  breakdownAvailable = true,
+}: {
+  fixes: any[];
+  domain: string;
+  /** Design-system drift items — the fix prompt covers them even with 0 tells. */
+  driftCount?: number;
+  /** false when the record flags patterns but carries no per-pattern list. */
+  breakdownAvailable?: boolean;
+}) {
+  const hasPrompt = fixes.length > 0 || driftCount > 0;
   return (
     <div class="fixes" id="fixes">
       <h2 class="fixes-h">You've seen the score. Now fix it.</h2>
-      {fixes.length ? (
+      {!breakdownAvailable && !hasPrompt ? (
+        <p class="fixes-sub">
+          The per-pattern breakdown for this scan was not saved, so there are no fix cards to show.
+          Rescan {domain} or run <code>npx slop-detect {domain} --fix</code> for the full fix
+          prompt.
+        </p>
+      ) : hasPrompt ? (
         <>
-          <p class="fixes-sub">{fixes.length} tells, heaviest first.</p>
+          <p class="fixes-sub">
+            {fixes.length
+              ? `${fixes.length} tells, heaviest first.`
+              : `No design or copy tells. ${driftCount} design-system drift ${driftCount === 1 ? 'item' : 'items'} to align.`}
+          </p>
           {fixes.map((f) => (
             <div class="fix">
               <div class="fix-head">
