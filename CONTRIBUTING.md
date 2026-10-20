@@ -195,7 +195,7 @@ Publish path is **tag-gated** `.github/workflows/publish.yml`, not `changeset pu
 
 1. Land version bumps on `main` (changesets may draft them; the three publishable packages are a **fixed** group so they cannot drift).
 2. Confirm `packages/{core,cli,mcp}/package.json` versions are identical and CHANGELOG is updated.
-3. Cut `vX.Y.Z` matching that version. The workflow publishes `@slop-detect/core` → `slop-detect` → `slop-detect-mcp` and fails if `NPM_TOKEN` is missing or a package version does not match the tag.
+3. Cut `vX.Y.Z` matching that version. The workflow publishes `slop-detect-core` (the `@slop-detect/core` workspace, renamed by its `prepack`; the scoped name is never published) → `slop-detect` → `slop-detect-mcp` and fails if `NPM_TOKEN` is missing or a package version does not match the tag.
 
 Do not run `bun run release` — it exits non-zero on purpose.
 

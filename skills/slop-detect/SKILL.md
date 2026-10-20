@@ -135,14 +135,14 @@ npx slop-detect https://example.com --fix-prompt > fix.md
 npx slop-detect https://example.com --remote --json
 ```
 
-### 4. Programmatic embed (`@slop-detect/core`)
+### 4. Programmatic embed (`slop-detect-core`)
 
 ```bash
-npm install @slop-detect/core
+npm install slop-detect-core
 ```
 
 ```js
-import { PATTERNS, scorePatterns, generateDesignMd, buildFixPrompt } from '@slop-detect/core';
+import { PATTERNS, scorePatterns, generateDesignMd, buildFixPrompt } from 'slop-detect-core';
 ```
 
 ## Output format the user wants to see

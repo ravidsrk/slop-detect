@@ -1,32 +1,29 @@
-# @slop-detect/core
+# slop-detect-core
 
 > Pure four-axis detection engine for AI-design-slop patterns, LLM copy tells, `DESIGN.md` system compliance, and AEO crawler readiness. Runtime-agnostic — runs in Node, Cloudflare Workers, or the browser.
 
 This is the heart of [`slop-detect`](https://github.com/ravidsrk/slop-detect). It exports the full set of rule definitions (27 design patterns + 9 copy patterns + 8 AEO checks + `DESIGN.md` parser/comparator as of `definitions@2026.10`), the scoring functions, remediation prompt builder, and the DOM-side page evaluation script — without ever touching a browser directly. You bring the runner; this package brings the rules.
 
+> **Package name:** published to npm as **`slop-detect-core`**. Inside this monorepo the workspace is named `@slop-detect/core`; that scoped name is not published to npm.
+
 ## Install
 
 ```bash
-npm install @slop-detect/core
+npm install slop-detect-core
 ```
 
 ## Usage
 
 ```ts
-import {
-  PATTERNS,
-  buildPageEvaluateScript,
-  assembleScanResult,
-  scoreAeo,
-  checkDesignSystem,
-} from '@slop-detect/core';
+import { PATTERNS, buildPageEvaluateScript, assembleScanResult } from 'slop-detect-core';
 
 // 1) Drive your runner (Playwright / Puppeteer / Cloudflare Browser Rendering)
-//    to execute the unified page-eval script in the target page's DOM:
-const script = buildPageEvaluateScript(PATTERNS, { includeCopy: true, includeSystem: true });
+//    to execute the page-eval script in the target page's DOM. The copy-axis
+//    text context is always extracted; `includeSystem` adds the DESIGN.md pass.
+const script = buildPageEvaluateScript(PATTERNS, { includeSystem: true });
 const raw = await page.evaluate(script);
 
-// 2) Assemble the multi-axis scan result (design + copy + grade + verdict):
+// 2) Assemble the scored scan result (design + optional copy axis, grade, verdict):
 const result = assembleScanResult(raw, {
   url: 'https://example.com',
   finalUrl: page.url(),
@@ -34,7 +31,8 @@ const result = assembleScanResult(raw, {
   patterns: PATTERNS,
 });
 
-console.log(`${result.score}/100 — ${result.tier} (${result.grade})`);
+if (result.blocked) console.log(`Not scored: ${result.error}`);
+else console.log(`${result.score}/100 — ${result.tier} (${result.grade})`);
 ```
 
 ## Exports
@@ -45,18 +43,20 @@ console.log(`${result.score}/100 — ${result.tier} (${result.grade})`);
 | `PATTERNS` | Array of 27 design rule definitions (`{ id, label, short, category, weight, extract }`) |
 | `COPY_PATTERNS` | Array of 9 prose/copy rule definitions (`{ id, label, short, weight, match }`) |
 | `AEO_CHECKS` | Array of 8 Answer Engine Optimization checks (`html.reachable`, `bot.notBlocked`, `robots.aiAllowed`, `html.indexable`, `md.twin`, `html.linkAlternate`, `site.llmsTxt`, `html.vary`) |
-| `scorePatterns(results, preset?)` | Pure design-axis scorer returning `{ score, tier, patternsFlagged, patternsTotal }` |
-| `scoreCopy(extractedCopy)` | Pure copy-axis scorer returning `{ axis, score, tier, grade, patternsFlagged, patterns }` |
-| `combineAxes(axesMap)` | Combines design + copy axes into `{ unifiedScore, unifiedTier, unifiedGrade, dirtyAxes }` |
-| `scoreAeo(signals)` | Pure AEO scorer returning `{ score, maxScore, pct, tier, grade, passed, total, checks, recommendations }` |
-| `parseDesignMd(markdown)` | Parses a Google Labs `DESIGN.md` specification into normalized tokens |
-| `checkDesignSystem(tokens, domSignals)` | Evaluates live DOM signals against declared `DESIGN.md` tokens (`Aligned` / `Drifting` / `Off-system`) |
-| `PRESETS` / `getPatterns(preset)` | Named pattern subsets (`full`, `strict`, `marketing`, `minimal`) |
+| `scorePatterns(patternResults)` | Pure design-axis scorer returning `{ score, tier, grade, verdict, patternsFlagged, patternsTotal, definitionsVersion }` (filter with `applyPreset` first for a preset) |
+| `scoreCopy(textContext)` | Pure copy-axis scorer returning `{ axis, score, tier, grade, patternsFlagged, patternsTotal, wordCount, thin, patterns }` |
+| `combineAxes(axesMap)` | Combines design + copy axes into `{ unifiedScore, unifiedTier, unifiedGrade, axesScored, dirtyAxes }` |
+| `runAeoChecks(url, opts?)` / `scoreAeo(url, opts?)` | **Async, performs network fetches** (`opts.fetchImpl`, `userAgent`, `timeoutMs`, `isUrlAllowed`). Resolves to `{ axis, url, mdUrl, score, maxScore, ratio, tier, requiredFailed, recommendedFailed, passed, failed, checks, durationMs }`; each check is `{ id, label, severity, weight, passed, message }` |
+| `parseDesignMd(markdown)` | Parses a Google Labs `DESIGN.md` specification into normalized tokens (or `null`) |
+| `scoreSystemCompliance(parsed, observed)` / `checkDesignSystem(...)` | Scores the observed `systemContext` from the page-eval script against `parseDesignMd()` output (`Aligned` / `Drifting` / `Off-system`) |
+| `generateDesignMd(observed, opts?)` | Bootstraps a `DESIGN.md` from an observed `systemContext` (every observed CTA fill, heading colour, font and radius is kept) |
+| `PRESETS` / `getPatterns(preset)` / `applyPreset(patterns, preset)` | Named pattern subsets (`full`, `strict`, `marketing`, `minimal`); `getPatterns('strict')` filters the built-in `PATTERNS` |
 | `compileRule(rule)` / `validateRule(rule)` | Declarative JSON/object rule compiler and validator |
 | `FIXES` / `buildFixPrompt(scanResult)` | Per-pattern remediation recipes and markdown fix-prompt generator |
-| `scoreToGrade(score)` / `buildVerdict(result)` | Letter grade (`A+` to `F`) and human-readable one-line verdict |
-| `buildPageEvaluateScript(patterns, opts)` | Builds the self-contained browser evaluation script |
-| `assembleScanResult(raw, opts)` | Assembles raw DOM signals into the canonical `POST /api/scan` response shape |
+| `scoreToGrade(score)` / `buildVerdict(score, tier, triggered?)` | Letter grade (`A+` to `F`) and human-readable one-line verdict |
+| `buildPageEvaluateScript(patterns?, opts?)` | Builds the self-contained browser evaluation script for `patterns` (default: all); `opts.includeSystem` adds the `DESIGN.md` observation pass. Also accepts the `buildPageScript(opts)` form |
+| `assembleScanResult(raw, opts?)` | Scores the `page.evaluate` payload: `opts.url`, `finalUrl`, `axes` (`['design']` default, `['design','copy']`, `'all'`), `patterns` subset, `preset`. Returns the design summary + `patterns`, `patternsErrored`, and with copy: `axes` + `unifiedScore/Tier/Grade`. Bot walls / empty renders return `{ blocked: true, score: null, code, error, hint }` |
+| `assemblePatternResults(signals)` / `detectBlocked(raw)` | Lower-level building blocks used by the reference runners |
 | `createColorHelpers()` / `createVisibilityHelpers()` | Color & DOM visibility predicates used inside `extract(ctx)` |
 | `isSlopFont` / `isAccentSerif` | Font-family classifiers |
 

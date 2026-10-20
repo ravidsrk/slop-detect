@@ -66,8 +66,10 @@
         "slop-detect": "./dist/bin/slop.js",
       },
       "dependencies": {
-        "@slop-detect/core": "workspace:*",
         "playwright": "1.60.0",
+      },
+      "devDependencies": {
+        "@slop-detect/core": "workspace:*",
       },
     },
     "packages/core": {

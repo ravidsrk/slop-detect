@@ -737,7 +737,7 @@ export function buildFixPrompt(result) {
   const aeoFailed =
     (result.aeo && Array.isArray(result.aeo.failed) && result.aeo.failed) ||
     (result.aeo && Array.isArray(result.aeo.checks)
-      ? result.aeo.checks.filter((c) => c.status === 'fail')
+      ? result.aeo.checks.filter((c) => c.passed === false || c.status === 'fail')
       : []);
 
   if (triggered.length === 0 && systemDrift.length === 0 && aeoFailed.length === 0) {
@@ -794,7 +794,7 @@ ${alts}
       aeoFailed
         .map(
           (c) =>
-            `- **\`${c.id}\`** (${c.label || c.id}, ${c.weight} pts${c.required ? ', required' : ''}): ${c.fix || c.detail || 'Add the missing signal.'}`
+            `- **\`${c.id}\`** (${c.label || c.id}, ${c.weight} pts${c.severity === 'required' || c.required ? ', required' : ''}): ${c.fix || c.message || c.detail || 'Add the missing signal.'}`
         )
         .join('\n')
     : '';

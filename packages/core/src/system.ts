@@ -582,6 +582,21 @@ export function generateDesignMd(
     }
   }
   const primaryCta = ctaHexes[0] || headingHex;
+  // Every distinct observed heading colour beyond the first. The scorer checks
+  // each heading against the palette, so dropping any of them would let a page
+  // drift from the DESIGN.md generated from that very page.
+  const extraHeadingHexes: string[] = [];
+  for (const h of Array.isArray(obs.headings) ? obs.headings.slice(1) : []) {
+    if (!h?.color) continue;
+    const hx = toHexColor(h.color);
+    if (
+      hx &&
+      !colorsMatch(headingHex, hx, 6) &&
+      !extraHeadingHexes.some((existing) => colorsMatch(existing, hx, 6))
+    ) {
+      extraHeadingHexes.push(hx);
+    }
+  }
 
   // 3. Collect corner radii scale.
   const radii = Array.isArray(obs.radii)
@@ -599,7 +614,9 @@ export function generateDesignMd(
     `  surface: "${surfaceHex}"`,
     `  ink: "${headingHex}"`,
     `  primary: "${primaryCta}"`,
-    ...ctaHexes.slice(1, 5).map((hx, idx) => `  accent_${idx + 1}: "${hx}"`),
+    // All observed CTA fills — the CTA check fails on a single unlisted colour.
+    ...ctaHexes.slice(1).map((hx, idx) => `  accent_${idx + 1}: "${hx}"`),
+    ...extraHeadingHexes.map((hx, idx) => `  ink_${idx + 2}: "${hx}"`),
   ];
 
   const typoLines = [
@@ -607,10 +624,10 @@ export function generateDesignMd(
     `    fontFamily: "${h1Fam}"`,
     `  body:`,
     `    fontFamily: "${bodyFam}"`,
-    ...extraFonts.slice(0, 4).map((f, idx) => `  font_${idx + 1}:\n    fontFamily: "${f}"`),
+    ...extraFonts.map((f, idx) => `  font_${idx + 1}:\n    fontFamily: "${f}"`),
   ];
 
-  const roundedLines = (radii.length ? radii.slice(0, 6) : [4, 8]).map(
+  const roundedLines = (radii.length ? radii : [4, 8]).map(
     (r, i) => `  ${radiusKeys[i] || `r${i + 1}`}: ${r}px`
   );
 

@@ -90,8 +90,9 @@ which exercises both runners end-to-end.
   hardcode it in UI/docs.
 - Tiers (design): Clean 0–9, Mild 10–27, Heavy 28+.
 - AEO polarity is inverted vs slop: higher AEO is better, lower slop is better.
-- Publish order when core changes: `@slop-detect/core` → `slop-detect` (CLI) →
-  `slop-detect-mcp`. `apps/web` deploys to Cloudflare Pages on tag.
+- Publish order when core changes: `slop-detect-core` (npm name of the
+  `@slop-detect/core` workspace — the scoped name is not on npm) → `slop-detect`
+  (CLI) → `slop-detect-mcp`. `apps/web` deploys to Cloudflare Pages on tag.
 - The whole brand is deliberately anti-slop: dark, monospace, no gradients/glow/purple.
 
 ## Roadmap and issues
