@@ -175,9 +175,9 @@ function gradeRanges() {
   return out;
 }
 const TIER_COLUMNS = [
-  { tier: 'Clean', range: '0-9', blurb: 'A point of view. The slop fingerprint is absent.' },
-  { tier: 'Mild', range: '10-27', blurb: 'Good bones, a few template tells creeping in.' },
-  { tier: 'Heavy', range: '28+', blurb: 'Wears the AI starter kit head to toe.' },
+  { tier: 'Clean', range: '0-9', blurb: 'Few default-template patterns matched.' },
+  { tier: 'Mild', range: '10-27', blurb: 'Matches a few default-template patterns.' },
+  { tier: 'Heavy', range: '28+', blurb: 'Matches many default-template patterns.' },
 ].map((c) => ({ ...c, grades: gradeRanges().filter((g) => g.tier === c.tier) }));
 
 // The 11-item TOC. Each entry is an in-page anchor; the matching <section> uses the
@@ -785,8 +785,9 @@ export async function onRequestGet({ request }) {
             {/* 8. The system axis (DESIGN.md) */}
             <DocSection id="system" tag="05" title="The system axis · DESIGN.md">
               <p>
-                The absolute slop score asks "does this look AI-generated?" The system axis asks the
-                durable question: does the page honor its own declared design system? Point it at a{' '}
+                The absolute slop score measures how many default-template patterns a page matches.
+                The system axis asks the durable question: does the page honor its own declared
+                design system? Point it at a{' '}
                 <a
                   href="https://github.com/google-labs-code/design.md"
                   rel="noopener noreferrer"

@@ -34,6 +34,8 @@ const CATS = [
   { key: 'images', label: 'Imagery' },
 ];
 
+const CALIBRATION_URL = 'https://github.com/ravidsrk/slop-detect/blob/main/CALIBRATION.md';
+
 // Precompute, once, the maximum slop weight each category can contribute and an
 // id → pattern lookup, so the view-model join is O(triggered).
 const CAT_MAX: Record<string, number> = {};
@@ -126,6 +128,9 @@ export function buildResultView(slim: any) {
 export function assembleFixPrompt(slim: any, view: any) {
   const url = slim.finalUrl || slim.url || `https://${slim.domain}`;
   const sysDrift = slim.system?.drift || [];
+  if (slim.withheld) {
+    return `${slim.domain} has ${view.flaggedTotal} of ${view.patternsTotal} patterns flagged on record (public grade and tier withheld — opt-in required, uncalibrated beta). The per-pattern breakdown for this scan was not saved; rescan ${url} (or run \`npx slop-detect ${url} --fix\`) to get the fix prompt.`;
+  }
   if (view.breakdownAvailable === false && !sysDrift.length) {
     return `${slim.domain} scored ${slim.score}/100 (tier ${slim.tier}) on the AI-design-slop detector, flagging ${view.flaggedTotal} of ${view.patternsTotal} patterns. The per-pattern breakdown for this scan was not saved; rescan ${url} (or run \`npx slop-detect ${url} --fix\`) to get the fix prompt.`;
   }
@@ -542,11 +547,21 @@ export function DomainHeader({ slim, monitored = false }: { slim: any; monitored
             {ms}
             {slim.definitionsVersion ? ` · defs ${slim.definitionsVersion}` : ''}
             {monitored ? ' · monitored' : ''}
+            {' · '}
+            <a href={CALIBRATION_URL} target="_blank" rel="noopener noreferrer">
+              uncalibrated beta
+            </a>
           </div>
         </div>
       </div>
       <span class="rh-spacer" />
-      <ScoreTierBadge tier={slim.tier} score={slim.score} grade={slim.grade} />
+      {slim.withheld ? (
+        <span class="stb" title="uncalibrated beta">
+          <span class="stb-meta">uncalibrated beta · opt-in required</span>
+        </span>
+      ) : (
+        <ScoreTierBadge tier={slim.tier} score={slim.score} grade={slim.grade} />
+      )}
     </div>
   );
 }
@@ -561,7 +576,7 @@ export function BigScore({
   rank?: { n: number; of: number; cleanerThanPct: number } | null;
   origin?: string;
 }) {
-  const fg = tierText(slim.tier);
+  const fg = slim.withheld ? 'var(--text-5)' : tierText(slim.tier);
   const actions = [
     { label: 'Fix with AI →', href: '#fixes' },
     { label: 'Get the badge →', href: '#embed' },
@@ -578,21 +593,42 @@ export function BigScore({
           style={`color:${fg}`}
           title="Scale (lower is better): 0–2 A+, 3–5 A, 6–9 A- (Clean 0–9) · 10–14 B+, 15–19 B, 20–23 B-, 24–27 C (Mild 10–27) · 28–33 D+, 34–39 D, 40–100 F (Heavy 28+)"
         >
-          {slim.score}
-          <small>/100</small>
+          {slim.withheld ? (
+            '—'
+          ) : (
+            <>
+              {slim.score}
+              <small>/100</small>
+            </>
+          )}
         </div>
         <div class="bs-meta">
           <div
             class="bs-gt"
             title="Scale (lower is better): 0–2 A+, 3–5 A, 6–9 A- (Clean 0–9) · 10–14 B+, 15–19 B, 20–23 B-, 24–27 C (Mild 10–27) · 28–33 D+, 34–39 D, 40–100 F (Heavy 28+)"
           >
-            <span>Slop score · lower is better</span> · {slim.score} ·{' '}
-            <span class="bs-grade" style={`color:${fg}`}>
-              {slim.grade}
-            </span>{' '}
-            · {slim.tier} · {slim.patternsFlagged}/{slim.patternsTotal} patterns flagged
+            <span>Slop score · lower is better</span> ·{' '}
+            <a href={CALIBRATION_URL} target="_blank" rel="noopener noreferrer">
+              uncalibrated beta
+            </a>
+            {slim.withheld ? (
+              <>
+                {' '}
+                · public grade withheld (opt-in required) · {slim.patternsFlagged}/
+                {slim.patternsTotal} patterns flagged
+              </>
+            ) : (
+              <>
+                {' '}
+                · {slim.score} ·{' '}
+                <span class="bs-grade" style={`color:${fg}`}>
+                  {slim.grade}
+                </span>{' '}
+                · {slim.tier} · {slim.patternsFlagged}/{slim.patternsTotal} patterns flagged
+              </>
+            )}
           </div>
-          {rank ? (
+          {rank && !slim.withheld ? (
             <div class="bs-rank">
               Cleaner than <strong>{rank.cleanerThanPct}%</strong> · rank <strong>#{rank.n}</strong>{' '}
               of {rank.of.toLocaleString('en-US')} scans
@@ -739,17 +775,24 @@ export function AxisStrip({ slim }: { slim: any }) {
   const copy = slim.axes?.copy || null;
   const sys = slim.system || null;
   const cells = [
-    {
-      k: 'design slop · Slop score · lower is better',
-      v: `${slim.score} · ${slim.grade}`,
-      t: slim.tier,
-      color: tierText(slim.tier),
-    },
+    slim.withheld
+      ? {
+          k: 'design slop · Slop score · lower is better',
+          v: 'withheld',
+          t: 'opt-in required (uncalibrated beta)',
+          color: 'var(--text-4)',
+        }
+      : {
+          k: 'design slop · Slop score · lower is better',
+          v: `${slim.score} · ${slim.grade}`,
+          t: `${slim.tier} · uncalibrated beta`,
+          color: tierText(slim.tier),
+        },
     copy
       ? {
           k: 'copy slop · Slop score · lower is better',
           v: `${copy.score}/100`,
-          t: copy.tier,
+          t: `${copy.tier} · uncalibrated beta`,
           color: tierText(copy.tier),
         }
       : {
@@ -762,7 +805,7 @@ export function AxisStrip({ slim }: { slim: any }) {
       ? {
           k: 'system · DESIGN.md · higher is better',
           v: `${sys.score}/100`,
-          t: sys.tier,
+          t: `${sys.tier} · uncalibrated beta`,
           color: systemAxisColor(sys.score),
         }
       : {
@@ -782,7 +825,12 @@ export function AxisStrip({ slim }: { slim: any }) {
   ];
   return (
     <>
-      <div class="axis-note">Slop score · lower is better · system & AEO · higher is better</div>
+      <div class="axis-note">
+        Slop score · lower is better · system & AEO · higher is better ·{' '}
+        <a href={CALIBRATION_URL} target="_blank" rel="noopener noreferrer">
+          uncalibrated beta
+        </a>
+      </div>
       <div class="axes">
         {cells.map((c: any) => (
           <div class="axis">
@@ -1045,34 +1093,67 @@ function Radar({
 
 // Same-category peers from the curated leaderboard corpus. Omitted when the domain
 // is not in the corpus or its business category has fewer than two members.
+// Third-party domains without email-verified directory opt-in never show a grade or tier.
 function Neighbors({
   categoryLabel,
   rows,
   origin,
+  stats = null,
 }: {
   categoryLabel: string;
   rows: any[];
   origin: string;
+  stats?: {
+    count: number;
+    avgScore: number;
+    cleanCount: number;
+    mildCount: number;
+    heavyCount: number;
+  } | null;
 }) {
   return (
     <div class="chart-card">
       <div class="chart-h">{categoryLabel} neighbors</div>
+      {stats ? (
+        <div class="chart-cap" style="margin-bottom:8px">
+          Category aggregate ({stats.count} sites,{' '}
+          <a href={CALIBRATION_URL} target="_blank" rel="noopener noreferrer">
+            uncalibrated beta
+          </a>
+          ): avg <strong>{stats.avgScore}</strong>/100 · {stats.cleanCount} clean ·{' '}
+          {stats.mildCount} mild · {stats.heavyCount} heavy
+        </div>
+      ) : (
+        <div class="chart-cap" style="margin-bottom:8px">
+          Peer grades require owner opt-in (
+          <a href={CALIBRATION_URL} target="_blank" rel="noopener noreferrer">
+            uncalibrated beta
+          </a>
+          )
+        </div>
+      )}
       {rows.map((r) => (
         <a
           class={`nb-row${r.you ? ' nb-you' : ''}`}
           href={`${origin}/score/${encodeURIComponent(r.domain)}`}
         >
-          <span class="nb-rank">#{r.rank}</span>
+          <span class="nb-rank">{r.you || r.listed ? `#${r.rank}` : '—'}</span>
           <LetterAvatar name={r.domain} size={20} />
           <span>
             <div class="nb-name">{r.name}</div>
             <div class="nb-dom">{r.domain}</div>
           </span>
           <span class="nb-score">
-            {r.score}{' '}
-            <span class="nb-grade" style={`color:${tierText(r.tier)}`}>
-              {r.grade}
-            </span>
+            {r.you || r.listed ? (
+              <>
+                {r.score}{' '}
+                <span class="nb-grade" style={`color:${tierText(r.tier)}`}>
+                  {r.grade}
+                </span>
+              </>
+            ) : (
+              <span class="nb-unverified">opt-in required</span>
+            )}
           </span>
         </a>
       ))}
@@ -1167,6 +1248,7 @@ export function Analytics({
           categoryLabel={neighbors!.categoryLabel}
           rows={neighbors!.rows}
           origin={origin}
+          stats={(neighbors as any)?.stats || null}
         />
       ) : null}
       {showDist ? (
@@ -1280,10 +1362,17 @@ export function ShareEmbed({
         </div>
       </div>
       <div class="se-card">
-        <div class="se-title">embed the live badge</div>
-        <div class="se-badge">
-          <LiveBadge tier={slim.tier} grade={slim.grade} score={slim.score} />
+        <div class="se-title">
+          embed the live badge ·{' '}
+          <a href={CALIBRATION_URL} target="_blank" rel="noopener noreferrer">
+            uncalibrated beta
+          </a>
         </div>
+        {!slim.withheld ? (
+          <div class="se-badge">
+            <LiveBadge tier={slim.tier} grade={slim.grade} score={slim.score} />
+          </div>
+        ) : null}
         <pre class="cb cb-wrap" id="badgeMd" title="click to copy">
           <code>{badgeMd}</code>
         </pre>

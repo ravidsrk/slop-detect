@@ -52,7 +52,8 @@ export function badgeSvg(domain, slim) {
       role="img"
       aria-label={name}
     >
-      <title>{name}</title>
+      <title>{`${name} (uncalibrated beta)`}</title>
+      <desc>uncalibrated beta</desc>
       <defs>
         <clipPath id="r">
           <rect x={mx} y={mTop} width={pillW} height={height} rx={radius} />

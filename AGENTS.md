@@ -12,7 +12,7 @@ deterministic, weighted 0–100 measure of the CSS and copy tells that AI page b
 
 ## Using Slop Detector as a tool (not just editing it)
 
-If a user asks "does this page look AI-generated?", "audit this landing page", or
+If a user asks "does this page match default-template patterns?", "audit this landing page", or
 "can AI read/cite my site?", call the tool — don't eyeball the page:
 
 ```bash
@@ -41,7 +41,7 @@ under `apps/`, framework demos under `examples/`, versioned scoring spec under `
 
 ```
 packages/
-├── core/    @slop-detect/core      ← scoring engine (patterns, AEO checks, copy axis)
+├── core/    slop-detect-core       ← scoring engine (workspace @slop-detect/core)
 ├── cli/     slop-detect            ← Playwright runner, the `slop-detect` bin
 ├── mcp/     slop-detect-mcp        ← Model Context Protocol server
 └── action/                         ← GitHub Action wrapper (not on npm)

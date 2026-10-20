@@ -25,6 +25,7 @@ import {
   getWatch,
   getHistory,
   getListing,
+  listAllSites,
   publicWatch,
   getScoreDistribution,
   getCategoryCleanAverages,
@@ -75,7 +76,12 @@ async function loadLeaderboard(request: { url: string }) {
   }
 }
 
-function buildNeighbors(lbData: any, domain: string) {
+function buildNeighbors(
+  lbData: any,
+  domain: string,
+  verifiedDomains: Set<string> = new Set(),
+  includeSelfScore = true
+) {
   const sites = lbData?.sites;
   if (!Array.isArray(sites)) return null;
   const me = sites.find((s: any) => s.domain === domain && s.scored);
@@ -91,17 +97,37 @@ function buildNeighbors(lbData: any, domain: string) {
   const window =
     myRank <= WINDOW ? sorted.slice(0, WINDOW) : [...sorted.slice(0, WINDOW - 1), sorted[myIdx]];
   const categoryLabel = CATEGORY_NAMES[me.category] || me.category;
+  const avgScore =
+    Math.round(
+      (siblings.reduce((sum: number, s: any) => sum + (Number(s.score) || 0), 0) /
+        siblings.length) *
+        10
+    ) / 10;
+  const stats = {
+    count: siblings.length,
+    avgScore,
+    cleanCount: siblings.filter((s: any) => s.tier === 'Clean').length,
+    mildCount: siblings.filter((s: any) => s.tier === 'Mild').length,
+    heavyCount: siblings.filter((s: any) => s.tier === 'Heavy').length,
+  };
   return {
     categoryLabel,
-    rows: window.map((s: any) => ({
-      rank: sorted.findIndex((x: any) => x.domain === s.domain) + 1,
-      name: s.title || s.domain,
-      domain: s.domain,
-      score: s.score,
-      grade: s.grade,
-      tier: s.tier,
-      you: s.domain === domain,
-    })),
+    stats,
+    rows: window.map((s: any) => {
+      const isYou = includeSelfScore && s.domain === domain;
+      const isListed = verifiedDomains.has(s.domain);
+      const showGrade = isYou || isListed;
+      return {
+        rank: showGrade ? sorted.findIndex((x: any) => x.domain === s.domain) + 1 : null,
+        name: s.title || s.domain,
+        domain: s.domain,
+        score: showGrade ? s.score : null,
+        grade: showGrade ? s.grade : null,
+        tier: showGrade ? s.tier : null,
+        you: isYou,
+        listed: isListed,
+      };
+    }),
   };
 }
 
@@ -217,19 +243,29 @@ export async function onRequestGet({ params, request, env }) {
     return htmlResponse(node, { status: 503, cache: 'no-store' });
   }
 
-  const [kvLatest, watch, history, listing, dist, catClean, lbData] = await Promise.all([
-    getLatestForDomain(env.RESULTS, domain).catch(() => null),
-    getWatch(env.RESULTS, domain).catch(() => null),
-    getHistory(env.RESULTS, domain).catch(() => []),
-    getListing(env.RESULTS, domain).catch(() => null),
-    getScoreDistribution(env.RESULTS).catch(() => null),
-    getCategoryCleanAverages(env.RESULTS).catch(() => ({ averages: {}, count: 0 })),
-    loadLeaderboard(request).catch(() => null),
-  ]);
+  const [kvLatest, watch, history, listing, dist, catClean, lbData, listedSites] =
+    await Promise.all([
+      getLatestForDomain(env.RESULTS, domain).catch(() => null),
+      getWatch(env.RESULTS, domain).catch(() => null),
+      getHistory(env.RESULTS, domain).catch(() => []),
+      getListing(env.RESULTS, domain).catch(() => null),
+      getScoreDistribution(env.RESULTS).catch(() => null),
+      getCategoryCleanAverages(env.RESULTS).catch(() => ({ averages: {}, count: 0 })),
+      loadLeaderboard(request).catch(() => null),
+      listAllSites(env.RESULTS)
+        .then((sites) => sites.filter((s: any) => s.listed))
+        .catch(() => []),
+    ]);
+  const pub = watch ? publicWatch(watch, history) : null;
+  const claimed = !!listing;
+  const verifiedDomains = new Set<string>(listedSites.map((s: any) => String(s.domain)));
+  if (claimed) verifiedDomains.add(domain);
+
   const corpusSite =
     !kvLatest && Array.isArray(lbData?.sites)
       ? lbData.sites.find((s: any) => s.domain === domain && s.scored)
       : null;
+  const corpusWithheld = !kvLatest && !!corpusSite && !claimed;
   const latest =
     kvLatest ||
     (corpusSite
@@ -241,18 +277,19 @@ export async function onRequestGet({ params, request, env }) {
           url: corpusSite.url || `https://${domain}`,
           finalUrl: corpusSite.url || `https://${domain}`,
           domain,
-          score: corpusSite.score,
-          grade: corpusSite.grade,
-          tier: corpusSite.tier,
+          score: claimed ? corpusSite.score : null,
+          grade: claimed ? corpusSite.grade : null,
+          tier: claimed ? corpusSite.tier : null,
+          withheld: corpusWithheld,
           patternsFlagged: corpusSite.patternsFlagged ?? 0,
           patternsTotal: PATTERNS.length,
-          verdict: `${domain} scored ${corpusSite.grade} (${corpusSite.score}/100 · ${corpusSite.tier}) on the AI-design-slop benchmark corpus.`,
+          verdict: claimed
+            ? `${domain} matched ${corpusSite.patternsFlagged ?? 0} of ${PATTERNS.length} default-template patterns.`
+            : `Public grade and tier for ${domain} are withheld until the domain owner opts in via email-verified directory listing (uncalibrated beta).`,
           triggered: [],
           createdAt: lbData?.generatedAt || undefined,
         }
       : null);
-  const pub = watch ? publicWatch(watch, history) : null;
-  const claimed = !!listing;
 
   // ── empty state: never-scanned domain (404 + scan CTA) ───────────────────────
   if (!latest) {
@@ -263,7 +300,7 @@ export async function onRequestGet({ params, request, env }) {
             <title>{`${domain} · slop score · slop-detect`}</title>
             <meta
               name="description"
-              content={`No slop scan recorded for ${domain} yet. Scan it to score how AI-generated its landing page looks.`}
+              content={`No slop scan recorded for ${domain} yet. Scan it to check how many default-template patterns its landing page matches.`}
             />
             <link rel="canonical" href={`${ORIGIN}/score/${domain}`} />
           </>
@@ -292,7 +329,7 @@ export async function onRequestGet({ params, request, env }) {
 
   // ── full result ──────────────────────────────────────────────────────────────
   const view = buildResultView(latest);
-  const neighbors = buildNeighbors(lbData, domain);
+  const neighbors = buildNeighbors(lbData, domain, verifiedDomains, !corpusWithheld);
   let catAvg: number[] | null = null;
   if (catClean.count >= 5) {
     const mapped = view.categories.map((c) => catClean.averages[c.key]);
@@ -300,16 +337,19 @@ export async function onRequestGet({ params, request, env }) {
   }
   const pageUrl = `${ORIGIN}/score/${domain}`;
   const ogImg = `${origin}/og/${latest.id}.png`;
-  const title = `${domain} scored ${latest.grade} (${latest.score}/100) on the AI-slop detector`;
+  const title = corpusWithheld
+    ? `${domain} · slop-detect (uncalibrated beta)`
+    : `${domain} scored ${latest.grade} (${latest.score}/100) on the AI-slop detector`;
   const desc =
     latest.verdict ||
     `${latest.patternsFlagged}/${latest.patternsTotal} AI-design-slop patterns triggered.`;
 
   // Peer rank, derived from the same distribution that backs the percentile. Shown
   // only once the corpus is large enough to be meaningful (>= 5 scans).
-  const pct = dist
-    ? percentileFromDistribution(dist, latest.score)
-    : { count: 0, cleanerThanPct: null };
+  const pct =
+    dist && !corpusWithheld
+      ? percentileFromDistribution(dist, latest.score)
+      : { count: 0, cleanerThanPct: null };
   let rank: { n: number; of: number; cleanerThanPct: number } | null = null;
   if (pct.count >= 5 && pct.cleanerThanPct != null) {
     const worse = Math.round((pct.count * pct.cleanerThanPct) / 100);
@@ -332,7 +372,9 @@ export async function onRequestGet({ params, request, env }) {
     dateModified: latest.createdAt || undefined,
   });
 
-  const shareText = `${domain} scored ${latest.grade} (${latest.score}/100) on the AI-design-slop detector. ${latest.verdict || ''}`;
+  const shareText = corpusWithheld
+    ? `${domain} on the AI-design-slop detector (uncalibrated beta).`
+    : `${domain} scored ${latest.grade} (${latest.score}/100) on the AI-design-slop detector. ${latest.verdict || ''}`;
   const badgeMd = `[![slop](${origin}/badge/${domain}.svg)](${pageUrl})`;
   const script = resultScript({
     shareText,

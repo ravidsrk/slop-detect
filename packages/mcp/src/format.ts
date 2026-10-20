@@ -36,7 +36,7 @@ export function formatScan(result) {
   const copyBlock = copyAxis
     ? [
         '',
-        `Copy Axis: ${copyAxis.score}/100 (grade ${copyAxis.grade || '?'} · tier ${copyAxis.tier} · lower is better)`,
+        `Copy Axis: ${copyAxis.score}/100 (grade ${copyAxis.grade || '?'} · tier ${copyAxis.tier} · lower is better · uncalibrated beta)`,
         `Copy patterns flagged: ${copyAxis.patternsFlagged}/${copyAxis.patternsTotal}`,
         copyTriggered.length
           ? copyTriggered.map((p) => `  • ${p.label} (+${p.weight})`).join('\n')
@@ -46,15 +46,15 @@ export function formatScan(result) {
 
   const systemBlock =
     system && system.declared
-      ? `\nSystem Axis (DESIGN.md): ${system.score}/100 (tier ${system.tier} · HIGHER is better)`
+      ? `\nSystem Axis (DESIGN.md): ${system.score}/100 (tier ${system.tier} · HIGHER is better · uncalibrated beta)`
       : null;
 
   const lines = [
     `Grade: ${grade}`,
-    `Score: ${score}/100 (lower is better — 0 = no slop)`,
+    `Score: ${score}/100 (lower is better — 0 = no slop · uncalibrated beta)`,
     `Tier: ${tier}`,
     unifiedScore != null
-      ? `Unified Score: ${unifiedScore}/100 (grade ${unifiedGrade || grade} · tier ${unifiedTier || tier})`
+      ? `Unified Score: ${unifiedScore}/100 (grade ${unifiedGrade || grade} · tier ${unifiedTier || tier} · uncalibrated beta)`
       : null,
     verdict ? `Verdict: ${verdict}` : null,
     title ? `Title: ${title}` : null,
@@ -101,7 +101,7 @@ export function formatSystem(result) {
 
   const lines = [
     `Design-system compliance${sys.name ? ` — "${sys.name}"` : ''}`,
-    `Score: ${sys.score}/100 (HIGHER is better — 100 = fully on-system)`,
+    `Score: ${sys.score}/100 (HIGHER is better — 100 = fully on-system · uncalibrated beta)`,
     `Tier: ${sys.tier} (Aligned ≥80 · Drifting ≥50 · Off-system <50)`,
     sys.source ? `DESIGN.md: ${sys.source}` : null,
     `Checks: ${sys.checksEvaluated} evaluated, ${sys.checksSkipped} skipped (missing data skips — it is never drift)`,
@@ -142,7 +142,7 @@ export function formatAeo(report) {
 
   const lines = [
     `AEO: can AI engines read & cite this page?`,
-    `Score: ${score}/${maxScore} (HIGHER is better — ${maxScore} = fully AI-ready)`,
+    `Score: ${score}/${maxScore} (HIGHER is better — ${maxScore} = fully AI-ready · uncalibrated beta)`,
     `Tier: ${tier}`,
     url ? `Scanned: ${url}` : null,
     '',

@@ -97,7 +97,7 @@ maps to three tiers:
 
 ## A fingerprint, not a verdict
 
-A high score means the page reads as machine-generated, not that it is bad and
+A high score means the page matches many default-template patterns, not that it is bad and
 not that an AI wrote it. Everyone uses AI now. The score measures how generic the
 result reads, nothing about the team behind it. Reproduce any score yourself with
 \`npx slop-detect <url>\`.`,
@@ -118,7 +118,7 @@ year from now.
 
 ## The absolute score is the hook, not the moat
 
-A loud, free "how AI-generated does this look?" grader gets attention while the
+A loud, free default-template pattern grader gets attention while the
 meme is hot. But the rule list is copyable in an afternoon, and the fashion it
 tracks will move. So the absolute score is acquisition, not a durable product.
 

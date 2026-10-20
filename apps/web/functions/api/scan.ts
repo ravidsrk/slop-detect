@@ -299,6 +299,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
       h1: data.h1Text,
       h1Font: data.h1Font,
       preset,
+      calibration: 'uncalibrated-beta',
       ...scoring, // top-level = DESIGN axis (backward-compatible)
       patterns: scored,
       patternsErrored,

@@ -30,7 +30,7 @@ For pure pattern development you don't need Cloudflare — the CLI runs everythi
 
 ```
 packages/
-├── core/    @slop-detect/core    ← rule definitions, scoring, fix recipes
+├── core/    slop-detect-core     ← rule definitions, scoring, fix recipes (workspace @slop-detect/core)
 ├── cli/     slop-detect          ← Playwright runner
 ├── mcp/     slop-detect-mcp      ← MCP server for AI agents
 └── action/                       ← GitHub Action wrapper (not on npm)
@@ -52,7 +52,7 @@ When you change a rule in `packages/core/src/patterns.ts`, both the CLI and the 
 The bar for adding a new pattern is high but not impossible. Convince us with **evidence at scale**:
 
 1. **Find the pattern in the wild.** Show 10+ real landing pages where it appears.
-2. **Confirm AI-tooling correlation.** It must be over-represented in AI-generated pages (Cursor, v0, Lovable, Bolt, GPT image-to-code) versus human-designed ones.
+2. **Confirm template correlation.** It must be over-represented in default-template pages (Cursor, v0, Lovable, Bolt, GPT image-to-code) versus custom-designed ones.
 3. **Write a deterministic detector.** `extract(ctx)` runs in the page's DOM; `detect(signals)` returns true/false. Avoid heuristics that depend on screenshots, ML, or wall-clock timing.
 4. **Assign a weight (1–8).** Justify it relative to the existing 27. Weight 8 is reserved for slam-dunk signals like Inter-font usage and indigo-600 CTAs.
 5. **Write a fix recipe.** Add a `FIXES` entry in `packages/core/src/fixes.ts` with: problem, fix, alternatives, hard rule.
@@ -210,7 +210,7 @@ Use the **Bug Report** issue template. Include:
 
 ## Code of conduct
 
-Be kind. The web we're building tools for is built by humans, and the AI-generated sites we audit are usually first-time builders shipping their first product. Roast the patterns, never the people.
+Be kind. The web we're building tools for is built by humans, and the sites we audit are usually first-time builders shipping their first product. Roast the patterns, never the people.
 
 ## License
 
