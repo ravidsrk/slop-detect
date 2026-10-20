@@ -146,7 +146,16 @@ export async function onRequestGet({ params, request, env }) {
       <section class="rpt-sec">
         <div class={`rpt-cards${monitored ? '' : ' one'}`}>
           <div class="rcard">
-            <div class="rcard-k">design-slop fingerprint</div>
+            <div class="rcard-k">
+              design-slop fingerprint ·{' '}
+              <a
+                href="https://github.com/ravidsrk/slop-detect/blob/main/CALIBRATION.md"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                uncalibrated beta
+              </a>
+            </div>
             <div class="rcard-big" style={`color:${fg}`}>
               {latest?.grade || '—'}
             </div>
@@ -163,7 +172,16 @@ export async function onRequestGet({ params, request, env }) {
           </div>
           {monitored ? (
             <div class="rcard">
-              <div class="rcard-k">design-system compliance</div>
+              <div class="rcard-k">
+                design-system compliance ·{' '}
+                <a
+                  href="https://github.com/ravidsrk/slop-detect/blob/main/CALIBRATION.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  uncalibrated beta
+                </a>
+              </div>
               {sys ? (
                 <>
                   <div class="rcard-big" style={`color:${sysColor}`}>

@@ -1,4 +1,4 @@
-// The 2026 AI-generated-design font fingerprint.
+// Default-template font stack fingerprint.
 // Inter dominates centered hero headlines; Space Grotesk + Instrument Serif +
 // Geist combos signal "tried to look artsy"; Lucide/Iconify default icon sets.
 

@@ -1,6 +1,6 @@
 // The deterministic AI-design-slop patterns.
 //
-// 15 from Adrian Krebs's April 2026 study (adriankrebs.ch/blog/design-slop)
+// 14 from Adrian Krebs's April 2026 study (adriankrebs.ch/blog/design-slop)
 //  1. slop_fonts            — Inter / Space Grotesk / Geist / Instrument Serif
 //  2. purple_accent         — "VibeCode Purple" on filled CTAs
 //  3. gradient_text         — Hero H1 with background-clip:text + gradient
@@ -15,9 +15,9 @@
 // 12. icon_card_grid        — 3+ identical feature cards w/ icon on top
 // 13. numbered_steps        — "1 · 2 · 3" sequence headings
 // 14. stat_banner           — "10k+", "99.9%" big-number row
-// 15. faq_accordion         — <details> or accordion grid in lower half
 //
-// Plus 1 contributed by Meng To (May 2026 27-min tutorial):
+// Plus slop-detect additions:
+// 15. faq_accordion           — <details> or accordion grid in lower half
 // 16. gradient_letter_avatars — Testimonial avatars as gradient + initial
 //
 // 2026.07 — emerging tells as AI builders converged on new defaults:
@@ -26,10 +26,10 @@
 // 19. ai_sparkle_badges    — ✨ / lucide "Sparkles" "AI magic" tells
 //
 // 2026.08 — Tranche A, ported from Impeccable's detector (Apache-2.0,
-// github.com/pbakaus/impeccable). High-prevalence tells we were missing:
-// 20. cream_default_bg     — Warm off-white default page surface (~74%)
-// 21. low_contrast_text    — Body text below WCAG AA contrast floor (90%+)
-// 22. crushed_tracking     — Display type tracked tighter than -0.04em (~76%)
+// github.com/pbakaus/impeccable):
+// 20. cream_default_bg     — Warm off-white default page surface
+// 21. low_contrast_text    — Body text below WCAG AA contrast floor
+// 22. crushed_tracking     — Display type tracked tighter than -0.04em
 // 23. gray_on_color        — Neutral grey text on a chromatic background
 // 24. oversized_hero_h1    — Long headline (≥40 chars) set at ≥72px
 // 25. nested_cards         — Card-like element inside a card-like ancestor
@@ -669,7 +669,7 @@ export const PATTERNS = [
     },
   },
 
-  // ── 16. GRADIENT-LETTER AVATARS (Meng's contribution) ─────────────────────
+  // ── 16. GRADIENT-LETTER AVATARS ───────────────────────────────────────────
   {
     id: 'gradient_letter_avatars',
     label: 'Gradient-letter avatars (testimonial slop)',
@@ -869,8 +869,7 @@ export const PATTERNS = [
 
   // ── 20. CREAM DEFAULT BACKGROUND (2026.08) ────────────────────────────────
   // Ported from Impeccable's cream-palette rule (Apache-2.0). The warm off-white
-  // page background became the reflexive "tasteful" AI surface — Impeccable's
-  // launch data put it at ~74% of generated pages. Distinct from perma_dark_mode
+  // page background is a common default light surface. Distinct from perma_dark_mode
   // (which covers the dark default); this covers the light default.
   {
     id: 'cream_default_bg',
@@ -1005,8 +1004,7 @@ export const PATTERNS = [
 
   // ── 22. CRUSHED LETTER-SPACING (2026.08) ──────────────────────────────────
   // Ported from Impeccable's extreme-negative-tracking rule (Apache-2.0). Display
-  // type pulled tighter than where characters keep their shapes — ~76% of
-  // generated pages per their launch data. Keyed on large text with hard-negative
+  // type pulled tighter than where characters keep their shapes. Keyed on large text with hard-negative
   // tracking (em-relative so it scales with font size).
   {
     id: 'crushed_tracking',

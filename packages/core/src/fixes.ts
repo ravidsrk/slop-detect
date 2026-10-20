@@ -111,7 +111,7 @@ export const FIXES = {
 
   hero_eyebrow_pill: {
     problem:
-      "The 'Now in beta' / 'New: AI-powered' / 'Backed by Y Combinator' rounded pill above the H1 is the most-copied AI template element after the gradient hero. Almost every AI-generated page has one, regardless of whether there's actual news.",
+      "The 'Now in beta' / 'New: AI-powered' / 'Backed by Y Combinator' rounded pill above the H1 is the most-copied default-template element after the gradient hero, regardless of whether there's actual news.",
     fix: "Remove the pill if you don't have specific, time-bound news. If you DO have real news (launch, funding, milestone), integrate it into the H1 itself or use a single text link below the CTA — not a decorative pill.",
     alternatives: [
       'Just remove it',
@@ -149,7 +149,7 @@ export const FIXES = {
 
   icon_card_grid: {
     problem:
-      '3+ identical feature cards, each with a small icon on top, then a 2-3 word title, then a one-sentence description. This is the single most-copied component from Tailwind UI and shadcn. Every AI-generated landing page has one.',
+      '3+ identical feature cards, each with a small icon on top, then a 2-3 word title, then a one-sentence description. This is the single most-copied component from Tailwind UI and shadcn across default-template landing pages.',
     fix: 'Replace the grid with something that shows the actual product. Options: (a) one large annotated product screenshot with callouts, (b) a comparison table, (c) a vertical scrolling list with one row = one feature + real screenshot, (d) a single demo video. If you must keep cards, vary their sizes and use real product imagery instead of generic icons.',
     alternatives: [
       'One annotated product screenshot with feature callouts',
@@ -200,7 +200,7 @@ export const FIXES = {
 
   gradient_letter_avatars: {
     problem:
-      "Small circular avatars with 1-2 initials on a solid or gradient background, used in a testimonial row, signal 'I have no real testimonials'. Meng To called this out specifically in May 2026: 'the AI often will generate these generic letters and backgrounds or gradient to express the customer.'",
+      "Small circular avatars with 1-2 initials on a solid or gradient background, used in a testimonial row, signal 'I have no real testimonials'.",
     fix: "Use real photographs of real people with real names, real job titles, and real company logos. If you don't have real testimonials yet, REMOVE the testimonial section entirely. An empty section is infinitely more honest than fake initials-on-gradient avatars.",
     alternatives: [
       'Real photos + real names + real company logos (with permission)',
@@ -370,7 +370,7 @@ export const FIXES = {
 
   cream_default_bg: {
     problem:
-      "A warm cream/beige page background (light, faintly warm off-white) has become the reflexive 'tasteful' AI surface — it's now the single most common tell, reached for by default when an LLM wants to look 'editorial' or 'premium'. ~74% of generated pages ship it.",
+      "A warm cream/beige page background (light, faintly warm off-white) has become a reflexive default light surface — reached for by default when a template wants to look 'editorial' or 'premium'.",
     fix: "Pick a background that comes from a deliberate palette, not the safe warm off-white. Either go to a true neutral (pure white #fff, or a cool near-white like #fafafa) OR commit to a real brand color. If you want warmth, make it intentional and pair it with a matching accent system — don't let #faf8f3 be the unexamined default.",
     alternatives: [
       'Pure white (#fff) with strong dark text — the cleanest reset',
@@ -383,7 +383,7 @@ export const FIXES = {
 
   low_contrast_text: {
     problem:
-      "Body text that fails the WCAG AA contrast floor (4.5:1 for body, 3:1 for large text) is both an accessibility failure and a reliable AI-build tell — generators reach for light-grey-on-white and mid-grey-on-tinted because it 'looks soft'. 90%+ of generated pages fail it somewhere.",
+      "Body text that fails the WCAG AA contrast floor (4.5:1 for body, 3:1 for large text) is both an accessibility failure and a common default-template pattern — templates often reach for light-grey-on-white and mid-grey-on-tinted because it 'looks soft'.",
     fix: 'Raise text contrast to meet WCAG AA: body copy needs ≥4.5:1 against its actual background, large/bold text ≥3:1. Stop using light greys (#999, #aaa, text-gray-400/500) for real reading text — reserve those for genuinely secondary metadata only. Darken body text toward #1a1a1a on light backgrounds, or lighten to ≥#d4d4d8 on dark.',
     alternatives: [
       'Near-black body text (#1a1a1a–#222) on light backgrounds',
@@ -396,7 +396,7 @@ export const FIXES = {
 
   crushed_tracking: {
     problem:
-      "Display headings pulled tighter than ~-0.04em (crushed negative letter-spacing) is a default 'make it look designed' move that actually costs legibility — characters start colliding and the headline reads as a logo, not a sentence. ~76% of generated pages over-tighten their display type.",
+      "Display headings pulled tighter than ~-0.04em (crushed negative letter-spacing) is a default 'make it look designed' move that actually costs legibility — characters start colliding and the headline reads as a logo, not a sentence.",
     fix: "Back off the negative tracking. Tighten display type optically, not destructively: -0.01em to -0.02em is plenty for large headings on most modern sans faces; many faces need zero. Let the typeface's own spacing do the work — if it looks loose, you probably picked the wrong weight, not the wrong tracking.",
     alternatives: [
       '-0.01em to -0.02em max on large display headings',

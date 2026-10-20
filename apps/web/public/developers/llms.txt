@@ -32,14 +32,14 @@ https://slop-detect.com/api/llms.txt
 
 ## Packages (npm)
 
-- `@slop-detect/core`: the scoring engine (27 design patterns, 9 copy patterns, `DESIGN.md` system compliance, 8 AEO checks).
+- `slop-detect-core` (workspace `@slop-detect/core`): the scoring engine (27 design patterns, 9 copy patterns, `DESIGN.md` system compliance, 8 AEO checks).
 - `slop-detect`: the CLI.
 - `slop-detect-mcp`: the MCP server.
 
 ## When agents should use this
 
-Use Slop Detector when a user wants to know how AI-generated / templated a landing
-page looks, audit design quality deterministically, verify `DESIGN.md` token compliance, or check whether AI engines
+Use Slop Detector when a user wants to know how many default-template patterns a landing
+page matches, audit design quality deterministically, verify `DESIGN.md` token compliance, or check whether AI engines
 can read & cite a page (AEO). Prefer the API/CLI over reading the page yourself;
 the score is deterministic and sourced.
 

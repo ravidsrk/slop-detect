@@ -17,28 +17,44 @@ import {
 const spec = (name) => readFileSync(new URL(`../../../spec/${name}`, import.meta.url), 'utf8');
 const config = JSON.parse(spec('config.json'));
 
-test('spec config counts and versions match the engine', () => {
+test('spec config counts and versions match the engine dynamically', () => {
+  const deriveExpectedCounts = (patterns, copyPatterns, aeoChecks, systemChecks) => ({
+    pattern_count: patterns.length,
+    copy_pattern_count: copyPatterns.length,
+    aeo_check_count: aeoChecks.length,
+    system_check_count: systemChecks.length,
+  });
+  const expected = deriveExpectedCounts(PATTERNS, COPY_PATTERNS, AEO_CHECKS, SYSTEM_CHECKS);
   expect(config.definitions_version).toBe(DEFINITIONS_VERSION);
   expect(config.spec_version).toBe(DEFINITIONS_VERSION);
-  expect(config.pattern_count).toBe(PATTERNS.length);
-  expect(config.copy_pattern_count).toBe(COPY_PATTERNS.length);
-  expect(config.aeo_check_count).toBe(AEO_CHECKS.length);
-  expect(config.system_check_count).toBe(SYSTEM_CHECKS.length);
+  expect(config.pattern_count).toBe(expected.pattern_count);
+  expect(config.copy_pattern_count).toBe(expected.copy_pattern_count);
+  expect(config.aeo_check_count).toBe(expected.aeo_check_count);
+  expect(config.system_check_count).toBe(expected.system_check_count);
+
+  // Adding a pattern changes the expected count without editing the test.
+  const withExtra = deriveExpectedCounts(
+    [...PATTERNS, { id: 'extra_rule' }],
+    COPY_PATTERNS,
+    AEO_CHECKS,
+    SYSTEM_CHECKS
+  );
+  expect(withExtra.pattern_count).toBe(PATTERNS.length + 1);
 });
 
 test('spec design tiers match engine behavior at the boundaries', () => {
   const at = (score) => scorePatterns([{ id: 'x', weight: score, triggered: true }]).tier;
   const t = config.tiers.design;
-  expect(t.clean).toEqual({ min: 0, max: 9 });
-  expect(t.mild).toEqual({ min: 10, max: 27 });
-  expect(t.heavy.min).toBe(28);
+  expect(at(t.clean.min)).toBe('Clean');
   expect(at(t.clean.max)).toBe('Clean');
+  expect(at(t.clean.max + 1)).toBe('Mild');
   expect(at(t.mild.min)).toBe('Mild');
   expect(at(t.mild.max)).toBe('Mild');
+  expect(at(t.mild.max + 1)).toBe('Heavy');
   expect(at(t.heavy.min)).toBe('Heavy');
 });
 
-test('spec catalogue id sets match the engine id sets exactly (both directions)', () => {
+test('spec catalogue id sets and detail headings match the engine id sets exactly (both directions)', () => {
   // Parses the backticked-ID catalogue rows (`| \`id\` | ...`) so a stale
   // spec row (engine id removed/renamed) fails too, not just a missing one.
   const tableIds = (doc) =>
@@ -47,10 +63,49 @@ test('spec catalogue id sets match the engine id sets exactly (both directions)'
       .map((line) => line.match(/^\|\s*`([A-Za-z0-9_.]+)`/)?.[1])
       .filter(Boolean)
       .sort();
-  expect(tableIds(spec('patterns.md'))).toEqual(PATTERNS.map((p) => p.id).sort());
-  expect(tableIds(spec('copy-axis.md'))).toEqual(COPY_PATTERNS.map((p) => p.id).sort());
-  expect(tableIds(spec('aeo.md'))).toEqual(AEO_CHECKS.map((c) => c.id).sort());
-  expect(tableIds(spec('system.md'))).toEqual(SYSTEM_CHECKS.map((c) => c.id).sort());
+  const headingIds = (doc) =>
+    [...doc.matchAll(/^###\s+`?([a-z0-9_.]+)`?(?:\s+\(|$)/gm)].map((m) => m[1]).sort();
+
+  const designIds = PATTERNS.map((p) => p.id).sort();
+  const copyIds = COPY_PATTERNS.map((p) => p.id).sort();
+  const aeoIds = AEO_CHECKS.map((c) => c.id).sort();
+  const systemIds = SYSTEM_CHECKS.map((c) => c.id).sort();
+
+  expect(tableIds(spec('patterns.md'))).toEqual(designIds);
+  expect(headingIds(spec('patterns.md'))).toEqual(designIds);
+  expect(tableIds(spec('copy-axis.md'))).toEqual(copyIds);
+  expect(tableIds(spec('aeo.md'))).toEqual(aeoIds);
+  expect(tableIds(spec('system.md'))).toEqual(systemIds);
+});
+
+test('spec/system.md describes actual per-channel L-infinity color matching, not CIELAB delta-E', () => {
+  const sysDoc = spec('system.md');
+  expect(sysDoc).not.toMatch(/CIELAB|ΔE|delta[- ]?E/i);
+  expect(sysDoc).toMatch(/max\(\|ΔR\|,\s*\|ΔG\|,\s*\|ΔB\|\)/);
+  expect(sysDoc).toMatch(/\b10\b/);
+  expect(sysDoc).toMatch(/exact,?\s*case-insensitive string equality/i);
+});
+
+test('no unsourced prevalence figures or false pattern attributions in patterns.ts, fixes.ts, or spec/patterns.md', () => {
+  const patternsSrc = readFileSync(new URL('../src/patterns.ts', import.meta.url), 'utf8');
+  const fixesSrc = readFileSync(new URL('../src/fixes.ts', import.meta.url), 'utf8');
+  const patternsSpec = spec('patterns.md');
+
+  for (const [label, text] of [
+    ['patterns.ts', patternsSrc],
+    ['fixes.ts', fixesSrc],
+    ['spec/patterns.md', patternsSpec],
+  ]) {
+    expect(text, `${label} must not contain unsourced ~74% claim`).not.toMatch(/~?74%/);
+    expect(text, `${label} must not contain unsourced ~76% claim`).not.toMatch(/~?76%/);
+    expect(text, `${label} must not contain unsourced 90%+ claim`).not.toMatch(/90%\+/);
+    expect(text, `${label} must not attribute gradient_letter_avatars to Meng To`).not.toMatch(
+      /Meng(?:\s+To)?[^\n]{0,80}(?:gradient|avatar)|(?:gradient|avatar)[^\n]{0,80}Meng(?:\s+To)?/i
+    );
+    expect(text, `${label} must not attribute 15 patterns or faq_accordion to Krebs`).not.toMatch(
+      /(?:15|1–15)\s+from\s+Adrian\s+Krebs/i
+    );
+  }
 });
 
 test('spec catalogue weights match engine weights', () => {

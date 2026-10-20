@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Slop Detector: score any landing page against the AI-design fingerprint</title>
 <meta name="description" content="Paste a URL. Get a 0 to 100 slop score in about eight seconds. A deterministic, weighted fingerprint of the CSS tells Cursor, v0, Lovable and Bolt all converged on.">
-<meta property="og:title" content="Slop Detector: how AI-generated does your landing page look?">
+<meta property="og:title" content="Slop Detector: score any landing page against the design-slop fingerprint">
 <meta property="og:description" content="Deterministic design and copy slop patterns. Real Chromium. 0 to 100 score.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Slop Detector">
@@ -723,9 +723,9 @@
       <p class="hero-reassure">deterministic · real Chromium · ~8s</p>
 
       <div class="examples hero-chips">
-        <button type="button" class="chip" data-url="https://news.ycombinator.com"><span class="chip-dot" style="background:var(--clean)" aria-hidden="true"></span>news.ycombinator.com · A-</button>
-        <button type="button" class="chip" data-url="https://linear.app"><span class="chip-dot" style="background:var(--mild)" aria-hidden="true"></span>linear.app · B-</button>
-        <button type="button" class="chip" data-url="https://bolt.new"><span class="chip-dot" style="background:var(--heavy)" aria-hidden="true"></span>bolt.new · D+</button>
+        <button type="button" class="chip" data-url="https://news.ycombinator.com"><span class="chip-dot" style="background:var(--clean)" aria-hidden="true"></span>news.ycombinator.com</button>
+        <button type="button" class="chip" data-url="https://linear.app"><span class="chip-dot" style="background:var(--mild)" aria-hidden="true"></span>linear.app</button>
+        <button type="button" class="chip" data-url="https://bolt.new"><span class="chip-dot" style="background:var(--heavy)" aria-hidden="true"></span>bolt.new</button>
       </div>
 
       <details class="hero-adv">
@@ -734,7 +734,7 @@
           <div class="scan-console-checks">
             <label class="scan-opt">
               <input type="checkbox" id="optCopy" checked>
-              <span>+ copy axis <span class="scan-opt-tag">(9 tells)</span></span>
+              <span>+ copy axis <span class="scan-opt-tag" id="copyCountTag">(copy tells)</span></span>
             </label>
             <label class="scan-opt">
               <input type="checkbox" id="optSystem">
@@ -795,10 +795,10 @@
             <div class="stage-hud-top">
               <div class="stage-dom-row">
                 <span id="stageDomainLabel">v0-ai-launch.app</span>
-                <span id="stageFlaggedCount">10/27 rules flagged</span>
+                <span id="stageFlaggedCount">10 rules flagged</span>
               </div>
               <div class="stage-polarity-row">
-                <span class="score-polarity-tag">Slop score · lower is better</span>
+                <span class="score-polarity-tag">Slop score · lower is better · <a href="https://github.com/ravidsrk/slop-detect/blob/main/CALIBRATION.md">uncalibrated beta</a></span>
               </div>
               <div class="stage-score-strip" title="Slop score scale (lower is better): 0–9 Clean (0–2 A+, 3–5 A, 6–9 A-) · 10–27 Mild (10–14 B+, 15–19 B, 20–23 B-, 24–27 C) · 28+ Heavy (28–33 D+, 34–39 D, 40–100 F)">
                 <div>
@@ -808,7 +808,7 @@
                 <span class="stage-grade grade-Heavy" id="stageGradeBadge">F</span>
                 <span class="stage-tier-pill tier-Heavy" id="stageTierBadge">HEAVY</span>
               </div>
-              <p class="stage-verdict" id="stageVerdictText">Heavy slop. Wears the starter kit head to toe.</p>
+              <p class="stage-verdict" id="stageVerdictText">Heavy slop. Matches many default-template patterns.</p>
             </div>
 
             <div class="stage-morph-box">
@@ -933,7 +933,7 @@
             <div class="axis-mark"><span class="axis-dot" style="background:var(--mild)"></span>copy slop</div>
             <span class="axis-polarity" style="color:var(--mild-text)">Slop score · lower is better</span>
           </div>
-          <p class="axis-desc">Nine prose tells on the words: LLM buzzword clusters, em-dash overuse, exclamation inflation and "not just X, it's Y" antithesis framing.</p>
+          <p class="axis-desc">Prose tells on the words: LLM buzzword clusters, em-dash overuse, exclamation inflation and "not just X, it's Y" antithesis framing.</p>
         </div>
         <div class="axis">
           <div class="axis-top">
@@ -947,7 +947,7 @@
             <div class="axis-mark"><span class="axis-dot" style="background:var(--clean)"></span>aeo · agent-readable</div>
             <span class="axis-polarity" style="color:var(--clean-text)">higher is better</span>
           </div>
-          <p class="axis-desc">Eight checks verifying whether ChatGPT, Claude and Perplexity can fetch, parse and cite the page via <code class="mono">robots.txt</code>, <code class="mono">llms.txt</code> and Markdown twins.</p>
+          <p class="axis-desc">Deterministic checks verifying whether ChatGPT, Claude and Perplexity can fetch, parse and cite the page via <code class="mono">robots.txt</code>, <code class="mono">llms.txt</code> and Markdown twins.</p>
         </div>
       </div>
 
@@ -1044,7 +1044,7 @@
         <a class="feature-card" href="/docs">
           <div>
             <h3>How the scan works</h3>
-            <p>The 27-pattern fingerprint, the four axes, and why the same page always returns the same score. Every rule runs as a deterministic DOM and computed-style query in headless Chromium — no LLM judge, no sampling jitter.</p>
+            <p>The weighted pattern fingerprint, the four axes, and why the same page always returns the same score. Every rule runs as a deterministic DOM and computed-style query in headless Chromium — no LLM judge, no sampling jitter.</p>
           </div>
           <div class="feature-foot">methodology · 8 min read →</div>
         </a>
@@ -1054,8 +1054,8 @@
             <div class="article-ref">adriankrebs.ch · the weighted-pattern basis →</div>
           </a>
           <a class="article" href="https://x.com/MengTo/status/2058893181740359863" target="_blank" rel="noopener noreferrer">
-            <div class="article-title">The gradient-avatar tell</div>
-            <div class="article-ref">x.com/MengTo · one more converged pattern →</div>
+            <div class="article-title">Aura default-template notes</div>
+            <div class="article-ref">x.com/MengTo · observations on default-template patterns →</div>
           </a>
           <a class="article" href="/brand">
             <div class="article-title">Why this page scores Clean</div>
@@ -1218,16 +1218,17 @@ const form = $('form'), urlInput = $('url'), goBtn = $('go'),
     if (!board) return;
     board.innerHTML = keys.map((k) => {
       const catLabel = esc(CATEGORY_NAMES[k] || k);
-      const rows = groups[k].slice().sort((a, b) => a.score - b.score).slice(0, 4).map((s, i) => {
+      const group = groups[k];
+      const catAvg = Math.round((group.reduce((acc, s) => acc + (Number(s.score) || 0), 0) / Math.max(1, group.length)) * 10) / 10;
+      const rows = group.slice().sort((a, b) => String(a.domain).localeCompare(String(b.domain))).slice(0, 4).map((s) => {
         const dom = esc(s.domain);
         return '<a class="lr" href="/score/' + encodeURIComponent(s.domain) + '">' +
-          '<span class="lr-rank">#' + (i + 1) + '</span>' +
+          '<span class="lr-rank">·</span>' +
           '<span class="lr-name"><span class="av" style="background:' + avatarColor(s.domain) + '" aria-hidden="true">' +
             esc(s.domain.charAt(0).toUpperCase()) + '</span><span class="lr-dom">' + dom + '</span></span>' +
-          '<span class="lr-score" title="' + esc(SCALE_TIP) + '"><span class="lr-num">' + (s.score != null ? s.score : '') + '</span> <span class="lr-grade" style="color:' +
-            tierTextFor(s.tier) + '">' + esc(s.grade || '') + '</span></span></a>';
+          '<span class="lr-score" title="' + esc(SCALE_TIP) + '"><span class="lr-num">opt-in</span></span></a>';
       }).join('');
-      return '<div class="lb-col"><h3 class="lb-col-h"><span>' + catLabel + '</span><span>score · grade</span></h3>' + rows +
+      return '<div class="lb-col"><h3 class="lb-col-h"><span>' + catLabel + '</span><span>avg ' + catAvg + '/100 (uncalibrated beta)</span></h3>' + rows +
         '<a class="lb-col-more" href="/leaderboard">see all in ' + catLabel.toLowerCase() + ' →</a></div>';
     }).join('');
   } catch (_) {
@@ -1451,7 +1452,7 @@ function render(d, totalMs) {
       <div class="score-row" title="${scaleTip}">
         <div>
           <div class="score-num">${d.score}<small>/100</small> · <span class="score-grade grade-${d.tier}">${escapeHtml(d.grade || '')}</span></div>
-          <div class="scale-note">Slop score · lower is better</div>
+          <div class="scale-note">Slop score · lower is better · <a href="https://github.com/ravidsrk/slop-detect/blob/main/CALIBRATION.md">uncalibrated beta</a></div>
         </div>
         <div class="score-tier tier-${d.tier}">${d.tier}</div>
         <div class="score-meta">${d.patternsFlagged}/${d.patternsTotal} patterns · ${(totalMs/1000).toFixed(1)}s</div>

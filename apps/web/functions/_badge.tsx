@@ -13,9 +13,16 @@
 
 import { badgeColors } from './_theme.js';
 
+const CALIBRATION_URL = 'https://github.com/ravidsrk/slop-detect/blob/main/CALIBRATION.md';
+
 export function badgeSvg(domain, slim) {
+  if (domain && typeof domain === 'object' && slim === undefined) {
+    slim = domain;
+    domain = slim.domain || '';
+  }
   const label = 'slop';
   const value = slim ? `${slim.grade} · ${slim.score}` : 'no scan';
+  const betaLabel = 'uncalibrated beta';
   // Right segment: tier bg + ink from the badge-colors table; the neutral grey
   // default (badgeColors('Unknown')) carries the "no scan" state.
   const { bg, ink } = badgeColors(slim ? slim.tier : 'Unknown');
@@ -29,7 +36,9 @@ export function badgeSvg(domain, slim) {
   const radius = 4; // design "Radii": 4px badge corners.
 
   const leftW = Math.round(label.length * charW) + padX * 2;
-  const rightW = Math.round(value.length * charW) + padX * 2;
+  const scoreW = Math.round(value.length * charW) + padX * 2;
+  const betaW = Math.round(betaLabel.length * charW) + padX * 2;
+  const rightW = scoreW + betaW;
   const pillW = leftW + rightW;
 
   // The badge is the one surface the system allows a shadow (design "Shadows":
@@ -52,7 +61,8 @@ export function badgeSvg(domain, slim) {
       role="img"
       aria-label={name}
     >
-      <title>{name}</title>
+      <title>{`${name} (uncalibrated beta)`}</title>
+      <desc>uncalibrated beta</desc>
       <defs>
         <clipPath id="r">
           <rect x={mx} y={mTop} width={pillW} height={height} rx={radius} />
@@ -76,9 +86,14 @@ export function badgeSvg(domain, slim) {
         <text x={mx + leftW / 2} y={baseline} fill="#F4F5F2">
           {label}
         </text>
-        <text x={mx + leftW + rightW / 2} y={baseline} fill={ink}>
+        <text x={mx + leftW + scoreW / 2} y={baseline} fill={ink}>
           {value}
         </text>
+        <a href={CALIBRATION_URL} target="_blank" rel="noopener noreferrer">
+          <text x={mx + leftW + scoreW + betaW / 2} y={baseline} fill={ink}>
+            {betaLabel}
+          </text>
+        </a>
       </g>
     </svg>
   ).toString();

@@ -30,17 +30,17 @@ model, no randomness, auditable, reproducible, safe to gate CI on.
 - CI gating: fail a build at `--fail-on heavy` and trust the threshold won't move.
 - Auditability: every point traces to a named pattern with a documented weight.
 - Comparability: two designs measured on the same fixed yardstick, today and next year.
-- No false confidence: a high score means "looks machine-made," not "an AI wrote this."
+- No false confidence: a high score means "matches many default-template patterns," not "an AI wrote this."
 
 ## The research behind it
 
 Pattern weights derive from Adrian Krebs's April 2026 study of 1,400 Show HN
-submissions, plus Meng To's gradient-avatar tell. The catalogue is versioned
+submissions, plus Meng To's default-template observations. The catalogue is versioned
 (`DEFINITIONS_VERSION`) and served live at https://slop-detect.com/api/patterns
 
 ## When to use which
 
-- Slop Detector: a reproducible, explainable read on how templated or AI-generated a landing page looks; CI gating.
+- Slop Detector: a reproducible, explainable read on how many default-template patterns a landing page matches; CI gating.
 - ML AI-detector: a probabilistic "was this generated?" verdict on arbitrary text or images.
 - Lighthouse / axe: performance, accessibility, technical SEO. Orthogonal to slop.
 

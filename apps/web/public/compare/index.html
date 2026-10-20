@@ -250,7 +250,7 @@
       <li><strong>CI gating.</strong> Fail a build at <code>--fail-on heavy</code> and trust the threshold won't move under you.</li>
       <li><strong>Auditability.</strong> Every point in a score traces to a named pattern with a documented weight.</li>
       <li><strong>Comparability.</strong> Two designs measured on the same fixed yardstick, today and next year.</li>
-      <li><strong>No false confidence.</strong> A high score says "this looks machine-made," not "an AI wrote this." A fingerprint, not a verdict.</li>
+      <li><strong>No false confidence.</strong> A high score says "this matches many default-template patterns," not "an AI wrote this." A fingerprint, not a verdict.</li>
     </ul>
   </section>
 
@@ -260,7 +260,7 @@
     <p>
       The pattern weights derive from <a class="link" href="https://www.adriankrebs.ch/blog/design-slop/" rel="noopener">Adrian Krebs's April 2026 study</a>
       of 1,400 Show HN submissions, plus <a class="link" href="https://x.com/MengTo/status/2058893181740359863" rel="noopener">Meng To's</a>
-      gradient-avatar tell. The catalogue is versioned (<code>DEFINITIONS_VERSION</code>) and served
+      default-template observations. The catalogue is versioned (<code>DEFINITIONS_VERSION</code>) and served
       live at <a class="link" href="/api/patterns">/api/patterns</a>.
     </p>
   </section>
@@ -269,7 +269,7 @@
     <div class="sec-h"><span class="tag">§ 05</span><span class="lbl">when to use which</span></div>
     <h2>Pick by the question you're asking</h2>
     <ul>
-      <li><strong>Slop Detector</strong>: a reproducible, explainable read on how templated or AI-generated a landing page looks, or to gate design regressions in CI.</li>
+      <li><strong>Slop Detector</strong>: a reproducible, explainable read on how many default-template patterns a landing page matches, or to gate design regressions in CI.</li>
       <li><strong>An ML AI-detector</strong>: a probabilistic "was this generated?" verdict on arbitrary text or images.</li>
       <li><strong>Lighthouse / axe</strong>: performance, accessibility, and technical SEO. Orthogonal to slop.</li>
     </ul>
