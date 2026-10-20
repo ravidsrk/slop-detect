@@ -12,7 +12,13 @@
 //                       cap, and Turnstile.
 //   RESEND_API_KEY / ALERT_FROM — to actually deliver alert emails (else no-op).
 
-import { listWatches, getWatch, putWatch, deferFlowBump } from '../../_shared.js';
+import {
+  listWatches,
+  getWatch,
+  putWatch,
+  deferFlowBump,
+  cleanupLegacyListings,
+} from '../../_shared.js';
 import { monitorSweep } from '../../_sweep.js';
 import { sendEmail } from '../../_email.js';
 import { buildRegressionAlert, buildDriftAlert, mailFooter } from '../../_alerts.js';
@@ -155,6 +161,17 @@ export async function onRequestPost({ request, env, waitUntil }) {
   if (summary.alerted > 0) deferFlowBump(env, 'watch', 'alerted', summary.alerted, waitUntil);
   if (summary.driftAlerted > 0)
     deferFlowBump(env, 'watch', 'drift_alerted', summary.driftAlerted, waitUntil);
-  report(env, 'info', 'monitor_sweep', summary);
-  return json({ ok: true, ...summary });
+  // Directory hygiene, OFF the read path: delete legacy (pre-verification)
+  // listing rows with no listed+verified claim, bounded per run (see
+  // cleanupLegacyListings). Best-effort — never fail the sweep over it.
+  let listingCleanup = null;
+  try {
+    listingCleanup = await cleanupLegacyListings(env.RESULTS);
+  } catch (e) {
+    report(env, 'warn', 'listing_cleanup_failed', {
+      message: e && e.message ? e.message : String(e),
+    });
+  }
+  report(env, 'info', 'monitor_sweep', { ...summary, listingCleanup });
+  return json({ ok: true, ...summary, listingCleanup });
 }
