@@ -9,12 +9,31 @@
 import {
   getLatestForDomain,
   getListing,
+  getResult,
   getWatch,
   isEmailVerifiedListing,
   normalizeDomain,
 } from '../_shared.js';
 
 const MAX_DOMAINS = 40;
+
+function patternCount(value) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+// The count has to describe the same record as the published score. A listing
+// does not store patternsFlagged, so look up its result and accept that count
+// only when the saved score still matches. A missing result, or a result from
+// a different score, is null — never the latest scan's count and never the corpus.
+async function patternsForSource(kv, src) {
+  if (!src) return null;
+  const own = patternCount(src.patternsFlagged);
+  if (own != null) return own;
+  if (!src.id) return null;
+  const saved = await getResult(kv, src.id).catch(() => null);
+  if (!saved || saved.score !== src.score) return null;
+  return patternCount(saved.patternsFlagged);
+}
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -38,8 +57,15 @@ export async function onRequestGet({ request, env }) {
     if (domains.length >= MAX_DOMAINS) break;
   }
 
-  const out: Record<string, { score: number | null; grade: string | null; tier: string | null }> =
-    {};
+  const out: Record<
+    string,
+    {
+      score: number | null;
+      grade: string | null;
+      tier: string | null;
+      patternsFlagged: number | null;
+    }
+  > = {};
   if (env?.RESULTS && domains.length) {
     await Promise.all(
       domains.map(async (domain) => {
@@ -55,6 +81,7 @@ export async function onRequestGet({ request, env }) {
           score: src && typeof src.score === 'number' ? src.score : null,
           grade: src?.grade ?? null,
           tier: src?.tier ?? null,
+          patternsFlagged: await patternsForSource(env.RESULTS, src),
         };
       })
     );

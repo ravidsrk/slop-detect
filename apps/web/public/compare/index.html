@@ -313,8 +313,9 @@
   // Corpus records (public/leaderboard.json) carry score/grade/tier/patternsFlagged
   // but no per-pattern list, and unscannable sites are recorded as scored:false
   // with a reason. Render exactly that: no invented grades, tells, or radar shapes.
-  // Individual grades come only from /api/opt-in, and only for email-verified
-  // directory listings. The corpus file is not permission to print a grade.
+  // Individual grades and their pattern counts come only from /api/opt-in, and
+  // only for email-verified directory listings. The corpus file is not permission
+  // to print a grade, or to attach its pattern count to a public score.
   var byDomain = {};
   var claimed = {};
   var corpusState = 'loading'; // 'loading' | 'ready' | 'error'
@@ -391,16 +392,24 @@
     var trig = Array.isArray(site.triggered) ? site.triggered : [];
     var flagged = typeof site.patternsFlagged === 'number' ? site.patternsFlagged : trig.length;
     var tells = trig.slice(0, 3).map(function(t){ return esc(t.short || t.label || t.id) + ' (+' + (t.weight || 0) + ')'; }).join(' · ');
-    var tellsHtml = tells ||
+    var corpusTells = tells ||
       (flagged === 0
         ? '✓ 0 patterns flagged on record'
         : flagged + ' pattern' + (flagged === 1 ? '' : 's') + ' flagged on record · per-category breakdown unavailable');
+    // A public card may only print the count that arrived with its score.
+    // Corpus triggered names and patternsFlagged describe a different result.
+    function countLine(n) {
+      if (n === 0) return '✓ 0 patterns flagged on record';
+      if (typeof n === 'number' && isFinite(n))
+        return n + ' pattern' + (n === 1 ? '' : 's') + ' flagged on record · per-category breakdown unavailable';
+      return 'Pattern count unavailable · per-category breakdown unavailable';
+    }
     var pub = publicRow(site);
     if (!pub) {
       el.innerHTML =
         '<div class="arena-dom" style="color:' + colorHex + '">' + esc(site.domain) + '</div>' +
         '<div class="arena-meta">Public grade withheld · opt-in required' + (site.builtWith ? ' · ' + esc(site.builtWith) : '') + '</div>' +
-        '<div class="arena-tells">' + tellsHtml + '</div>' +
+        '<div class="arena-tells">' + corpusTells + '</div>' +
         '<a class="arena-link" href="/score/' + encodeURIComponent(site.domain) + '">Open score hub →</a>';
       return;
     }
@@ -412,7 +421,7 @@
         '<span class="arena-grade" style="color:' + tc + '">· ' + esc(pub.grade) + '</span>' +
       '</div>' +
       '<div class="arena-meta">Slop score · lower is better · ' + esc(pub.tier) + (site.builtWith ? ' · ' + esc(site.builtWith) : '') + '</div>' +
-      '<div class="arena-tells">' + tellsHtml + '</div>' +
+      '<div class="arena-tells">' + countLine(pub.patternsFlagged) + '</div>' +
       '<a class="arena-link" href="/score/' + encodeURIComponent(site.domain) + '">Open score hub →</a>';
   }
 
