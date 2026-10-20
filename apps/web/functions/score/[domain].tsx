@@ -24,7 +24,6 @@ import {
   getLatestForDomain,
   getWatch,
   getHistory,
-  listAllSites,
   publicWatch,
   getScoreDistribution,
   getCategoryCleanAverages,
@@ -242,23 +241,35 @@ export async function onRequestGet({ params, request, env }) {
     return htmlResponse(node, { status: 503, cache: 'no-store' });
   }
 
-  const [kvLatest, watch, history, dist, catClean, lbData, listedSites] = await Promise.all([
+  const [kvLatest, watch, history, dist, catClean, lbData] = await Promise.all([
     getLatestForDomain(env.RESULTS, domain).catch(() => null),
     getWatch(env.RESULTS, domain).catch(() => null),
     getHistory(env.RESULTS, domain).catch(() => []),
     getScoreDistribution(env.RESULTS).catch(() => null),
     getCategoryCleanAverages(env.RESULTS).catch(() => ({ averages: {}, count: 0 })),
     loadLeaderboard(request).catch(() => null),
-    listAllSites(env.RESULTS).catch(() => []),
   ]);
   const pub = watch ? publicWatch(watch, history) : null;
-  const verifiedDomains = new Set<string>(
-    (listedSites || [])
-      .filter((s: any) => s && s.domain && s.listed !== false)
-      .map((s: any) => String(s.domain).toLowerCase())
-  );
-  const claimed = verifiedDomains.has(domain) && (!watch || (!!watch.verified && !!watch.listed));
-  if (!claimed) verifiedDomains.delete(domain);
+  const claimed = Boolean(watch && watch.listed === true && watch.verified === true);
+  const verifiedDomains = new Set<string>();
+  if (claimed) verifiedDomains.add(domain);
+  if (Array.isArray(lbData?.sites)) {
+    const me = lbData.sites.find((s: any) => s.domain === domain && s.scored);
+    const peerCandidates = me
+      ? lbData.sites.filter(
+          (s: any) => s && s.domain && s.domain !== domain && s.category === me.category && s.scored
+        )
+      : [];
+    await Promise.all(
+      peerCandidates.map(async (s: any) => {
+        const peerDom = String(s.domain).toLowerCase();
+        const peerWatch = await getWatch(env.RESULTS, peerDom).catch(() => null);
+        if (peerWatch && peerWatch.listed === true && peerWatch.verified === true) {
+          verifiedDomains.add(peerDom);
+        }
+      })
+    );
+  }
 
   const corpusSite =
     !kvLatest && Array.isArray(lbData?.sites)

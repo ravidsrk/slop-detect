@@ -18,7 +18,7 @@
 
 import { raw } from 'hono/html';
 import { DEFINITIONS_VERSION, PATTERNS } from '@slop-detect/core';
-import { getStats, listAllSites } from './_data.js';
+import { getStats, getWatch, listAllSites } from './_data.js';
 import { tierFor, tierFill, tierText } from './_theme.js';
 import { BRAND_FONTS_HEAD, BRAND_CSS } from './_brand.js';
 import { Nav, Footer, StatsStrip, LeaderboardRow, Cta, ScanInput, UI_CSS } from './_ui.js';
@@ -437,10 +437,17 @@ export async function onRequestGet({ request, env }: { request: { url: string };
   const live = env?.RESULTS ? await getStats(env.RESULTS).catch(() => null) : null;
   const listedSites = env?.RESULTS ? await listAllSites(env.RESULTS).catch(() => []) : [];
   const verifiedMap = new Map<string, any>();
-  for (const ls of listedSites || []) {
-    if (ls && ls.domain && ls.listed !== false) {
-      verifiedMap.set(String(ls.domain).toLowerCase(), ls);
-    }
+  if (env?.RESULTS) {
+    await Promise.all(
+      (listedSites || []).map(async (ls: any) => {
+        if (!ls || !ls.domain || ls.listed === false) return;
+        const dom = String(ls.domain).toLowerCase();
+        const w = await getWatch(env.RESULTS, dom).catch(() => null);
+        if (w && w.listed === true && w.verified === true) {
+          verifiedMap.set(dom, ls);
+        }
+      })
+    );
   }
 
   const generating = !data || !data.scored;

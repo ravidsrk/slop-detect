@@ -216,9 +216,37 @@ describe('FIX-04: no third-party grade/tier without opt-in & uncalibrated beta l
       listed: true,
       listedAt: '2026-09-15T00:00:00.000Z',
     });
+    await putWatch(kv, {
+      domain: 'cal.com',
+      listed: true,
+      verified: true,
+      email: 'owner@cal.com',
+    });
 
-    // Seed a KV scan for an unlisted domain (clerk.com) AND an unverified claim/legacy row
-    // so getListing alone would find a row, proving /score/[domain] gates on the verified set.
+    // Case A: saveResult + setListing for a domain (stripe.com) with NO watch record at all.
+    const stripeSlim = {
+      id: 'stp00001',
+      url: 'https://stripe.com/',
+      finalUrl: 'https://stripe.com/',
+      domain: 'stripe.com',
+      score: 19,
+      grade: 'B',
+      tier: 'Mild',
+      title: 'Stripe',
+      verdict: verdictFor(19, 'Mild', []),
+      patternsFlagged: 4,
+      patternsTotal: 27,
+      triggered: [{ id: 'slop_fonts', label: 'Default font', weight: 8 }],
+      createdAt: '2026-09-15T00:00:00.000Z',
+    };
+    await saveResult(kv, stripeSlim);
+    await setListing(kv, {
+      ...stripeSlim,
+      listed: true,
+      listedAt: '2026-09-15T00:00:00.000Z',
+    });
+
+    // Case B: saveResult + setListing + putWatch({ listed: true, verified: false }) for clerk.com.
     const clerkSlim = {
       id: 'clk00001',
       url: 'https://clerk.com/',
@@ -235,52 +263,40 @@ describe('FIX-04: no third-party grade/tier without opt-in & uncalibrated beta l
       createdAt: '2026-09-15T00:00:00.000Z',
     };
     await saveResult(kv, clerkSlim);
+    await setListing(kv, {
+      ...clerkSlim,
+      listed: true,
+      listedAt: '2026-09-15T00:00:00.000Z',
+    });
     await putWatch(kv, {
       domain: 'clerk.com',
       email: 'unverified@clerk.com',
       listed: true,
       verified: false,
     });
-    await kv.put(
-      'l:clerk.com',
-      JSON.stringify({ domain: 'clerk.com', score: 46, grade: 'F', tier: 'Heavy' }),
-      { metadata: { s: 46, g: 'F', tr: 'Heavy' } }
-    );
 
     await withFetch(
       async () => new Response(JSON.stringify(LEADERBOARD_FIXTURE), { status: 200 }),
       async () => {
-        // 1. Leaderboard shows cal.com grade because it opted in, but withholds resend.com and clerk.com.
-        const lbHtml = await (
-          await getLeaderboard({
-            request: { url: 'https://slop-detect.com/leaderboard' },
-            env: { RESULTS: kv },
-          })
-        ).text();
-        expect(lbHtml).toMatch(/cal\.com[\s\S]{0,280}>B</);
-        const unverifiedRows = [...lbHtml.matchAll(/<li class="lr">[\s\S]*?<\/li>/g)]
-          .map((m) => m[0])
-          .filter((r) => r.includes('resend.com') || r.includes('clerk.com'));
-        expect(unverifiedRows.length).toBe(2);
-        for (const r of unverifiedRows) {
-          expect(r).toMatch(/opt-in required/i);
-          expect(r).not.toMatch(/>(A\+|A-|A|B\+|B-|B|C|D\+|D|F)</);
-        }
-
-        // 2. Score page for unverified corpus domain (resend.com) withholds score, grade, and tier.
-        const resendScoreHtml = await (
+        // 1. Score page for KV hit + setListing with NO watch (stripe.com) withholds score, grade, and tier.
+        const stripeScoreHtml = await (
           await getScore({
-            request: { url: 'https://slop-detect.com/score/resend.com' },
+            request: { url: 'https://slop-detect.com/score/stripe.com' },
             env: { RESULTS: kv },
-            params: { domain: 'resend.com' },
+            params: { domain: 'stripe.com' },
           })
         ).text();
-        expect(resendScoreHtml).toMatch(/withheld until the domain owner opts in/i);
-        expect(resendScoreHtml).toMatch(/class="bs-num"[^>]*>—</);
-        expect(resendScoreHtml).not.toMatch(/scored [A-F][+-]? \(\d+\/100\)/);
-        expect(resendScoreHtml).not.toMatch(/class="bs-grade"/);
+        expect(stripeScoreHtml).not.toMatch(/scored [A-F][+-]? \(\d+\/100\)/);
+        expect(stripeScoreHtml).not.toMatch(/19<small>\/100<\/small>/);
+        expect(stripeScoreHtml).not.toMatch(/class="bs-grade"/);
+        expect(stripeScoreHtml).not.toMatch(/class="stb-tier"/);
+        expect(stripeScoreHtml).not.toMatch(/class="bd-pill"/);
+        expect(stripeScoreHtml).not.toMatch(/\b(Clean|Mild|Heavy)\b/);
+        expect(stripeScoreHtml).toMatch(/withheld until the domain owner opts in/i);
+        expect(stripeScoreHtml).toMatch(/class="bs-num"[^>]*>—</);
+        expect(stripeScoreHtml).toMatch(/Category aggregate/i);
 
-        // 3. Score page for KV hit on an unlisted/unverified domain (clerk.com) withholds score, grade, and tier, while keeping aggregates.
+        // 2. Score page for KV hit + setListing + putWatch({ listed: true, verified: false }) (clerk.com) withholds score, grade, and tier.
         const clerkScoreHtml = await (
           await getScore({
             request: { url: 'https://slop-detect.com/score/clerk.com' },
@@ -298,7 +314,21 @@ describe('FIX-04: no third-party grade/tier without opt-in & uncalibrated beta l
         expect(clerkScoreHtml).toMatch(/class="bs-num"[^>]*>—</);
         expect(clerkScoreHtml).toMatch(/Category aggregate/i);
 
-        // 4. Score page for email-verified directory listing (cal.com) DOES render score, grade, and tier.
+        // 3. Score page for unverified corpus domain (resend.com) withholds score, grade, and tier.
+        const resendScoreHtml = await (
+          await getScore({
+            request: { url: 'https://slop-detect.com/score/resend.com' },
+            env: { RESULTS: kv },
+            params: { domain: 'resend.com' },
+          })
+        ).text();
+        expect(resendScoreHtml).toMatch(/withheld until the domain owner opts in/i);
+        expect(resendScoreHtml).toMatch(/class="bs-num"[^>]*>—</);
+        expect(resendScoreHtml).not.toMatch(/scored [A-F][+-]? \(\d+\/100\)/);
+        expect(resendScoreHtml).not.toMatch(/class="bs-grade"/);
+
+        // 4. Score page for email-verified directory listing (cal.com) DOES render score, grade, and tier,
+        //    while withholding grades for unverified peers (including stripe.com which has setListing but no watch).
         const calScoreHtml = await (
           await getScore({
             request: { url: 'https://slop-detect.com/score/cal.com' },
@@ -309,6 +339,44 @@ describe('FIX-04: no third-party grade/tier without opt-in & uncalibrated beta l
         expect(calScoreHtml).toMatch(/class="bs-num"[^>]*>19<small>\/100<\/small>/);
         expect(calScoreHtml).toMatch(/class="bs-grade"[^>]*>B</);
         expect(calScoreHtml).toMatch(/class="stb-tier"[^>]*>MILD</);
+        const calPeerLinks = [...calScoreHtml.matchAll(/<a class="nb-row"[\s\S]*?<\/a>/g)].map(
+          (m) => m[0]
+        );
+        expect(calPeerLinks.length).toBeGreaterThan(0);
+        for (const peerHtml of calPeerLinks) {
+          expect(peerHtml).toMatch(/opt-in required/i);
+          expect(peerHtml).not.toMatch(/class="nb-grade"/);
+        }
+
+        // 5. Leaderboard shows cal.com grade because it has a verified watch, but withholds resend.com, stripe.com, and clerk.com.
+        const lbHtml = await (
+          await getLeaderboard({
+            request: { url: 'https://slop-detect.com/leaderboard' },
+            env: { RESULTS: kv },
+          })
+        ).text();
+        expect(lbHtml).toMatch(/cal\.com[\s\S]{0,280}>B</);
+        const unverifiedRows = [...lbHtml.matchAll(/<li class="lr">[\s\S]*?<\/li>/g)]
+          .map((m) => m[0])
+          .filter(
+            (r) => r.includes('resend.com') || r.includes('clerk.com') || r.includes('stripe.com')
+          );
+        expect(unverifiedRows.length).toBe(3);
+        for (const r of unverifiedRows) {
+          expect(r).toMatch(/opt-in required/i);
+          expect(r).not.toMatch(/>(A\+|A-|A|B\+|B-|B|C|D\+|D|F)</);
+        }
+
+        // 6. /r/:id for scans the user ran still shows the full result.
+        const rStripeHtml = await (
+          await getResultPage({
+            request: { url: 'https://slop-detect.com/r/stp00001' },
+            env: { RESULTS: kv },
+            params: { id: 'stp00001' },
+          })
+        ).text();
+        expect(rStripeHtml).toMatch(/class="bs-num"[^>]*>19<small>\/100<\/small>/);
+        expect(rStripeHtml).toMatch(/class="bs-grade"[^>]*>B</);
       }
     );
   });
