@@ -11,6 +11,7 @@ import {
   listSites,
   listAllSites,
   cleanupLegacyListings,
+  issueWatchToken,
   performUnsubscribe,
   recordScanForWatch,
   getWatch,
@@ -683,80 +684,118 @@ function paginate(kv) {
   return kv;
 }
 
-test('cleanup deletes a stale rejected legacy row and drops it from lv:rejected', async () => {
+const DAY = 24 * 60 * 60 * 1000;
+const daysAgo = (n) => new Date(Date.now() - n * DAY).toISOString();
+const queueOf = (kv) =>
+  kv.store.has('lv:rejected') ? JSON.parse(kv.store.get('lv:rejected').value) : [];
+const watchRow = (domain, over = {}) =>
+  JSON.stringify({ domain, email: 'o@x.io', listed: true, verified: false, ...over });
+
+test('cleanup deletes an expired-claim legacy row, then drops it once the final state is seen', async () => {
   const kv = makeKv({
     'l:stale.example.com': legacyRow(),
-    'w:stale.example.com': JSON.stringify({
-      domain: 'stale.example.com',
-      email: 'o@x.io',
-      listed: true,
-      verified: false,
-    }),
+    'w:stale.example.com': watchRow('stale.example.com', { updatedAt: daysAgo(30) }),
     'l:keep.example.com': legacyRow(),
-    'w:keep.example.com': JSON.stringify({
-      domain: 'keep.example.com',
-      email: 'o@x.io',
-      listed: true,
-      verified: true,
-    }),
+    'w:keep.example.com': watchRow('keep.example.com', { verified: true }),
     'lv:rejected': JSON.stringify(['stale.example.com']),
   });
   const r = await cleanupLegacyListings(kv);
   expect(r.deleted).toBe(1);
   expect(kv.store.has('l:stale.example.com')).toBe(false);
-  expect(kv.store.has('lv:rejected')).toBe(false);
+  expect(queueOf(kv)).toContain('stale.example.com'); // re-observed next run
   // A legacy row with a listed+verified watch is never deleted; it's indexed.
   expect(kv.store.has('l:keep.example.com')).toBe(true);
   expect(JSON.parse(kv.store.get('lv:verified').value)).toEqual(['keep.example.com']);
+  const r2 = await cleanupLegacyListings(kv);
+  expect(r2.skipped).toBe(1); // gone + unverified watch = final
+  expect(kv.store.has('lv:rejected')).toBe(false);
   expect((await listAllSites(kv)).map((x) => x.domain)).toEqual(['keep.example.com']);
 });
 
-test('cleanup restores a listing confirmed between its re-read and the delete', async () => {
+test('a row still within the confirmation window is never deleted, even if every read is stale', async () => {
+  // Claim made 2 days ago; its confirm token (7d) may still be clicked. Every
+  // watch read returns the stale UNVERIFIED value, as an eventually
+  // consistent KV can — cleanup must not delete on that evidence.
   const kv = makeKv({
-    'l:late.example.com': legacyRow(),
-    'w:late.example.com': JSON.stringify({
-      domain: 'late.example.com',
-      email: 'o@x.io',
-      listed: true,
-      verified: false,
+    'l:recent.example.com': legacyRow(),
+    'w:recent.example.com': watchRow('recent.example.com', { updatedAt: daysAgo(2) }),
+    'lv:rejected': JSON.stringify(['recent.example.com']),
+  });
+  const r = await cleanupLegacyListings(kv);
+  expect(r.pending).toBe(1);
+  expect(kv.store.has('l:recent.example.com')).toBe(true);
+  expect(queueOf(kv)).toEqual(['recent.example.com']);
+
+  // Same with a live confirm-token marker, even when the watch claim looks old.
+  const kv2 = makeKv({
+    'l:tok.example.com': legacyRow(),
+    'w:tok.example.com': watchRow('tok.example.com', { updatedAt: daysAgo(30) }),
+    'wvd:tok.example.com': daysAgo(1),
+    'lv:rejected': JSON.stringify(['tok.example.com']),
+  });
+  expect((await cleanupLegacyListings(kv2)).pending).toBe(1);
+  expect(kv2.store.has('l:tok.example.com')).toBe(true);
+
+  // A watch with no claim timestamp is hidden only, never deleted.
+  const kv3 = makeKv({
+    'l:nots.example.com': legacyRow(),
+    'w:nots.example.com': watchRow('nots.example.com'),
+    'lv:rejected': JSON.stringify(['nots.example.com']),
+  });
+  expect((await cleanupLegacyListings(kv3)).pending).toBe(1);
+  expect(kv3.store.has('l:nots.example.com')).toBe(true);
+});
+
+test('issuing a confirm token writes the per-domain marker that blocks cleanup', async () => {
+  const kv = makeKv();
+  await issueWatchToken(kv, 'mark.example.com', 'o@x.io');
+  expect(kv.store.has('wvd:mark.example.com')).toBe(true);
+});
+
+test('a missing listing with a listed+verified watch is repaired, and kept queued until seen', async () => {
+  const kv = makeKv({
+    'w:fix.example.com': watchRow('fix.example.com', {
+      verified: true,
       lastScore: 4,
       lastGrade: 'A',
       lastTier: 'Clean',
       lastId: 'abc',
     }),
-    'lv:rejected': JSON.stringify(['late.example.com']),
+    'lv:rejected': JSON.stringify(['fix.example.com']),
   });
-  // Confirm lands right after cleanup's pre-delete watch check: it verifies
-  // the watch, then writes its v:1 row (which the delete then removes).
-  const origGet = kv.get.bind(kv);
-  let confirmed = false;
-  kv.get = async (k) => {
-    const v = await origGet(k);
-    if (k === 'w:late.example.com' && !confirmed) {
-      confirmed = true;
-      await verifyWatch(kv, 'late.example.com');
-      await setListing(kv, {
-        domain: 'late.example.com',
-        score: 4,
-        grade: 'A',
-        tier: 'Clean',
-        id: 'abc',
-      });
-    }
-    return v;
-  };
   const r = await cleanupLegacyListings(kv);
-  expect(confirmed, 'the simulated confirm actually ran').toBe(true);
   expect(r.restored).toBe(1);
-  const row = kv.store.get('l:late.example.com');
-  expect(row, 'confirmed listing is present').toBeTruthy();
+  const row = kv.store.get('l:fix.example.com');
   expect(row.metadata.v).toBe(1);
-  expect(JSON.parse(row.value)).toMatchObject({ domain: 'late.example.com', score: 4, id: 'abc' });
-  kv.get = origGet;
-  expect((await listAllSites(kv)).map((x) => x.domain)).toEqual(['late.example.com']);
+  expect(JSON.parse(row.value)).toMatchObject({ domain: 'fix.example.com', score: 4, id: 'abc' });
+  expect(queueOf(kv)).toEqual(['fix.example.com']);
+  const r2 = await cleanupLegacyListings(kv);
+  expect(r2.skipped).toBe(1); // v:1 row observed: final
+  expect(kv.store.has('lv:rejected')).toBe(false);
 });
 
-test('cleanup leaves a row that was replaced by a confirmed v:1 row before the re-read', async () => {
+test('a failed restore is retried on the next run', async () => {
+  const kv = makeKv({
+    'w:retry.example.com': watchRow('retry.example.com', { verified: true }),
+    'lv:rejected': JSON.stringify(['retry.example.com']),
+  });
+  const origPut = kv.put.bind(kv);
+  let fail = true;
+  kv.put = async (k, v, o) => {
+    if (fail && k === 'l:retry.example.com') throw new Error('KV write failed');
+    return origPut(k, v, o);
+  };
+  const r1 = await cleanupLegacyListings(kv);
+  expect(r1.errors).toBe(1);
+  expect(kv.store.has('l:retry.example.com')).toBe(false);
+  expect(queueOf(kv)).toEqual(['retry.example.com']); // still queued
+  fail = false;
+  const r2 = await cleanupLegacyListings(kv);
+  expect(r2.restored).toBe(1);
+  expect(kv.store.get('l:retry.example.com').metadata.v).toBe(1);
+});
+
+test('cleanup leaves a row that was replaced by a confirmed v:1 row', async () => {
   const kv = makeKv({ 'lv:rejected': JSON.stringify(['swap.example.com']) });
   await setListing(kv, { domain: 'swap.example.com', score: 1, grade: 'A', tier: 'Clean' });
   const r = await cleanupLegacyListings(kv);
@@ -768,6 +807,7 @@ test('cleanup leaves a row that was replaced by a confirmed v:1 row before the r
 test('cleanup is bounded per run and makes progress across runs', async () => {
   const seed = {};
   const rejected = [];
+  // Orphans (no watch, no live token): deletable.
   for (let i = 0; i < 250; i++) {
     const d = `r${String(i).padStart(3, '0')}.example.com`;
     seed[`l:${d}`] = legacyRow();
@@ -782,11 +822,13 @@ test('cleanup is bounded per run and makes progress across runs', async () => {
   const r1 = await cleanupLegacyListings(kv);
   expect(r1.processed).toBe(200);
   expect(legacyLeft()).toBe(80);
-  expect(JSON.parse(kv.store.get('lv:rejected').value).length).toBe(50);
-
-  const r2 = await cleanupLegacyListings(kv);
-  expect(r2.processed).toBe(80); // 50 rejected + 30 found by the namespace walk
+  for (let i = 0; i < 5 && legacyLeft() > 0; i++) {
+    const r = await cleanupLegacyListings(kv);
+    expect(r.processed).toBeLessThanOrEqual(200);
+  }
   expect(legacyLeft()).toBe(0);
+  // Final states observed: the queue fully drains.
+  for (let i = 0; i < 3; i++) await cleanupLegacyListings(kv);
   expect(kv.store.has('lv:rejected')).toBe(false);
 
   // A small per-run cap still advances through unclassified rows.
@@ -795,9 +837,7 @@ test('cleanup is bounded per run and makes progress across runs', async () => {
       Object.fromEntries(Array.from({ length: 5 }, (_, i) => [`l:w${i}.example.com`, legacyRow()]))
     )
   );
-  const runs = [];
-  for (let i = 0; i < 3; i++) runs.push((await cleanupLegacyListings(kv2, { max: 2 })).processed);
-  expect(runs).toEqual([2, 2, 1]);
+  for (let i = 0; i < 6; i++) await cleanupLegacyListings(kv2, { max: 2 });
   expect([...kv2.store.keys()].filter((k) => k.startsWith('l:'))).toEqual([]);
 });
 

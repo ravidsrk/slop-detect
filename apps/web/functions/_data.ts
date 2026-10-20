@@ -166,8 +166,20 @@ export async function issueWatchToken(kv, domain, email) {
   const token = newId(32); // 32 url-safe chars ≈ 165 bits
   const claim = { domain, email: String(email).trim().toLowerCase() };
   await kv.put(`wv:${token}`, JSON.stringify(claim), { expirationTtl: VERIFY_TTL });
+  // Per-domain "a confirmation may still land" marker, outliving the token by
+  // a KV-propagation margin. The legacy-listing cleanup never deletes a row
+  // while this exists (see legacyRowDeletable). Separate key on purpose: a
+  // stale watch write can't roll it back the way it could a watch field.
+  await kv.put(`wvd:${domain}`, new Date().toISOString(), {
+    expirationTtl: VERIFY_TTL + CONFIRM_SETTLE_MARGIN,
+  });
   return token;
 }
+
+// Extra time past VERIFY_TTL before a pending claim counts as unconfirmable,
+// so any confirm write has long since propagated across KV (eventually
+// consistent, ~60s) before cleanup trusts a read of it.
+const CONFIRM_SETTLE_MARGIN = 60 * 60 * 24; // 1 day
 
 // Resolve + burn a token. Returns the {domain, email} claim it was issued for,
 // or null if unknown/expired. Legacy domain-only tokens resolve with
@@ -1398,22 +1410,32 @@ export async function activateListing(kv, watch) {
   );
 }
 
+async function writeLegacyIndex(kv, key, set: Set<string>) {
+  const list = [...set].slice(-LEGACY_INDEX_MAX);
+  if (list.length) await kv.put(key, JSON.stringify(list), { expirationTtl: LISTING_TTL });
+  else await kv.delete(key);
+}
+
 // ── Legacy listing cleanup (OFF the read path — run by the daily sweep) ──────
 // The directory read only HIDES legacy (pre-`v`) rows that lack a listed +
 // verified watch; it never deletes (a delete there raced confirm). This job
-// removes them for real, bounded per run with progress across runs:
-//   1. drain lv:rejected (domains the read path already classified), then
-//   2. walk the l: namespace from a persisted cursor (lv:cursor) for legacy
-//      rows nobody has classified yet.
-// Per domain (cleanupLegacyListing): re-read the row right before deleting and
-// delete only if it still lacks the `v` marker AND its watch is not
-// listed+verified. Re-check the watch after the delete; if a confirm landed in
-// between, restore the row exactly as confirm writes it (activateListing).
-// Once drained, no hidden legacy rows remain, so the directory's skip-without-
-// counting rule and its list-page cap never have anything left to skip.
+// removes them for real, bounded per run with progress across runs, from a
+// durable queue (lv:rejected) fed by the read path and by a resumable walk of
+// the l: namespace (lv:cursor).
+//
+// Safety does NOT rely on reading after a delete (KV is eventually consistent;
+// greptile P1 on #341). A legacy row is deleted only once confirmation is no
+// longer possible (legacyRowDeletable): no live confirm-token marker for the
+// domain, AND the watch is missing or unverified with a claim older than the
+// token TTL + margin. A watch without a claim timestamp is hidden, never
+// deleted. A domain stays queued until a run observes a final state, and the
+// watch is checked even when the row is missing, so a listed+verified watch
+// whose row is gone (for any reason) is repaired with the exact row confirm
+// writes (activateListing) and re-verified on the next run.
 const LEGACY_CURSOR_KEY = 'lv:cursor';
 const LEGACY_CLEANUP_MAX = 200;
 const LEGACY_CLEANUP_MAX_PAGES = 10;
+const CONFIRMABLE_WINDOW_MS = (VERIFY_TTL + CONFIRM_SETTLE_MARGIN) * 1000;
 
 const isListedVerified = (w) => !!(w && w.listed && w.verified);
 
@@ -1428,71 +1450,83 @@ async function readListingRow(kv, domain) {
   return v != null ? { metadata: { v: 1 } } : null;
 }
 
-// Returns 'gone' | 'replaced' | 'verified' | 'deleted' | 'restored'.
-export async function cleanupLegacyListing(kv, domain) {
+// True only when no confirmation can still verify this domain's watch.
+async function legacyRowDeletable(kv, domain, watch, now = Date.now()) {
+  if (await kv.get(`wvd:${domain}`)) return false; // a token may still be live
+  if (!watch) return true; // confirm needs a watch; none exists
+  if (watch.verified) return false;
+  const claimedAt = Date.parse(watch.updatedAt || '');
+  if (!Number.isFinite(claimedAt)) return false; // no timestamp: hide only
+  return now - claimedAt > CONFIRMABLE_WINDOW_MS;
+}
+
+// One queued domain. Returns { result, keep } — `keep` leaves it queued for a
+// later run to re-observe. Results: replaced | verified | restored | gone |
+// deleted | pending.
+export async function cleanupLegacyListing(kv, domain, { now = Date.now() } = {}) {
   const row = await readListingRow(kv, domain);
-  if (!row) return 'gone';
-  if (row.metadata.v) return 'replaced'; // written under the verified-only rule
-  if (isListedVerified(await getWatch(kv, domain))) return 'verified';
-  await deleteListing(kv, domain);
-  // Confirm verifies the watch BEFORE writing its row, so a confirm that
-  // landed between our checks and the delete is visible here.
-  const after = await getWatch(kv, domain);
-  if (isListedVerified(after)) {
-    await activateListing(kv, after);
-    // Narrow the unsubscribe-after-restore window: if the claim went away
-    // meanwhile, don't leave a row behind.
-    if (!isListedVerified(await getWatch(kv, domain))) await deleteListing(kv, domain);
-    return 'restored';
+  if (row && row.metadata.v) return { result: 'replaced', keep: false };
+  const watch = await getWatch(kv, domain);
+  if (isListedVerified(watch)) {
+    if (row) return { result: 'verified', keep: false }; // shown via lv:verified
+    await activateListing(kv, watch); // repair a missing confirmed row
+    return { result: 'restored', keep: true }; // next run must see the v:1 row
   }
-  return 'deleted';
+  if (!row) return { result: 'gone', keep: false };
+  if (!(await legacyRowDeletable(kv, domain, watch, now))) {
+    return { result: 'pending', keep: true }; // hidden; re-check on a later run
+  }
+  await deleteListing(kv, domain);
+  return { result: 'deleted', keep: true }; // next run confirms the final state
 }
 
-async function writeLegacyIndex(kv, key, set: Set<string>) {
-  const list = [...set].slice(-LEGACY_INDEX_MAX);
-  if (list.length) await kv.put(key, JSON.stringify(list), { expirationTtl: LISTING_TTL });
-  else await kv.delete(key);
-}
-
-export async function cleanupLegacyListings(kv, { max = LEGACY_CLEANUP_MAX } = {}) {
+export async function cleanupLegacyListings(
+  kv,
+  { max = LEGACY_CLEANUP_MAX, now = Date.now() } = {}
+) {
   const summary = {
     processed: 0,
     deleted: 0,
     restored: 0,
     verified: 0,
+    pending: 0,
     skipped: 0,
     errors: 0,
     walkComplete: false,
   };
   if (!kv) return summary;
-  const done = new Set<string>();
+  const handled = new Set<string>();
+  const keepQueued: string[] = [];
   const nowVerified: string[] = [];
   const handle = async (domain) => {
     summary.processed++;
-    done.add(domain);
+    handled.add(domain);
     try {
-      const r = await cleanupLegacyListing(kv, domain);
-      if (r === 'deleted') summary.deleted++;
-      else if (r === 'restored') summary.restored++;
-      else if (r === 'verified') {
+      const { result, keep } = await cleanupLegacyListing(kv, domain, { now });
+      if (result === 'deleted') summary.deleted++;
+      else if (result === 'restored') summary.restored++;
+      else if (result === 'pending') summary.pending++;
+      else if (result === 'verified') {
         summary.verified++;
         nowVerified.push(domain);
       } else summary.skipped++;
+      if (keep) keepQueued.push(domain);
     } catch {
       summary.errors++;
-      done.delete(domain); // keep it queued for the next run
+      keepQueued.push(domain); // failed read/delete/restore: retry next run
     }
   };
 
-  // 1. Drain domains the read path already classified as rejected.
-  const rejected = await readLegacyIndex(kv, LEGACY_REJECTED_KEY);
-  for (const d of rejected) {
+  // 1. Drain the durable queue, oldest first.
+  const queue = [...(await readLegacyIndex(kv, LEGACY_REJECTED_KEY))];
+  for (const d of queue) {
     if (summary.processed >= max) break;
     await handle(d);
   }
 
   // 2. Walk the namespace for legacy rows not yet classified (resumable).
   const verified = await readLegacyIndex(kv, LEGACY_VERIFIED_KEY);
+  const queued = new Set(queue);
   let cursor = (await kv.get(LEGACY_CURSOR_KEY).catch(() => null)) || undefined;
   let pages = 0;
   while (summary.processed < max && pages < LEGACY_CLEANUP_MAX_PAGES) {
@@ -1501,7 +1535,7 @@ export async function cleanupLegacyListings(kv, { max = LEGACY_CLEANUP_MAX } = {
     let stoppedEarly = false;
     for (const k of res.keys || []) {
       const d = k.name.replace(/^l:/, '');
-      if ((k.metadata || {}).v || verified.has(d) || done.has(d) || rejected.has(d)) continue;
+      if ((k.metadata || {}).v || verified.has(d) || handled.has(d) || queued.has(d)) continue;
       if (summary.processed >= max) {
         stoppedEarly = true;
         break;
@@ -1519,11 +1553,17 @@ export async function cleanupLegacyListings(kv, { max = LEGACY_CLEANUP_MAX } = {
   if (summary.walkComplete || !cursor) await kv.delete(LEGACY_CURSOR_KEY);
   else await kv.put(LEGACY_CURSOR_KEY, cursor, { expirationTtl: LISTING_TTL });
 
-  // Persist index changes (re-read to keep concurrent read-path additions).
-  if (done.size) {
-    const cur = await readLegacyIndex(kv, LEGACY_REJECTED_KEY);
-    for (const d of done) cur.delete(d);
-    await writeLegacyIndex(kv, LEGACY_REJECTED_KEY, cur);
+  // Persist the queue: untouched entries first, then the ones kept for a
+  // re-check (rotated to the back so a long pending tail can't starve the
+  // rest), plus anything the read path appended meanwhile.
+  if (handled.size) {
+    const current = await readLegacyIndex(kv, LEGACY_REJECTED_KEY);
+    const keepSet = new Set(keepQueued);
+    const next = new Set<string>();
+    for (const d of current) if (!handled.has(d)) next.add(d);
+    for (const d of keepQueued) next.add(d);
+    for (const d of current) if (handled.has(d) && keepSet.has(d)) next.add(d);
+    await writeLegacyIndex(kv, LEGACY_REJECTED_KEY, next);
   }
   await mergeLegacyIndex(kv, LEGACY_VERIFIED_KEY, nowVerified);
   return summary;
