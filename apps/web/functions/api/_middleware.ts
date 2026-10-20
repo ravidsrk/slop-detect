@@ -298,8 +298,10 @@ export async function onRequest(context) {
     url.pathname.replace(/^\/api\//, '').split('/')[0] || 'root'
   );
   // Unknown /api/* paths get a JSON 404 here instead of falling through to the
-  // static layer (which answered with the homepage HTML and a 200).
+  // static layer (which answered with the homepage HTML and a 200). Still
+  // counted under the bounded `other` bucket so probe volume stays visible.
   if (routeLabel === 'other') {
+    deferOpsBump(env, context.waitUntil, 'other', { status: 404 });
     return jsonResponse(
       { error: 'not_found', message: `No such API route: ${url.pathname}`, requestId },
       404,

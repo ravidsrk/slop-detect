@@ -9,6 +9,8 @@ import {
   getListing,
   deleteListing,
   listSites,
+  listAllSites,
+  performUnsubscribe,
   recordScanForWatch,
   getWatch,
   putWatch,
@@ -421,4 +423,157 @@ test('recordScanForWatch reconciles away a stale row when the watch is not liste
   });
   await recordScanForWatch(kv, slim({ id: 'r9', score: 7, grade: 'A-', tier: 'Clean' }));
   expect(await getListing(kv, 'example.com'), 'stale row reconciled away').toBe(null);
+});
+
+test('listSites hides and removes legacy rows from unverified claims (pre-verification listings)', async () => {
+  // Rows written before listings required verification carry no `v` marker.
+  const legacyMeta = (s) => ({ s, g: 'A', tr: 'Clean', id: null, t: '', at: '2026-01-01' });
+  const kv = makeKv({
+    'l:unverified.example.com': {
+      value: JSON.stringify({ domain: 'unverified.example.com', score: 3 }),
+      metadata: legacyMeta(3),
+    },
+    'w:unverified.example.com': JSON.stringify({
+      domain: 'unverified.example.com',
+      email: 'a@x.io',
+      listed: true,
+      verified: false,
+    }),
+    'l:orphan.example.com': {
+      value: JSON.stringify({ domain: 'orphan.example.com', score: 4 }),
+      metadata: legacyMeta(4),
+    },
+    'l:verified.example.com': {
+      value: JSON.stringify({ domain: 'verified.example.com', score: 5, listedAt: '2026-01-01' }),
+      metadata: legacyMeta(5),
+    },
+    'w:verified.example.com': JSON.stringify({
+      domain: 'verified.example.com',
+      email: 'b@x.io',
+      listed: true,
+      verified: true,
+    }),
+  });
+  const { sites } = await listSites(kv);
+  expect(sites.map((s) => s.domain)).toEqual(['verified.example.com']);
+  // Lazy cleanup: unverified/orphan rows are gone; the verified one is shown
+  // but NOT rewritten on the read path (re-stamping is left to the next scan).
+  expect(kv.store.has('l:unverified.example.com')).toBe(false);
+  expect(kv.store.has('l:orphan.example.com')).toBe(false);
+  expect(kv.store.get('l:verified.example.com').metadata.v).toBeUndefined();
+  // /api/sites serves the filtered view too.
+  const res = await sitesGet({
+    request: { url: 'https://slop-detect.com/api/sites' },
+    env: { RESULTS: kv },
+  });
+  const body = await res.json();
+  const domains = (body.sites || []).map((s) => s.domain);
+  expect(domains).toEqual(['verified.example.com']);
+});
+
+test('a directory read racing an unsubscribe cannot resurrect the removed listing', async () => {
+  const kv = makeKv({
+    'l:racy.example.com': {
+      value: JSON.stringify({ domain: 'racy.example.com', score: 2 }),
+      metadata: { s: 2, g: 'A', tr: 'Clean', id: null, t: '', at: '2026-01-01' },
+    },
+    'w:racy.example.com': JSON.stringify({
+      domain: 'racy.example.com',
+      email: 'o@x.io',
+      listed: true,
+      verified: true,
+    }),
+  });
+  // performUnsubscribe lands right after listSites' watch check reads the
+  // still-verified watch: it removes the listing row and the watch.
+  const origGet = kv.get.bind(kv);
+  let unsubscribed = false;
+  kv.get = async (k) => {
+    const v = await origGet(k);
+    if (k === 'w:racy.example.com' && !unsubscribed) {
+      unsubscribed = true;
+      await performUnsubscribe(kv, 'racy.example.com', 'o@x.io');
+    }
+    return v;
+  };
+  const listingWrites = [];
+  const origPut = kv.put.bind(kv);
+  kv.put = async (k, v, o) => {
+    if (k.startsWith('l:')) listingWrites.push(k);
+    return origPut(k, v, o);
+  };
+  await listSites(kv);
+  expect(unsubscribed, 'the simulated removal actually ran').toBe(true);
+  expect(listingWrites, 'the read path never writes a listing row').toEqual([]);
+  expect(kv.store.has('l:racy.example.com'), 'listing stays removed').toBe(false);
+  expect(kv.store.has('w:racy.example.com'), 'watch stays removed').toBe(false);
+  // A later directory read doesn't bring it back either.
+  kv.get = origGet;
+  const again = await listSites(kv);
+  expect(again.sites).toEqual([]);
+});
+
+test('valid legacy listings beyond one request budget become visible on later requests', async () => {
+  const seed = {};
+  for (let i = 0; i < 51; i++) {
+    const d = `ok${String(i).padStart(3, '0')}.example.com`;
+    seed[`l:${d}`] = { value: '{}', metadata: { s: 1, at: '2026-01-01' } };
+    seed[`w:${d}`] = JSON.stringify({ domain: d, email: 'o@x.io', listed: true, verified: true });
+  }
+  const kv = makeKv(seed);
+  let watchReads = 0;
+  const origGet = kv.get.bind(kv);
+  kv.get = async (k) => {
+    if (k.startsWith('w:')) watchReads++;
+    return origGet(k);
+  };
+  const first = await listAllSites(kv);
+  expect(first.length).toBe(50); // bounded: one row still pending
+  expect(watchReads).toBe(50);
+  watchReads = 0;
+  const second = await listAllSites(kv);
+  expect(second.length).toBe(51); // progress carried across requests
+  expect(watchReads).toBe(1); // only the previously unchecked row
+  watchReads = 0;
+  expect((await listAllSites(kv)).length).toBe(51);
+  expect(watchReads).toBe(0); // steady state: no per-row reads
+  // Listing rows themselves were never rewritten.
+  expect(kv.store.get('l:ok000.example.com').metadata.v).toBeUndefined();
+});
+
+test('legacy cleanup is bounded per request: watch checks capped, rows scanned capped', async () => {
+  const seed = {};
+  for (let i = 0; i < 120; i++) {
+    seed[`l:orphan${String(i).padStart(3, '0')}.example.com`] = {
+      value: '{}',
+      metadata: { s: 1, at: '2026-01-01' },
+    };
+  }
+  const kv = makeKv(seed);
+  let watchReads = 0;
+  const origGet = kv.get.bind(kv);
+  kv.get = async (k) => {
+    if (k.startsWith('w:')) watchReads++;
+    return origGet(k);
+  };
+  const first = await listAllSites(kv);
+  expect(first).toEqual([]);
+  expect(watchReads).toBe(50); // one request's legacy budget
+  expect([...kv.store.keys()].filter((k) => k.startsWith('l:')).length).toBe(70);
+  // The remaining cleanup continues on later requests.
+  await listAllSites(kv);
+  await listAllSites(kv);
+  expect([...kv.store.keys()].filter((k) => k.startsWith('l:')).length).toBe(0);
+
+  // Raw rows scanned (not just rows returned) bound the walk.
+  const big = makeKv(seed);
+  let listed = 0;
+  const origList = big.list.bind(big);
+  big.list = async (opts) => {
+    const r = await origList(opts);
+    listed += r.keys.length;
+    return r;
+  };
+  await listAllSites(big, { max: 30 });
+  expect(listed).toBe(30);
 });

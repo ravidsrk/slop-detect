@@ -128,7 +128,7 @@ test('watch + history + listing carry 1y', async () => {
 
 test('single-use tokens carry short TTLs (7d verify, 15m magic link)', async () => {
   const kv = makeKv();
-  const wt = await issueWatchToken(kv, 'example.com');
+  const wt = await issueWatchToken(kv, 'example.com', 'a@x.io');
   const dt = await issueDashboardToken(kv, 'a@x.io');
   expect(kv.puts.find((p) => p.k === `wv:${wt}`).ttl).toBe(DAYS7);
   expect(kv.puts.find((p) => p.k === `dt:${dt}`).ttl).toBe(MIN15);

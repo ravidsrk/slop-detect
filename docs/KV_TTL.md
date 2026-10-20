@@ -19,6 +19,7 @@ this table is a bug — add the key here when you add a `kv.put`.
 | `stats:dist`, `stats:catclean` | durable (no TTL, by design) | Two fixed bounded keys (101-bucket histogram; per-category sums) |
 | `stats:ops:<day>` | 30d (`OPS_TTL`) | Daily ops blob: per-route req/status, scan tiers, nav-latency buckets; read by /api/stats `ops` (T-24) |
 | `l:<domain>` | 1y (`LISTING_TTL`) | Public directory listings |
+| `lv:verified` | 1y (`LISTING_TTL`) | Index of pre-verification-era listings already confirmed verified (directory cleanup) |
 | `og:<id>` | 30d (`OG_TTL`) | Rendered OG images |
 | `rl:dashlink:<hash>` | 1h (`DASHLINK_WINDOW_SEC`) | Magic-link send cap (3/hour/email) |
 | `rl:watchverify:<hash>` | 1h (`WATCH_VERIFY_WINDOW_SEC`) | Watch confirmation cap |

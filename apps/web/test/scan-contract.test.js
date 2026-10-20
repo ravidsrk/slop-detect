@@ -558,6 +558,41 @@ test('apex→www redirect scans normally (same site, not "private/internal")', a
   expect(mock.pageCloseCount).toBe(1); // tab closed before session release
 });
 
+test("a same-site redirect still updates the REQUESTED domain's watch (finalUrl preserved)", async () => {
+  // Watch lives under the requested apex; the page lands on app.<apex>.
+  const kv = makeKv({
+    'w:acme.example.com': JSON.stringify({
+      domain: 'acme.example.com',
+      email: 'o@acme.example.com',
+      verified: true,
+      baselineScore: 0,
+      baselineGrade: 'A',
+      baselineTier: 'Clean',
+      lastScore: 0,
+      lastTier: 'Clean',
+      regressed: false,
+      notified: false,
+    }),
+  });
+  mock.gotoResponseUrl = 'https://app.acme.example.com/';
+  const res = await onRequestPost({
+    request: postReq({ url: 'https://acme.example.com', refresh: true }),
+    env: { BROWSER: {}, RESULTS: kv },
+  });
+  expect(res.status).toBe(200);
+  const r = await res.json();
+  expect(r.finalUrl).toBe('https://app.acme.example.com/');
+  expect(r.monitoring && r.monitoring.watched).toBe(true);
+  const w = JSON.parse(kv.store.get('w:acme.example.com'));
+  expect(w.lastId).toBe(r.id);
+  expect(w.lastScore).toBe(r.score);
+  expect(kv.store.has('h:acme.example.com'), 'history appended to the watched domain').toBe(true);
+  // The persisted result itself still records the final host.
+  const saved = JSON.parse(kv.store.get(`r:${r.id}`));
+  expect(saved.finalUrl).toBe('https://app.acme.example.com/');
+  expect(saved.domain).toBe('app.acme.example.com');
+});
+
 test('400 blocked_redirect with a cross-site (not private) message for an unrelated domain', async () => {
   mock.gotoResponseUrl = 'https://unrelated.other-example.net/';
   const res = await onRequestPost({

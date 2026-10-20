@@ -153,19 +153,25 @@ export async function putWatch(kv, watch) {
 }
 
 // ── Double-opt-in verification tokens ─────────────────────────────────────────
-// A token maps to a domain (wv:<token> → domain). The owner clicks a link
-// carrying the token to set watch.verified=true. Tokens are single-use and
-// expire; an unverified watch never receives alert email.
+// A token maps to the CLAIM it was issued for: wv:<token> → {domain, email}.
+// The owner clicks a link carrying the token to set watch.verified=true — but
+// only if the watch is still claimed by the email that received the token. An
+// unverified claim can be replaced by a different email, so a domain-only token
+// would let an old link verify the NEW address (greptile P1 on PR #217).
+// Tokens are single-use and expire; an unverified watch never receives alerts.
 const VERIFY_TTL = 60 * 60 * 24 * 7; // 7 days to confirm
 
-export async function issueWatchToken(kv, domain) {
-  if (!kv || !domain) return null;
+export async function issueWatchToken(kv, domain, email) {
+  if (!kv || !domain || !email) return null;
   const token = newId(32); // 32 url-safe chars ≈ 165 bits
-  await kv.put(`wv:${token}`, domain, { expirationTtl: VERIFY_TTL });
+  const claim = { domain, email: String(email).trim().toLowerCase() };
+  await kv.put(`wv:${token}`, JSON.stringify(claim), { expirationTtl: VERIFY_TTL });
   return token;
 }
 
-// Resolve + burn a token. Returns the domain it confirmed, or null if unknown/expired.
+// Resolve + burn a token. Returns the {domain, email} claim it was issued for,
+// or null if unknown/expired. Legacy domain-only tokens resolve with
+// email:null, which the confirm route treats as no longer valid.
 //
 // NOTE: get-then-delete is not atomic, and Workers KV has no compare-and-delete
 // primitive, so two requests racing the SAME token within the (eventually
@@ -173,12 +179,23 @@ export async function issueWatchToken(kv, domain) {
 // benign: re-confirming a watch just re-sets verified:true (idempotent), and a
 // raced dashboard token only mints a second session for the SAME owner email.
 // True hard single-use would require a Durable Object; not worth it for this.
-export async function consumeWatchToken(kv, token) {
+export async function consumeWatchToken(
+  kv,
+  token
+): Promise<{ domain: string; email: string | null } | null> {
   if (!kv || !token) return null;
-  const domain = await kv.get(`wv:${token}`);
-  if (!domain) return null;
+  const raw = await kv.get(`wv:${token}`);
+  if (!raw) return null;
   await kv.delete(`wv:${token}`);
-  return domain;
+  try {
+    const claim = JSON.parse(raw);
+    if (claim && typeof claim === 'object' && claim.domain) {
+      return { domain: String(claim.domain), email: claim.email ? String(claim.email) : null };
+    }
+  } catch {
+    /* legacy plain-domain value */
+  }
+  return { domain: raw, email: null };
 }
 
 // ── Dashboard magic-link tokens (P2b) ────────────────────────────────────────
@@ -1142,6 +1159,10 @@ function listingMeta(record) {
     id: record.id,
     t: (record.title || '').slice(0, 60),
     at: record.listedAt,
+    // `v` marks a row written under the verified-only rule (every setListing
+    // caller gates on watch.verified). Rows without it predate that rule and
+    // are re-checked against their watch by listSites (greptile P2 on #217).
+    v: 1,
   };
 }
 
@@ -1182,14 +1203,47 @@ export async function deleteListing(kv, domain) {
 }
 
 // Enumerate the directory from KV list metadata (cheap — no per-row get).
-// Returns { sites, cursor, complete }. `cursor` paginates the raw KV scan.
-export async function listSites(kv, { limit = 200, cursor = null } = {}) {
-  if (!kv) return { sites: [], cursor: null, complete: true };
+// Returns { sites, cursor, complete, scanned }. `cursor` paginates the raw KV
+// scan; `scanned` counts raw rows examined (kept or not).
+//
+// Legacy rows (no `v` marker) were created before a listing required an
+// email-verified claim, so each one is checked against its watch once: a row
+// whose watch is listed+verified is shown and its domain recorded in the
+// legacy-verified index (lv:verified); anything else is hidden and lazily
+// deleted. Indexed domains are shown without a re-check, so the bounded
+// per-request budget only spends on unchecked rows and makes progress across
+// requests (greptile P1/P2 on #218).
+//
+// The read path never writes a LISTING row (a rewrite racing
+// performUnsubscribe could resurrect a removed listing). A stale index entry
+// is harmless: removal deletes the l: row itself, and every row written since
+// the verified-only rule carries `v`, so only surviving legacy rows ever
+// consult the index.
+export async function listSites(
+  kv,
+  {
+    limit = 200,
+    cursor = null,
+    legacy = null,
+  }: { limit?: number; cursor?: string | null; legacy?: LegacyState | null } = {}
+) {
+  if (!kv) return { sites: [], cursor: null, complete: true, scanned: 0 };
+  const own = !legacy;
+  const state = legacy || (await loadLegacyState(kv));
   const res = await kv.list({ prefix: 'l:', limit, cursor: cursor || undefined });
-  const sites = (res.keys || []).map((k) => {
+  const keys = res.keys || [];
+  const sites = [];
+  for (const k of keys) {
     const m = k.metadata || {};
     const domain = k.name.replace(/^l:/, '');
-    return {
+    if (!m.v && !state.verified.has(domain)) {
+      if (state.left <= 0) continue; // budget spent: hide (fail closed) for now
+      state.left--;
+      if (!(await isLegacyListingVerified(kv, domain))) continue;
+      state.verified.add(domain);
+      state.added.push(domain);
+    }
+    sites.push({
       domain,
       url: `https://${domain}`,
       score: m.s ?? null,
@@ -1198,27 +1252,82 @@ export async function listSites(kv, { limit = 200, cursor = null } = {}) {
       id: m.id ?? null,
       title: m.t || null,
       listedAt: m.at || null,
-    };
-  });
+    });
+  }
+  if (own) await flushLegacyState(kv, state);
   return {
     sites,
     cursor: res.list_complete ? null : res.cursor || null,
     complete: !!res.list_complete,
+    scanned: keys.length,
   };
 }
 
+// Max watch lookups for unchecked legacy rows in one directory request.
+const LEGACY_CHECKS_PER_REQUEST = 50;
+const LEGACY_INDEX_KEY = 'lv:verified';
+const LEGACY_INDEX_MAX = 5000;
+
+type LegacyState = { left: number; verified: Set<string>; added: string[] };
+
+async function loadLegacyState(kv): Promise<LegacyState> {
+  let list = [];
+  try {
+    const raw = await kv.get(LEGACY_INDEX_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(parsed)) list = parsed.filter((d) => typeof d === 'string');
+  } catch {
+    /* unreadable index: every legacy row is re-checked within the budget */
+  }
+  return { left: LEGACY_CHECKS_PER_REQUEST, verified: new Set(list), added: [] };
+}
+
+// Merge newly verified legacy domains into the index (re-read first to narrow
+// lost updates between concurrent requests; a lost add only costs a re-check).
+async function flushLegacyState(kv, state: LegacyState) {
+  if (!state.added.length) return;
+  try {
+    const current = await loadLegacyState(kv);
+    for (const d of state.added) current.verified.add(d);
+    const merged = [...current.verified].slice(-LEGACY_INDEX_MAX);
+    await kv.put(LEGACY_INDEX_KEY, JSON.stringify(merged), { expirationTtl: LISTING_TTL });
+  } catch {
+    /* best-effort: rows are simply re-checked on a later request */
+  }
+}
+
+// True when a pre-verification listing row is backed by a listed AND verified
+// watch. Otherwise the row is deleted (delete-only: it can never resurrect a
+// removed listing) and false is returned. A KV hiccup hides the row for this
+// request rather than serving an unverified listing.
+async function isLegacyListingVerified(kv, domain) {
+  try {
+    const watch = await getWatch(kv, domain);
+    if (watch && watch.listed && watch.verified) return true;
+    await deleteListing(kv, domain);
+  } catch {
+    /* hide on error; reconciled on a later request or scan */
+  }
+  return false;
+}
+
 // Walk the directory (paginates internally), BOUNDED so a large catalogue can't
-// turn a public page render into an unbounded KV scan / memory blowout. Stops at
-// `max` listings (default 5000) — well above validation scale; revisit with a
-// real index if the directory ever approaches it.
+// turn a public page render into an unbounded KV scan / memory blowout. Stops
+// after `max` RAW rows scanned (default 5000), counting rows hidden by the
+// legacy filter too, and shares one legacy budget + index across pages.
 export async function listAllSites(kv, { max = 5000 } = {}) {
+  if (!kv) return [];
   const out = [];
   let cursor = null;
+  let scanned = 0;
+  const legacy = await loadLegacyState(kv);
   do {
-    const r = await listSites(kv, { limit: 1000, cursor });
+    const r = await listSites(kv, { limit: Math.min(1000, max - scanned), cursor, legacy });
     out.push(...r.sites);
+    scanned += r.scanned;
     cursor = r.cursor;
-  } while (cursor && out.length < max);
+  } while (cursor && scanned < max);
+  await flushLegacyState(kv, legacy);
   return out.slice(0, max);
 }
 

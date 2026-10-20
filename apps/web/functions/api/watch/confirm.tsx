@@ -9,7 +9,7 @@
 // language (design "Motion and interaction states > confirmation micro-states").
 //
 // Status contract preserved: 200 verified, 503 no storage, 400 missing token,
-// 410 expired/used, 404 watch gone (alerts.test.js covers the lifecycle).
+// 410 expired/used/superseded (token bound to a different email), 404 watch gone (alerts.test.js covers the lifecycle).
 
 import { raw } from 'hono/html';
 import {
@@ -142,7 +142,8 @@ export async function onRequestGet({ request, env, waitUntil }) {
       action: { href: '/', label: 'Re-subscribe' },
     });
 
-  const domain = await consumeWatchToken(env.RESULTS, token);
+  const claim = await consumeWatchToken(env.RESULTS, token);
+  const domain = claim?.domain;
   if (!domain)
     return page({
       title: 'Link expired',
@@ -172,6 +173,27 @@ export async function onRequestGet({ request, env, waitUntil }) {
       body: (
         <p class="confirm-body">
           The monitor may have been removed. Re-subscribe to start watching it again.
+        </p>
+      ),
+      action: { href: '/', label: 'Re-subscribe' },
+    });
+
+  // The token only proves control of the address it was emailed to. If the
+  // unverified claim has since been replaced by a different email (or this is
+  // a legacy domain-only token), the link must not verify the current claim.
+  if (!claim.email || claim.email !== String(watch.email || '').toLowerCase())
+    return page({
+      title: 'Link superseded',
+      status: 410,
+      ledger: { tag: 'monitoring', label: 'double opt-in' },
+      heading: 'This link is no longer valid',
+      tone: 'warn',
+      state: 'claim changed',
+      domain,
+      body: (
+        <p class="confirm-body">
+          The monitoring claim for <strong>{domain}</strong> changed after this link was sent.
+          Re-subscribe to get a fresh confirmation link.
         </p>
       ),
       action: { href: '/', label: 'Re-subscribe' },

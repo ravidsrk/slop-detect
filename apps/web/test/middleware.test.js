@@ -626,3 +626,17 @@ test('share:false scan REJECTIONS are not bumped (peek drives the opt-out)', asy
   await flush();
   expect(opsKv.store.size).toBe(0);
 });
+
+test('unknown /api/* 404s are still counted under the bounded `other` bucket', async () => {
+  const opsKv = makeOpsKv();
+  for (const path of ['/api/graphql', '/api/.env']) {
+    const req = makeRequest({ method: 'GET', path });
+    const res = await onRequest(makeContext(req, { RESULTS: opsKv }));
+    expect(res.status, path).toBe(404);
+    await flush();
+  }
+  const blob = JSON.parse(opsKv.store.get(todayOpsKey()));
+  expect(blob.routes.other.req).toBe(2);
+  expect(blob.routes.other.byStatus).toEqual({ 404: 2 });
+  expect(Object.keys(blob.routes)).toEqual(['other']);
+});
