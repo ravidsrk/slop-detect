@@ -12,7 +12,14 @@ import {
 
 function ctx(text, extra = {}) {
   const wordCount = extra.wordCount ?? (text ? text.split(/\s+/).filter(Boolean).length : 0);
-  return { text, headings: extra.headings || [], paragraphs: extra.paragraphs || [], wordCount };
+  const proseWordCount = extra.proseWordCount ?? (wordCount >= 40 ? Math.max(wordCount, 300) : wordCount);
+  return {
+    text,
+    headings: extra.headings || [],
+    paragraphs: extra.paragraphs || [],
+    wordCount,
+    proseWordCount,
+  };
 }
 
 const SLOP = ctx(

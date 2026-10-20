@@ -95,11 +95,11 @@ function makeFetch(routes) {
   };
 }
 
-test('runAeoChecks: fully AEO-ready site scores AI-Ready (100)', async () => {
+test('runAeoChecks: fully AEO-ready site scores Eligible (100)', async () => {
   const fetchImpl = makeFetch((path, _ua) => {
     if (path === '/') {
       return {
-        body: '<html><head><link rel="alternate" type="text/markdown" href="/index.md"></head><body>hi</body></html>',
+        body: '<html><head><link rel="alternate" type="text/markdown" href="/index.md"></head><body><h1>Ready Site</h1><p>Server rendered documentation and reference prose for search and user-action crawlers.</p></body></html>',
         headers: {
           'content-type': 'text/html',
           vary: 'Accept',
@@ -108,27 +108,33 @@ test('runAeoChecks: fully AEO-ready site scores AI-Ready (100)', async () => {
       };
     }
     if (path === '/index.md')
-      return { body: '# Hi', headers: { 'content-type': 'text/markdown; charset=utf-8' } };
+      return {
+        body: '# Ready Site\n\nComplete markdown twin documentation with substantive prose for AI search and agent citation.',
+        headers: { 'content-type': 'text/markdown; charset=utf-8' },
+      };
     if (path === '/robots.txt')
       return { body: 'User-agent: *\nAllow: /', headers: { 'content-type': 'text/plain' } };
-    if (path === '/llms.txt') return { body: '# Site', headers: { 'content-type': 'text/plain' } };
+    if (path === '/llms.txt')
+      return {
+        body: '# Ready Site\n\n> Official documentation index.\n\n- [API Reference](https://ready.example/index.md): Full API documentation.',
+        headers: { 'content-type': 'text/plain' },
+      };
     return null;
   });
 
   const r = await runAeoChecks('https://ready.example', { fetchImpl, timeoutMs: 1000 });
   expect(r.axis).toBe('aeo');
   expect(r.score).toBe(100);
-  expect(r.tier).toBe('AI-Ready');
+  expect(r.tier).toBe('Eligible');
   expect(r.requiredFailed).toBe(0);
 });
 
-test('runAeoChecks: site that blocks GPTBot + has noindex fails the required checks', async () => {
+test('runAeoChecks: site that blocks search probe + disallows OAI-SearchBot + has noindex fails required checks', async () => {
   const fetchImpl = makeFetch((path, ua) => {
     if (path === '/robots.txt')
-      return { body: 'User-agent: GPTBot\nDisallow: /', headers: { 'content-type': 'text/plain' } };
+      return { body: 'User-agent: OAI-SearchBot\nDisallow: /', headers: { 'content-type': 'text/plain' } };
     if (path === '/') {
-      // GPTBot gets a 403; humans get a noindex page.
-      if (/gptbot/i.test(ua)) return { status: 403, body: 'forbidden' };
+      if (/searchprobe/i.test(ua)) return { status: 403, body: 'forbidden' };
       return {
         body: '<html><head><meta name="robots" content="noindex"></head><body>x</body></html>',
         headers: { 'content-type': 'text/html' },
@@ -139,11 +145,11 @@ test('runAeoChecks: site that blocks GPTBot + has noindex fails the required che
 
   const r = await runAeoChecks('https://blocked.example', { fetchImpl, timeoutMs: 1000 });
   const failedIds = new Set(r.failed.map((c) => c.id));
-  expect(failedIds.has('bot.notBlocked')).toBeTruthy();
-  expect(failedIds.has('robots.aiAllowed')).toBeTruthy();
+  expect(failedIds.has('edge.access')).toBeTruthy();
+  expect(failedIds.has('robots.searchAllowed')).toBeTruthy();
   expect(failedIds.has('html.indexable')).toBeTruthy();
   expect(r.requiredFailed >= 3).toBeTruthy();
-  expect(r.tier).toBe('Invisible');
+  expect(r.tier).toBe('Restricted');
 });
 
 test('AEO_CHECKS weights total 100', () => {
