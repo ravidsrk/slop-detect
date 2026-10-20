@@ -147,6 +147,13 @@ export async function getWatch(kv, domain) {
   return raw ? JSON.parse(raw) : null;
 }
 
+// Public grade, score, and tier require an email-verified directory listing.
+// A saved scan, setListing metadata, or a watch that is only verified (or only
+// listed) is not enough. /r/:id stays the full result for the scan that created it.
+export function isEmailVerifiedListing(watch) {
+  return Boolean(watch && watch.listed === true && watch.verified === true);
+}
+
 export async function putWatch(kv, watch) {
   if (!kv) return;
   await kv.put(`w:${watch.domain}`, JSON.stringify(watch), { expirationTtl: WATCH_TTL });

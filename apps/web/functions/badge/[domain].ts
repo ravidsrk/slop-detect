@@ -8,7 +8,7 @@
 // Embed:
 //   [![slop](https://slop-detect.com/badge/example.com.svg)](https://slop-detect.com)
 
-import { getLatestForDomain, BADGE_TTL } from '../_shared.js';
+import { getLatestForDomain, getWatch, isEmailVerifiedListing, BADGE_TTL } from '../_shared.js';
 import { badgeSvg } from '../_badge.js';
 
 export async function onRequestGet({ params, env }) {
@@ -18,8 +18,15 @@ export async function onRequestGet({ params, env }) {
     .toLowerCase()
     .slice(0, 253);
 
-  const slim = await getLatestForDomain(env.RESULTS, domain).catch(() => null);
-  const svg = badgeSvg(domain, slim);
+  const [slim, watch] = await Promise.all([
+    getLatestForDomain(env.RESULTS, domain).catch(() => null),
+    getWatch(env.RESULTS, domain).catch(() => null),
+  ]);
+  // Same gate as /score/:domain. The SVG is a public, cacheable embed, so a
+  // saved scan is not enough to print the grade.
+  const svg = badgeSvg(domain, slim, {
+    withheld: !!slim && !isEmailVerifiedListing(watch),
+  });
 
   return new Response(svg, {
     headers: {

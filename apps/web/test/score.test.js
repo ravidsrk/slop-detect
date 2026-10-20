@@ -89,6 +89,8 @@ test('a scanned domain renders score, grade, verdict, JSON-LD, canonical', async
   expect(html).not.toMatch(/class="stb-tier"/);
   expect(html).toMatch(/application\/ld\+json/); // AEO structured data
   expect(html).toMatch(/rel="canonical" href="https:\/\/slop-detect\.com\/score\/ex\.com"/);
+  expect(html).toMatch(/property="og:image" content="https:\/\/slop-detect\.com\/og\.png"/);
+  expect(html).not.toMatch(/\/og\/sc0re001\.png/);
 });
 
 test('a scanned domain with a listed and verified watch renders score, grade, and verdict', async () => {
@@ -102,6 +104,9 @@ test('a scanned domain with a listed and verified watch renders score, grade, an
   expect(html).toMatch(/class="bs-grade"[^>]*>D</);
   expect(html).toMatch(/30<small>\/100<\/small>/);
   expect(html).toMatch(/Heavy slop/);
+  expect(html).toMatch(
+    /property="og:image" content="https:\/\/slop-detect\.com\/og\/sc0re001\.png"/
+  );
 });
 
 test('an UNCLAIMED domain shows the claim form, no directory backlink', async () => {

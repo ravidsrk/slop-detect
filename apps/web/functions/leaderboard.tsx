@@ -18,7 +18,7 @@
 
 import { raw } from 'hono/html';
 import { DEFINITIONS_VERSION, PATTERNS } from '@slop-detect/core';
-import { getStats, getWatch, listAllSites } from './_data.js';
+import { getListing, getStats, getWatch, isEmailVerifiedListing } from './_data.js';
 import { tierFor, tierFill, tierText } from './_theme.js';
 import { BRAND_FONTS_HEAD, BRAND_CSS } from './_brand.js';
 import { Nav, Footer, StatsStrip, LeaderboardRow, Cta, ScanInput, UI_CSS } from './_ui.js';
@@ -61,8 +61,7 @@ const PAGE_CSS = `
   /* distribution histogram */
   .hb-fig{margin:22px 0 0}
   .hb{display:grid;grid-template-columns:repeat(${BUCKETS},1fr);gap:7px;align-items:end;list-style:none}
-  .hb-col{display:grid;grid-template-rows:18px ${BAR_MAX}px auto;align-items:end;justify-items:center;gap:6px;cursor:pointer;padding:4px 2px;border-radius:3px;transition:background var(--t)}
-  .hb-col:hover,.hb-col.active{background:var(--bg-2)}
+  .hb-col{display:grid;grid-template-rows:18px ${BAR_MAX}px auto;align-items:end;justify-items:center;gap:6px;padding:4px 2px;border-radius:3px}
   .hb-n{font-family:var(--mono);font-size:12px;color:var(--text-5);line-height:1}
   .hb-bar{width:100%;align-self:end;border-radius:3px 3px 0 0;min-height:2px;height:var(--h);animation:hb-grow .6s ease both}
   .hb-x{font-family:var(--mono);font-size:12px;color:var(--text-6);line-height:1}
@@ -159,10 +158,6 @@ function Histogram({ sites, scored }: { sites: any[]; scored: number }) {
           return (
             <li
               class="hb-col"
-              data-bucket={String(i)}
-              data-lo={String(lo)}
-              data-hi={String(hi)}
-              title={`Click to filter scores ${lo}–${hi}`}
               aria-label={`Scores ${lo} to ${hi}: ${n} ${n === 1 ? 'page' : 'pages'}`}
             >
               <span class="hb-n" aria-hidden="true">
@@ -186,7 +181,7 @@ function Histogram({ sites, scored }: { sites: any[]; scored: number }) {
       </div>
       <figcaption class="hb-cap" id="hbCaption">
         Slop scores across {scored} scanned pages, in ten bands. Lower is cleaner: Clean is
-        0&ndash;9, Mild 10&ndash;27, Heavy 28+. Click any band to filter the boards below.
+        0&ndash;9, Mild 10&ndash;27, Heavy 28+. Individual scores stay off this chart.
       </figcaption>
     </figure>
   );
@@ -194,21 +189,11 @@ function Histogram({ sites, scored }: { sites: any[]; scored: number }) {
 
 // One corpus or directory row — third-party grades and tiers are withheld unless
 // the domain is an email-verified directory listing (FIX-04).
-function Row({
-  s,
-  rank,
-  origin,
-  verified,
-}: {
-  s: any;
-  rank: number;
-  origin: string;
-  verified?: any;
-}) {
+function Row({ s, origin, verified }: { s: any; origin: string; verified?: any }) {
   if (verified) {
     return (
       <LeaderboardRow
-        rank={rank}
+        rank={null}
         domain={s.domain}
         score={verified.score ?? s.score}
         grade={verified.grade ?? s.grade}
@@ -243,7 +228,12 @@ function PatternPrevalence({ sites, scored, data }: { sites: any[]; scored: numb
     { label: '5+ patterns triggered', count: 0 },
   ];
   const byPatternId: Record<string, number> = {};
-  if (data?.patternPrevalence && typeof data.patternPrevalence === 'object') {
+  const sitesCarryRules = sites.some(
+    (s) =>
+      (Array.isArray(s.patterns) && s.patterns.length > 0) ||
+      (Array.isArray(s.flaggedPatterns) && s.flaggedPatterns.length > 0)
+  );
+  if (!sitesCarryRules && data?.patternPrevalence && typeof data.patternPrevalence === 'object') {
     for (const [id, n] of Object.entries<any>(data.patternPrevalence)) {
       byPatternId[id] = Number(n) || 0;
     }
@@ -376,11 +366,11 @@ function CategoryBoards({
                 </small>
               </h3>
               <ol>
-                {rows.map((s, i) => {
+                {rows.map((s) => {
                   const v = verifiedMap.get(String(s.domain || '').toLowerCase());
                   return (
                     <div class="lb-filter-row" data-domain={String(s.domain || '').toLowerCase()}>
-                      <Row s={s} rank={i + 1} origin={origin} verified={v} />
+                      <Row s={s} origin={origin} verified={v} />
                     </div>
                   );
                 })}
@@ -435,17 +425,24 @@ export async function onRequestGet({ request, env }: { request: { url: string };
   const origin = new URL(request.url).origin;
   const data = await loadData(request);
   const live = env?.RESULTS ? await getStats(env.RESULTS).catch(() => null) : null;
-  const listedSites = env?.RESULTS ? await listAllSites(env.RESULTS).catch(() => []) : [];
+  // Only the corpus domains on this page can show a grade. Checking the whole
+  // directory would read a watch for every listing (listAllSites walks up to
+  // 5,000 rows) on a public request.
+  const corpusDomains = [
+    ...new Set(
+      ((data?.sites || []) as any[])
+        .map((s) => String(s?.domain || '').toLowerCase())
+        .filter(Boolean)
+    ),
+  ];
   const verifiedMap = new Map<string, any>();
   if (env?.RESULTS) {
     await Promise.all(
-      (listedSites || []).map(async (ls: any) => {
-        if (!ls || !ls.domain || ls.listed === false) return;
-        const dom = String(ls.domain).toLowerCase();
+      corpusDomains.map(async (dom) => {
         const w = await getWatch(env.RESULTS, dom).catch(() => null);
-        if (w && w.listed === true && w.verified === true) {
-          verifiedMap.set(dom, ls);
-        }
+        if (!isEmailVerifiedListing(w)) return;
+        const listing = await getListing(env.RESULTS, dom).catch(() => null);
+        verifiedMap.set(dom, listing || w);
       })
     );
   }
@@ -619,20 +616,16 @@ export async function onRequestGet({ request, env }: { request: { url: string };
   var search=document.getElementById('lbSearch');
   var rows=Array.prototype.slice.call(document.querySelectorAll('.lb-filter-row'));
   var tierBtns=Array.prototype.slice.call(document.querySelectorAll('[data-tier-filter]'));
-  var hbCols=Array.prototype.slice.call(document.querySelectorAll('.hb-col[data-bucket]'));
   if(!rows.length)return;
   var activeTier='all';
-  var activeBand=null;
   function apply(){
     var q=(search&&search.value?search.value:'').trim().toLowerCase();
     rows.forEach(function(r){
       var dom=r.getAttribute('data-domain')||'';
       var tier=r.getAttribute('data-tier')||'';
-      var sc=parseFloat(r.getAttribute('data-score')||'0');
       var okDom=!q||dom.indexOf(q)!==-1;
       var okTier=activeTier==='all'||tier===activeTier;
-      var okBand=!activeBand||(sc>=activeBand.lo&&sc<=activeBand.hi);
-      r.hidden=!(okDom&&okTier&&okBand);
+      r.hidden=!(okDom&&okTier);
     });
   }
   if(search)search.addEventListener('input',apply);
@@ -640,20 +633,6 @@ export async function onRequestGet({ request, env }: { request: { url: string };
     b.addEventListener('click',function(){
       activeTier=b.getAttribute('data-tier-filter')||'all';
       tierBtns.forEach(function(x){x.classList.toggle('active',x===b);});
-      apply();
-    });
-  });
-  hbCols.forEach(function(c){
-    c.addEventListener('click',function(){
-      var lo=parseFloat(c.getAttribute('data-lo')||'0');
-      var hi=parseFloat(c.getAttribute('data-hi')||'100');
-      if(activeBand&&activeBand.lo===lo){
-        activeBand=null;
-        hbCols.forEach(function(x){x.classList.remove('active');});
-      }else{
-        activeBand={lo:lo,hi:hi};
-        hbCols.forEach(function(x){x.classList.toggle('active',x===c);});
-      }
       apply();
     });
   });

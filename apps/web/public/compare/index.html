@@ -313,8 +313,13 @@
   // Corpus records (public/leaderboard.json) carry score/grade/tier/patternsFlagged
   // but no per-pattern list, and unscannable sites are recorded as scored:false
   // with a reason. Render exactly that: no invented grades, tells, or radar shapes.
+  // Individual grades come only from /api/opt-in, and only for email-verified
+  // directory listings. The corpus file is not permission to print a grade.
   var byDomain = {};
+  var claimed = {};
   var corpusState = 'loading'; // 'loading' | 'ready' | 'error'
+  var optInState = 'loading'; // 'loading' | 'ready' | 'error'
+  var optSeq = 0;
 
   var CAT_MAP = {
     slop_fonts: 0, tight_tracking: 0, all_caps_labels: 0,
@@ -330,8 +335,15 @@
 
   // A per-category vector only when the record carries its real triggered list;
   // null otherwise (the radar then shows just its guide rings).
+  function publicRow(site) {
+    if (!site || !site.domain) return null;
+    var row = claimed[String(site.domain).toLowerCase()];
+    if (!row || typeof row.score !== 'number' || !row.grade) return null;
+    return row;
+  }
+
   function cleanVector(site) {
-    if (!isScored(site) || !Array.isArray(site.triggered)) return null;
+    if (!publicRow(site) || !Array.isArray(site.triggered)) return null;
     if (!site.triggered.length && site.patternsFlagged > 0) return null;
     var vec = [1, 1, 1, 1, 1];
     site.triggered.forEach(function(t){
@@ -376,7 +388,6 @@
         '<a class="arena-link" href="/?url=' + encodeURIComponent(site.domain) + '">Scan ' + esc(site.domain) + ' live →</a>';
       return;
     }
-    var tc = tierColor(site.tier);
     var trig = Array.isArray(site.triggered) ? site.triggered : [];
     var flagged = typeof site.patternsFlagged === 'number' ? site.patternsFlagged : trig.length;
     var tells = trig.slice(0, 3).map(function(t){ return esc(t.short || t.label || t.id) + ' (+' + (t.weight || 0) + ')'; }).join(' · ');
@@ -384,13 +395,23 @@
       (flagged === 0
         ? '✓ 0 patterns flagged on record'
         : flagged + ' pattern' + (flagged === 1 ? '' : 's') + ' flagged on record · per-category breakdown unavailable');
+    var pub = publicRow(site);
+    if (!pub) {
+      el.innerHTML =
+        '<div class="arena-dom" style="color:' + colorHex + '">' + esc(site.domain) + '</div>' +
+        '<div class="arena-meta">Public grade withheld · opt-in required' + (site.builtWith ? ' · ' + esc(site.builtWith) : '') + '</div>' +
+        '<div class="arena-tells">' + tellsHtml + '</div>' +
+        '<a class="arena-link" href="/score/' + encodeURIComponent(site.domain) + '">Open score hub →</a>';
+      return;
+    }
+    var tc = tierColor(pub.tier);
     el.innerHTML =
       '<div class="arena-dom" style="color:' + colorHex + '">' + esc(site.domain) + '</div>' +
       '<div class="arena-score-row" title="Slop score scale (lower is better): 0–9 Clean (A+/A/A-) · 10–27 Mild (B+/B/B-/C) · 28+ Heavy (D+/D/F)">' +
-        '<span class="arena-num">' + site.score + '<small>/100</small></span>' +
-        '<span class="arena-grade" style="color:' + tc + '">· ' + esc(site.grade) + '</span>' +
+        '<span class="arena-num">' + pub.score + '<small>/100</small></span>' +
+        '<span class="arena-grade" style="color:' + tc + '">· ' + esc(pub.grade) + '</span>' +
       '</div>' +
-      '<div class="arena-meta">Slop score · lower is better · ' + esc(site.tier) + (site.builtWith ? ' · ' + esc(site.builtWith) : '') + '</div>' +
+      '<div class="arena-meta">Slop score · lower is better · ' + esc(pub.tier) + (site.builtWith ? ' · ' + esc(site.builtWith) : '') + '</div>' +
       '<div class="arena-tells">' + tellsHtml + '</div>' +
       '<a class="arena-link" href="/score/' + encodeURIComponent(site.domain) + '">Open score hub →</a>';
   }
@@ -443,19 +464,29 @@
       } else if (corpusState === 'error') {
         deltaEl.textContent = 'Corpus unavailable: could not load the benchmark records, so no comparison. Run a live scan instead.';
       } else if (isScored(siteA) && isScored(siteB)) {
-        var diff = siteB.score - siteA.score;
-        if (diff === 0) {
-          deltaEl.textContent = siteA.domain + ' and ' + siteB.domain + ' tie at ' + siteA.score + '/100.';
+        var pubA = publicRow(siteA);
+        var pubB = publicRow(siteB);
+        if (optInState === 'loading') {
+          deltaEl.textContent = 'Checking which grades are public…';
+        } else if (pubA && pubB) {
+          var diff = pubB.score - pubA.score;
+          if (diff === 0) {
+            deltaEl.textContent = siteA.domain + ' and ' + siteB.domain + ' tie at ' + pubA.score + '/100.';
+          } else {
+            var cleaner = diff > 0 ? siteA : siteB;
+            var heavier = diff > 0 ? siteB : siteA;
+            var cleanerScore = diff > 0 ? pubA.score : pubB.score;
+            var heavierScore = diff > 0 ? pubB.score : pubA.score;
+            deltaEl.textContent = cleaner.domain + ' is ' + Math.abs(diff) + ' pts cleaner than ' + heavier.domain + ' (' + cleanerScore + '/100 vs ' + heavierScore + '/100).';
+          }
         } else {
-          var cleaner = diff > 0 ? siteA : siteB;
-          var heavier = diff > 0 ? siteB : siteA;
-          deltaEl.textContent = cleaner.domain + ' is ' + Math.abs(diff) + ' pts cleaner than ' + heavier.domain + ' (' + cleaner.score + '/100 vs ' + heavier.score + '/100).';
+          deltaEl.textContent = 'Public grades are withheld until each domain owner opts in via an email-verified directory listing.';
         }
       } else {
         var missing = [siteA ? null : domA, siteB ? null : domB, siteA && !isScored(siteA) ? domA : null, siteB && !isScored(siteB) ? domB : null].filter(Boolean);
         deltaEl.textContent = 'No comparison: ' + missing.join(' and ') + ' ha' + (missing.length === 1 ? 's' : 've') + ' no successful scan on record.';
       }
-      if (corpusState === 'ready' && isScored(siteA) && isScored(siteB) && !(cleanVector(siteA) && cleanVector(siteB))) {
+      if (corpusState === 'ready' && publicRow(siteA) && publicRow(siteB) && !(cleanVector(siteA) && cleanVector(siteB))) {
         deltaEl.textContent += ' Per-category radar unavailable: the corpus records totals only.';
       }
     }
@@ -465,9 +496,45 @@
   if (q.get('a')) document.getElementById('cmpA').value = normDomain(q.get('a'));
   if (q.get('b')) document.getElementById('cmpB').value = normDomain(q.get('b'));
 
+  function wantedDomains() {
+    var set = {};
+    Object.keys(byDomain).forEach(function(d){ set[d] = true; });
+    var a = normDomain(document.getElementById('cmpA').value);
+    var b = normDomain(document.getElementById('cmpB').value);
+    if (a) set[a] = true;
+    if (b) set[b] = true;
+    return Object.keys(set);
+  }
+
+  function loadOptIn() {
+    var seq = ++optSeq;
+    var domains = wantedDomains();
+    optInState = 'loading';
+    if (!domains.length) { optInState = 'ready'; updateComparison(); return; }
+    fetch('/api/opt-in?domains=' + encodeURIComponent(domains.join(','))).then(function(r){
+      return r && r.ok ? r.json() : null;
+    }).then(function(data){
+      if (seq !== optSeq) return;
+      optInState = 'ready';
+      claimed = {};
+      var rows = data && data.domains && typeof data.domains === 'object' ? data.domains : {};
+      Object.keys(rows).forEach(function(d){
+        var row = rows[d];
+        if (row && typeof row.score === 'number' && row.grade) claimed[String(d).toLowerCase()] = row;
+      });
+      updateComparison();
+    }).catch(function(){
+      if (seq !== optSeq) return;
+      optInState = 'error';
+      claimed = {};
+      updateComparison();
+    });
+  }
+
   document.getElementById('cmpForm').addEventListener('submit', function(e){
     e.preventDefault();
     updateComparison();
+    loadOptIn();
   });
 
   document.querySelectorAll('.arena-chip').forEach(function(btn){
@@ -475,13 +542,14 @@
       document.getElementById('cmpA').value = btn.getAttribute('data-a');
       document.getElementById('cmpB').value = btn.getAttribute('data-b');
       updateComparison();
+      loadOptIn();
     });
   });
 
   updateComparison();
 
   fetch('/leaderboard.json').then(function(r){ return r.ok ? r.json() : null; }).then(function(data){
-    if (!data || !Array.isArray(data.sites)) { corpusState = 'error'; updateComparison(); return; }
+    if (!data || !Array.isArray(data.sites)) { corpusState = 'error'; optInState = 'error'; updateComparison(); return; }
     corpusState = 'ready';
     var dl = document.getElementById('corpusDomains');
     data.sites.forEach(function(s){
@@ -493,8 +561,8 @@
         dl.appendChild(opt);
       }
     });
-    updateComparison();
-  }).catch(function(){ corpusState = 'error'; updateComparison(); });
+    loadOptIn();
+  }).catch(function(){ corpusState = 'error'; optInState = 'error'; updateComparison(); });
 })();
 </script>
 </body>

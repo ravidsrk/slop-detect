@@ -464,8 +464,14 @@ export function LeaderboardRow({ rank, domain, score, grade, tier = 'Clean', hre
   return (
     <a class="lr" href={href}>
       <span class="lr-rank">
-        <span class="sr-only">#</span>
-        {rank}
+        {rank == null ? (
+          '·'
+        ) : (
+          <>
+            <span class="sr-only">#</span>
+            {rank}
+          </>
+        )}
       </span>
       <span class="lr-name">
         <LetterAvatar name={domain} size={20} />

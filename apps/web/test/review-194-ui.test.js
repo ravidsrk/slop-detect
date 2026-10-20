@@ -288,16 +288,49 @@ test('compare: unscanned corpus sites show the recorded failure, not a grade', a
   expect(r.delta).toMatch(/no successful scan on record/);
 });
 
-test('compare: scored sites show the recorded count, no invented tells or radar', async () => {
+test('compare: scored sites show the recorded count, and withhold grades without opt-in', async () => {
   const r = await runCompare('stripe.com', 'bolt.new');
   const bolt = LEADERBOARD.sites.find((s) => s.domain === 'bolt.new');
+  const stripe = LEADERBOARD.sites.find((s) => s.domain === 'stripe.com');
   expect(r.b).toContain(`${bolt.patternsFlagged} patterns flagged on record`);
   expect(r.b).toMatch(/breakdown unavailable/);
   expect(r.b).not.toMatch(/0 patterns/);
-  expect(r.b).toContain(`>${bolt.score}<small>`);
+  expect(r.b).toMatch(/opt-in required/i);
+  expect(r.a + r.b).not.toMatch(/arena-grade|arena-num/);
+  expect(r.a).not.toContain(`>${stripe.score}<small>`);
+  expect(r.b).not.toContain(`>${bolt.score}<small>`);
   // only the two guide rings: no per-site polygons derived from the total score
   expect((r.radar.match(/<polygon/g) || []).length).toBe(2);
-  expect(r.delta).toMatch(/pts cleaner/);
+  expect(r.delta).toMatch(/withheld until each domain owner opts in/i);
+  expect(r.delta).not.toMatch(/pts cleaner/);
+  expect(r.delta).not.toContain(`${stripe.score}/100`);
+  expect(r.delta).not.toContain(`${bolt.score}/100`);
+});
+
+test('compare: email-verified listings show grades; an unverified peer stays withheld', async () => {
+  const stripe = LEADERBOARD.sites.find((s) => s.domain === 'stripe.com');
+  const bolt = LEADERBOARD.sites.find((s) => s.domain === 'bolt.new');
+  const r = await runCompare('stripe.com', 'bolt.new', async (url) => {
+    const u = String(url);
+    if (u.includes('leaderboard.json')) return new Response(JSON.stringify(LEADERBOARD));
+    if (u.includes('/api/opt-in')) {
+      return new Response(
+        JSON.stringify({
+          domains: {
+            'stripe.com': { score: stripe.score, grade: stripe.grade, tier: stripe.tier },
+          },
+        })
+      );
+    }
+    return new Response('no', { status: 404 });
+  });
+  expect(r.a).toContain(`>${stripe.score}<small>`);
+  expect(r.a).toMatch(/arena-grade/);
+  expect(r.b).toMatch(/opt-in required/i);
+  expect(r.b).not.toMatch(/arena-grade|arena-num/);
+  expect(r.b).not.toContain(`>${bolt.score}<small>`);
+  expect(r.delta).toMatch(/withheld until each domain owner opts in/i);
+  expect(r.delta).not.toMatch(/pts cleaner/);
 });
 
 // ── docs grade table (thread 4312665223) ──────────────────────────────────────

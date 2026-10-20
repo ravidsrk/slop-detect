@@ -168,6 +168,9 @@ describe('FIX-04: no third-party grade/tier without opt-in & uncalibrated beta l
         // Aggregate statistics & per-pattern prevalence are present.
         expect(html).toMatch(/Slop distribution/i);
         expect(html).toMatch(/Per-pattern prevalence/i);
+        expect(html).not.toMatch(/Click any band/);
+        expect(html).not.toMatch(/data-score=/);
+        expect(html).not.toMatch(/data-bucket=/);
         expect(html).toMatch(/patterns triggered/i);
         expect(html).toMatch(/uncalibrated beta/i);
         expect(html).toContain('https://github.com/ravidsrk/slop-detect/blob/main/CALIBRATION.md');
@@ -189,6 +192,57 @@ describe('FIX-04: no third-party grade/tier without opt-in & uncalibrated beta l
           expect(namedRow).not.toMatch(/\b(Clean|Mild|Heavy)\b/);
           expect(namedRow).not.toMatch(/>(A\+|A-|A|B\+|B-|B|C|D\+|D|F)</);
         }
+      }
+    );
+  });
+
+  test('/leaderboard renders a per-rule table when the dataset stores flagged pattern ids', async () => {
+    const fixture = {
+      generatedAt: '2026-10-20T00:00:00.000Z',
+      definitionsVersion: '2026.10',
+      count: 2,
+      scored: 2,
+      stats: { avgScore: 8, slopShare: 50, cleanCount: 1, mildCount: 1, heavyCount: 0 },
+      byBuilder: {},
+      byCategory: {},
+      patternPrevalence: { slop_fonts: 2, gradient_text: 1 },
+      sites: [
+        {
+          domain: 'alpha.example',
+          category: 'saas',
+          scored: true,
+          score: 4,
+          grade: 'A',
+          tier: 'Clean',
+          patternsFlagged: 1,
+          flaggedPatterns: ['slop_fonts'],
+        },
+        {
+          domain: 'beta.example',
+          category: 'saas',
+          scored: true,
+          score: 12,
+          grade: 'B+',
+          tier: 'Mild',
+          patternsFlagged: 2,
+          flaggedPatterns: ['slop_fonts', 'gradient_text'],
+        },
+      ],
+    };
+    await withFetch(
+      async () => new Response(JSON.stringify(fixture), { status: 200 }),
+      async () => {
+        const html = await (
+          await getLeaderboard({
+            request: { url: 'https://slop-detect.com/leaderboard' },
+            env: {},
+          })
+        ).text();
+        expect(html).toMatch(/Per-pattern prevalence by rule ID/);
+        expect(html).toContain('slop_fonts');
+        expect(html).toContain('gradient_text');
+        expect(html).not.toMatch(/data-score=/);
+        expect(html).not.toMatch(/Click any band/);
       }
     );
   });
@@ -356,6 +410,10 @@ describe('FIX-04: no third-party grade/tier without opt-in & uncalibrated beta l
           })
         ).text();
         expect(lbHtml).toMatch(/cal\.com[\s\S]{0,280}>B</);
+        const calRow = lbHtml.match(/<a class="lr"[\s\S]*?cal\.com[\s\S]*?<\/a>/);
+        expect(calRow, 'verified cal.com row').toBeTruthy();
+        expect(calRow[0]).toMatch(/class="lr-rank"[\s\S]{0,40}·/);
+        expect(calRow[0]).not.toMatch(/sr-only">#</);
         const unverifiedRows = [...lbHtml.matchAll(/<li class="lr">[\s\S]*?<\/li>/g)]
           .map((m) => m[0])
           .filter(

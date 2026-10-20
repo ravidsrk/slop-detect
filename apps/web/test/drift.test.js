@@ -381,6 +381,7 @@ test('/report renders scores, system compliance, drift, and history — without 
       domain: 'example.com',
       email: 'secret@x.io',
       system: true,
+      listed: true,
       verified: true,
       lastSystemScore: 55,
       lastSystemTier: 'Drifting',
@@ -423,6 +424,54 @@ test('/report renders scores, system compliance, drift, and history — without 
   expect(html.includes('secret@x.io'), 'email never appears in the report').toBeFalsy();
   // Anti-slop self-check.
   expect(html).not.toMatch(/Inter,|Geist|Space Grotesk/);
+});
+
+test('/report withholds grade, history, and system scores without an email-verified listing', async () => {
+  const kv = makeKv({
+    'd:example.com': 'r9',
+    'r:r9': JSON.stringify({
+      id: 'r9',
+      domain: 'example.com',
+      score: 12,
+      grade: 'B+',
+      tier: 'Mild',
+      patternsFlagged: 3,
+      patternsTotal: 27,
+      definitionsVersion: '2026.08',
+      triggered: [{ id: 'slop_fonts', label: 'Default font stack', weight: 8 }],
+      axes: { copy: { score: 40, tier: 'Heavy' } },
+    }),
+    'w:example.com': JSON.stringify({
+      domain: 'example.com',
+      email: 'secret@x.io',
+      system: true,
+      listed: true,
+      verified: false,
+      lastSystemScore: 55,
+      lastSystemTier: 'Drifting',
+      systemRegressed: true,
+      lastSystemDrift: [{ id: 'fonts.declared', message: 'inter undeclared' }],
+    }),
+    'h:example.com': JSON.stringify([
+      { id: 'r8', score: 8, grade: 'A-', tier: 'Clean', createdAt: '2026-06-01T00:00:00Z' },
+    ]),
+  });
+  const res = await reportGet({
+    params: { domain: 'example.com' },
+    request: { url: 'https://slop-detect.com/report/example.com' },
+    env: { RESULTS: kv },
+  });
+  const html = await res.text();
+  expect(html).toMatch(/public grade withheld \(opt-in required\)/i);
+  expect(html).toMatch(/3\/27 patterns triggered/);
+  expect(html).toMatch(/Default font stack/);
+  expect(html).not.toMatch(/B\+/);
+  expect(html).not.toMatch(/12\/100/);
+  expect(html).not.toMatch(/A-/);
+  expect(html).not.toMatch(/Drifting/);
+  expect(html).not.toMatch(/40\/100/);
+  expect(html).not.toMatch(/>Mild<|>Clean<|>Heavy</);
+  expect(html.includes('secret@x.io')).toBeFalsy();
 });
 
 test('/report shows an honest empty state for an unknown domain', async () => {

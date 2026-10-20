@@ -5,15 +5,20 @@
 // partial run still produces usable data.
 //
 //   node apps/web/leaderboard/build.mjs
+//   bun apps/web/leaderboard/build.mjs --local
 //   node apps/web/leaderboard/build.mjs --local
+//     # node cannot import detector.ts. Build the CLI first:
+//     #   bun run --filter slop-detect build
 //   SLOP_API=https://staging.example node apps/web/leaderboard/build.mjs
 //   SLOP_API_KEY=sk_live_... node ...   # a key lifts the per-IP throttle
 //
 // Output shape: { generatedAt, definitionsVersion, count, scored, stats,
-//                 byBuilder, byCategory, sites:[{domain,score,grade,tier,...}] }
+//                 byBuilder, byCategory, patternPrevalence,
+//                 sites:[{domain,score,grade,tier,flaggedPatterns,...}] }
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { DEFINITIONS_VERSION } from '@slop-detect/core';
+import { buildReport, flaggedPatternIds, loadLocalScanUrl } from './report.mjs';
 
 const args = process.argv.slice(2);
 const local = args.includes('--local');
@@ -21,16 +26,27 @@ const local = args.includes('--local');
 const API = process.env.SLOP_API || 'https://slop-detect.com';
 const KEY = process.env.SLOP_API_KEY || null;
 const SPACING_MS = local ? 0 : KEY ? 1500 : 21000; // no key → ~3/min anon limit
-const OUT = new URL('../public/leaderboard.json', import.meta.url);
+const OUT = process.env.LEADERBOARD_OUT
+  ? new URL(process.env.LEADERBOARD_OUT, 'file:///')
+  : new URL('../public/leaderboard.json', import.meta.url);
 const corpus = JSON.parse(readFileSync(new URL('./corpus.json', import.meta.url)));
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+let localScanUrl = null;
+if (local) {
+  try {
+    localScanUrl = await loadLocalScanUrl();
+  } catch (e) {
+    process.stderr.write(`${e.message}\n`);
+    process.exit(1);
+  }
+}
+
 async function scan(url, attempt = 0) {
   if (local) {
-    const { scanUrl } = await import('../../../packages/cli/src/detector.js');
     try {
-      return await scanUrl(url, { axes: ['design'] });
+      return await localScanUrl(url, { axes: ['design'] });
     } catch (e) {
       return { error: e.message || String(e), code: e.code };
     }
@@ -56,10 +72,6 @@ async function scan(url, attempt = 0) {
   const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
   if (!res.ok) return { error: data.error || `HTTP ${res.status}`, code: data.code };
   return data;
-}
-
-function tierRank(t) {
-  return { Clean: 0, Mild: 1, Heavy: 2 }[t] ?? 1;
 }
 
 const sites = [];
@@ -94,57 +106,14 @@ for (const entry of corpus.sites) {
       grade: r.grade,
       tier: r.tier,
       patternsFlagged: r.patternsFlagged,
+      flaggedPatterns: flaggedPatternIds(r),
       resultUrl: r.resultUrl || null,
     });
   }
 
   // Incremental write so an interrupted run still leaves a usable artifact.
-  writeFileSync(OUT, JSON.stringify(buildReport(sites), null, 2) + '\n');
+  writeFileSync(OUT, JSON.stringify(buildReport(sites, DEFINITIONS_VERSION), null, 2) + '\n');
   if (i < corpus.sites.length && SPACING_MS > 0) await sleep(SPACING_MS);
 }
 
 process.stderr.write(`\nDone. Wrote ${OUT.pathname}\n`);
-
-function buildReport(sites) {
-  const scored = sites.filter((s) => s.scored);
-  const avg = (arr) =>
-    arr.length ? Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10 : null;
-  const slopCount = scored.filter((s) => s.tier !== 'Clean').length;
-
-  const byBuilder = {};
-  for (const s of scored) {
-    (byBuilder[s.builtWith] ||= []).push(s.score);
-  }
-  const builders = Object.fromEntries(
-    Object.entries(byBuilder).map(([k, v]) => [k, { count: v.length, avgScore: avg(v) }])
-  );
-
-  const byCategory = {};
-  for (const s of scored) (byCategory[s.category] ||= []).push(s.score);
-  const categories = Object.fromEntries(
-    Object.entries(byCategory).map(([k, v]) => [k, { count: v.length, avgScore: avg(v) }])
-  );
-
-  return {
-    generatedAt: new Date().toISOString(),
-    definitionsVersion: DEFINITIONS_VERSION,
-    count: sites.length,
-    scored: scored.length,
-    stats: {
-      avgScore: avg(scored.map((s) => s.score)),
-      slopShare: scored.length ? Math.round((slopCount / scored.length) * 100) : null,
-      cleanCount: scored.filter((s) => s.tier === 'Clean').length,
-      mildCount: scored.filter((s) => s.tier === 'Mild').length,
-      heavyCount: scored.filter((s) => s.tier === 'Heavy').length,
-    },
-    byBuilder: builders,
-    byCategory: categories,
-    // Sorted cleanest-first; the page leads with the Hall of Clean.
-    sites: sites.slice().sort((a, b) => {
-      if (!a.scored && !b.scored) return 0;
-      if (!a.scored) return 1;
-      if (!b.scored) return -1;
-      return a.score - b.score || tierRank(a.tier) - tierRank(b.tier);
-    }),
-  };
-}

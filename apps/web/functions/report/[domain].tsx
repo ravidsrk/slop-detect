@@ -27,6 +27,7 @@ import {
   getWatch,
   getHistory,
   publicWatch,
+  isEmailVerifiedListing,
 } from '../_shared.js';
 import { BRAND_FONTS_HEAD, BRAND_CSS } from '../_brand.js';
 import { Footer, SectionLedger, LogoLockup, UI_CSS } from '../_ui.js';
@@ -129,6 +130,8 @@ export async function onRequestGet({ params, request, env }) {
   const monitored = !!pub?.monitoring;
   const sys = pub?.system || null;
   const hasData = !!(latest || (history && history.length));
+  // Same gate as /score/:domain. This URL is public and cacheable.
+  const claimed = isEmailVerifiedListing(watch);
   const today = new Date().toISOString().slice(0, 10);
 
   // The triggered-pattern list comes from the shared Result view-model so the
@@ -138,13 +141,13 @@ export async function onRequestGet({ params, request, env }) {
     ? [...(view.triggered || [])].sort((a, b) => (b.weight || 0) - (a.weight || 0)).slice(0, 12)
     : [];
 
-  const fg = latest ? tierText(latest.tier) : 'var(--text-6)';
+  const fg = claimed && latest ? tierText(latest.tier) : 'var(--text-5)';
   const sysColor = sys ? systemAxisColor(sys.score) : 'var(--text-6)';
 
   const body = hasData ? (
     <>
       <section class="rpt-sec">
-        <div class={`rpt-cards${monitored ? '' : ' one'}`}>
+        <div class={`rpt-cards${claimed && monitored ? '' : ' one'}`}>
           <div class="rcard">
             <div class="rcard-k">
               design-slop fingerprint ·{' '}
@@ -157,20 +160,28 @@ export async function onRequestGet({ params, request, env }) {
               </a>
             </div>
             <div class="rcard-big" style={`color:${fg}`}>
-              {latest?.grade || '—'}
+              {claimed ? latest?.grade || '—' : '—'}
             </div>
             <div class="rcard-sub">
-              {latest?.score}/100 · <span style={`color:${fg}`}>{latest?.tier || ''}</span>
+              {claimed ? (
+                <>
+                  {latest?.score}/100 · <span style={`color:${fg}`}>{latest?.tier || ''}</span>
+                </>
+              ) : (
+                'public grade withheld (opt-in required)'
+              )}
             </div>
             <div class="rcard-note">
-              {latest?.patternsFlagged}/{latest?.patternsTotal} patterns triggered
-              {latest?.axes?.copy
+              {latest
+                ? `${latest.patternsFlagged}/${latest.patternsTotal} patterns triggered`
+                : 'A scan is on record.'}
+              {claimed && latest?.axes?.copy
                 ? ` · copy ${latest.axes.copy.score}/100 (${latest.axes.copy.tier})`
                 : ''}
               {latest?.definitionsVersion ? ` · defs ${latest.definitionsVersion}` : ''}
             </div>
           </div>
-          {monitored ? (
+          {claimed && monitored ? (
             <div class="rcard">
               <div class="rcard-k">
                 design-system compliance ·{' '}
@@ -212,7 +223,7 @@ export async function onRequestGet({ params, request, env }) {
         </div>
       </section>
 
-      {sys && sys.drift && sys.drift.length ? (
+      {claimed && sys && sys.drift && sys.drift.length ? (
         <section class="rpt-sec">
           <div class="rpt-led">
             <SectionLedger tag="" label="what drifted" />
@@ -251,7 +262,7 @@ export async function onRequestGet({ params, request, env }) {
         </section>
       ) : null}
 
-      {history && history.length ? (
+      {claimed && history && history.length ? (
         <section class="rpt-sec">
           <div class="rpt-led">
             <SectionLedger tag="" label="history" />

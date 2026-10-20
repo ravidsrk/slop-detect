@@ -25,6 +25,7 @@ import {
   getWatch,
   getHistory,
   publicWatch,
+  isEmailVerifiedListing,
   getScoreDistribution,
   getCategoryCleanAverages,
   percentileFromDistribution,
@@ -250,7 +251,7 @@ export async function onRequestGet({ params, request, env }) {
     loadLeaderboard(request).catch(() => null),
   ]);
   const pub = watch ? publicWatch(watch, history) : null;
-  const claimed = Boolean(watch && watch.listed === true && watch.verified === true);
+  const claimed = isEmailVerifiedListing(watch);
   const verifiedDomains = new Set<string>();
   if (claimed) verifiedDomains.add(domain);
   if (Array.isArray(lbData?.sites)) {
@@ -264,7 +265,7 @@ export async function onRequestGet({ params, request, env }) {
       peerCandidates.map(async (s: any) => {
         const peerDom = String(s.domain).toLowerCase();
         const peerWatch = await getWatch(env.RESULTS, peerDom).catch(() => null);
-        if (peerWatch && peerWatch.listed === true && peerWatch.verified === true) {
+        if (isEmailVerifiedListing(peerWatch)) {
           verifiedDomains.add(peerDom);
         }
       })
@@ -355,7 +356,9 @@ export async function onRequestGet({ params, request, env }) {
     if (mapped.every((v) => typeof v === 'number' && Number.isFinite(v))) catAvg = mapped;
   }
   const pageUrl = `${ORIGIN}/score/${domain}`;
-  const ogImg = `${origin}/og/${latest.id}.png`;
+  // /og/:id.png redraws the saved scan, including the grade. A withheld page
+  // must not point social crawlers at that card. /r/:id keeps the snapshot.
+  const ogImg = withheld ? `${origin}/og.png` : `${origin}/og/${latest.id}.png`;
   const title = withheld
     ? `${domain} · slop-detect (uncalibrated beta)`
     : `${domain} scored ${latest.grade} (${latest.score}/100) on the AI-slop detector`;

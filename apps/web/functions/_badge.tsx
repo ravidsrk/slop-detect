@@ -15,17 +15,20 @@ import { badgeColors } from './_theme.js';
 
 const CALIBRATION_URL = 'https://github.com/ravidsrk/slop-detect/blob/main/CALIBRATION.md';
 
-export function badgeSvg(domain, slim) {
+export function badgeSvg(domain, slim, opts) {
   if (domain && typeof domain === 'object' && slim === undefined) {
     slim = domain;
     domain = slim.domain || '';
   }
+  const withheld = (opts && opts.withheld === true) || (slim && slim.withheld === true);
+  const showScore = !!(slim && !withheld);
   const label = 'slop';
-  const value = slim ? `${slim.grade} · ${slim.score}` : 'no scan';
+  // A withheld badge must not carry the grade, the score, or the tier color.
+  const value = showScore ? `${slim.grade} · ${slim.score}` : slim ? 'opt-in' : 'no scan';
   const betaLabel = 'uncalibrated beta';
   // Right segment: tier bg + ink from the badge-colors table; the neutral grey
-  // default (badgeColors('Unknown')) carries the "no scan" state.
-  const { bg, ink } = badgeColors(slim ? slim.tier : 'Unknown');
+  // default (badgeColors('Unknown')) carries "no scan" and withheld grades.
+  const { bg, ink } = badgeColors(showScore ? slim.tier : 'Unknown');
 
   // JetBrains Mono geometry. The face advances ≈ 0.6em, so ~7.25px per glyph at
   // 12px; each segment gets 8px of horizontal breathing room on each side.
@@ -50,7 +53,13 @@ export function badgeSvg(domain, slim) {
   const w = pillW + mx * 2;
   const h = height + mTop + mBottom;
   const baseline = mTop + Math.round(height / 2 + fontSize * 0.355);
-  const name = domain ? `slop score for ${domain}: ${value}` : `slop: ${value}`;
+  const name = withheld
+    ? domain
+      ? `public slop grade for ${domain} withheld`
+      : 'public slop grade withheld'
+    : domain
+      ? `slop score for ${domain}: ${value}`
+      : `slop: ${value}`;
 
   return (
     <svg
