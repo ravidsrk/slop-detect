@@ -10,6 +10,7 @@ import {
   deleteListing,
   listSites,
   listAllSites,
+  cleanupLegacyListings,
   performUnsubscribe,
   recordScanForWatch,
   getWatch,
@@ -662,4 +663,154 @@ test('a block of rejected legacy rows larger than the row limit cannot hide a la
   }
   expect(watchReads).toBe(0); // rejected rows are skipped without reads
   expect(kv.store.has('l:a000.example.com'), 'still read-only: nothing deleted').toBe(true);
+});
+
+// ── Off-read-path legacy cleanup (daily sweep) ──────────────────────────────
+const legacyRow = (s = 1) => ({ value: '{}', metadata: { s, at: '2026-01-01' } });
+
+function paginate(kv) {
+  kv.list = async ({ prefix = '', limit = 1000, cursor } = {}) => {
+    const names = [...kv.store.keys()].filter((n) => n.startsWith(prefix)).sort();
+    const start = cursor ? Number(cursor) : 0;
+    const page = names.slice(start, start + limit);
+    const next = start + page.length;
+    return {
+      keys: page.map((n) => ({ name: n, metadata: kv.store.get(n).metadata })),
+      list_complete: next >= names.length,
+      cursor: next >= names.length ? undefined : String(next),
+    };
+  };
+  return kv;
+}
+
+test('cleanup deletes a stale rejected legacy row and drops it from lv:rejected', async () => {
+  const kv = makeKv({
+    'l:stale.example.com': legacyRow(),
+    'w:stale.example.com': JSON.stringify({
+      domain: 'stale.example.com',
+      email: 'o@x.io',
+      listed: true,
+      verified: false,
+    }),
+    'l:keep.example.com': legacyRow(),
+    'w:keep.example.com': JSON.stringify({
+      domain: 'keep.example.com',
+      email: 'o@x.io',
+      listed: true,
+      verified: true,
+    }),
+    'lv:rejected': JSON.stringify(['stale.example.com']),
+  });
+  const r = await cleanupLegacyListings(kv);
+  expect(r.deleted).toBe(1);
+  expect(kv.store.has('l:stale.example.com')).toBe(false);
+  expect(kv.store.has('lv:rejected')).toBe(false);
+  // A legacy row with a listed+verified watch is never deleted; it's indexed.
+  expect(kv.store.has('l:keep.example.com')).toBe(true);
+  expect(JSON.parse(kv.store.get('lv:verified').value)).toEqual(['keep.example.com']);
+  expect((await listAllSites(kv)).map((x) => x.domain)).toEqual(['keep.example.com']);
+});
+
+test('cleanup restores a listing confirmed between its re-read and the delete', async () => {
+  const kv = makeKv({
+    'l:late.example.com': legacyRow(),
+    'w:late.example.com': JSON.stringify({
+      domain: 'late.example.com',
+      email: 'o@x.io',
+      listed: true,
+      verified: false,
+      lastScore: 4,
+      lastGrade: 'A',
+      lastTier: 'Clean',
+      lastId: 'abc',
+    }),
+    'lv:rejected': JSON.stringify(['late.example.com']),
+  });
+  // Confirm lands right after cleanup's pre-delete watch check: it verifies
+  // the watch, then writes its v:1 row (which the delete then removes).
+  const origGet = kv.get.bind(kv);
+  let confirmed = false;
+  kv.get = async (k) => {
+    const v = await origGet(k);
+    if (k === 'w:late.example.com' && !confirmed) {
+      confirmed = true;
+      await verifyWatch(kv, 'late.example.com');
+      await setListing(kv, {
+        domain: 'late.example.com',
+        score: 4,
+        grade: 'A',
+        tier: 'Clean',
+        id: 'abc',
+      });
+    }
+    return v;
+  };
+  const r = await cleanupLegacyListings(kv);
+  expect(confirmed, 'the simulated confirm actually ran').toBe(true);
+  expect(r.restored).toBe(1);
+  const row = kv.store.get('l:late.example.com');
+  expect(row, 'confirmed listing is present').toBeTruthy();
+  expect(row.metadata.v).toBe(1);
+  expect(JSON.parse(row.value)).toMatchObject({ domain: 'late.example.com', score: 4, id: 'abc' });
+  kv.get = origGet;
+  expect((await listAllSites(kv)).map((x) => x.domain)).toEqual(['late.example.com']);
+});
+
+test('cleanup leaves a row that was replaced by a confirmed v:1 row before the re-read', async () => {
+  const kv = makeKv({ 'lv:rejected': JSON.stringify(['swap.example.com']) });
+  await setListing(kv, { domain: 'swap.example.com', score: 1, grade: 'A', tier: 'Clean' });
+  const r = await cleanupLegacyListings(kv);
+  expect(r.skipped).toBe(1);
+  expect(kv.store.get('l:swap.example.com').metadata.v).toBe(1);
+  expect(kv.store.has('lv:rejected')).toBe(false);
+});
+
+test('cleanup is bounded per run and makes progress across runs', async () => {
+  const seed = {};
+  const rejected = [];
+  for (let i = 0; i < 250; i++) {
+    const d = `r${String(i).padStart(3, '0')}.example.com`;
+    seed[`l:${d}`] = legacyRow();
+    rejected.push(d);
+  }
+  // Plus unclassified legacy orphans the read path never reached.
+  for (let i = 0; i < 30; i++) seed[`l:u${String(i).padStart(3, '0')}.example.com`] = legacyRow();
+  seed['lv:rejected'] = JSON.stringify(rejected);
+  const kv = paginate(makeKv(seed));
+  const legacyLeft = () => [...kv.store.keys()].filter((k) => k.startsWith('l:')).length;
+
+  const r1 = await cleanupLegacyListings(kv);
+  expect(r1.processed).toBe(200);
+  expect(legacyLeft()).toBe(80);
+  expect(JSON.parse(kv.store.get('lv:rejected').value).length).toBe(50);
+
+  const r2 = await cleanupLegacyListings(kv);
+  expect(r2.processed).toBe(80); // 50 rejected + 30 found by the namespace walk
+  expect(legacyLeft()).toBe(0);
+  expect(kv.store.has('lv:rejected')).toBe(false);
+
+  // A small per-run cap still advances through unclassified rows.
+  const kv2 = paginate(
+    makeKv(
+      Object.fromEntries(Array.from({ length: 5 }, (_, i) => [`l:w${i}.example.com`, legacyRow()]))
+    )
+  );
+  const runs = [];
+  for (let i = 0; i < 3; i++) runs.push((await cleanupLegacyListings(kv2, { max: 2 })).processed);
+  expect(runs).toEqual([2, 2, 1]);
+  expect([...kv2.store.keys()].filter((k) => k.startsWith('l:'))).toEqual([]);
+});
+
+test('the directory read path still never deletes legacy rows (only the sweep does)', async () => {
+  const kv = makeKv({ 'l:orphan-x.example.com': legacyRow() });
+  const deletes = [];
+  const origDelete = kv.delete.bind(kv);
+  kv.delete = async (k) => {
+    deletes.push(k);
+    return origDelete(k);
+  };
+  expect(await listAllSites(kv)).toEqual([]);
+  expect(await listSites(kv)).toMatchObject({ sites: [] });
+  expect(deletes.filter((k) => k.startsWith('l:'))).toEqual([]);
+  expect(kv.store.has('l:orphan-x.example.com')).toBe(true);
 });

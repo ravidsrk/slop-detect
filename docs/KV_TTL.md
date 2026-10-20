@@ -20,7 +20,8 @@ this table is a bug — add the key here when you add a `kv.put`.
 | `stats:ops:<day>` | 30d (`OPS_TTL`) | Daily ops blob: per-route req/status, scan tiers, nav-latency buckets; read by /api/stats `ops` (T-24) |
 | `l:<domain>` | 1y (`LISTING_TTL`) | Public directory listings |
 | `lv:verified` | 1y (`LISTING_TTL`) | Index of pre-verification-era listings already confirmed verified (directory cleanup) |
-| `lv:rejected` | 1y (`LISTING_TTL`) | Index of pre-verification-era listings checked and hidden (no listed+verified watch) |
+| `lv:rejected` | 1y (`LISTING_TTL`) | Queue of pre-verification-era listings the directory read found without a listed+verified watch (hidden, not deleted); drained by the daily sweep's legacy cleanup, which deletes the row and drops the entry |
+| `lv:cursor` | 1y (`LISTING_TTL`) | Resume cursor for the sweep's bounded walk of `l:` for unclassified legacy rows; deleted when a walk completes |
 | `og:<id>` | 30d (`OG_TTL`) | Rendered OG images |
 | `rl:dashlink:<hash>` | 1h (`DASHLINK_WINDOW_SEC`) | Magic-link send cap (3/hour/email) |
 | `rl:watchverify:<hash>` | 1h (`WATCH_VERIFY_WINDOW_SEC`) | Watch confirmation cap |

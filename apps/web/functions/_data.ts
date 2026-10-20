@@ -1221,10 +1221,11 @@ export async function deleteListing(kv, domain) {
 // The read path never writes OR deletes a LISTING row. A rewrite racing
 // performUnsubscribe could resurrect a removed listing, and a delete-by-domain
 // racing confirm could remove the fresh `v:1` row confirm just wrote (greptile
-// P1 follow-up on #218). Rejected legacy rows just stay hidden until they
-// expire or a scan reconciles them. Stale index entries are harmless: every
-// row written since the verified-only rule carries `v`, which bypasses both
-// indexes, so only surviving legacy rows ever consult them.
+// P1 follow-up on #218). Rejected legacy rows stay hidden here and are
+// deleted OFF the read path by the daily sweep (cleanupLegacyListings). Stale
+// index entries are harmless: every row written since the verified-only rule
+// carries `v`, which bypasses both indexes, so only surviving legacy rows ever
+// consult them.
 export async function listSites(
   kv,
   {
@@ -1376,6 +1377,156 @@ export async function listAllSites(kv, { max = 5000 } = {}) {
   } while (cursor && scanned < max && pages < DIRECTORY_MAX_LIST_PAGES);
   await flushLegacyState(kv, legacy);
   return out.slice(0, max);
+}
+
+// Make a verified, listed watch's directory row public — exactly the row the
+// confirm click writes: the domain's latest public scan if any, else the
+// watch's last-seen score (a never-scanned domain lists as pending).
+export async function activateListing(kv, watch) {
+  if (!kv || !watch?.domain) return null;
+  const latest = await getLatestForDomain(kv, watch.domain).catch(() => null);
+  return setListing(
+    kv,
+    latest || {
+      domain: watch.domain,
+      score: watch.lastScore,
+      grade: watch.lastGrade,
+      tier: watch.lastTier,
+      id: watch.lastId,
+      title: null,
+    }
+  );
+}
+
+// ── Legacy listing cleanup (OFF the read path — run by the daily sweep) ──────
+// The directory read only HIDES legacy (pre-`v`) rows that lack a listed +
+// verified watch; it never deletes (a delete there raced confirm). This job
+// removes them for real, bounded per run with progress across runs:
+//   1. drain lv:rejected (domains the read path already classified), then
+//   2. walk the l: namespace from a persisted cursor (lv:cursor) for legacy
+//      rows nobody has classified yet.
+// Per domain (cleanupLegacyListing): re-read the row right before deleting and
+// delete only if it still lacks the `v` marker AND its watch is not
+// listed+verified. Re-check the watch after the delete; if a confirm landed in
+// between, restore the row exactly as confirm writes it (activateListing).
+// Once drained, no hidden legacy rows remain, so the directory's skip-without-
+// counting rule and its list-page cap never have anything left to skip.
+const LEGACY_CURSOR_KEY = 'lv:cursor';
+const LEGACY_CLEANUP_MAX = 200;
+const LEGACY_CLEANUP_MAX_PAGES = 10;
+
+const isListedVerified = (w) => !!(w && w.listed && w.verified);
+
+async function readListingRow(kv, domain) {
+  const key = `l:${domain}`;
+  if (typeof kv.getWithMetadata === 'function') {
+    const r = await kv.getWithMetadata(key);
+    return r && r.value != null ? { metadata: r.metadata || {} } : null;
+  }
+  // No metadata access: can't prove the row is legacy, so never delete it.
+  const v = await kv.get(key);
+  return v != null ? { metadata: { v: 1 } } : null;
+}
+
+// Returns 'gone' | 'replaced' | 'verified' | 'deleted' | 'restored'.
+export async function cleanupLegacyListing(kv, domain) {
+  const row = await readListingRow(kv, domain);
+  if (!row) return 'gone';
+  if (row.metadata.v) return 'replaced'; // written under the verified-only rule
+  if (isListedVerified(await getWatch(kv, domain))) return 'verified';
+  await deleteListing(kv, domain);
+  // Confirm verifies the watch BEFORE writing its row, so a confirm that
+  // landed between our checks and the delete is visible here.
+  const after = await getWatch(kv, domain);
+  if (isListedVerified(after)) {
+    await activateListing(kv, after);
+    // Narrow the unsubscribe-after-restore window: if the claim went away
+    // meanwhile, don't leave a row behind.
+    if (!isListedVerified(await getWatch(kv, domain))) await deleteListing(kv, domain);
+    return 'restored';
+  }
+  return 'deleted';
+}
+
+async function writeLegacyIndex(kv, key, set: Set<string>) {
+  const list = [...set].slice(-LEGACY_INDEX_MAX);
+  if (list.length) await kv.put(key, JSON.stringify(list), { expirationTtl: LISTING_TTL });
+  else await kv.delete(key);
+}
+
+export async function cleanupLegacyListings(kv, { max = LEGACY_CLEANUP_MAX } = {}) {
+  const summary = {
+    processed: 0,
+    deleted: 0,
+    restored: 0,
+    verified: 0,
+    skipped: 0,
+    errors: 0,
+    walkComplete: false,
+  };
+  if (!kv) return summary;
+  const done = new Set<string>();
+  const nowVerified: string[] = [];
+  const handle = async (domain) => {
+    summary.processed++;
+    done.add(domain);
+    try {
+      const r = await cleanupLegacyListing(kv, domain);
+      if (r === 'deleted') summary.deleted++;
+      else if (r === 'restored') summary.restored++;
+      else if (r === 'verified') {
+        summary.verified++;
+        nowVerified.push(domain);
+      } else summary.skipped++;
+    } catch {
+      summary.errors++;
+      done.delete(domain); // keep it queued for the next run
+    }
+  };
+
+  // 1. Drain domains the read path already classified as rejected.
+  const rejected = await readLegacyIndex(kv, LEGACY_REJECTED_KEY);
+  for (const d of rejected) {
+    if (summary.processed >= max) break;
+    await handle(d);
+  }
+
+  // 2. Walk the namespace for legacy rows not yet classified (resumable).
+  const verified = await readLegacyIndex(kv, LEGACY_VERIFIED_KEY);
+  let cursor = (await kv.get(LEGACY_CURSOR_KEY).catch(() => null)) || undefined;
+  let pages = 0;
+  while (summary.processed < max && pages < LEGACY_CLEANUP_MAX_PAGES) {
+    const res = await kv.list({ prefix: 'l:', limit: 1000, cursor });
+    pages++;
+    let stoppedEarly = false;
+    for (const k of res.keys || []) {
+      const d = k.name.replace(/^l:/, '');
+      if ((k.metadata || {}).v || verified.has(d) || done.has(d) || rejected.has(d)) continue;
+      if (summary.processed >= max) {
+        stoppedEarly = true;
+        break;
+      }
+      await handle(d);
+    }
+    if (stoppedEarly) break; // resume this page next run (cursor not advanced)
+    if (res.list_complete) {
+      cursor = undefined;
+      summary.walkComplete = true;
+      break;
+    }
+    cursor = res.cursor;
+  }
+  if (summary.walkComplete || !cursor) await kv.delete(LEGACY_CURSOR_KEY);
+  else await kv.put(LEGACY_CURSOR_KEY, cursor, { expirationTtl: LISTING_TTL });
+
+  // Persist index changes (re-read to keep concurrent read-path additions).
+  if (done.size) {
+    const cur = await readLegacyIndex(kv, LEGACY_REJECTED_KEY);
+    for (const d of done) cur.delete(d);
+    await writeLegacyIndex(kv, LEGACY_REJECTED_KEY, cur);
+  }
+  await mergeLegacyIndex(kv, LEGACY_VERIFIED_KEY, nowVerified);
+  return summary;
 }
 
 export { BADGE_TTL };
