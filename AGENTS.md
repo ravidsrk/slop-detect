@@ -94,6 +94,18 @@ which exercises both runners end-to-end.
   `slop-detect-mcp`. `apps/web` deploys to Cloudflare Pages on tag.
 - The whole brand is deliberately anti-slop: dark, monospace, no gradients/glow/purple.
 
+## Roadmap and issues
+
+- The roadmap is [ROADMAP.md](ROADMAP.md) (v4). Every item is an issue labelled
+  `roadmap:v4` with one `evidence:*` grade (`measured` means lift measured on our
+  own calibration corpus — nothing else qualifies), one `priority:*` and a release
+  milestone; the tracking issue is #336. `research:backed` is retired.
+- New or changed style rules ship at weight 0 (`rule:weight-0`) and are promoted
+  only through the K-04 gate on the held-out calibration set. Never write UI or
+  API copy that calls a page "AI-generated" (K-06).
+- Cite only sources you opened; quote numbers exactly. See
+  `docs/research/roadmap-v4/REPORT.md` for why (v3 shipped fabricated citations).
+
 ## When you change patterns
 
 - Update the catalogue in `packages/core/src/`. The web UI, CLI, and `/api/patterns`
