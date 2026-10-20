@@ -10,7 +10,7 @@
       "type": "skill-md",
       "description": "Score any landing page against the deterministic 27-pattern AI-design-slop fingerprint, 9-pattern copy axis, DESIGN.md system compliance, and 8-check AEO readiness, then generate a fix prompt.",
       "url": "https://raw.githubusercontent.com/ravidsrk/slop-detect/main/skills/slop-detect/SKILL.md",
-      "digest": "sha256:84efcb54119b87f0ebc1453cf36b11fd31e4924e33b2afbfe6ffb1557712e14d",
+      "digest": "sha256:86f4159d6ef87147b3c462f2f6caa49e7bf92b46a881120c1794068cdc404287",
       "license": "MIT",
       "homepage": "https://slop-detect.com",
       "repository": "https://github.com/ravidsrk/slop-detect"
