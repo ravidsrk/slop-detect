@@ -99,18 +99,25 @@ function withFetch(impl, fn) {
 
 describe('K-06: product copy never claims a page or its author is AI-made', () => {
   test('user-facing product files contain zero banned authorship claims', () => {
-    const productFiles = [
+    // Allowlist: quoted research under docs/ and spec/ may contain those phrases;
+    // product copy (including every .html, .md, and .txt under apps/web/public) may not.
+    const ALLOWLIST_PREFIXES = ['docs/', 'spec/'];
+    const rawFiles = [
       join(ROOT, 'packages/core/src/verdict.ts'),
       join(ROOT, 'packages/core/src/fixes.ts'),
       join(ROOT, 'packages/core/src/patterns.ts'),
       join(ROOT, 'packages/core/src/fonts.ts'),
-      join(ROOT, 'apps/web/public/index.html'),
+      ...walkFiles(join(ROOT, 'apps/web/public'), /\.(html|md|txt)$/),
       ...walkFiles(join(ROOT, 'apps/web/functions')),
       ...walkFiles(join(ROOT, 'skills')),
       ...walkFiles(join(ROOT, 'packages/mcp/src')),
       ...walkFiles(join(ROOT, 'packages/cli/bin')),
       ...walkFiles(join(ROOT, 'packages/cli/src')),
     ];
+    const productFiles = rawFiles.filter((f) => {
+      const rel = relative(ROOT, f);
+      return !ALLOWLIST_PREFIXES.some((prefix) => rel.startsWith(prefix));
+    });
 
     const violations = [];
     for (const file of productFiles) {

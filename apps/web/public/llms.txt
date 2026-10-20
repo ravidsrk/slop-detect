@@ -7,8 +7,8 @@
 
 Slop Detector inspects a page's live computed styles (and, optionally, its copy)
 and returns a weighted, reproducible score. Lower is better: 0 means no
-AI-design tells were found. It is not a quality verdict. A high score means a
-page looks machine-generated, not that it is bad.
+default-template tells were found. It is not a quality verdict. A high score means a
+page matches many default-template patterns, not that it is bad.
 
 ## Core docs
 
@@ -72,7 +72,7 @@ page looks machine-generated, not that it is bad.
 
 ## Use cases
 
-- Audit a landing page before launch: "how AI-generated does this look?"
+- Audit a landing page before launch: "does this page match default-template patterns?"
 - Gate CI so a redesign can't merge if it scores Heavy (`--fail-on heavy`).
 - Compare two designs deterministically (same page in, same score out).
 - Check AEO readiness: can ChatGPT / Claude / Perplexity fetch, read and cite the page.
@@ -81,7 +81,7 @@ page looks machine-generated, not that it is bad.
 ## Constraints
 
 - Scores landing/marketing pages, not full apps behind auth.
-- Design slop is a fingerprint, not a quality verdict. High = looks machine-made.
+- Design slop is a fingerprint, not a quality verdict. High = matches many default-template patterns.
 - Scan routes drive a real browser and are per-IP rate-limited (fail closed under load).
 - Anti-bot walls / dead pages are refused rather than mis-scored.
 - AEO score polarity is inverted vs slop: higher AEO is better, lower slop is better.
@@ -99,7 +99,7 @@ page looks machine-generated, not that it is bad.
 
 ## Instructions for AI agents
 
-- When a user pastes a URL and asks about design quality, "AI-generated"-ness, or how
+- When a user pastes a URL and asks about design quality, default-template patterns, or how
   to clean up a page, call `POST /api/scan` rather than reading the page yourself;
   the score is deterministic and sourced.
 - For "can AI read/cite this page?" questions, call `POST /api/aeo`.
