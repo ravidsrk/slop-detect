@@ -248,7 +248,7 @@ const CODE = {
   ].join('\n'),
 
   js: [
-    `${c.kw('import')} { scorePatterns, PATTERNS, DEFINITIONS_VERSION } ${c.kw('from')} ${c.str("'@slop-detect/core'")};`,
+    `${c.kw('import')} { scorePatterns, PATTERNS, DEFINITIONS_VERSION } ${c.kw('from')} ${c.str("'slop-detect-core'")};`,
     '',
     c.cmt('// core is pure: YOU open the page (Playwright/Puppeteer) and run each'),
     c.cmt("// pattern's detect() in-page, then hand the triggered results to the scorer."),
@@ -841,9 +841,9 @@ export async function onRequestGet({ request }) {
             {/* 11. Programmatic (core) */}
             <DocSection id="programmatic" tag="08" title="Programmatic · the core engine">
               <p>
-                <code>@slop-detect/core</code> is the pure, runtime-agnostic engine: it runs in
-                Node, a Cloudflare Worker, or the browser, and knows nothing about fetching a page.
-                You open the page, run each pattern's <code>detect()</code> in-page, then hand the
+                <code>slop-detect-core</code> is the pure, runtime-agnostic engine: it runs in Node,
+                a Cloudflare Worker, or the browser, and knows nothing about fetching a page. You
+                open the page, run each pattern's <code>detect()</code> in-page, then hand the
                 triggered results to the scorer.
               </p>
               <Code lang="javascript" html={CODE.js} />

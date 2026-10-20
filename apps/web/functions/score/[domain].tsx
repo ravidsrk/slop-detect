@@ -18,6 +18,7 @@
 // hand SEO juice to an arbitrary URL. Anti-slop by construction (flat light system).
 
 import { raw } from 'hono/html';
+import { PATTERNS } from '@slop-detect/core';
 import {
   normalizeDomain,
   getLatestForDomain,
@@ -45,6 +46,7 @@ import {
   SystemAeoCards,
   Analytics,
   FixesPanel,
+  BreakdownUnavailable,
   ShareEmbed,
   ClaimPanel,
   ResultLoading,
@@ -243,7 +245,7 @@ export async function onRequestGet({ params, request, env }) {
           grade: corpusSite.grade,
           tier: corpusSite.tier,
           patternsFlagged: corpusSite.patternsFlagged ?? 0,
-          patternsTotal: 27,
+          patternsTotal: PATTERNS.length,
           verdict: `${domain} scored ${corpusSite.grade} (${corpusSite.score}/100 · ${corpusSite.tier}) on the AI-design-slop benchmark corpus.`,
           triggered: [],
           createdAt: lbData?.generatedAt || undefined,
@@ -338,6 +340,7 @@ export async function onRequestGet({ params, request, env }) {
     fixPrompt: assembleFixPrompt(latest, view),
     badgeMd,
     domain,
+    aeoUrl: latest.finalUrl || latest.url,
     claim: !claimed,
   });
 
@@ -369,20 +372,28 @@ export async function onRequestGet({ params, request, env }) {
           <BigScore slim={latest} rank={rank} origin={origin} />
         </section>
 
-        <section class="result-section">
-          <div class="rs-ledger">
-            <SectionLedger tag="" label="category overview" />
-          </div>
-          <CategoryBars categories={view.categories} />
-        </section>
+        {view.breakdownAvailable ? (
+          <>
+            <section class="result-section">
+              <div class="rs-ledger">
+                <SectionLedger tag="" label="category overview" />
+              </div>
+              <CategoryBars categories={view.categories} />
+            </section>
 
-        <section class="result-section">
-          <Breakdown
-            categories={view.categories}
-            flaggedTotal={view.flaggedTotal}
-            patternsTotal={view.patternsTotal}
-          />
-        </section>
+            <section class="result-section">
+              <Breakdown
+                categories={view.categories}
+                flaggedTotal={view.flaggedTotal}
+                patternsTotal={view.patternsTotal}
+              />
+            </section>
+          </>
+        ) : (
+          <section class="result-section">
+            <BreakdownUnavailable slim={latest} origin={origin} />
+          </section>
+        )}
 
         <section class="result-section">
           <div class="rs-ledger">
@@ -406,7 +417,7 @@ export async function onRequestGet({ params, request, env }) {
             history={history}
             dist={dist}
             slim={latest}
-            categories={view.categories}
+            categories={view.breakdownAvailable ? view.categories : []}
             catAvg={catAvg}
             catAvgCount={catClean.count}
             neighbors={neighbors}
@@ -415,7 +426,12 @@ export async function onRequestGet({ params, request, env }) {
         </section>
 
         <section class="result-section">
-          <FixesPanel fixes={view.fixes} domain={domain} />
+          <FixesPanel
+            fixes={view.fixes}
+            domain={domain}
+            driftCount={(latest.system?.drift || []).length}
+            breakdownAvailable={view.breakdownAvailable}
+          />
         </section>
 
         <section class="result-section">
