@@ -88,7 +88,7 @@ npx -y slop-detect "$PREVIEW_URL" --json --fail-on heavy | tee slop.json
 ## See also
 
 - [Web UI & Methodology](https://slop-detect.com/docs) — interactive scanning and full 2026.10 spec
-- [`@slop-detect/core`](https://www.npmjs.com/package/@slop-detect/core) — pure detection engine, runtime-agnostic
+- [`slop-detect-core`](https://www.npmjs.com/package/slop-detect-core) — pure detection engine, runtime-agnostic (bundled into this CLI; install it separately only to embed the engine)
 - [`slop-detect-mcp`](https://www.npmjs.com/package/slop-detect-mcp) — MCP server for Claude Code, Cursor, and Windsurf
 - [Repository](https://github.com/ravidsrk/slop-detect) — source, contributing, and the full pattern catalogue
 
