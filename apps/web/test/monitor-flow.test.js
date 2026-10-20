@@ -153,7 +153,10 @@ test('CF-04 chain: subscribe → confirm → regress → exactly-once alert → 
   // 4. Sweep 1 regresses → exactly one alert, baseline-vs-now, to the owner.
   const s1 = await sweep();
   expect(s1.status).toBe(200);
-  expect(await s1.json()).toMatchObject({ ok: true, considered: 1, scanned: 1, alerted: 1 });
+  const j1 = await s1.json();
+  expect(j1).toMatchObject({ ok: true, considered: 1, scanned: 1, alerted: 1 });
+  // The sweep also runs the off-read-path legacy directory cleanup.
+  expect(j1.listingCleanup).toMatchObject({ processed: 0, errors: 0 });
   expect(sent).toHaveLength(2);
   expect(sent[1].to).toContain('owner@flow.test');
   // T-31: the alert carries the footer + RFC 8058 headers end to end.

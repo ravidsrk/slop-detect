@@ -13,6 +13,7 @@ this table is a bug — add the key here when you add a `kv.put`.
 | `h:<domain>` | 1y (`WATCH_TTL`) | Score history timeline |
 | `w:<domain>` | 1y (`WATCH_TTL`) | Monitored watches |
 | `wv:<token>` | 7d (`VERIFY_TTL`) | Watch confirmation tokens |
+| `wvd:<domain>` | 8d (`VERIFY_TTL` + `CONFIRM_SETTLE_MARGIN`) | "A confirmation may still land" marker; the sweep's legacy-listing cleanup never deletes a row while it exists |
 | `dt:<token>` | 15m (`DASHBOARD_TOKEN_TTL`) | Single-use magic-link tokens |
 | `e:<hash>` | 1y (`WATCH_TTL`) | Email→domains index; shadows watch TTL so it cannot outlive entries (T-10) |
 | `gs:<domain>` | 1y (`STATS_CONTRIB_TTL`) | Stats dedup marker; 1y bounds growth while keeping re-contribution negligible (T-10) |
@@ -20,6 +21,9 @@ this table is a bug — add the key here when you add a `kv.put`.
 | `stats:ops:<day>` | 30d (`OPS_TTL`) | Daily ops blob: per-route req/status, scan tiers, nav-latency buckets; read by /api/stats `ops` (T-24) |
 | `l:<domain>` | 1y (`LISTING_TTL`) | Public directory listings |
 | `lv:verified` | 1y (`LISTING_TTL`) | Index of pre-verification-era listings already confirmed verified (directory cleanup) |
+| `lv:rejected` | 1y (`LISTING_TTL`) | Queue of pre-verification-era listings the directory read found without a listed+verified watch (hidden, not deleted, on read). The daily sweep (≤150/run) deletes a row only once confirmation is impossible (no `wvd:` marker; watch missing, or unverified with `updatedAt` older than 8d); it never writes listings. Deletion is final |
+| `lv:pending` | 1y (`LISTING_TTL`) | `{ domain: retryAfterMs }` for legacy rows the sweep couldn't decide yet (claim still confirmable, or watch without `updatedAt`); hidden on read and re-examined at most weekly |
+| `lv:cursor` | 1y (`LISTING_TTL`) | Resume cursor for the sweep's bounded walk of `l:` for unclassified legacy rows; deleted when a walk completes |
 | `og:<id>` | 30d (`OG_TTL`) | Rendered OG images |
 | `rl:dashlink:<hash>` | 1h (`DASHLINK_WINDOW_SEC`) | Magic-link send cap (3/hour/email) |
 | `rl:watchverify:<hash>` | 1h (`WATCH_VERIFY_WINDOW_SEC`) | Watch confirmation cap |

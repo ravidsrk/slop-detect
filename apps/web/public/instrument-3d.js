@@ -785,6 +785,19 @@
       return projectedCorners;
     }
 
+    // The live-scan banner sits outside the canvas and stays visible when the canvas
+    // is hidden (<768px) or the loop is paused/reduced, so it ticks on its own timer
+    // rather than depending on renderFrame.
+    var liveTicker = null;
+    function updateLiveBanner() {
+      if (!state.liveScanActive) return;
+      var elapsedMs = Date.now() - state.liveScanStart;
+      var phaseIdx = Math.min(SCAN_PHASES.length - 1, Math.floor(elapsedMs / 1500));
+      state.liveScanPhase = phaseIdx;
+      if (elLiveTimer) elLiveTimer.textContent = (elapsedMs / 1000).toFixed(1) + 's';
+      if (elLivePhase) elLivePhase.textContent = SCAN_PHASES[phaseIdx].label;
+    }
+
     function renderFrame() {
       ctx.save();
       ctx.scale(dpr, dpr);
@@ -816,13 +829,7 @@
       }
 
       // Live scan timer & phase progression
-      if (state.liveScanActive) {
-        var elapsedMs = Date.now() - state.liveScanStart;
-        var phaseIdx = Math.min(SCAN_PHASES.length - 1, Math.floor(elapsedMs / 1500));
-        state.liveScanPhase = phaseIdx;
-        if (elLiveTimer) elLiveTimer.textContent = (elapsedMs / 1000).toFixed(1) + 's';
-        if (elLivePhase) elLivePhase.textContent = SCAN_PHASES[phaseIdx].label;
-      }
+      updateLiveBanner();
 
       // Background subtle engineering grid + corner reticles
       ctx.strokeStyle = rgba(COLORS.border, 0.65);
@@ -1059,11 +1066,16 @@
         state.liveScanStart = Date.now();
         state.liveScanPhase = 0;
         if (elLiveBanner) elLiveBanner.hidden = false;
+        updateLiveBanner();
+        if (liveTicker) clearInterval(liveTicker);
+        liveTicker = setInterval(updateLiveBanner, 100);
         syncReadout();
         redrawStill();
       },
       stopLiveScan: function () {
         state.liveScanActive = false;
+        if (liveTicker) clearInterval(liveTicker);
+        liveTicker = null;
         if (elLiveBanner) elLiveBanner.hidden = true;
         syncReadout();
         redrawStill();
