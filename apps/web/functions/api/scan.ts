@@ -19,6 +19,7 @@ import {
   SCAN_PAGE_WAIT,
   waitFontsReadyInPage,
   readCapped,
+  DEFINITIONS_VERSION,
 } from '@slop-detect/core';
 import {
   newId,
@@ -142,7 +143,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
   const presetForCache = isPreset(body?.preset) ? body.preset : 'full';
   const cacheKey =
     env.RESULTS && body.share !== false && !body.screenshot && !wantsSystem && body.refresh !== true
-      ? `scancache:v1:${url}|${presetForCache}|${normalizeAxes(body?.axes).join(',')}`
+      ? `scancache:v1:${DEFINITIONS_VERSION}:${url}|${presetForCache}|${normalizeAxes(body?.axes).join(',')}`
       : null;
   if (cacheKey) {
     try {

@@ -12,8 +12,9 @@ name: publish
 #               packages. Without it the job fails fast (it does not silently
 #               no-op), so a release can never appear to succeed while npm stays
 #               stale.
-# Also required once: the `slop-detect` npm ORG must exist so the scoped
-# @slop-detect/core package can be published at all.
+# Note: the workspace name is @slop-detect/core, but core's `prepack` renames
+# it to the unscoped `slop-detect-core` before packing, so that is the name
+# that lands on npm (no npm org needed).
 #
 # Publish order matters: `slop-detect` (CLI) depends on `@slop-detect/core`,
 # so core must land first.
@@ -129,7 +130,7 @@ jobs:
             echo "args=--provenance" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Publish @slop-detect/core
+      - name: Publish slop-detect-core
         run: npm publish tarballs/slop-detect-core-*.tgz --access public ${{ steps.mode.outputs.args }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
