@@ -61,6 +61,102 @@ verified-only with `rel="ugc nofollow"`, tuning waits for a blind-labeled corpus
 - **Docs:** `@slop-detect/core` README and the Agent Skill updated to the current
   API, 27 patterns, and tiers (Clean 0–9 · Mild 10–27 · Heavy ≥28).
 
+## definitions@2026.10 — detector grouping precision & corpus re-score (2026-10-20)
+
+Published score deltas for `DEFINITIONS_VERSION = "2026.10"` (shipped in #217,
+re-scored in #222 / FIX-02) across the 24-site leaderboard corpus
+(`apps/web/leaderboard/corpus.json`) and the 23-entry calibration corpus
+(`packages/cli/calibration/corpus.json`).
+
+### Detector rule changes in `2026.10`
+
+- **`icon_card_grid` (weight 4):** now groups candidate cards by actual
+  `parentElement` identity and then by width bucket within that parent, instead
+  of keying by `parent.tagName + ':' + Math.round(r.width / 20)`. Same-sized
+  cards in unrelated sections across the page no longer merge into one phantom
+  grid.
+- **`numbered_steps` (weight 3):** now skips elements inside `<table>` or `<nav>`
+  and ignores sibling groups with more than 6 numbered items, so ranked content
+  lists (e.g. Hacker News story ranks, directory tables, nav breadcrumbs) no
+  longer fire as marketing "1 · 2 · 3" step sequences.
+
+### Leaderboard corpus deltas (`2026.09` → `2026.10`)
+
+The **Before (`2026.09`)** column comes from the previous committed
+`apps/web/public/leaderboard.json` (generated `2026-09-15T07:08:35.691Z`, with
+per-pattern baselines recovered from its `/r/<id>` snapshots). The **After
+(`2026.10`)** column comes from a local Playwright Chromium re-score under this
+tree's `2026.10` engine (`2026-10-20T12:08:59.687Z`). Because these are live
+marketing URLs re-scanned a month later, deltas reflect the `2026.10` grouping
+fixes (`icon_card_grid`, `numbered_steps`), the `centered_hero` geometry/transform
+fix (T-17), and live-DOM changes on the target sites since `2026-09-15`.
+
+- **Aggregate (`leaderboard.json`):** `20/24` scored → `22/24` scored · mean
+  score `15.7` → `14.9` · tier counts `7 Clean / 9 Mild / 4 Heavy` →
+  `7 Clean / 14 Mild / 1 Heavy` · `slopShare` `65%` → `68%` (two previously
+  unscored sites, `vercel.com` and `replit.com`, now scored in `Mild`).
+
+| Site (`domain`) | Category | Before (`2026.09`, 2026-09-15) | After (`2026.10`, 2026-10-20) | Δ | Pattern changes (`-` stopped firing, `+` started firing) |
+|---|---|---|---|---|---|
+| `notion.so` | bigtech | 0 · Clean (A+) | 0 · Clean (A+) | 0 | none (0 patterns) |
+| `anthropic.com` | bigtech | 0 · Clean (A+) | 0 · Clean (A+) | 0 | none (0 patterns) |
+| `motherfuckingwebsite.com` | classic | 0 · Clean (A+) | 0 · Clean (A+) | 0 | none (0 patterns) |
+| `craigslist.org` | classic | 3 · Clean (A) | 0 · Clean (A+) | -3 | `-numbered_steps (-3)` |
+| `figma.com` | bigtech | 3 · Clean (A) | 3 · Clean (A) | 0 | unchanged (`all_caps_labels`) |
+| `berkshirehathaway.com` | classic | 3 · Clean (A) | 3 · Clean (A) | 0 | unchanged (`flat_type_hierarchy`) |
+| `news.ycombinator.com` | classic | 6 · Clean (A-) | 3 · Clean (A) | -3 | `-numbered_steps (-3)`; kept `flat_type_hierarchy` |
+| `gnu.org` | classic | 10 · Mild (B+) | 10 · Mild (B+) | 0 | unchanged (`gradient_backgrounds`, `accent_stripe`) |
+| `bolt.new` | ai-builder | 31 · Heavy (D+) | 15 · Mild (B) | -16 | `-slop_fonts (-8)`, `-centered_hero (-4)`, `-nested_cards (-4)`; kept `glassmorphism`, `all_caps_labels`, `perma_dark_mode`, `bento_grid` |
+| `linear.app` | saas | 23 · Mild (B-) | 16 · Mild (B) | -7 | `-centered_hero (-4)`, `-numbered_steps (-3)`; kept `slop_fonts`, `perma_dark_mode`, `nested_cards` |
+| `vercel.com` | saas | unscored (`HTTP 502`) | 17 · Mild (B) | — | newly scored: `+slop_fonts (+8)`, `+gradient_backgrounds (+4)`, `+crushed_tracking (+5)` |
+| `stripe.com` | saas | 19 · Mild (B) | 19 · Mild (B) | 0 | unchanged (`purple_accent`, `gradient_backgrounds`, `icon_card_grid`, `stat_banner`) |
+| `supabase.com` | saas | 20 · Mild (B-) | 20 · Mild (B-) | 0 | unchanged (`slop_fonts`, `gradient_backgrounds`, `icon_card_grid`, `bento_grid`) |
+| `posthog.com` | saas | 19 · Mild (B) | 20 · Mild (B-) | +1 | `-numbered_steps (-3)`, `+gradient_backgrounds (+4)`; kept `purple_accent`, `glassmorphism`, `nested_cards` |
+| `v0.dev` | ai-builder | 17 · Mild (B) | 22 · Mild (B-) | +5 | `+hero_eyebrow_pill (+5)`; kept `slop_fonts`, `centered_hero`, `crushed_tracking` |
+| `resend.com` | saas | 34 · Heavy (D) | 22 · Mild (B-) | -12 | `-icon_card_grid (-4)`, `-numbered_steps (-3)`, `-gradient_letter_avatars (-5)`; kept `purple_accent`, `gradient_text`, `gradient_backgrounds`, `perma_dark_mode` |
+| `framer.com` | ai-builder | 10 · Mild (B+) | 23 · Mild (B-) | +13 | `+gradient_backgrounds (+4)`, `+glassmorphism (+4)`, `+gradient_letter_avatars (+5)`; kept `gradient_text`, `perma_dark_mode` |
+| `replit.com` | ai-builder | unscored (`cloudflare_challenge`) | 23 · Mild (B-) | — | newly scored: `+gradient_backgrounds (+4)`, `+glassmorphism (+4)`, `+all_caps_labels (+3)`, `+stat_banner (+3)`, `+crushed_tracking (+5)`, `+nested_cards (+4)` |
+| `railway.app` | saas | 24 · Mild (C) | 24 · Mild (C) | 0 | unchanged (`slop_fonts`, `purple_accent`, `perma_dark_mode`, `icon_card_grid`) |
+| `aura.build` | ai-builder | 25 · Mild (C) | 25 · Mild (C) | 0 | unchanged (`slop_fonts`, `glassmorphism`, `colored_glows`, `centered_hero`, `crushed_tracking`) |
+| `cal.com` | saas | 31 · Heavy (D+) | 27 · Mild (C) | -4 | `-centered_hero (-4)`; kept `slop_fonts`, `gradient_backgrounds`, `hero_eyebrow_pill`, `numbered_steps`, `low_contrast_text` |
+| `clerk.com` | saas | 36 · Heavy (D) | 36 · Heavy (D) | 0 | `-all_caps_labels (-3)`, `-centered_hero (-4)`, `+low_contrast_text (+7)`; kept `slop_fonts`, `gradient_backgrounds`, `glassmorphism`, `icon_card_grid`, `aurora_mesh_gradient`, `nested_cards` |
+| `lovable.dev` | ai-builder | unscored (`cloudflare_challenge`) | unscored (`cloudflare_challenge`) | — | unscored (`cloudflare_challenge`) |
+| `openai.com` | bigtech | unscored (`cloudflare_challenge`) | unscored (`cloudflare_challenge`) | — | unscored (`cloudflare_challenge`) |
+
+### Calibration corpus tier-accuracy (`2026.09` → `2026.10`)
+
+The **Before (`2026.09`)** column is the `2026-09-15` local calibration run
+recorded in `CALIBRATION.md`. The **After (`2026.10`)** column is the
+`2026-10-20` local calibration run (`bun run calibrate -- --local`) under
+`DEFINITIONS_VERSION = "2026.10"`.
+
+- **Tier accuracy over the 13 confirmed-label rows (0 Heavy labels in seed):**
+  - **Before (`definitions@2026.09`, 2026-09-15):** **5/13 (38.5%)** — confusion
+    `Clean → {Clean: 3, Mild: 6, Heavy: 0, null: 1}`,
+    `Mild → {Clean: 0, Mild: 2, Heavy: 1}`, `Heavy → {0}`.
+  - **After (`definitions@2026.10`, 2026-10-20):** **7/13 (53.8%)** — confusion
+    `Clean → {Clean: 4, Mild: 5, Heavy: 0, null: 1}`,
+    `Mild → {Clean: 0, Mild: 3, Heavy: 0}`, `Heavy → {0}`.
+
+| URL | Expected tier | Before (`2026.09`) | After (`2026.10`) | Δ | Pattern changes / triggered in `2026.10` |
+|---|---|---|---|---|---|
+| `news.ycombinator.com` | Clean | Clean (6) ✓ | Clean (3) ✓ | -3 | `-numbered_steps (-3)`; fired `flat_type_hierarchy` |
+| `example.com` | Clean | `null` (`empty_page`) ✗ | Clean (0) ✓ | — | IANA `/s.js` now renders ≥10 visible elements; 0 patterns fired |
+| `motherfuckingwebsite.com` | Clean | Clean (0) ✓ | Clean (0) ✓ | 0 | 0 patterns fired |
+| `berkshirehathaway.com` | Clean | Clean (3) ✓ | Clean (3) ✓ | 0 | `flat_type_hierarchy` |
+| `www.gnu.org` | Clean | Mild (10) ✗ | Mild (10) ✗ | 0 | `gradient_backgrounds`, `accent_stripe` |
+| `supabase.com` | Clean | Mild (20) ✗ | Mild (20) ✗ | 0 | `slop_fonts`, `gradient_backgrounds`, `icon_card_grid`, `bento_grid` |
+| `bolt.new` | Mild | Heavy (31) ✗ | Mild (15) ✓ | -16 | `-slop_fonts (-8)`, `-centered_hero (-4)`, `-nested_cards (-4)`; fired `glassmorphism`, `all_caps_labels`, `perma_dark_mode`, `bento_grid` |
+| `www.aura.build` | Mild | Mild (25) ✓ | Mild (25) ✓ | 0 | `slop_fonts`, `glassmorphism`, `colored_glows`, `centered_hero`, `crushed_tracking` |
+| `v0.dev` | Mild | Mild (17) ✓ | Mild (22) ✓ | +5 | `+hero_eyebrow_pill (+5)`; fired `slop_fonts`, `centered_hero`, `hero_eyebrow_pill`, `crushed_tracking` |
+| `lovable.dev` | Clean | Mild (15) ✗ | `null` (`cloudflare_challenge`) ✗ | — | unscored (`cloudflare_challenge`), counted as a miss (`Clean → null: 1`) |
+| `stripe.com` | Clean | Mild (19) ✗ | Mild (19) ✗ | 0 | `purple_accent`, `gradient_backgrounds`, `icon_card_grid`, `stat_banner` |
+| `linear.app` | Clean | Mild (19) ✗ | Mild (16) ✗ | -3 | `-numbered_steps (-3)`; fired `slop_fonts`, `perma_dark_mode`, `nested_cards` |
+| `vercel.com` | Clean | Mild (17) ✗ | Mild (17) ✗ | 0 | `slop_fonts`, `gradient_backgrounds`, `crushed_tracking` |
+
+Unlabeled candidate predictions in `packages/cli/calibration/corpus.json` under `2026.10` (`label: null`, not counted in accuracy):
+`www.apple.com` Clean (4: `gradient_backgrounds`), `clerk.com` Heavy (36: `slop_fonts`, `gradient_backgrounds`, `glassmorphism`, `icon_card_grid`, `aurora_mesh_gradient`, `low_contrast_text`, `nested_cards`), `resend.com` Mild (22: `purple_accent`, `gradient_text`, `gradient_backgrounds`, `perma_dark_mode`), `cal.com` Mild (27: `slop_fonts`, `gradient_backgrounds`, `hero_eyebrow_pill`, `numbered_steps`, `low_contrast_text`), `www.raycast.com` Heavy (37: `slop_fonts`, `gradient_backgrounds`, `glassmorphism`, `centered_hero`, `all_caps_labels`, `perma_dark_mode`, `icon_card_grid`, `stat_banner`, `ai_sparkle_badges`), `www.notion.com` Clean (0), `www.figma.com` Clean (3: `all_caps_labels`), `cursor.com` Mild (17: `gradient_text`, `gradient_backgrounds`, `numbered_steps`, `nested_cards`), `replit.com` Mild (23: `gradient_backgrounds`, `glassmorphism`, `all_caps_labels`, `stat_banner`, `crushed_tracking`, `nested_cards`), `www.framer.com` Mild (23: `gradient_text`, `gradient_backgrounds`, `glassmorphism`, `perma_dark_mode`, `gradient_letter_avatars`).
+
 ## v0.8.0 — monorepo restructure: bun + turbo + apps/docs + spec/
 
 A structural refactor. No detector behavior changed; tooling, layout, and the

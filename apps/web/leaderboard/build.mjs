@@ -5,6 +5,7 @@
 // partial run still produces usable data.
 //
 //   node apps/web/leaderboard/build.mjs
+//   node apps/web/leaderboard/build.mjs --local
 //   SLOP_API=https://staging.example node apps/web/leaderboard/build.mjs
 //   SLOP_API_KEY=sk_live_... node ...   # a key lifts the per-IP throttle
 //
@@ -14,15 +15,26 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { DEFINITIONS_VERSION } from '@slop-detect/core';
 
+const args = process.argv.slice(2);
+const local = args.includes('--local');
+
 const API = process.env.SLOP_API || 'https://slop-detect.com';
 const KEY = process.env.SLOP_API_KEY || null;
-const SPACING_MS = KEY ? 1500 : 21000; // no key → ~3/min anon limit
+const SPACING_MS = local ? 0 : KEY ? 1500 : 21000; // no key → ~3/min anon limit
 const OUT = new URL('../public/leaderboard.json', import.meta.url);
 const corpus = JSON.parse(readFileSync(new URL('./corpus.json', import.meta.url)));
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function scan(url, attempt = 0) {
+  if (local) {
+    const { scanUrl } = await import('../../../packages/cli/src/detector.js');
+    try {
+      return await scanUrl(url, { axes: ['design'] });
+    } catch (e) {
+      return { error: e.message || String(e), code: e.code };
+    }
+  }
   const headers = { 'Content-Type': 'application/json' };
   if (KEY) headers['X-API-Key'] = KEY;
   let res;
@@ -88,7 +100,7 @@ for (const entry of corpus.sites) {
 
   // Incremental write so an interrupted run still leaves a usable artifact.
   writeFileSync(OUT, JSON.stringify(buildReport(sites), null, 2) + '\n');
-  if (i < corpus.sites.length) await sleep(SPACING_MS);
+  if (i < corpus.sites.length && SPACING_MS > 0) await sleep(SPACING_MS);
 }
 
 process.stderr.write(`\nDone. Wrote ${OUT.pathname}\n`);

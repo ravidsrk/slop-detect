@@ -277,11 +277,12 @@ async function runCompare(a, b, fetchImpl = async () => new Response(JSON.string
 }
 
 test('compare: unscanned corpus sites show the recorded failure, not a grade', async () => {
-  const r = await runCompare('vercel.com', 'lovable.dev');
+  const r = await runCompare('openai.com', 'lovable.dev');
   // no example grades before the corpus arrives either
   expect(r.before.a).not.toMatch(/arena-grade/);
   expect(r.a).toMatch(/No successful scan on record/);
-  expect(r.a).toMatch(/HTTP 502/);
+  expect(r.b).toMatch(/No successful scan on record/);
+  expect(r.a).toMatch(/cloudflare_challenge/);
   expect(r.b).toMatch(/cloudflare_challenge/);
   expect(r.a + r.b).not.toMatch(/arena-grade|arena-num/);
   expect(r.delta).toMatch(/no successful scan on record/);
