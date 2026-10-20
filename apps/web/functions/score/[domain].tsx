@@ -24,7 +24,6 @@ import {
   getLatestForDomain,
   getWatch,
   getHistory,
-  getListing,
   listAllSites,
   publicWatch,
   getScoreDistribution,
@@ -243,30 +242,29 @@ export async function onRequestGet({ params, request, env }) {
     return htmlResponse(node, { status: 503, cache: 'no-store' });
   }
 
-  const [kvLatest, watch, history, listing, dist, catClean, lbData, listedSites] =
-    await Promise.all([
-      getLatestForDomain(env.RESULTS, domain).catch(() => null),
-      getWatch(env.RESULTS, domain).catch(() => null),
-      getHistory(env.RESULTS, domain).catch(() => []),
-      getListing(env.RESULTS, domain).catch(() => null),
-      getScoreDistribution(env.RESULTS).catch(() => null),
-      getCategoryCleanAverages(env.RESULTS).catch(() => ({ averages: {}, count: 0 })),
-      loadLeaderboard(request).catch(() => null),
-      listAllSites(env.RESULTS)
-        .then((sites) => sites.filter((s: any) => s.listed))
-        .catch(() => []),
-    ]);
+  const [kvLatest, watch, history, dist, catClean, lbData, listedSites] = await Promise.all([
+    getLatestForDomain(env.RESULTS, domain).catch(() => null),
+    getWatch(env.RESULTS, domain).catch(() => null),
+    getHistory(env.RESULTS, domain).catch(() => []),
+    getScoreDistribution(env.RESULTS).catch(() => null),
+    getCategoryCleanAverages(env.RESULTS).catch(() => ({ averages: {}, count: 0 })),
+    loadLeaderboard(request).catch(() => null),
+    listAllSites(env.RESULTS).catch(() => []),
+  ]);
   const pub = watch ? publicWatch(watch, history) : null;
-  const claimed = !!listing;
-  const verifiedDomains = new Set<string>(listedSites.map((s: any) => String(s.domain)));
-  if (claimed) verifiedDomains.add(domain);
+  const verifiedDomains = new Set<string>(
+    (listedSites || [])
+      .filter((s: any) => s && s.domain && s.listed !== false)
+      .map((s: any) => String(s.domain).toLowerCase())
+  );
+  const claimed = verifiedDomains.has(domain) && (!watch || (!!watch.verified && !!watch.listed));
+  if (!claimed) verifiedDomains.delete(domain);
 
   const corpusSite =
     !kvLatest && Array.isArray(lbData?.sites)
       ? lbData.sites.find((s: any) => s.domain === domain && s.scored)
       : null;
-  const corpusWithheld = !kvLatest && !!corpusSite && !claimed;
-  const latest =
+  const rawLatest =
     kvLatest ||
     (corpusSite
       ? {
@@ -277,19 +275,29 @@ export async function onRequestGet({ params, request, env }) {
           url: corpusSite.url || `https://${domain}`,
           finalUrl: corpusSite.url || `https://${domain}`,
           domain,
-          score: claimed ? corpusSite.score : null,
-          grade: claimed ? corpusSite.grade : null,
-          tier: claimed ? corpusSite.tier : null,
-          withheld: corpusWithheld,
+          score: corpusSite.score,
+          grade: corpusSite.grade,
+          tier: corpusSite.tier,
           patternsFlagged: corpusSite.patternsFlagged ?? 0,
           patternsTotal: PATTERNS.length,
-          verdict: claimed
-            ? `${domain} matched ${corpusSite.patternsFlagged ?? 0} of ${PATTERNS.length} default-template patterns.`
-            : `Public grade and tier for ${domain} are withheld until the domain owner opts in via email-verified directory listing (uncalibrated beta).`,
+          verdict: `${domain} matched ${corpusSite.patternsFlagged ?? 0} of ${PATTERNS.length} default-template patterns.`,
           triggered: [],
           createdAt: lbData?.generatedAt || undefined,
         }
       : null);
+  const withheld = !claimed;
+  const latest = rawLatest
+    ? {
+        ...rawLatest,
+        score: withheld ? null : rawLatest.score,
+        grade: withheld ? null : rawLatest.grade,
+        tier: withheld ? null : rawLatest.tier,
+        withheld,
+        verdict: withheld
+          ? `Public grade and tier for ${domain} are withheld until the domain owner opts in via email-verified directory listing (uncalibrated beta).`
+          : rawLatest.verdict,
+      }
+    : null;
 
   // ── empty state: never-scanned domain (404 + scan CTA) ───────────────────────
   if (!latest) {
@@ -329,7 +337,7 @@ export async function onRequestGet({ params, request, env }) {
 
   // ── full result ──────────────────────────────────────────────────────────────
   const view = buildResultView(latest);
-  const neighbors = buildNeighbors(lbData, domain, verifiedDomains, !corpusWithheld);
+  const neighbors = buildNeighbors(lbData, domain, verifiedDomains, !withheld);
   let catAvg: number[] | null = null;
   if (catClean.count >= 5) {
     const mapped = view.categories.map((c) => catClean.averages[c.key]);
@@ -337,7 +345,7 @@ export async function onRequestGet({ params, request, env }) {
   }
   const pageUrl = `${ORIGIN}/score/${domain}`;
   const ogImg = `${origin}/og/${latest.id}.png`;
-  const title = corpusWithheld
+  const title = withheld
     ? `${domain} · slop-detect (uncalibrated beta)`
     : `${domain} scored ${latest.grade} (${latest.score}/100) on the AI-slop detector`;
   const desc =
@@ -347,7 +355,7 @@ export async function onRequestGet({ params, request, env }) {
   // Peer rank, derived from the same distribution that backs the percentile. Shown
   // only once the corpus is large enough to be meaningful (>= 5 scans).
   const pct =
-    dist && !corpusWithheld
+    dist && !withheld && latest.score != null
       ? percentileFromDistribution(dist, latest.score)
       : { count: 0, cleanerThanPct: null };
   let rank: { n: number; of: number; cleanerThanPct: number } | null = null;
@@ -372,7 +380,7 @@ export async function onRequestGet({ params, request, env }) {
     dateModified: latest.createdAt || undefined,
   });
 
-  const shareText = corpusWithheld
+  const shareText = withheld
     ? `${domain} on the AI-design-slop detector (uncalibrated beta).`
     : `${domain} scored ${latest.grade} (${latest.score}/100) on the AI-design-slop detector. ${latest.verdict || ''}`;
   const badgeMd = `[![slop](${origin}/badge/${domain}.svg)](${pageUrl})`;
@@ -428,6 +436,7 @@ export async function onRequestGet({ params, request, env }) {
                 categories={view.categories}
                 flaggedTotal={view.flaggedTotal}
                 patternsTotal={view.patternsTotal}
+                withheld={withheld}
               />
             </section>
           </>
@@ -473,6 +482,7 @@ export async function onRequestGet({ params, request, env }) {
             domain={domain}
             driftCount={(latest.system?.drift || []).length}
             breakdownAvailable={view.breakdownAvailable}
+            withheld={withheld}
           />
         </section>
 

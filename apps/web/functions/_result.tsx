@@ -128,19 +128,24 @@ export function buildResultView(slim: any) {
 export function assembleFixPrompt(slim: any, view: any) {
   const url = slim.finalUrl || slim.url || `https://${slim.domain}`;
   const sysDrift = slim.system?.drift || [];
-  if (slim.withheld) {
-    return `${slim.domain} has ${view.flaggedTotal} of ${view.patternsTotal} patterns flagged on record (public grade and tier withheld — opt-in required, uncalibrated beta). The per-pattern breakdown for this scan was not saved; rescan ${url} (or run \`npx slop-detect ${url} --fix\`) to get the fix prompt.`;
-  }
   if (view.breakdownAvailable === false && !sysDrift.length) {
+    if (slim.withheld) {
+      return `${slim.domain} has ${view.flaggedTotal} of ${view.patternsTotal} patterns flagged on record (public grade and tier withheld — opt-in required, uncalibrated beta). The per-pattern breakdown for this scan was not saved; rescan ${url} (or run \`npx slop-detect ${url} --fix\`) to get the fix prompt.`;
+    }
     return `${slim.domain} scored ${slim.score}/100 (tier ${slim.tier}) on the AI-design-slop detector, flagging ${view.flaggedTotal} of ${view.patternsTotal} patterns. The per-pattern breakdown for this scan was not saved; rescan ${url} (or run \`npx slop-detect ${url} --fix\`) to get the fix prompt.`;
   }
   if (!view.fixes.length && !sysDrift.length) {
+    if (slim.withheld) {
+      return `${slim.domain} triggered 0 of ${view.patternsTotal} patterns on the AI-design-slop detector (public grade and tier withheld — opt-in required, uncalibrated beta). Nothing to fix on the design axis.`;
+    }
     return `${slim.domain} scored ${slim.score}/100 (tier ${slim.tier}) on the AI-design-slop detector and triggered 0 of ${view.patternsTotal} patterns. Nothing to fix on the design axis.`;
   }
   const lines = [
     `# Landing page slop fix prompt`,
     ``,
-    `${url} scored ${slim.score}/100 on the AI-design-slop detector — tier ${slim.tier} — triggering ${view.flaggedTotal} of ${view.patternsTotal} patterns. Reduce the score below 10 (Clean) by addressing each pattern below.`,
+    slim.withheld
+      ? `${url} triggered ${view.flaggedTotal} of ${view.patternsTotal} patterns on the AI-design-slop detector (public grade and tier withheld — opt-in required, uncalibrated beta). Address each pattern below.`
+      : `${url} scored ${slim.score}/100 on the AI-design-slop detector — tier ${slim.tier} — triggering ${view.flaggedTotal} of ${view.patternsTotal} patterns. Reduce the score below 10 (Clean) by addressing each pattern below.`,
   ];
   if (view.fixes.length) {
     lines.push(``, `## Issues to fix (highest weight first)`);
@@ -577,6 +582,9 @@ export function BigScore({
   origin?: string;
 }) {
   const fg = slim.withheld ? 'var(--text-5)' : tierText(slim.tier);
+  const scaleTitle = slim.withheld
+    ? 'Slop score scale (lower is better) · uncalibrated beta'
+    : 'Scale (lower is better): 0–2 A+, 3–5 A, 6–9 A- (Clean 0–9) · 10–14 B+, 15–19 B, 20–23 B-, 24–27 C (Mild 10–27) · 28–33 D+, 34–39 D, 40–100 F (Heavy 28+)';
   const actions = [
     { label: 'Fix with AI →', href: '#fixes' },
     { label: 'Get the badge →', href: '#embed' },
@@ -588,11 +596,7 @@ export function BigScore({
   return (
     <div class="bs">
       <div>
-        <div
-          class="bs-num"
-          style={`color:${fg}`}
-          title="Scale (lower is better): 0–2 A+, 3–5 A, 6–9 A- (Clean 0–9) · 10–14 B+, 15–19 B, 20–23 B-, 24–27 C (Mild 10–27) · 28–33 D+, 34–39 D, 40–100 F (Heavy 28+)"
-        >
+        <div class="bs-num" style={`color:${fg}`} title={scaleTitle}>
           {slim.withheld ? (
             '—'
           ) : (
@@ -603,10 +607,7 @@ export function BigScore({
           )}
         </div>
         <div class="bs-meta">
-          <div
-            class="bs-gt"
-            title="Scale (lower is better): 0–2 A+, 3–5 A, 6–9 A- (Clean 0–9) · 10–14 B+, 15–19 B, 20–23 B-, 24–27 C (Mild 10–27) · 28–33 D+, 34–39 D, 40–100 F (Heavy 28+)"
-          >
+          <div class="bs-gt" title={scaleTitle}>
             <span>Slop score · lower is better</span> ·{' '}
             <a href={CALIBRATION_URL} target="_blank" rel="noopener noreferrer">
               uncalibrated beta
@@ -703,10 +704,12 @@ export function Breakdown({
   categories,
   flaggedTotal,
   patternsTotal,
+  withheld = false,
 }: {
   categories: any[];
   flaggedTotal: number;
   patternsTotal: number;
+  withheld?: boolean;
 }) {
   let firstDirtyDone = false;
   return (
@@ -735,12 +738,14 @@ export function Breakdown({
                   {open ? '▾' : '▸'}
                 </span>
                 <span class="bd-cat">{c.label}</span>
-                <span
-                  class="bd-pill"
-                  style={`background:${tierPillBg(c.tier)};color:${tierText(c.tier)}`}
-                >
-                  {c.tier}
-                </span>
+                {!withheld ? (
+                  <span
+                    class="bd-pill"
+                    style={`background:${tierPillBg(c.tier)};color:${tierText(c.tier)}`}
+                  >
+                    {c.tier}
+                  </span>
+                ) : null}
                 <span class="bd-n">{c.flagged ? `${c.flagged} flagged` : 'clean'}</span>
               </button>
               <div class="bd-body" id={id}>
@@ -789,12 +794,19 @@ export function AxisStrip({ slim }: { slim: any }) {
           color: tierText(slim.tier),
         },
     copy
-      ? {
-          k: 'copy slop · Slop score · lower is better',
-          v: `${copy.score}/100`,
-          t: `${copy.tier} · uncalibrated beta`,
-          color: tierText(copy.tier),
-        }
+      ? slim.withheld
+        ? {
+            k: 'copy slop · Slop score · lower is better',
+            v: 'withheld',
+            t: 'opt-in required (uncalibrated beta)',
+            color: 'var(--text-4)',
+          }
+        : {
+            k: 'copy slop · Slop score · lower is better',
+            v: `${copy.score}/100`,
+            t: `${copy.tier} · uncalibrated beta`,
+            color: tierText(copy.tier),
+          }
       : {
           k: 'copy slop · Slop score · lower is better',
           v: 'not run',
@@ -1162,7 +1174,17 @@ function Neighbors({
 }
 
 // Slop distribution: a 10-bucket histogram with the domain's own bucket highlighted.
-function Distribution({ dist, score, tier }: { dist: number[]; score: number; tier: string }) {
+function Distribution({
+  dist,
+  score,
+  tier,
+  withheld = false,
+}: {
+  dist: number[];
+  score: number | null;
+  tier: string | null;
+  withheld?: boolean;
+}) {
   const buckets = new Array(10).fill(0);
   let total = 0;
   for (let i = 0; i <= 100; i++) {
@@ -1171,10 +1193,13 @@ function Distribution({ dist, score, tier }: { dist: number[]; score: number; ti
     total += n;
   }
   const max = Math.max(1, ...buckets);
-  const mine = Math.min(9, Math.floor(score / 10));
+  const hasSelf = !withheld && typeof score === 'number' && Number.isFinite(score);
+  const mine = hasSelf ? Math.min(9, Math.floor((score as number) / 10)) : -1;
   let worse = 0;
-  for (let i = Math.round(score) + 1; i <= 100; i++) worse += dist[i] || 0;
-  const cleanerThan = total ? Math.round((worse / total) * 100) : 0;
+  if (hasSelf) {
+    for (let i = Math.round(score as number) + 1; i <= 100; i++) worse += dist[i] || 0;
+  }
+  const cleanerThan = total && hasSelf ? Math.round((worse / total) * 100) : 0;
   const W = 320,
     H = 110,
     gap = 4,
@@ -1197,14 +1222,20 @@ function Distribution({ dist, score, tier }: { dist: number[]; score: number; ti
                 width={bw.toFixed(1)}
                 height={h}
                 rx="1"
-                fill={i === mine ? tierFill(tier) : '#CDCFC8'}
+                fill={i === mine && tier ? tierFill(tier) : '#CDCFC8'}
               />
             );
           })}
         </svg>
       </div>
       <div class="chart-cap">
-        cleaner than <strong>{cleanerThan}%</strong> of {total.toLocaleString('en-US')} scans
+        {hasSelf ? (
+          <>
+            cleaner than <strong>{cleanerThan}%</strong> of {total.toLocaleString('en-US')} scans
+          </>
+        ) : (
+          <>{total.toLocaleString('en-US')} scans across 10 bands</>
+        )}
       </div>
     </div>
   );
@@ -1231,7 +1262,9 @@ export function Analytics({
   neighbors?: { categoryLabel: string; rows: any[] } | null;
   origin?: string;
 }) {
-  const points = (history || []).filter((h) => typeof h.score === 'number').slice(-30);
+  const points = !slim?.withheld
+    ? (history || []).filter((h) => typeof h.score === 'number').slice(-30)
+    : [];
   const totalScans = dist ? dist.reduce((s, n) => s + (n || 0), 0) : 0;
   const showTime = points.length >= 2;
   const showDist = !!dist && totalScans >= 5;
@@ -1252,7 +1285,12 @@ export function Analytics({
         />
       ) : null}
       {showDist ? (
-        <Distribution dist={dist as number[]} score={slim.score} tier={slim.tier} />
+        <Distribution
+          dist={dist as number[]}
+          score={slim.score}
+          tier={slim.tier}
+          withheld={!!slim?.withheld}
+        />
       ) : null}
     </div>
   );
@@ -1265,6 +1303,7 @@ export function FixesPanel({
   domain,
   driftCount = 0,
   breakdownAvailable = true,
+  withheld = false,
 }: {
   fixes: any[];
   domain: string;
@@ -1272,6 +1311,7 @@ export function FixesPanel({
   driftCount?: number;
   /** false when the record flags patterns but carries no per-pattern list. */
   breakdownAvailable?: boolean;
+  withheld?: boolean;
 }) {
   const hasPrompt = fixes.length > 0 || driftCount > 0;
   return (
@@ -1321,6 +1361,8 @@ export function FixesPanel({
             <span class="fix-cli">npx slop-detect {domain} --fix</span>
           </div>
         </>
+      ) : withheld ? (
+        <p class="fixes-clean">Nothing to fix — 0 default-template patterns triggered.</p>
       ) : (
         <p class="fixes-clean">Nothing to fix, this page is already Clean. Keep it that way.</p>
       )}

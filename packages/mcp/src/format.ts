@@ -1,6 +1,8 @@
 // Renders a /api/scan JSON result into the readable summary an agent sees in
 // its tool output. Kept pure (no I/O) so it's trivial to unit-test and reuse.
 
+const CALIBRATION_URL = 'https://github.com/ravidsrk/slop-detect/blob/main/CALIBRATION.md';
+
 // Score is 0-100 where LOWER is better — easy to misread, so we spell it out
 // every time rather than assume the model remembers the polarity.
 export function formatScan(result) {
@@ -36,7 +38,7 @@ export function formatScan(result) {
   const copyBlock = copyAxis
     ? [
         '',
-        `Copy Axis: ${copyAxis.score}/100 (grade ${copyAxis.grade || '?'} · tier ${copyAxis.tier} · lower is better · uncalibrated beta)`,
+        `Copy Axis: ${copyAxis.score}/100 (grade ${copyAxis.grade || '?'} · tier ${copyAxis.tier} · lower is better · uncalibrated beta — ${CALIBRATION_URL})`,
         `Copy patterns flagged: ${copyAxis.patternsFlagged}/${copyAxis.patternsTotal}`,
         copyTriggered.length
           ? copyTriggered.map((p) => `  • ${p.label} (+${p.weight})`).join('\n')
@@ -46,15 +48,15 @@ export function formatScan(result) {
 
   const systemBlock =
     system && system.declared
-      ? `\nSystem Axis (DESIGN.md): ${system.score}/100 (tier ${system.tier} · HIGHER is better · uncalibrated beta)`
+      ? `\nSystem Axis (DESIGN.md): ${system.score}/100 (tier ${system.tier} · HIGHER is better · uncalibrated beta — ${CALIBRATION_URL})`
       : null;
 
   const lines = [
     `Grade: ${grade}`,
-    `Score: ${score}/100 (lower is better — 0 = no slop · uncalibrated beta)`,
+    `Score: ${score}/100 (lower is better — 0 = no slop · uncalibrated beta — ${CALIBRATION_URL})`,
     `Tier: ${tier}`,
     unifiedScore != null
-      ? `Unified Score: ${unifiedScore}/100 (grade ${unifiedGrade || grade} · tier ${unifiedTier || tier} · uncalibrated beta)`
+      ? `Unified Score: ${unifiedScore}/100 (grade ${unifiedGrade || grade} · tier ${unifiedTier || tier} · uncalibrated beta — ${CALIBRATION_URL})`
       : null,
     verdict ? `Verdict: ${verdict}` : null,
     title ? `Title: ${title}` : null,
@@ -101,7 +103,7 @@ export function formatSystem(result) {
 
   const lines = [
     `Design-system compliance${sys.name ? ` — "${sys.name}"` : ''}`,
-    `Score: ${sys.score}/100 (HIGHER is better — 100 = fully on-system · uncalibrated beta)`,
+    `Score: ${sys.score}/100 (HIGHER is better — 100 = fully on-system · uncalibrated beta — ${CALIBRATION_URL})`,
     `Tier: ${sys.tier} (Aligned ≥80 · Drifting ≥50 · Off-system <50)`,
     sys.source ? `DESIGN.md: ${sys.source}` : null,
     `Checks: ${sys.checksEvaluated} evaluated, ${sys.checksSkipped} skipped (missing data skips — it is never drift)`,
@@ -142,7 +144,7 @@ export function formatAeo(report) {
 
   const lines = [
     `AEO: can AI engines read & cite this page?`,
-    `Score: ${score}/${maxScore} (HIGHER is better — ${maxScore} = fully AI-ready · uncalibrated beta)`,
+    `Score: ${score}/${maxScore} (HIGHER is better — ${maxScore} = fully AI-ready · uncalibrated beta — ${CALIBRATION_URL})`,
     `Tier: ${tier}`,
     url ? `Scanned: ${url}` : null,
     '',

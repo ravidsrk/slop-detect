@@ -10,9 +10,10 @@ import { join, relative, resolve } from 'node:path';
 import { VERDICTS, verdictFor } from '../../../packages/core/src/verdict.ts';
 import { onRequestGet as getLeaderboard } from '../functions/leaderboard.tsx';
 import { onRequestGet as getScore } from '../functions/score/[domain].tsx';
+import { onRequestGet as getResultPage } from '../functions/r/[id].tsx';
 import { DomainHeader, BigScore, AxisStrip, Analytics } from '../functions/_result.tsx';
 import { badgeSvg } from '../functions/_badge.tsx';
-import { setListing, saveResult } from '../functions/_data.ts';
+import { setListing, saveResult, putWatch } from '../functions/_data.ts';
 import { formatScan, formatAeo, formatSystem } from '../../../packages/mcp/src/format.ts';
 
 const ROOT = resolve(import.meta.dirname, '../../..');
@@ -194,15 +195,57 @@ describe('FIX-04: no third-party grade/tier without opt-in & uncalibrated beta l
 
   test('/leaderboard and /score/[domain] show grade/tier only when domain is an email-verified directory listing', async () => {
     const kv = makeKv();
-    await setListing(kv, {
+    const calSlim = {
+      id: 'cal00001',
+      url: 'https://cal.com/',
+      finalUrl: 'https://cal.com/',
       domain: 'cal.com',
-      listed: true,
       score: 19,
       grade: 'B',
       tier: 'Mild',
       title: 'Cal.com',
+      verdict: verdictFor(19, 'Mild', []),
+      patternsFlagged: 3,
+      patternsTotal: 27,
+      triggered: [],
+      createdAt: '2026-09-15T00:00:00.000Z',
+    };
+    await saveResult(kv, calSlim);
+    await setListing(kv, {
+      ...calSlim,
+      listed: true,
       listedAt: '2026-09-15T00:00:00.000Z',
     });
+
+    // Seed a KV scan for an unlisted domain (clerk.com) AND an unverified claim/legacy row
+    // so getListing alone would find a row, proving /score/[domain] gates on the verified set.
+    const clerkSlim = {
+      id: 'clk00001',
+      url: 'https://clerk.com/',
+      finalUrl: 'https://clerk.com/',
+      domain: 'clerk.com',
+      score: 46,
+      grade: 'F',
+      tier: 'Heavy',
+      title: 'Clerk',
+      verdict: verdictFor(46, 'Heavy', []),
+      patternsFlagged: 6,
+      patternsTotal: 27,
+      triggered: [{ id: 'slop_fonts', label: 'Default font', weight: 8 }],
+      createdAt: '2026-09-15T00:00:00.000Z',
+    };
+    await saveResult(kv, clerkSlim);
+    await putWatch(kv, {
+      domain: 'clerk.com',
+      email: 'unverified@clerk.com',
+      listed: true,
+      verified: false,
+    });
+    await kv.put(
+      'l:clerk.com',
+      JSON.stringify({ domain: 'clerk.com', score: 46, grade: 'F', tier: 'Heavy' }),
+      { metadata: { s: 46, g: 'F', tr: 'Heavy' } }
+    );
 
     await withFetch(
       async () => new Response(JSON.stringify(LEADERBOARD_FIXTURE), { status: 200 }),
@@ -224,7 +267,7 @@ describe('FIX-04: no third-party grade/tier without opt-in & uncalibrated beta l
           expect(r).not.toMatch(/>(A\+|A-|A|B\+|B-|B|C|D\+|D|F)</);
         }
 
-        // 2. Score page for unverified corpus domain (resend.com) withholds grade and tier.
+        // 2. Score page for unverified corpus domain (resend.com) withholds score, grade, and tier.
         const resendScoreHtml = await (
           await getScore({
             request: { url: 'https://slop-detect.com/score/resend.com' },
@@ -234,7 +277,38 @@ describe('FIX-04: no third-party grade/tier without opt-in & uncalibrated beta l
         ).text();
         expect(resendScoreHtml).toMatch(/withheld until the domain owner opts in/i);
         expect(resendScoreHtml).toMatch(/class="bs-num"[^>]*>—</);
-        expect(resendScoreHtml).not.toMatch(/resend\.com — Slop Score \d+/);
+        expect(resendScoreHtml).not.toMatch(/scored [A-F][+-]? \(\d+\/100\)/);
+        expect(resendScoreHtml).not.toMatch(/class="bs-grade"/);
+
+        // 3. Score page for KV hit on an unlisted/unverified domain (clerk.com) withholds score, grade, and tier, while keeping aggregates.
+        const clerkScoreHtml = await (
+          await getScore({
+            request: { url: 'https://slop-detect.com/score/clerk.com' },
+            env: { RESULTS: kv },
+            params: { domain: 'clerk.com' },
+          })
+        ).text();
+        expect(clerkScoreHtml).not.toMatch(/scored [A-F][+-]? \(\d+\/100\)/);
+        expect(clerkScoreHtml).not.toMatch(/46<small>\/100<\/small>/);
+        expect(clerkScoreHtml).not.toMatch(/class="bs-grade"/);
+        expect(clerkScoreHtml).not.toMatch(/class="stb-tier"/);
+        expect(clerkScoreHtml).not.toMatch(/class="bd-pill"/);
+        expect(clerkScoreHtml).not.toMatch(/\b(Clean|Mild|Heavy)\b/);
+        expect(clerkScoreHtml).toMatch(/withheld until the domain owner opts in/i);
+        expect(clerkScoreHtml).toMatch(/class="bs-num"[^>]*>—</);
+        expect(clerkScoreHtml).toMatch(/Category aggregate/i);
+
+        // 4. Score page for email-verified directory listing (cal.com) DOES render score, grade, and tier.
+        const calScoreHtml = await (
+          await getScore({
+            request: { url: 'https://slop-detect.com/score/cal.com' },
+            env: { RESULTS: kv },
+            params: { domain: 'cal.com' },
+          })
+        ).text();
+        expect(calScoreHtml).toMatch(/class="bs-num"[^>]*>19<small>\/100<\/small>/);
+        expect(calScoreHtml).toMatch(/class="bs-grade"[^>]*>B</);
+        expect(calScoreHtml).toMatch(/class="stb-tier"[^>]*>MILD</);
       }
     );
   });
@@ -257,6 +331,20 @@ describe('FIX-04: no third-party grade/tier without opt-in & uncalibrated beta l
     };
     await saveResult(kv, userSlim);
 
+    // 1. Shareable result of a scan the user just ran (/r/:id) shows full score, grade, tier, and "uncalibrated beta" linked to CALIBRATION.md.
+    const rRes = await getResultPage({
+      request: { url: 'https://slop-detect.com/r/usr12345' },
+      env: { RESULTS: kv },
+      params: { id: 'usr12345' },
+    });
+    expect(rRes.status).toBe(200);
+    const rHtml = await rRes.text();
+    expect(rHtml).toMatch(/uncalibrated beta/i);
+    expect(rHtml).toContain('https://github.com/ravidsrk/slop-detect/blob/main/CALIBRATION.md');
+    expect(rHtml).toMatch(/class="bs-num"[^>]*>16<small>\/100<\/small>/);
+    expect(rHtml).toMatch(/class="bs-grade"[^>]*>B</);
+
+    // 2. Public /score/[domain] peer block shows aggregate category statistics and does not print grades/tiers for named corpus peers.
     await withFetch(
       async () => new Response(JSON.stringify(LEADERBOARD_FIXTURE), { status: 200 }),
       async () => {
@@ -268,21 +356,15 @@ describe('FIX-04: no third-party grade/tier without opt-in & uncalibrated beta l
         expect(res.status).toBe(200);
         const html = await res.text();
 
-        // User scan result shows full score, grade, tier, and "uncalibrated beta" linked to CALIBRATION.md.
         expect(html).toMatch(/uncalibrated beta/i);
         expect(html).toContain('https://github.com/ravidsrk/slop-detect/blob/main/CALIBRATION.md');
-        expect(html).toMatch(/class="bs-num"[^>]*>16<small>\/100<\/small>/);
-
-        // Peer block shows aggregate category statistics and does not print grades/tiers for named corpus peers.
         expect(html).toMatch(/Category aggregate/i);
-        const peerLinks = [...html.matchAll(/<a class="nb-row"[\s\S]*?<\/a>/g)]
-          .map((m) => m[0])
-          .filter((p) => !p.includes('cal.com'));
+        const peerLinks = [...html.matchAll(/<a class="nb-row"[\s\S]*?<\/a>/g)].map((m) => m[0]);
         expect(peerLinks.length).toBeGreaterThan(0);
         for (const peerHtml of peerLinks) {
           expect(peerHtml).toMatch(/opt-in required/i);
           expect(peerHtml).not.toMatch(/\b(Clean|Mild|Heavy)\b/);
-          expect(peerHtml).not.toMatch(/>(A\+|A-|A|B\+|B-|B|C|D\+|D|F)</);
+          expect(peerHtml).not.toMatch(/class="nb-grade"/);
         }
       }
     );
@@ -336,8 +418,12 @@ describe('FIX-04: no third-party grade/tier without opt-in & uncalibrated beta l
   });
 
   test('badge SVG, MCP text formatters, and scan API response mark every score uncalibrated beta', () => {
-    const svg = badgeSvg({ score: 12, grade: 'B+', tier: 'Mild' });
-    expect(svg).toMatch(/uncalibrated beta/i);
+    const svg = badgeSvg('ex.com', { score: 12, grade: 'B+', tier: 'Mild' });
+    expect(svg).toMatch(/<text[^>]*>B\+ · 12<\/text>/);
+    expect(svg).toMatch(/<text[^>]*>uncalibrated beta<\/text>/i);
+    expect(svg).toContain(
+      'href="https://github.com/ravidsrk/slop-detect/blob/main/CALIBRATION.md"'
+    );
 
     const mcpScan = formatScan({
       url: 'https://example.com',
@@ -351,20 +437,20 @@ describe('FIX-04: no third-party grade/tier without opt-in & uncalibrated beta l
       patterns: [],
     });
     expect(mcpScan).toMatch(/uncalibrated beta/i);
+    expect(mcpScan).toContain('https://github.com/ravidsrk/slop-detect/blob/main/CALIBRATION.md');
 
     const mcpAeo = formatAeo({
       url: 'https://example.com',
-      aeo: {
-        score: 80,
-        grade: 'A-',
-        tier: 'AEO-Ready',
-        verdict: 'Ready',
-        passed: 6,
-        total: 8,
-        checks: [],
-      },
+      score: 80,
+      maxScore: 100,
+      tier: 'AI-Ready',
+      requiredFailed: 0,
+      recommendedFailed: 2,
+      failed: [],
+      passed: [],
     });
     expect(mcpAeo).toMatch(/uncalibrated beta/i);
+    expect(mcpAeo).toContain('https://github.com/ravidsrk/slop-detect/blob/main/CALIBRATION.md');
 
     const mcpSystem = formatSystem({
       url: 'https://example.com',
@@ -381,6 +467,7 @@ describe('FIX-04: no third-party grade/tier without opt-in & uncalibrated beta l
       },
     });
     expect(mcpSystem).toMatch(/uncalibrated beta/i);
+    expect(mcpSystem).toContain('https://github.com/ravidsrk/slop-detect/blob/main/CALIBRATION.md');
 
     const scanApiSrc = readFileSync(join(ROOT, 'apps/web/functions/api/scan.ts'), 'utf8');
     expect(scanApiSrc).toMatch(/calibration:\s*['"]uncalibrated-beta['"]/);
