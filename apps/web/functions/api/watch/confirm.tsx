@@ -17,8 +17,7 @@ import {
   getWatch,
   putWatch,
   deferFlowBump,
-  setListing,
-  getLatestForDomain,
+  activateListing,
 } from '../../_shared.js';
 import { BRAND_FONTS_HEAD, BRAND_CSS } from '../../_brand.js';
 import { Nav, Footer, SectionLedger, Button, UI_CSS } from '../../_ui.js';
@@ -206,18 +205,7 @@ export async function onRequestGet({ request, env, waitUntil }) {
   // unconfirmed claim stays out of /directory until this click.
   if (watch.listed) {
     try {
-      const latest = await getLatestForDomain(env.RESULTS, domain).catch(() => null);
-      await setListing(
-        env.RESULTS,
-        latest || {
-          domain,
-          score: watch.lastScore,
-          grade: watch.lastGrade,
-          tier: watch.lastTier,
-          id: watch.lastId,
-          title: null,
-        }
-      );
+      await activateListing(env.RESULTS, watch);
     } catch {
       /* derived row — reconciled on the domain's next scan */
     }

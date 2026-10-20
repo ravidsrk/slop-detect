@@ -370,11 +370,12 @@ function bootInstrument({ reduced }) {
   const raf = [];
   let ioCb = null;
   vi.stubGlobal('document', doc);
-  vi.stubGlobal('window', {
+  const win = {
     matchMedia: () => ({ matches: reduced }),
     devicePixelRatio: 1,
     addEventListener() {},
-  });
+  };
+  vi.stubGlobal('window', win);
   vi.stubGlobal('requestAnimationFrame', (fn) => raf.push(fn));
   vi.stubGlobal(
     'IntersectionObserver',
@@ -394,7 +395,7 @@ function bootInstrument({ reduced }) {
     fns.forEach((f) => f());
     return fns.length;
   };
-  return { doc, counter, tabs, raf, step, io: (v) => ioCb([{ isIntersecting: v }]) };
+  return { doc, win, counter, tabs, raf, step, io: (v) => ioCb([{ isIntersecting: v }]) };
 }
 
 test('reduced motion: specimen/slider/explode interactions repaint the hero once', () => {
@@ -550,3 +551,33 @@ test('live AEO: a successful token cancels the timeout', async () => {
     vi.useRealTimers();
   }
 });
+
+// ── #219 follow-up: scan progress with the hero canvas hidden ─────────────────
+test.each([false, true])(
+  'live scan banner keeps ticking while the hero canvas is hidden (reduced=%s)',
+  (reduced) => {
+    vi.useFakeTimers();
+    try {
+      const h = bootInstrument({ reduced });
+      h.io(false); // <768px: .stage-canvas-wrap is display:none, loop paused
+      h.step();
+      expect(h.raf.length).toBe(0);
+      const timer = h.doc.getElementById('stageLiveTimer');
+      const phase = h.doc.getElementById('stageLivePhase');
+      h.win.__slopInstrument.startLiveScan('https://ex.com');
+      h.step(); // reduced motion paints one still frame; nothing reschedules
+      vi.advanceTimersByTime(3200);
+      expect(h.raf.length).toBe(0); // the canvas loop stayed paused
+      expect(parseFloat(timer.textContent)).toBeGreaterThanOrEqual(3);
+      const later = phase.textContent;
+      expect(later).toBeTruthy();
+      vi.advanceTimersByTime(3000);
+      expect(parseFloat(timer.textContent)).toBeGreaterThanOrEqual(6);
+      expect(phase.textContent).not.toBe(later); // phases progress too
+      h.win.__slopInstrument.stopLiveScan();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  }
+);
