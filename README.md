@@ -6,7 +6,7 @@
 <p>
   <a href="https://github.com/ravidsrk/slop-detect/actions"><img alt="CI" src="https://github.com/ravidsrk/slop-detect/workflows/ci/badge.svg" /></a>
   <a href="https://www.npmjs.com/package/slop-detect"><img alt="npm: slop-detect" src="https://img.shields.io/npm/v/slop-detect.svg?label=slop-detect" /></a>
-  <a href="https://www.npmjs.com/package/@slop-detect/core"><img alt="npm: @slop-detect/core" src="https://img.shields.io/npm/v/@slop-detect/core.svg?label=@slop-detect/core" /></a>
+  <a href="https://www.npmjs.com/package/slop-detect-core"><img alt="npm: slop-detect-core" src="https://img.shields.io/npm/v/slop-detect-core.svg?label=slop-detect-core" /></a>
   <a href="https://slop-detect.com"><img alt="Live demo" src="https://img.shields.io/badge/live-slop--detect.com-22c55e" /></a>
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-blue.svg" /></a>
   <img alt="Node" src="https://img.shields.io/badge/node-%3E%3D20-339933" />
@@ -49,7 +49,7 @@ By April 2026, AI-generated landing pages had collapsed onto a measurable visual
 - 🟢 **`slop-detect`**, Playwright-based CLI, run from your terminal or CI
 - 🟢 **`slop-detect.com`**, drop-in web UI & interactive 3D telemetry workbench
 - 🟢 **`slop-detect-mcp`**, Model Context Protocol server for Claude Code, Cursor, and Windsurf
-- 🟢 **`@slop-detect/core`**, pure runtime-agnostic detection engine
+- 🟢 **`slop-detect-core`** (workspace `@slop-detect/core`), pure runtime-agnostic detection engine
 
 <p align="center">
   <img src="apps/web/public/media/docs-four-axes-architecture.png" alt="Four-Axis Telemetry Architecture (Design · Copy · System · AEO)" width="100%" />
@@ -395,23 +395,22 @@ Plus cross-cutting guidance ("don't replace one slop pattern with another", "emp
 ## Programmatic use
 
 ```ts
-import {
-  PATTERNS,
-  buildPageEvaluateScript,
-  assembleScanResult,
-} from '@slop-detect/core';
+// npm install slop-detect-core   (the monorepo workspace name is @slop-detect/core)
+import { PATTERNS, buildPageEvaluateScript, assembleScanResult } from 'slop-detect-core';
 
-// 1) Execute the unified page-evaluate script inside your browser runner:
-const script = buildPageEvaluateScript(PATTERNS, { includeCopy: true });
+// 1) Execute the page-evaluate script inside your browser runner
+//    (copy-axis text is always extracted; pass includeSystem for DESIGN.md):
+const script = buildPageEvaluateScript(PATTERNS);
 const raw = await page.evaluate(script);
 
-// 2) Assemble the full multi-axis scan result:
+// 2) Score it — design summary, optional copy axis + unified score:
 const result = assembleScanResult(raw, {
   url: 'https://example.com',
   finalUrl: page.url(),
   axes: ['design', 'copy'],
   patterns: PATTERNS,
 });
+console.log(result.blocked ? result.error : `${result.score}/100 ${result.tier} (${result.grade})`);
 ```
 
 The runner is yours — Playwright, Puppeteer, Cloudflare Browser Rendering, Browserless, whatever you have. The `core` package never touches a browser.

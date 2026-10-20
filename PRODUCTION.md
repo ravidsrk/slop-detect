@@ -39,12 +39,11 @@ Legend: ✅ done in-repo · 🔧 needs you (secret/decision/data) · ⏳ follow-
   and `publish.yml` (npm), both triggered on a `v*` tag.
   - 🔧 Set `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` and `NPM_TOKEN` repo
     secrets.
-  - 🔴 **npm is stale: repo is 0.8.0 and core was renamed to `@slop-detect/core`,
-    but `slop-detect-core` / `slop-detect` / `-mcp` on npm are still at older
-    versions under the old unscoped name.** Cut a `v0.8.0` tag to fire
-    `publish.yml` — it publishes the renamed core, the CLI, and the MCP server.
-    Old consumers of `slop-detect-core` should be told (in the CHANGELOG) to
-    `npm install @slop-detect/core` instead.
+  - 🔴 **npm release:** the core workspace is named `@slop-detect/core`, but
+    core's `prepack` publishes it as the unscoped **`slop-detect-core`** (the
+    scoped name does not exist on npm). Cut a `vX.Y.Z` tag to fire
+    `publish.yml` — it publishes `slop-detect-core`, the CLI, and the MCP
+    server. Consumers keep `npm install slop-detect-core`; no migration needed.
 - ✅ **Engine + DOM golden tests** (scoring/grades/presets/combine + catalogue
   integrity + DOM-level golden fixtures in `packages/cli/test/golden.test.js` across all 27 design patterns).
 

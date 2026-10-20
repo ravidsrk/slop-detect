@@ -5,6 +5,7 @@ import {
   buildScanPayload,
   emitPatternWarnings,
   reportBody,
+  scanAeo,
 } from '../scan.mjs';
 
 const realWrite = process.stdout.write.bind(process.stdout);
@@ -100,4 +101,38 @@ test('reportBody renders 4-axis summary rows when copy, system, and AEO are pres
   expect(md).toContain('**Copy Slop** (lower is better)');
   expect(md).toContain('**System (`DESIGN.md`)** (higher is better)');
   expect(md).toContain('**AEO Readiness** (higher is better)');
+});
+
+test('scanAeo returns the report when the AEO API succeeds', async () => {
+  captureStdout();
+  const report = { axis: 'aeo', score: 80, maxScore: 100, tier: 'AI-Ready', failed: [] };
+  const fetchImpl = async () => new Response(JSON.stringify(report), { status: 200 });
+  await expect(scanAeo('https://api.test', 'https://acme.example', { fetchImpl })).resolves.toEqual(
+    report
+  );
+  expect(captured).toBe('');
+});
+
+test('scanAeo emits a ::warning when the requested AEO audit fails over HTTP', async () => {
+  captureStdout();
+  const fetchImpl = async () =>
+    new Response(JSON.stringify({ error: 'rate limited' }), { status: 429 });
+  await expect(
+    scanAeo('https://api.test', 'https://acme.example', { fetchImpl })
+  ).resolves.toBeNull();
+  expect(captured).toContain('::warning title=AEO audit skipped::');
+  expect(captured).toContain('HTTP 429');
+  expect(captured).toContain('rate limited');
+});
+
+test('scanAeo emits a ::warning when the AEO API is unreachable', async () => {
+  captureStdout();
+  const fetchImpl = async () => {
+    throw new Error('ECONNREFUSED');
+  };
+  await expect(
+    scanAeo('https://api.test', 'https://acme.example', { fetchImpl })
+  ).resolves.toBeNull();
+  expect(captured).toContain('::warning title=AEO audit skipped::');
+  expect(captured).toContain('ECONNREFUSED');
 });

@@ -164,22 +164,42 @@ async function scan(apiBase, url, opts = {}) {
   return data;
 }
 
-async function scanAeo(apiBase, url, opts = {}) {
+// AEO is a separate, optional audit. Its failure must not abort the design
+// scan, but a requested audit that silently vanishes from the report is
+// misleading — so every failure path emits a ::warning and returns null.
+export async function scanAeo(apiBase, url, opts = {}) {
   const endpoint = `${apiBase.replace(/\/+$/, '')}/api/aeo`;
   const headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
   const apiKey = opts.apiKey || process.env.SLOP_API_KEY || '';
   if (apiKey) headers['x-api-key'] = apiKey;
+  const fetchImpl = opts.fetchImpl || globalThis.fetch;
+  const warn = (reason) => {
+    ghWarning(`AEO audit was requested but could not run: ${reason}`, 'AEO audit skipped');
+    return null;
+  };
+  let res;
   try {
-    const res = await fetch(endpoint, {
+    res = await fetchImpl(endpoint, {
       method: 'POST',
       headers,
       body: JSON.stringify({ url }),
     });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
+  } catch (err) {
+    return warn(`could not reach ${endpoint} (${err?.message || err})`);
   }
+  let data = null;
+  try {
+    data = await res.json();
+  } catch {
+    // handled below
+  }
+  if (!res.ok || !data || data.error) {
+    return warn(`HTTP ${res.status}${data?.error ? ` — ${data.error}` : ''}`);
+  }
+  if (typeof data.score !== 'number') {
+    return warn('response was missing a numeric score');
+  }
+  return data;
 }
 
 // ---------------------------------------------------------------------------

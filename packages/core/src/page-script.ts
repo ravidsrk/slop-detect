@@ -25,6 +25,8 @@ export interface BlockedResult {
 
 export interface BuildPageScriptOptions {
   includeSystem?: boolean;
+  /** Pattern subset to extract (defaults to every built-in pattern). */
+  patterns?: Array<{ id: string; extract: (ctx: any) => unknown }>;
 }
 
 /** Runner context passed alongside page data; reserved for future boundary checks. */
@@ -115,14 +117,17 @@ export function esbuildNamePolyfills(serialized: string): string {
 }
 
 export function buildPageScript(opts: BuildPageScriptOptions = {}): string {
-  const patternCalls = PATTERNS.map(
-    (p) => `
+  const patternList = Array.isArray(opts.patterns) ? opts.patterns : PATTERNS;
+  const patternCalls = patternList
+    .map(
+      (p) => `
     try {
       signals[${JSON.stringify(p.id)}] = (${p.extract.toString()})(ctx);
     } catch (e) {
       signals[${JSON.stringify(p.id)}] = { triggered: false, error: e.message };
     }`
-  ).join('\n');
+    )
+    .join('\n');
 
   const serialized = [
     patternCalls,

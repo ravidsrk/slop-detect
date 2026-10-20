@@ -24,7 +24,7 @@ export {
   verdictFor as buildVerdict,
 } from './verdict.js';
 export { compileRule, compileRules, validateRule } from './rules.js';
-export { PRESETS, applyPreset, isPreset, applyPreset as getPatterns } from './presets.js';
+export { PRESETS, applyPreset, isPreset } from './presets.js';
 export {
   AI_BOTS,
   AEO_CHECKS,
@@ -51,7 +51,6 @@ export {
 } from './system.js';
 export {
   buildPageScript,
-  buildPageScript as buildPageEvaluateScript,
   esbuildNamePolyfills,
   detectBlocked,
   type PageScriptData,
@@ -62,13 +61,16 @@ export {
 export { SCAN_PAGE_WAIT, waitFontsReadyInPage } from './runner-wait.js';
 export {
   assemblePatternResults,
-  assemblePatternResults as assembleScanResult,
   type PatternSignal,
   type AssembledPatternResults,
 } from './result-assembly.js';
 
 import { gradeForScore, verdictFor } from './verdict.js';
 import { COPY_PATTERNS } from './copyPatterns.js';
+import { PATTERNS } from './patterns.js';
+import { applyPreset } from './presets.js';
+import { buildPageScript, detectBlocked, type BuildPageScriptOptions } from './page-script.js';
+import { assemblePatternResults } from './result-assembly.js';
 
 // Known axes. `design` is the original fingerprint; `copy` is the text axis
 // (#08). `code` is reserved for a future repo/view-source hook.
@@ -191,4 +193,136 @@ export function combineAxes(axisSummaries) {
     axesScored: present,
     dirtyAxes,
   };
+}
+
+// ── Programmatic convenience wrappers ────────────────────────────────────────
+// The documented embed API (README / packages/core/README.md). These used to be
+// bare aliases of lower-level helpers with different signatures; they now do
+// what the docs advertise while still accepting the old call shapes.
+
+/**
+ * Pattern subset for a preset. `getPatterns('strict')` filters the built-in
+ * PATTERNS; the legacy `getPatterns(patterns, 'strict')` form (= applyPreset)
+ * still works.
+ */
+export function getPatterns(presetOrPatterns?: any, preset?: any) {
+  if (Array.isArray(presetOrPatterns)) return applyPreset(presetOrPatterns, preset);
+  return applyPreset(PATTERNS, presetOrPatterns);
+}
+
+/**
+ * Build the page-evaluate script. Accepts `(patterns, opts)` as documented, or
+ * the legacy `(opts)` form. The copy-axis text context is always extracted;
+ * `includeSystem` adds the DESIGN.md observation pass.
+ */
+export function buildPageEvaluateScript(
+  patternsOrOpts?: any[] | (BuildPageScriptOptions & { includeCopy?: boolean }),
+  opts: BuildPageScriptOptions & { includeCopy?: boolean } = {}
+): string {
+  if (Array.isArray(patternsOrOpts)) {
+    return buildPageScript({ ...opts, patterns: patternsOrOpts });
+  }
+  return buildPageScript(patternsOrOpts || {});
+}
+
+function normalizeAxes(axes) {
+  const VALID = ['design', 'copy'];
+  if (axes === 'all') return [...VALID];
+  if (!Array.isArray(axes) || axes.length === 0) return ['design'];
+  const out = axes.filter((a) => VALID.includes(a));
+  if (!out.includes('design')) out.unshift('design');
+  return [...new Set(out)];
+}
+
+export interface AssembleScanResultOptions {
+  url?: string;
+  finalUrl?: string;
+  /** `['design']` (default), `['design','copy']`, or `'all'`. */
+  axes?: string[] | 'all';
+  /** Pattern subset to score against (defaults to every built-in pattern). */
+  patterns?: Array<{ id: string }>;
+  /** Named preset applied after `patterns` (default `full`). */
+  preset?: string;
+}
+
+/**
+ * Turn the object returned by `page.evaluate(buildPageEvaluateScript(...))`
+ * into a scored scan result: top-level design score/tier/grade/verdict,
+ * per-pattern rows, optional copy axis + unified score, and a `blocked`
+ * result (score null) when the page looks like a bot wall / empty render —
+ * mirroring the CLI and `POST /api/scan` shapes.
+ *
+ * Legacy form: passing a bare `signals` map (the old alias of
+ * `assemblePatternResults`) still works and is scored the same way.
+ */
+export function assembleScanResult(raw: any, opts: AssembleScanResultOptions = {}) {
+  const isPageData = !!raw && typeof raw === 'object' && 'signals' in raw;
+  const data = isPageData ? raw : { signals: raw || {} };
+  const url = opts.url || data.url;
+
+  if (isPageData) {
+    const blocked = detectBlocked(data);
+    if (blocked) {
+      return {
+        url,
+        finalUrl: opts.finalUrl || data.url,
+        title: data.title,
+        h1: data.h1Text,
+        blocked: true,
+        error: blocked.reason,
+        code: blocked.code,
+        hint: blocked.hint,
+        score: null,
+        tier: null,
+        grade: null,
+        patternsFlagged: 0,
+        patternsTotal: PATTERNS.length,
+        patterns: [],
+        patternsErrored: 0,
+        definitionsVersion: DEFINITIONS_VERSION,
+      };
+    }
+  }
+
+  const { patterns: all, patternsErrored } = assemblePatternResults(data.signals || {});
+  let selected = all;
+  if (Array.isArray(opts.patterns)) {
+    const ids = new Set(opts.patterns.map((p) => p && p.id));
+    selected = all.filter((p) => ids.has(p.id));
+  }
+  const preset = opts.preset || 'full';
+  const scored = applyPreset(selected, preset);
+  const scoring = scorePatterns(scored);
+
+  const result: Record<string, any> = {
+    url,
+    finalUrl: opts.finalUrl || data.url,
+    title: data.title,
+    h1: data.h1Text,
+    h1Font: data.h1Font,
+    preset,
+    ...scoring,
+    patterns: scored,
+    patternsErrored,
+  };
+
+  const reqAxes = normalizeAxes(opts.axes);
+  if (reqAxes.includes('copy')) {
+    const axes: Record<string, any> = {
+      design: {
+        axis: 'design',
+        score: scoring.score,
+        tier: scoring.tier,
+        grade: scoring.grade,
+        patternsFlagged: scoring.patternsFlagged,
+        patternsTotal: scoring.patternsTotal,
+        patterns: scored,
+      },
+      copy: scoreCopy(data.textContext || {}),
+    };
+    result.axes = axes;
+    Object.assign(result, combineAxes({ design: axes.design, copy: axes.copy }));
+  }
+  if (data.systemContext) result.systemContext = data.systemContext;
+  return result;
 }

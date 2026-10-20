@@ -168,3 +168,84 @@ test('generateDesignMd bootstraps a DESIGN.md that round-trips to 100/100 Aligne
   expect(compliance.tier).toBe('Aligned');
   expect(compliance.drift).toEqual([]);
 });
+
+test('a page passes against the DESIGN.md generated from it, even with a wide palette', () => {
+  // More distinct CTA fills (8), heading colours (4), fonts (6 at ≥10%) and
+  // radii (9) than the generator used to keep — every one must survive.
+  const ctaBgs = [
+    'rgb(10, 20, 30)',
+    'rgb(200, 40, 40)',
+    'rgb(40, 200, 40)',
+    'rgb(40, 40, 200)',
+    'rgb(220, 180, 20)',
+    'rgb(20, 180, 220)',
+    'rgb(180, 20, 220)',
+    'rgb(120, 120, 120)',
+  ];
+  const observed = {
+    fonts: {
+      '"Public Sans", sans-serif': 10,
+      'Georgia, serif': 10,
+      '"IBM Plex Mono", monospace': 10,
+      'Lora, serif': 10,
+      '"Space Mono", monospace': 10,
+      'Fraunces, serif': 10,
+    },
+    ctas: ctaBgs.map((bg, i) => ({ bg, text: `CTA ${i}` })),
+    surface: 'rgb(251, 250, 247)',
+    headings: [
+      { tag: 'H1', color: 'rgb(26, 28, 30)', fontFamily: '"Public Sans", sans-serif' },
+      { tag: 'H2', color: 'rgb(150, 30, 60)', fontFamily: 'Georgia, serif' },
+      { tag: 'H2', color: 'rgb(30, 150, 60)', fontFamily: 'Georgia, serif' },
+      { tag: 'H3', color: 'rgb(60, 30, 150)', fontFamily: 'Georgia, serif' },
+    ],
+    radii: [3, 6, 10, 14, 18, 24, 32, 40, 56],
+  };
+  const md = generateDesignMd(observed, { name: 'Wide Palette' });
+  const compliance = scoreSystemCompliance(parseDesignMd(md), observed);
+  expect(compliance.drift).toEqual([]);
+  expect(compliance.score).toBe(100);
+  expect(compliance.tier).toBe('Aligned');
+
+  // Each check must actually be evaluated (not skipped) for the pass to mean anything.
+  expect(compliance.checksEvaluated).toBe(5);
+
+  // And dropping just the last CTA colour from the generated file must fail the
+  // CTA check — i.e. the test above genuinely depends on preserving every fill.
+  const trimmed = md.replace(/\n {2}accent_7: "#[0-9A-F]{6}"/, '');
+  expect(trimmed).not.toBe(md);
+  const drifted = scoreSystemCompliance(parseDesignMd(trimmed), observed);
+  expect(drifted.drift.some((d) => d.id === 'colors.cta')).toBe(true);
+});
+
+test('comparator matches spec/system.md: per-channel RGB tolerance and distinct-radii majority', () => {
+  const md = `---
+colors:
+  brand: "#646464"
+rounded:
+  md: 8px
+---
+`;
+  const parsed = parseDesignMd(md);
+  const check = (observed, id) =>
+    scoreSystemCompliance(parsed, observed).checks.find((c) => c.id === id).status;
+  // CTA: L∞ ≤ 10 on every channel.
+  expect(check({ ctas: [{ bg: 'rgb(110, 90, 110)' }] }, 'colors.cta')).toBe('pass');
+  expect(check({ ctas: [{ bg: 'rgb(111, 100, 100)' }] }, 'colors.cta')).toBe('fail');
+  // One off-palette CTA fails the whole check.
+  expect(
+    check({ ctas: [{ bg: 'rgb(100, 100, 100)' }, { bg: 'rgb(0, 0, 0)' }] }, 'colors.cta')
+  ).toBe('fail');
+  // Surface + headings: tolerance 14.
+  expect(check({ surface: 'rgb(114, 86, 100)' }, 'colors.surface')).toBe('pass');
+  expect(check({ surface: 'rgb(115, 100, 100)' }, 'colors.surface')).toBe('fail');
+  // Headings fail only when MORE than half are off-palette.
+  const heads = (colors) => ({ headings: colors.map((color) => ({ tag: 'H2', color })) });
+  expect(check(heads(['rgb(100,100,100)', 'rgb(0,0,0)']), 'colors.headings')).toBe('pass');
+  expect(check(heads(['rgb(100,100,100)', 'rgb(0,0,0)', 'rgb(0,0,0)']), 'colors.headings')).toBe(
+    'fail'
+  );
+  // Radii: ±2px, fail only when more than half of the distinct radii are off.
+  expect(check({ radii: [10, 30] }, 'radii.scale')).toBe('pass');
+  expect(check({ radii: [10, 30, 40] }, 'radii.scale')).toBe('fail');
+});

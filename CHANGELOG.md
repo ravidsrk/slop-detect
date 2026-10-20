@@ -7,6 +7,27 @@ verified-only with `rel="ugc nofollow"`, tuning waits for a blind-labeled corpus
 
 ### Fixed
 
+- **Core package name in the docs.** The engine is published to npm as
+  **`slop-detect-core`** (core's `prepack` renames the `@slop-detect/core`
+  workspace before packing; the scoped name does not exist on npm). The v0.8.0
+  note below that told consumers to switch to `@slop-detect/core` was wrong —
+  keep depending on `slop-detect-core`.
+- **Documented core embed API works as written.** `assembleScanResult(raw, opts)`
+  now scores the `page.evaluate` payload (score/tier/grade/verdict, optional
+  copy axis + unified score, blocked-page detection) instead of returning only
+  pattern rows; `buildPageEvaluateScript(patterns, opts)` honours both
+  arguments; `getPatterns('strict')` returns the filtered catalogue. The old
+  call shapes still work. `scoreAeo` is documented as the async, fetching
+  `runAeoChecks(url, opts)` it is.
+- **`generateDesignMd` keeps the whole observed palette** (every CTA fill,
+  heading colour, font and radius), so a page always passes against the
+  `DESIGN.md` generated from it. `spec/system.md` now describes the comparator
+  the engine actually runs (per-channel RGB tolerance, distinct-radii majority).
+- **Fix prompt AEO gaps** use each check's `message` and `severity` (it read
+  non-existent `detail` / `required` fields and printed generic advice).
+- **GitHub Action:** a requested AEO audit (`aeo: true`) that cannot run now
+  emits a `::warning` instead of silently dropping the AEO row.
+- **Lockfile** synced with the CLI's core-as-devDependency (bundled) layout.
 - **Apex→www redirects scan again.** The scan endpoint refused any redirect to a
   different hostname as "private/internal" (a plain `apple.com` failed). Same-site
   redirects (apex/www/subdomain) are now accepted and recorded under the final
@@ -76,19 +97,16 @@ core package's npm name did.
 
 ### Breaking
 
-- **`slop-detect-core` is renamed to `@slop-detect/core`.** Consumers should
-  update their `package.json`:
+- **The core workspace is renamed to `@slop-detect/core`** inside the monorepo.
+  _Correction:_ this is a workspace-only name. The npm package is still
+  **`slop-detect-core`** (core's `prepack` renames it before publishing) and
+  `@slop-detect/core` is not published. Consumers should keep:
   ```diff
-  -    "slop-detect-core": "^0.7.0"
-  +    "@slop-detect/core": "^0.8.0"
+  +    "slop-detect-core": "^0.8.0"
   ```
-  Import paths change accordingly:
-  ```diff
-  -import { PATTERNS } from 'slop-detect-core';
-  +import { PATTERNS } from '@slop-detect/core';
+  ```js
+  import { PATTERNS } from 'slop-detect-core';
   ```
-  The old unscoped package on npm is frozen at `0.7.x`; no further releases
-  will be published under that name.
 - Root scripts now require **bun** (1.3+). `npm install` will fail because
   the lockfile is `bun.lock`. Install bun first: https://bun.sh.
 
