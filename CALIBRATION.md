@@ -120,7 +120,7 @@ Re-ran the unchanged 13-row seed locally (`--local`, engine 2026.09):
 | linear.app | Clean | Heavy (36) ✗ → Mild (19) ✗ |
 | vercel.com | Clean | Heavy (29) ✗ → Mild (17) ✗ |
 
-**5/13 (38.5%)**, confusion Clean→{Clean 3, Mild 6, null 1}, Mild→{Mild 2,
+**5/13 (38.5%) under `definitions@2026.09`**, confusion Clean→{Clean 3, Mild 6, null 1}, Mild→{Mild 2,
 Heavy 1} — the null is example.com's abstention, counted as a miss in the
 13-row denominator (the `--json` report records it as `Clean→null: 1`).
 No Heavy labels exist in the seed — another reason the number is not a claim.
@@ -149,4 +149,40 @@ No thresholds were touched: tuning off 13 rows is still overfitting. The
 corpus grows to 50–100 human labels + second rater under H-05 (gh-99,
 launch-gating); this run is the pre-growth baseline it will be judged
 against. Corpus `definitionsVersion` stays 2026.08 until those labels land.
+
+## Findings — 2026-10-20 (re-scored under `definitions@2026.10`, FIX-02)
+
+Re-ran `bun run calibrate -- --local` under `DEFINITIONS_VERSION = "2026.10"`
+(after #217's `icon_card_grid` parent-identity grouping and `numbered_steps`
+`<table>`/`<nav>`/`>6` ranked-list exclusions) without changing any human
+labels:
+
+| Site | Should be | Detector said (`2026.09` → `2026.10`) | Fired in `2026.10` / why it moved |
+|---|---|---|---|
+| news.ycombinator.com | Clean | Clean (6) ✓ → **Clean (3)** ✓ | `flat_type_hierarchy` (`-numbered_steps`·3 from table/ranked-list exclusion) |
+| example.com | Clean | `null` (`empty_page`) ✗ → **Clean (0)** ✓ | 0 patterns (IANA `/s.js` now injects multilingual `<p>` nodes, crossing the `<10` visible-DOM floor) |
+| motherfuckingwebsite.com | Clean | Clean (0) ✓ → **Clean (0)** ✓ | 0 patterns |
+| berkshirehathaway.com | Clean | Clean (3) ✓ → **Clean (3)** ✓ | `flat_type_hierarchy` |
+| gnu.org | Clean | Mild (10) ✗ → **Mild (10)** ✗ | `gradient_backgrounds`, `accent_stripe` |
+| supabase.com | Clean | Mild (20) ✗ → **Mild (20)** ✗ | `slop_fonts`, `gradient_backgrounds`, `icon_card_grid`, `bento_grid` |
+| bolt.new | Mild | Heavy (31) ✗ → **Mild (15)** ✓ | `glassmorphism`, `all_caps_labels`, `perma_dark_mode`, `bento_grid` (`-slop_fonts`·8, `-centered_hero`·4, `-nested_cards`·4) |
+| aura.build | Mild | Mild (25) ✓ → **Mild (25)** ✓ | `slop_fonts`, `glassmorphism`, `colored_glows`, `centered_hero`, `crushed_tracking` |
+| v0.dev | Mild | Mild (17) ✓ → **Mild (22)** ✓ | `slop_fonts`, `centered_hero`, `hero_eyebrow_pill` (+5), `crushed_tracking` |
+| lovable.dev | Clean | Mild (15) ✗ → **`null` (`cloudflare_challenge`)** ✗ | Blocked by Cloudflare challenge (`Clean→null: 1`, counted as a miss) |
+| stripe.com | Clean | Mild (19) ✗ → **Mild (19)** ✗ | `purple_accent`, `gradient_backgrounds`, `icon_card_grid`, `stat_banner` |
+| linear.app | Clean | Mild (19) ✗ → **Mild (16)** ✗ | `slop_fonts`, `perma_dark_mode`, `nested_cards` (`-numbered_steps`·3) |
+| vercel.com | Clean | Mild (17) ✗ → **Mild (17)** ✗ | `slop_fonts`, `gradient_backgrounds`, `crushed_tracking` |
+
+**7/13 (53.8%) under `definitions@2026.10`** (vs **5/13 (38.5%) under
+`definitions@2026.09`**), confusion `Clean → {Clean: 4, Mild: 5, Heavy: 0, null: 1}`,
+`Mild → {Clean: 0, Mild: 3, Heavy: 0}`, `Heavy → {0}` (0 Heavy labels in the
+13-row confirmed seed). The two new hits are `bolt.new` (31/Heavy → 15/Mild)
+and `example.com` (no longer abstains after IANA added `/s.js` paragraphs).
+`linear.app` dropped 3 points (19 → 16) and `news.ycombinator.com` dropped 3
+points (6 → 3) on the `numbered_steps` fix, though `linear.app`, `stripe.com`,
+`vercel.com`, `supabase.com`, and `gnu.org` still read `Mild` against their
+`Clean` labels, and `lovable.dev` abstains behind `cloudflare_challenge`
+(counted as a miss). As before, 13 rows with 0 Heavy labels is a regression
+seed, not a headline calibration claim.
+
 

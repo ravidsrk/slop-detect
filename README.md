@@ -42,7 +42,7 @@ https://news.ycombinator.com
 
 ## Why this exists
 
-By April 2026, AI-generated landing pages had collapsed onto a measurable visual fingerprint. Inter font, purple-to-blue gradient hero, "Now in Beta" pill badge, gradient-letter testimonial avatars, identical icon-topped feature cards. [Adrian Krebs's study](https://www.adriankrebs.ch/blog/design-slop/) scored ~1,400 Show HN submissions with Playwright and found **67% carried detectable AI-design fingerprints**.
+By April 2026, default-template landing pages had collapsed onto a measurable visual fingerprint. Inter font, purple-to-blue gradient hero, "Now in Beta" pill badge, gradient-letter testimonial avatars, identical icon-topped feature cards. [Adrian Krebs's study](https://www.adriankrebs.ch/blog/design-slop/) scored ~1,400 Show HN submissions with Playwright and found **67% carried detectable AI-design fingerprints**.
 
 `slop-detect` reproduces Krebs's methodology, adds the signals Meng To identified in his [May 2026 Aura tutorial](https://x.com/MengTo/status/2058893181740359863), integrates typography & contrast tells from [Impeccable](https://github.com/pbakaus/impeccable), and packages the four-axis engine (`definitions@2026.10`) across four surfaces:
 
@@ -165,8 +165,8 @@ Every monitored domain gets a print-friendly client report at
 [**directory**](https://slop-detect.com/directory) of scored sites — the listing
 goes public only after the claim is email-verified. See also
 [**The State of AI Design Slop**](https://slop-detect.com/leaderboard), a
-reproducible scan of well-known landing pages (how much of the web now reads as
-AI-generated, and who's still clean). We only store
+reproducible scan of well-known landing pages (how much of the web matches
+default-template patterns, and who's still clean). We only store
 your email to send the alerts you asked for, only after you confirm, and never
 sell it. See the [privacy policy](https://slop-detect.com/privacy.md). Engine
 stays MIT and free forever; only continuity (history + alerts) is the paid
@@ -210,7 +210,7 @@ Browse and filter all rules interactively at [`slop-detect.com/docs`](https://sl
 
 **Tiers:** Clean (0–9) · Mild (10–27) · Heavy (≥28)
 
-Source: Krebs (Apr 2026) + Meng To (May 2026 Aura tutorial) + 2026.07 emerging
+Source: Krebs (Apr 2026, #1–14) + slop-detect additions (#15–16) + 2026.07 emerging
 tells (#17–19) + 2026.08 patterns (#20–27) ported from
 [Impeccable](https://github.com/pbakaus/impeccable) (Apache-2.0). See
 [`packages/core/src/patterns.ts`](packages/core/src/patterns.ts) for the full
@@ -243,7 +243,7 @@ declaratively; see [CONTRIBUTING.md](CONTRIBUTING.md#the-low-friction-path-decla
   <img src="apps/web/public/media/docs-design-md-drift.png" alt="DESIGN.md System Compliance vs. Live DOM Drift" width="100%" />
 </p>
 
-The absolute slop score asks "does this look AI-generated?" The **system axis**
+The absolute slop score measures how many default-template patterns a page matches. The **system axis**
 asks the durable question: **"does this page honor its own declared design
 system?"** Declare your tokens in a [DESIGN.md](https://github.com/google-labs-code/design.md)
 (Google Labs' open spec, colors, typography, radii, components), and
@@ -428,10 +428,10 @@ See [ROADMAP.md](ROADMAP.md) for the full strategic plan. Shipped through `v0.8.
 - [x] **MCP server** (`slop-detect-mcp`) with `scan_page`, `check_aeo`, `check_design_system`, and `fix_prompt`
 - [x] **Public REST API** with key-based rate-limit tiers ([API.md](apps/web/API.md))
 - [x] **Declarative rule format** + named presets (`strict` / `marketing` / `minimal`)
-- [x] **27-rule design catalogue**: Krebs + Meng To + 2026.07 tells + Impeccable typography/contrast rules
+- [x] **27-rule design catalogue**: Krebs (#1–14) + slop-detect additions (#15–16) + 2026.07 tells + Impeccable typography/contrast rules
 - [x] **Multi-axis slop score**: design + copy axes, unified score, both-axis fix prompts
 - [x] **System axis (`DESIGN.md` compliance)**: per-site token drift check + daily monitor alerts
-- [x] **AEO axis (8 checks)**: crawler access, `/llms.txt`, `.md` twin, JSON-LD, SSR prose
+- [x] **AEO axis (8 checks)**: crawler access, `robots.txt`, `noindex`, `/llms.txt`, `.md` twin, `Link rel="alternate"`, `Vary: Accept`
 - [x] **Agency dashboard (`/dashboard`)**: magic-link sign-in, multi-domain telemetry, GDPR/DPDP self-serve export & erase
 - [ ] Community rule registry + web rule authoring UI
 - [ ] AI-builder provenance signal ("likely built with v0 / Lovable / Bolt")
@@ -439,8 +439,8 @@ See [ROADMAP.md](ROADMAP.md) for the full strategic plan. Shipped through `v0.8.
 
 ## Acknowledgments
 
-- **[Adrian Krebs](https://www.adriankrebs.ch/blog/design-slop/)**: original AI-design-slop study and 12-pattern fingerprint
-- **[Meng To](https://x.com/MengTo)**: Aura tutorial that codified the gradient-letter avatar pattern
+- **[Adrian Krebs](https://www.adriankrebs.ch/blog/design-slop/)**: original AI-design-slop study (#1–14)
+- **[Meng To](https://x.com/MengTo)**: May 2026 Aura study on default-template landing pages
 - **[Paul Bakaus / Impeccable](https://github.com/pbakaus/impeccable)**: typography, hierarchy, and contrast patterns (#20–27)
 - All the **AI tools we're detecting** (Cursor, v0, Lovable, Bolt), which generated the corpus that taught us what slop looks like
 

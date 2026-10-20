@@ -45,9 +45,9 @@ The skill follows [agentskills.io/specification](https://agentskills.io/specific
 Any of these in a user prompt will trigger the skill:
 
 - "Score this landing page" / "audit this URL"
-- "Is this AI-generated?" / "does this look like v0/Cursor/Lovable?"
+- "Does this match default-template patterns?" / "why does this look generic?"
 - "Fix my landing page" / "make my hero less generic"
-- "Detect design slop" / "v0 detector"
+- "Design slop audit" / "slop score"
 - A bare URL pasted with "what do you think?"
 
 ## License

@@ -277,26 +277,92 @@ async function runCompare(a, b, fetchImpl = async () => new Response(JSON.string
 }
 
 test('compare: unscanned corpus sites show the recorded failure, not a grade', async () => {
-  const r = await runCompare('vercel.com', 'lovable.dev');
+  const r = await runCompare('openai.com', 'lovable.dev');
   // no example grades before the corpus arrives either
   expect(r.before.a).not.toMatch(/arena-grade/);
   expect(r.a).toMatch(/No successful scan on record/);
-  expect(r.a).toMatch(/HTTP 502/);
+  expect(r.b).toMatch(/No successful scan on record/);
+  expect(r.a).toMatch(/cloudflare_challenge/);
   expect(r.b).toMatch(/cloudflare_challenge/);
   expect(r.a + r.b).not.toMatch(/arena-grade|arena-num/);
   expect(r.delta).toMatch(/no successful scan on record/);
 });
 
-test('compare: scored sites show the recorded count, no invented tells or radar', async () => {
+test('compare: scored sites show the recorded count, and withhold grades without opt-in', async () => {
   const r = await runCompare('stripe.com', 'bolt.new');
   const bolt = LEADERBOARD.sites.find((s) => s.domain === 'bolt.new');
+  const stripe = LEADERBOARD.sites.find((s) => s.domain === 'stripe.com');
   expect(r.b).toContain(`${bolt.patternsFlagged} patterns flagged on record`);
   expect(r.b).toMatch(/breakdown unavailable/);
   expect(r.b).not.toMatch(/0 patterns/);
-  expect(r.b).toContain(`>${bolt.score}<small>`);
+  expect(r.b).toMatch(/opt-in required/i);
+  expect(r.a + r.b).not.toMatch(/arena-grade|arena-num/);
+  expect(r.a).not.toContain(`>${stripe.score}<small>`);
+  expect(r.b).not.toContain(`>${bolt.score}<small>`);
   // only the two guide rings: no per-site polygons derived from the total score
   expect((r.radar.match(/<polygon/g) || []).length).toBe(2);
-  expect(r.delta).toMatch(/pts cleaner/);
+  expect(r.delta).toMatch(/withheld until each domain owner opts in/i);
+  expect(r.delta).not.toMatch(/pts cleaner/);
+  expect(r.delta).not.toContain(`${stripe.score}/100`);
+  expect(r.delta).not.toContain(`${bolt.score}/100`);
+});
+
+test('compare: email-verified listings show grades; an unverified peer stays withheld', async () => {
+  const stripe = LEADERBOARD.sites.find((s) => s.domain === 'stripe.com');
+  const bolt = LEADERBOARD.sites.find((s) => s.domain === 'bolt.new');
+  const r = await runCompare('stripe.com', 'bolt.new', async (url) => {
+    const u = String(url);
+    if (u.includes('leaderboard.json')) return new Response(JSON.stringify(LEADERBOARD));
+    if (u.includes('/api/opt-in')) {
+      return new Response(
+        JSON.stringify({
+          domains: {
+            'stripe.com': { score: stripe.score, grade: stripe.grade, tier: stripe.tier },
+          },
+        })
+      );
+    }
+    return new Response('no', { status: 404 });
+  });
+  expect(r.a).toContain(`>${stripe.score}<small>`);
+  expect(r.a).toMatch(/arena-grade/);
+  // The opt-in row did not include a count, so the card must not borrow the corpus one.
+  expect(r.a).toMatch(/Pattern count unavailable/);
+  expect(r.a).not.toContain(`${stripe.patternsFlagged} patterns flagged`);
+  expect(r.b).toMatch(/opt-in required/i);
+  expect(r.b).toContain(`${bolt.patternsFlagged} patterns flagged on record`);
+  expect(r.b).not.toMatch(/arena-grade|arena-num/);
+  expect(r.b).not.toContain(`>${bolt.score}<small>`);
+  expect(r.delta).toMatch(/withheld until each domain owner opts in/i);
+  expect(r.delta).not.toMatch(/pts cleaner/);
+});
+
+test('compare: a public score shows its own pattern count, not the corpus count', async () => {
+  const stripe = LEADERBOARD.sites.find((s) => s.domain === 'stripe.com');
+  const bolt = LEADERBOARD.sites.find((s) => s.domain === 'bolt.new');
+  const r = await runCompare('stripe.com', 'bolt.new', async (url) => {
+    const u = String(url);
+    if (u.includes('leaderboard.json')) return new Response(JSON.stringify(LEADERBOARD));
+    if (u.includes('/api/opt-in')) {
+      return new Response(
+        JSON.stringify({
+          domains: {
+            'stripe.com': { score: 0, grade: 'A+', tier: 'Clean', patternsFlagged: 0 },
+          },
+        })
+      );
+    }
+    return new Response('no', { status: 404 });
+  });
+  expect(stripe.patternsFlagged).toBe(4);
+  expect(stripe.score).not.toBe(0);
+  expect(r.a).toContain('>0<small>');
+  expect(r.a).toContain('✓ 0 patterns flagged on record');
+  expect(r.a).not.toContain(`${stripe.patternsFlagged} patterns flagged`);
+  expect(r.a).not.toContain(`>${stripe.score}<small>`);
+  expect(r.b).toMatch(/opt-in required/i);
+  expect(r.b).toContain(`${bolt.patternsFlagged} patterns flagged on record`);
+  expect(r.b).not.toMatch(/arena-grade|arena-num/);
 });
 
 // ── docs grade table (thread 4312665223) ──────────────────────────────────────

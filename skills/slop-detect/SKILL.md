@@ -1,6 +1,6 @@
 ---
 name: slop-detect
-description: Score any landing page against the 27-pattern AI-design-slop fingerprint, 9-pattern copy axis, DESIGN.md system compliance, and 8-check AEO readiness, then generate a deterministic fix prompt. Use when the user asks to detect AI-generated design or copy, audit a landing page for slop, check if a site looks like Cursor/v0/Lovable/Bolt output, verify DESIGN.md compliance, check if AI answer engines can read/cite a site (AEO), or get specific feedback to clean up a generic site.
+description: Score any landing page against the 27-pattern design-slop fingerprint, 9-pattern copy axis, DESIGN.md system compliance, and 8-check AEO readiness, then generate a deterministic fix prompt. Use when the user asks to audit a landing page for default-template design or copy patterns, verify DESIGN.md compliance, check if AI answer engines can read/cite a site (AEO), or get specific feedback to clean up a generic site.
 license: MIT
 metadata:
   author: ravidsrk
@@ -18,19 +18,19 @@ Score any landing page against the versioned four-axis telemetry engine (`defini
 3. **System Axis (`DESIGN.md` compliance)** — relative per-site audit checking whether the live DOM honors the site's own declared `DESIGN.md` tokens (fonts, palette, corner radii).
 4. **AEO Axis (8 crawler & citation checks)** — verifies whether AI answer engines (`GPTBot`, `ClaudeBot`, `PerplexityBot`, `Google-Extended`) can crawl, parse, and cite the page.
 
-This skill is the **fast path**. When the user pastes a URL and asks anything about its design quality, AI-generated appearance, copywriting tells, `DESIGN.md` drift, AEO readiness, or how to clean it up, call the tool rather than eyeballing the page yourself.
+This skill is the **fast path**. When the user pastes a URL and asks anything about its design quality, default-template pattern overlap, copywriting tells, `DESIGN.md` drift, AEO readiness, or how to clean it up, call the tool rather than eyeballing the page yourself.
 
 ## When to use this skill
 
 Trigger phrases (non-exhaustive):
 
-- "is this AI-generated?", "does this look like v0/Cursor/Lovable/Bolt?"
+- "does this match default-template patterns?", "does this have template tells?"
 - "audit my landing page", "score my landing page"
 - "why does this site look generic", "this looks slop-y"
-- "fix my landing page", "make my hero look less AI"
+- "fix my landing page", "make my hero look less generic"
 - "does my site honor its DESIGN.md?", "check for design system drift"
 - "can ChatGPT / Claude / Perplexity read and cite my site?", "check AEO"
-- "detect design slop", "v0 detector", "slop score"
+- "design slop audit", "slop score"
 - Any URL pasted with a vague "what do you think of this?" — run a scan first
 
 ## Four-axis catalogue (`definitions@2026.10`)
@@ -150,9 +150,9 @@ import { PATTERNS, scorePatterns, generateDesignMd, buildFixPrompt } from 'slop-
 After a scan, present results in this shape:
 
 1. **One-line verdict** with tier indicator and letter grade:
-   - 🔴 Heavy (≥28) — "Heavy slop — looks AI-generated"
-   - 🟡 Mild (10–27) — "Some slop signals — needs cleanup"
-   - 🟢 Clean (0–9) — "Clean — no major AI-design tells"
+   - 🔴 Heavy (≥28) — "Heavy slop — matches many default-template patterns"
+   - 🟡 Mild (10–27) — "Some slop signals — matches a few default-template patterns"
+   - 🟢 Clean (0–9) — "Clean — few default-template patterns"
 2. **Triggered patterns** (only `triggered: true`), each with weight + literal DOM/CSS evidence
 3. **Copy, System (`DESIGN.md`), and AEO readouts** when requested
 4. **Always offer the fix prompt** if score ≥ 10: "Want a copy-pasteable prompt to fix these in your editor? Run `/api/fix-prompt`."

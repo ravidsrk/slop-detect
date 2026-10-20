@@ -58,6 +58,15 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
+      - name: Install npm >= 11.5.1
+        run: |
+          npm install -g --no-audit --no-fund "npm@^11.5.1"
+          NPM_VER="$(npm --version)"
+          if ! printf '11.5.1\n%s\n' "$NPM_VER" | sort -V -C; then
+            echo "::error::npm $NPM_VER is older than required 11.5.1."
+            exit 1
+          fi
+          echo "npm $NPM_VER (>= 11.5.1)"
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: 1.4.2
@@ -70,7 +79,7 @@ jobs:
             exit 1
           fi
 
-      - run: bun install
+      - run: bun install --frozen-lockfile --ignore-scripts
 
       # Build all three publishable packages (turbo handles dependency order).
       - run: bun run build
@@ -92,14 +101,35 @@ jobs:
             fi
           done
 
-      # Pack with bun (rewrites workspace:* → real version), then assert no
-      # tarball still carries a workspace: spec before anything is published.
+      # Pack with bun (rewrites workspace:* → real version), assert each
+      # directory's tarball carries the expected published package name, and
+      # assert no tarball still carries a workspace: spec before publishing.
       - name: Pack all three packages (bun pm pack)
         run: |
           mkdir -p tarballs
-          for pkg in core cli mcp; do
-            (cd "packages/$pkg" && bun pm pack)
-            mv packages/$pkg/*.tgz tarballs/
+          for spec in \
+            "packages/core:slop-detect-core" \
+            "packages/cli:slop-detect" \
+            "packages/mcp:slop-detect-mcp"
+          do
+            pkg_dir="${spec%%:*}"
+            expected_name="${spec#*:}"
+            rm -f "$pkg_dir"/*.tgz
+            (cd "$pkg_dir" && bun pm pack)
+            shopt -s nullglob
+            packed=("$pkg_dir"/*.tgz)
+            shopt -u nullglob
+            if [ "${#packed[@]}" -ne 1 ]; then
+              echo "::error::Expected exactly 1 tarball in $pkg_dir, found ${#packed[@]}."
+              exit 1
+            fi
+            tarball="${packed[0]}"
+            actual_name="$(tar -xzOf "$tarball" package/package.json | node -e 'const fs = require("fs"); process.stdout.write(JSON.parse(fs.readFileSync(0, "utf8")).name || "");')"
+            if [ "$actual_name" != "$expected_name" ]; then
+              echo "::error::$pkg_dir tarball ($tarball) has package/package.json name '$actual_name', expected '$expected_name'."
+              exit 1
+            fi
+            mv "$tarball" tarballs/
           done
           ls -la tarballs
           for t in tarballs/*.tgz; do

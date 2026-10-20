@@ -1,27 +1,31 @@
 {
-  "generatedAt": "2026-09-15T07:08:35.691Z",
-  "definitionsVersion": "2026.09",
+  "generatedAt": "2026-10-20T14:23:37.055Z",
+  "definitionsVersion": "2026.10",
   "count": 24,
-  "scored": 20,
+  "scored": 22,
   "stats": {
-    "avgScore": 15.7,
-    "slopShare": 65,
+    "avgScore": 14.9,
+    "slopShare": 68,
     "cleanCount": 7,
-    "mildCount": 9,
-    "heavyCount": 4
+    "mildCount": 14,
+    "heavyCount": 1
   },
   "byBuilder": {
     "v0": {
       "count": 1,
-      "avgScore": 17
+      "avgScore": 22
     },
     "bolt": {
       "count": 1,
-      "avgScore": 31
+      "avgScore": 15
     },
     "framer": {
       "count": 1,
-      "avgScore": 10
+      "avgScore": 23
+    },
+    "replit": {
+      "count": 1,
+      "avgScore": 23
     },
     "aura": {
       "count": 1,
@@ -29,21 +33,25 @@
     },
     "custom": {
       "count": 12,
-      "avgScore": 17.9
+      "avgScore": 15.8
+    },
+    "next": {
+      "count": 1,
+      "avgScore": 17
     },
     "static": {
       "count": 4,
-      "avgScore": 4
+      "avgScore": 3.3
     }
   },
   "byCategory": {
     "ai-builder": {
-      "count": 4,
-      "avgScore": 20.8
+      "count": 5,
+      "avgScore": 21.6
     },
     "saas": {
-      "count": 8,
-      "avgScore": 25.8
+      "count": 9,
+      "avgScore": 22.3
     },
     "bigtech": {
       "count": 3,
@@ -51,8 +59,31 @@
     },
     "classic": {
       "count": 5,
-      "avgScore": 4.4
+      "avgScore": 3.2
     }
+  },
+  "patternPrevalence": {
+    "slop_fonts": 8,
+    "centered_hero": 2,
+    "hero_eyebrow_pill": 2,
+    "crushed_tracking": 4,
+    "glassmorphism": 6,
+    "all_caps_labels": 3,
+    "perma_dark_mode": 5,
+    "bento_grid": 2,
+    "gradient_text": 2,
+    "gradient_backgrounds": 10,
+    "gradient_letter_avatars": 1,
+    "stat_banner": 2,
+    "nested_cards": 4,
+    "colored_glows": 1,
+    "purple_accent": 4,
+    "icon_card_grid": 4,
+    "numbered_steps": 1,
+    "low_contrast_text": 2,
+    "aurora_mesh_gradient": 1,
+    "flat_type_hierarchy": 2,
+    "accent_stripe": 1
   },
   "sites": [
     {
@@ -65,7 +96,8 @@
       "grade": "A+",
       "tier": "Clean",
       "patternsFlagged": 0,
-      "resultUrl": "https://slop-detect.com/r/ocf1abbs"
+      "flaggedPatterns": [],
+      "resultUrl": null
     },
     {
       "domain": "anthropic.com",
@@ -77,7 +109,8 @@
       "grade": "A+",
       "tier": "Clean",
       "patternsFlagged": 0,
-      "resultUrl": "https://slop-detect.com/r/s6u7l06u"
+      "flaggedPatterns": [],
+      "resultUrl": null
     },
     {
       "domain": "motherfuckingwebsite.com",
@@ -89,7 +122,21 @@
       "grade": "A+",
       "tier": "Clean",
       "patternsFlagged": 0,
-      "resultUrl": "https://slop-detect.com/r/7y9ada5y"
+      "flaggedPatterns": [],
+      "resultUrl": null
+    },
+    {
+      "domain": "craigslist.org",
+      "url": "https://craigslist.org",
+      "builtWith": "static",
+      "category": "classic",
+      "scored": true,
+      "score": 0,
+      "grade": "A+",
+      "tier": "Clean",
+      "patternsFlagged": 0,
+      "flaggedPatterns": [],
+      "resultUrl": null
     },
     {
       "domain": "figma.com",
@@ -101,7 +148,25 @@
       "grade": "A",
       "tier": "Clean",
       "patternsFlagged": 1,
-      "resultUrl": "https://slop-detect.com/r/nz3p8gef"
+      "flaggedPatterns": [
+        "all_caps_labels"
+      ],
+      "resultUrl": null
+    },
+    {
+      "domain": "news.ycombinator.com",
+      "url": "https://news.ycombinator.com",
+      "builtWith": "custom",
+      "category": "classic",
+      "scored": true,
+      "score": 3,
+      "grade": "A",
+      "tier": "Clean",
+      "patternsFlagged": 1,
+      "flaggedPatterns": [
+        "flat_type_hierarchy"
+      ],
+      "resultUrl": null
     },
     {
       "domain": "berkshirehathaway.com",
@@ -113,43 +178,10 @@
       "grade": "A",
       "tier": "Clean",
       "patternsFlagged": 1,
-      "resultUrl": "https://slop-detect.com/r/a45seyk5"
-    },
-    {
-      "domain": "craigslist.org",
-      "url": "https://craigslist.org",
-      "builtWith": "static",
-      "category": "classic",
-      "scored": true,
-      "score": 3,
-      "grade": "A",
-      "tier": "Clean",
-      "patternsFlagged": 1,
-      "resultUrl": "https://slop-detect.com/r/ukn66wcr"
-    },
-    {
-      "domain": "news.ycombinator.com",
-      "url": "https://news.ycombinator.com",
-      "builtWith": "custom",
-      "category": "classic",
-      "scored": true,
-      "score": 6,
-      "grade": "A-",
-      "tier": "Clean",
-      "patternsFlagged": 2,
-      "resultUrl": "https://slop-detect.com/r/6wc3upug"
-    },
-    {
-      "domain": "framer.com",
-      "url": "https://www.framer.com",
-      "builtWith": "framer",
-      "category": "ai-builder",
-      "scored": true,
-      "score": 10,
-      "grade": "B+",
-      "tier": "Mild",
-      "patternsFlagged": 2,
-      "resultUrl": "https://slop-detect.com/r/02ucll3a"
+      "flaggedPatterns": [
+        "flat_type_hierarchy"
+      ],
+      "resultUrl": null
     },
     {
       "domain": "gnu.org",
@@ -161,19 +193,63 @@
       "grade": "B+",
       "tier": "Mild",
       "patternsFlagged": 2,
-      "resultUrl": "https://slop-detect.com/r/24721hpv"
+      "flaggedPatterns": [
+        "gradient_backgrounds",
+        "accent_stripe"
+      ],
+      "resultUrl": null
     },
     {
-      "domain": "v0.dev",
-      "url": "https://v0.dev",
-      "builtWith": "v0",
+      "domain": "bolt.new",
+      "url": "https://bolt.new",
+      "builtWith": "bolt",
       "category": "ai-builder",
+      "scored": true,
+      "score": 15,
+      "grade": "B",
+      "tier": "Mild",
+      "patternsFlagged": 4,
+      "flaggedPatterns": [
+        "glassmorphism",
+        "all_caps_labels",
+        "perma_dark_mode",
+        "bento_grid"
+      ],
+      "resultUrl": null
+    },
+    {
+      "domain": "linear.app",
+      "url": "https://linear.app",
+      "builtWith": "custom",
+      "category": "saas",
+      "scored": true,
+      "score": 16,
+      "grade": "B",
+      "tier": "Mild",
+      "patternsFlagged": 3,
+      "flaggedPatterns": [
+        "slop_fonts",
+        "perma_dark_mode",
+        "nested_cards"
+      ],
+      "resultUrl": null
+    },
+    {
+      "domain": "vercel.com",
+      "url": "https://vercel.com",
+      "builtWith": "next",
+      "category": "saas",
       "scored": true,
       "score": 17,
       "grade": "B",
       "tier": "Mild",
       "patternsFlagged": 3,
-      "resultUrl": "https://slop-detect.com/r/kg6lhryi"
+      "flaggedPatterns": [
+        "slop_fonts",
+        "gradient_backgrounds",
+        "crushed_tracking"
+      ],
+      "resultUrl": null
     },
     {
       "domain": "stripe.com",
@@ -185,19 +261,13 @@
       "grade": "B",
       "tier": "Mild",
       "patternsFlagged": 4,
-      "resultUrl": "https://slop-detect.com/r/440s0iu6"
-    },
-    {
-      "domain": "posthog.com",
-      "url": "https://posthog.com",
-      "builtWith": "custom",
-      "category": "saas",
-      "scored": true,
-      "score": 19,
-      "grade": "B",
-      "tier": "Mild",
-      "patternsFlagged": 4,
-      "resultUrl": "https://slop-detect.com/r/c2mup8n3"
+      "flaggedPatterns": [
+        "purple_accent",
+        "gradient_backgrounds",
+        "icon_card_grid",
+        "stat_banner"
+      ],
+      "resultUrl": null
     },
     {
       "domain": "supabase.com",
@@ -209,19 +279,106 @@
       "grade": "B-",
       "tier": "Mild",
       "patternsFlagged": 4,
-      "resultUrl": "https://slop-detect.com/r/m3im04qv"
+      "flaggedPatterns": [
+        "slop_fonts",
+        "gradient_backgrounds",
+        "icon_card_grid",
+        "bento_grid"
+      ],
+      "resultUrl": null
     },
     {
-      "domain": "linear.app",
-      "url": "https://linear.app",
+      "domain": "posthog.com",
+      "url": "https://posthog.com",
       "builtWith": "custom",
       "category": "saas",
+      "scored": true,
+      "score": 20,
+      "grade": "B-",
+      "tier": "Mild",
+      "patternsFlagged": 4,
+      "flaggedPatterns": [
+        "purple_accent",
+        "gradient_backgrounds",
+        "glassmorphism",
+        "nested_cards"
+      ],
+      "resultUrl": null
+    },
+    {
+      "domain": "v0.dev",
+      "url": "https://v0.dev",
+      "builtWith": "v0",
+      "category": "ai-builder",
+      "scored": true,
+      "score": 22,
+      "grade": "B-",
+      "tier": "Mild",
+      "patternsFlagged": 4,
+      "flaggedPatterns": [
+        "slop_fonts",
+        "centered_hero",
+        "hero_eyebrow_pill",
+        "crushed_tracking"
+      ],
+      "resultUrl": null
+    },
+    {
+      "domain": "resend.com",
+      "url": "https://resend.com",
+      "builtWith": "custom",
+      "category": "saas",
+      "scored": true,
+      "score": 22,
+      "grade": "B-",
+      "tier": "Mild",
+      "patternsFlagged": 4,
+      "flaggedPatterns": [
+        "purple_accent",
+        "gradient_text",
+        "gradient_backgrounds",
+        "perma_dark_mode"
+      ],
+      "resultUrl": null
+    },
+    {
+      "domain": "framer.com",
+      "url": "https://www.framer.com",
+      "builtWith": "framer",
+      "category": "ai-builder",
       "scored": true,
       "score": 23,
       "grade": "B-",
       "tier": "Mild",
       "patternsFlagged": 5,
-      "resultUrl": "https://slop-detect.com/r/rf82qfd8"
+      "flaggedPatterns": [
+        "gradient_text",
+        "gradient_backgrounds",
+        "glassmorphism",
+        "perma_dark_mode",
+        "gradient_letter_avatars"
+      ],
+      "resultUrl": null
+    },
+    {
+      "domain": "replit.com",
+      "url": "https://replit.com",
+      "builtWith": "replit",
+      "category": "ai-builder",
+      "scored": true,
+      "score": 23,
+      "grade": "B-",
+      "tier": "Mild",
+      "patternsFlagged": 6,
+      "flaggedPatterns": [
+        "gradient_backgrounds",
+        "glassmorphism",
+        "all_caps_labels",
+        "stat_banner",
+        "crushed_tracking",
+        "nested_cards"
+      ],
+      "resultUrl": null
     },
     {
       "domain": "railway.app",
@@ -233,7 +390,13 @@
       "grade": "C",
       "tier": "Mild",
       "patternsFlagged": 4,
-      "resultUrl": "https://slop-detect.com/r/29ne61qd"
+      "flaggedPatterns": [
+        "slop_fonts",
+        "purple_accent",
+        "perma_dark_mode",
+        "icon_card_grid"
+      ],
+      "resultUrl": null
     },
     {
       "domain": "aura.build",
@@ -245,19 +408,14 @@
       "grade": "C",
       "tier": "Mild",
       "patternsFlagged": 5,
-      "resultUrl": "https://slop-detect.com/r/23eftljp"
-    },
-    {
-      "domain": "bolt.new",
-      "url": "https://bolt.new",
-      "builtWith": "bolt",
-      "category": "ai-builder",
-      "scored": true,
-      "score": 31,
-      "grade": "D+",
-      "tier": "Heavy",
-      "patternsFlagged": 7,
-      "resultUrl": "https://slop-detect.com/r/m2b2hi0k"
+      "flaggedPatterns": [
+        "slop_fonts",
+        "glassmorphism",
+        "colored_glows",
+        "centered_hero",
+        "crushed_tracking"
+      ],
+      "resultUrl": null
     },
     {
       "domain": "cal.com",
@@ -265,23 +423,18 @@
       "builtWith": "custom",
       "category": "saas",
       "scored": true,
-      "score": 31,
-      "grade": "D+",
-      "tier": "Heavy",
-      "patternsFlagged": 6,
-      "resultUrl": "https://slop-detect.com/r/l2ubx1dr"
-    },
-    {
-      "domain": "resend.com",
-      "url": "https://resend.com",
-      "builtWith": "custom",
-      "category": "saas",
-      "scored": true,
-      "score": 34,
-      "grade": "D",
-      "tier": "Heavy",
-      "patternsFlagged": 7,
-      "resultUrl": "https://slop-detect.com/r/dencpn1z"
+      "score": 27,
+      "grade": "C",
+      "tier": "Mild",
+      "patternsFlagged": 5,
+      "flaggedPatterns": [
+        "slop_fonts",
+        "gradient_backgrounds",
+        "hero_eyebrow_pill",
+        "numbered_steps",
+        "low_contrast_text"
+      ],
+      "resultUrl": null
     },
     {
       "domain": "clerk.com",
@@ -292,8 +445,17 @@
       "score": 36,
       "grade": "D",
       "tier": "Heavy",
-      "patternsFlagged": 8,
-      "resultUrl": "https://slop-detect.com/r/pid7px8m"
+      "patternsFlagged": 7,
+      "flaggedPatterns": [
+        "slop_fonts",
+        "gradient_backgrounds",
+        "glassmorphism",
+        "icon_card_grid",
+        "aurora_mesh_gradient",
+        "low_contrast_text",
+        "nested_cards"
+      ],
+      "resultUrl": null
     },
     {
       "domain": "lovable.dev",
@@ -302,22 +464,6 @@
       "category": "ai-builder",
       "scored": false,
       "reason": "cloudflare_challenge"
-    },
-    {
-      "domain": "replit.com",
-      "url": "https://replit.com",
-      "builtWith": "replit",
-      "category": "ai-builder",
-      "scored": false,
-      "reason": "cloudflare_challenge"
-    },
-    {
-      "domain": "vercel.com",
-      "url": "https://vercel.com",
-      "builtWith": "next",
-      "category": "saas",
-      "scored": false,
-      "reason": "HTTP 502"
     },
     {
       "domain": "openai.com",

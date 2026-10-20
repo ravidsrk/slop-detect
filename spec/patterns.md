@@ -36,7 +36,7 @@
 | `wide_body_tracking` | Wide letter-spacing on body text | 3 | fonts | Body copy with letter-spacing > 0.05em (non-uppercase) |
 | `flat_type_hierarchy` | Flat type hierarchy (sizes too close together) | 3 | fonts | ≥3 distinct font sizes with max/min ratio < 2.0 |
 
-Definitions version: **2026.10**. Patterns 1–15 from Adrian Krebs's April 2026 study; 16 from Meng To; 17–19 added 2026.07; 20–27 added 2026.08 (ported from Impeccable, Apache-2.0).
+Definitions version: **2026.10**. Patterns 1–14 from Adrian Krebs's April 2026 study; 15–16 added by slop-detect; 17–19 added 2026.07; 20–27 added 2026.08 (ported from Impeccable, Apache-2.0).
 
 ## Pattern detail
 
@@ -102,7 +102,7 @@ Counts `<details>` elements in the lower 60% of the page (≥3), or an FAQ headi
 
 ### gradient_letter_avatars (weight 5)
 
-Finds small (28–96px) round elements with gradient or solid backgrounds containing 1–3 letter initials and no photo child. Requires ≥2 instances. Testimonial sections with gradient initial avatars instead of real photos are a Meng To–documented AI-builder pattern.
+Finds small (28–96px) round elements with gradient or solid backgrounds containing 1–3 letter initials and no photo child. Requires ≥2 instances. Testimonial sections with gradient initial avatars instead of real photos are a common default-template pattern.
 
 ### bento_grid (weight 4)
 
@@ -118,7 +118,7 @@ Matches sparkle emoji (✨ etc.) in short text nodes, or SVG/class/aria-label re
 
 ### cream_default_bg (weight 7)
 
-Detects warm off-white page surfaces: light colours (min channel ≥209), warm ordering R≥G≥B, warmth gap 6–48. Checks `body`, `html`, and full-bleed wrappers. The reflexive "tasteful" cream/beige default (~74% prevalence in generated pages per Impeccable data).
+Detects warm off-white page surfaces: light colours (min channel ≥209), warm ordering R≥G≥B, warmth gap 6–48. Checks `body`, `html`, and full-bleed wrappers. The reflexive "tasteful" cream/beige default.
 
 ### low_contrast_text (weight 7)
 
@@ -126,7 +126,7 @@ Measures body elements (`p`, `li`, `span`, etc.) with ≥20 chars of direct text
 
 ### crushed_tracking (weight 5)
 
-Detects display-size text (≥28px) with em-relative letter-spacing ≤ −0.05. One instance triggers. Display type crushed tighter than −0.04em is deliberate in some brands; ≤ −0.05em is the generated-page tell (~76% prevalence per Impeccable).
+Detects display-size text (≥28px) with em-relative letter-spacing ≤ −0.05. One instance triggers. Display type crushed tighter than −0.04em is deliberate in some brands; ≤ −0.05em is the default-template tell.
 
 ### gray_on_color (weight 4)
 

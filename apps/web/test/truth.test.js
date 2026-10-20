@@ -9,7 +9,8 @@ import { test, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PATTERNS, COPY_PATTERNS, AEO_CHECKS } from '@slop-detect/core';
+import { PATTERNS, COPY_PATTERNS, AEO_CHECKS, SYSTEM_CHECKS } from '@slop-detect/core';
+import { onRequestGet as patternsGet } from '../functions/api/patterns.ts';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url)); // apps/web/test
 const WEB = path.join(HERE, '..'); // apps/web
@@ -19,6 +20,8 @@ const ui = fs.readFileSync(path.join(WEB, 'functions', '_ui.tsx'), 'utf8');
 const landing = fs.readFileSync(path.join(WEB, 'public', 'index.html'), 'utf8');
 const pricing = fs.readFileSync(path.join(WEB, 'public', 'pricing.md'), 'utf8');
 const readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+const agentsMd = fs.readFileSync(path.join(ROOT, 'AGENTS.md'), 'utf8');
+const skillMd = fs.readFileSync(path.join(ROOT, 'skills', 'slop-detect', 'SKILL.md'), 'utf8');
 
 test('no live price is quoted anywhere (monitoring is a free validation trial)', () => {
   // pricing.md is the single source of pricing truth: trial, free during
@@ -52,20 +55,112 @@ test('no live price is quoted anywhere (monitoring is a free validation trial)',
   expect(ui).toMatch(/free during validation/);
 });
 
-test('pattern-count copy matches the live engine catalogue', () => {
-  // AGENTS.md: counts are served dynamically and never hardcoded — but the
-  // marketing adjectives ("27-pattern fingerprint") exist in prose, so pin
-  // them to the arrays instead of trusting memory.
+test('pattern-count copy matches the live engine catalogue dynamically', async () => {
+  // Derive expected counts from the engine registries (same source as /api/patterns).
+  const expectedCountsFrom = (patterns, copyPatterns, aeoChecks, systemChecks) => ({
+    design: patterns.length,
+    copy: copyPatterns.length,
+    aeo: aeoChecks.length,
+    system: systemChecks.length,
+  });
+  const expected = expectedCountsFrom(PATTERNS, COPY_PATTERNS, AEO_CHECKS, SYSTEM_CHECKS);
+
+  // Adding a pattern must change the expected count without editing the test.
+  expect(
+    expectedCountsFrom([...PATTERNS, { id: 'dummy' }], COPY_PATTERNS, AEO_CHECKS, SYSTEM_CHECKS)
+      .design
+  ).toBe(expected.design + 1);
+
+  const apiData = await (await patternsGet()).json();
+  expect(apiData.count).toBe(expected.design);
+  expect(apiData.copyCount).toBe(expected.copy);
+  expect(apiData.aeoCount).toBe(expected.aeo);
+  expect(apiData.systemCount).toBe(expected.system);
+
   const n = (re, doc) => {
     const m = doc.match(re);
     return m ? Number(m[1]) : null;
   };
-  expect(n(/(\d+)-pattern deterministic/, pricing)).toBe(PATTERNS.length);
-  expect(n(/(\d+)-pattern deterministic/, landing)).toBe(PATTERNS.length);
-  expect(n(/The (\d+) patterns/, readme)).toBe(PATTERNS.length);
-  expect(PATTERNS.length).toBe(27);
-  expect(COPY_PATTERNS.length).toBe(9);
-  expect(AEO_CHECKS.length).toBe(8);
+  expect(n(/(\d+)-pattern deterministic/, pricing)).toBe(expected.design);
+  expect(n(/(\d+)-pattern deterministic/, landing)).toBe(expected.design);
+  expect(n(/The (\d+) patterns/, readme)).toBe(expected.design);
+  expect(n(/(\d+) design patterns/, agentsMd)).toBe(expected.design);
+  expect(n(/(\d+) copy patterns/, agentsMd)).toBe(expected.copy);
+  expect(n(/(\d+) AEO checks/, agentsMd)).toBe(expected.aeo);
+  expect(n(/Axis 1: The (\d+) design patterns/, skillMd)).toBe(expected.design);
+  expect(n(/Axis 2: The (\d+) copy patterns/, skillMd)).toBe(expected.copy);
+  expect(n(/Axis 4: AEO readiness \((\d+) checks/, skillMd)).toBe(expected.aeo);
+
+  // index.html must not hardcode "(9 tells)" or "10/27".
+  expect(landing).not.toContain('(9 tells)');
+  expect(landing).not.toMatch(/\b10\/27\b/);
+});
+
+test('docs do not tell users to install @slop-detect/core from npm and only name registered check/pattern IDs', () => {
+  const corePkg = JSON.parse(
+    fs.readFileSync(path.join(ROOT, 'packages', 'core', 'package.json'), 'utf8')
+  );
+  // prepack rewrites @slop-detect/core -> slop-detect-core before npm publish
+  expect(corePkg.scripts?.prepack || '').toContain('slop-detect-core');
+
+  const badInstallRe =
+    /(?:npm\s+(?:install|i|add)|pnpm\s+(?:add|i|install)|yarn\s+add|bun\s+(?:add|i|install)|npx(?:\s+-y)?)\s+@slop-detect\/core\b/i;
+  expect(badInstallRe.test('npm install @slop-detect/core')).toBe(true);
+  for (const [name, doc] of [
+    ['README.md', readme],
+    ['AGENTS.md', agentsMd],
+    ['SKILL.md', skillMd],
+  ]) {
+    expect(doc, `${name} must not tell users to install @slop-detect/core from npm`).not.toMatch(
+      badInstallRe
+    );
+  }
+
+  // Registry validation: docs must not name a check or pattern ID that is not in the engine.
+  const validPatternIds = new Set([
+    ...PATTERNS.map((p) => p.id),
+    ...COPY_PATTERNS.map((p) => p.id),
+  ]);
+  const validCheckIds = new Set([
+    ...AEO_CHECKS.map((c) => c.id),
+    ...SYSTEM_CHECKS.map((c) => c.id),
+  ]);
+  const validateDocIds = (doc) => {
+    const unknown = [];
+    // Dotted check IDs in backticks (e.g. `html.reachable`, `robots.aiAllowed`)
+    for (const m of doc.matchAll(/`((?:html|bot|robots|md|site)\.[A-Za-z0-9_]+)`/g)) {
+      if (m[1] === 'robots.txt') continue;
+      if (!validCheckIds.has(m[1])) unknown.push(m[1]);
+    }
+    // Markdown table rows with backticked pattern/check IDs (`| 1 | \`slop_fonts\` |` or `| \`slop_fonts\` |`)
+    for (const m of doc.matchAll(/^\|\s*(?:\d+\s*\|\s*)?`([a-z0-9_.]+)`\s*\|/gm)) {
+      const id = m[1];
+      if (
+        !validPatternIds.has(id) &&
+        !validCheckIds.has(id) &&
+        !['full', 'strict', 'marketing', 'minimal'].includes(id)
+      ) {
+        unknown.push(id);
+      }
+    }
+    return unknown;
+  };
+
+  expect(validateDocIds('Check `html.nonExistentCheck` and |\n| `fake_pattern_id` |')).toEqual([
+    'html.nonExistentCheck',
+    'fake_pattern_id',
+  ]);
+
+  for (const [name, doc] of [
+    ['README.md', readme],
+    ['AGENTS.md', agentsMd],
+    ['SKILL.md', skillMd],
+  ]) {
+    expect(validateDocIds(doc), `${name} named unregistered check/pattern ID`).toEqual([]);
+  }
+
+  // README must not advertise unimplemented JSON-LD or SSR-prose AEO checks.
+  expect(readme).not.toMatch(/AEO axis[^\n]*(?:JSON-LD|SSR prose)/i);
 });
 
 test('"daily sweep" claims pin the full config-dependent contract', () => {

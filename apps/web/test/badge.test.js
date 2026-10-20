@@ -107,7 +107,7 @@ test('a11y + tokens: role=img, aria-label, 4px radius, JetBrains Mono, one sanct
   expect(svg.match(/<feDropShadow/g)).toHaveLength(1); // exactly one shadow element
 });
 
-test('GET /badge route: svg content-type, 3h cache, tier-colored body', async () => {
+test('GET /badge route: svg content-type, 3h cache, grade withheld without a verified listing', async () => {
   const kv = makeKv();
   await saveResult(kv, slim());
   const res = await onRequestGet({ params: { domain: 'ex.com' }, env: { RESULTS: kv } });
@@ -115,7 +115,24 @@ test('GET /badge route: svg content-type, 3h cache, tier-colored body', async ()
   expect(BADGE_TTL).toBe(60 * 60 * 3); // 3 hours
   expect(res.headers.get('Cache-Control')).toContain(`max-age=${BADGE_TTL}`);
   const body = await res.text();
+  expect(body).toMatch(/>opt-in</);
+  expect(body).not.toMatch(/>D · 30</);
+  expect(body).toContain(`fill="${badgeColors('Unknown').bg}"`);
+  expect(body).not.toContain(`fill="${badgeColors('Heavy').bg}"`);
+});
+
+test('GET /badge route: an email-verified listing shows the saved grade', async () => {
+  const kv = makeKv();
+  await saveResult(kv, slim());
+  await kv.put(
+    'w:ex.com',
+    JSON.stringify({ domain: 'ex.com', listed: true, verified: true, email: 'owner@ex.com' })
+  );
+  const res = await onRequestGet({ params: { domain: 'ex.com' }, env: { RESULTS: kv } });
+  const body = await res.text();
   expect(body).toContain(`fill="${badgeColors('Heavy').bg}"`);
+  expect(body).toMatch(/>D · 30</);
+  expect(body).not.toMatch(/owner@ex.com/);
 });
 
 test('GET /badge route strips `.svg` and `www.` before lookup', async () => {
@@ -123,9 +140,10 @@ test('GET /badge route strips `.svg` and `www.` before lookup', async () => {
   await saveResult(kv, slim()); // stored under d:ex.com
   const res = await onRequestGet({ params: { domain: 'www.EX.com.svg' }, env: { RESULTS: kv } });
   const body = await res.text();
-  // Normalized to ex.com, so the stored Heavy scan is found (not the no-scan badge).
-  expect(body).toContain(`fill="${badgeColors('Heavy').bg}"`);
+  // Normalized to ex.com, so the stored scan is found, but the grade stays withheld.
+  expect(body).toMatch(/>opt-in</);
   expect(body).not.toMatch(/>no scan</);
+  expect(body).not.toMatch(/>D · 30</);
 });
 
 test('GET /badge route: an unscanned domain returns a valid no-scan badge', async () => {

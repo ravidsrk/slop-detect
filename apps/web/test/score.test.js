@@ -2,7 +2,7 @@
 // against an in-memory KV mock and asserts on the produced HTML, no browser.
 
 import { test, expect } from 'vitest';
-import { saveResult, recordScan, setListing } from '../functions/_shared.ts';
+import { saveResult, recordScan, setListing, putWatch } from '../functions/_shared.ts';
 import { onRequestGet } from '../functions/score/[domain].tsx';
 
 function makeKv(seed = {}) {
@@ -82,11 +82,31 @@ test('a scanned domain renders score, grade, verdict, JSON-LD, canonical', async
   await recordScan(kv, s);
   const { status, html } = await render(kv, 'ex.com');
   expect(status).toBe(200);
-  expect(html).toMatch(/>D</); // grade
-  expect(html).toMatch(/30<small>\/100<\/small>/); // score
-  expect(html).toMatch(/Heavy slop/); // verdict
+  expect(html).toMatch(/withheld until the domain owner opts in/i);
+  expect(html).toMatch(/class="bs-num"[^>]*>—</);
+  expect(html).not.toMatch(/30<small>\/100<\/small>/);
+  expect(html).not.toMatch(/class="bs-grade"/);
+  expect(html).not.toMatch(/class="stb-tier"/);
   expect(html).toMatch(/application\/ld\+json/); // AEO structured data
   expect(html).toMatch(/rel="canonical" href="https:\/\/slop-detect\.com\/score\/ex\.com"/);
+  expect(html).toMatch(/property="og:image" content="https:\/\/slop-detect\.com\/og\.png"/);
+  expect(html).not.toMatch(/\/og\/sc0re001\.png/);
+});
+
+test('a scanned domain with a listed and verified watch renders score, grade, and verdict', async () => {
+  const kv = makeKv();
+  const s = slim();
+  await saveResult(kv, s);
+  await recordScan(kv, s);
+  await putWatch(kv, { domain: 'ex.com', listed: true, verified: true, email: 'owner@ex.com' });
+  const { status, html } = await render(kv, 'ex.com');
+  expect(status).toBe(200);
+  expect(html).toMatch(/class="bs-grade"[^>]*>D</);
+  expect(html).toMatch(/30<small>\/100<\/small>/);
+  expect(html).toMatch(/Heavy slop/);
+  expect(html).toMatch(
+    /property="og:image" content="https:\/\/slop-detect\.com\/og\/sc0re001\.png"/
+  );
 });
 
 test('an UNCLAIMED domain shows the claim form, no directory backlink', async () => {
@@ -106,6 +126,7 @@ test('a CLAIMED (listed) domain shows a ugc-nofollow backlink, not the claim for
   await saveResult(kv, s);
   await recordScan(kv, s);
   await setListing(kv, s); // owner claimed + listed
+  await putWatch(kv, { domain: 'ex.com', listed: true, verified: true, email: 'owner@ex.com' });
   const { html } = await render(kv, 'ex.com');
   expect(html).toMatch(/rel="ugc nofollow noopener"/);
   expect(html).toMatch(/Listed in the/);
@@ -117,12 +138,19 @@ test('peer percentile appears only once enough sites are scanned', async () => {
   const target = slim({ id: 't', domain: 'ex.com', score: 5, tier: 'Clean', grade: 'A' });
   await saveResult(kv, target);
   await recordScan(kv, target);
+  await putWatch(kv, { domain: 'ex.com', listed: true, verified: true, email: 'owner@ex.com' });
   // only 1 site so far -> no peer line
   let r = await render(kv, 'ex.com');
   expect(r.html).not.toMatch(/Cleaner than/);
-  // seed four more scans so the corpus crosses the >=5 threshold
+  // seed four more scans + verified watches so the corpus crosses the >=5 threshold
   for (let i = 0; i < 4; i++) {
     await recordScan(kv, slim({ id: 'x' + i, domain: `d${i}.com`, score: 40 + i, tier: 'Heavy' }));
+    await putWatch(kv, {
+      domain: `d${i}.com`,
+      listed: true,
+      verified: true,
+      email: `owner@d${i}.com`,
+    });
   }
   r = await render(kv, 'ex.com');
   expect(r.html).toMatch(/Cleaner than <strong>/);
@@ -284,11 +312,31 @@ test('neighbors tile always includes the you row at true rank when domain ranks 
       throw new Error('unexpected fetch: ' + url);
     },
     async () => {
+      // Unverified slow.com: neighbor grades and self rank are withheld
+      const unverified = await render(kv, 'slow.com');
+      expect(unverified.html).toMatch(/SaaS &amp; dev tools neighbors/);
+      expect(unverified.html).not.toMatch(/class="nb-row nb-you"/);
+      expect(unverified.html).not.toMatch(/#8/);
+      expect(unverified.html).not.toMatch(/class="nb-grade"/);
+
+      // Once slow.com has a listed and verified watch, the you row renders at #8 while unverified peers remain withheld
+      await putWatch(kv, {
+        domain: 'slow.com',
+        listed: true,
+        verified: true,
+        email: 'owner@slow.com',
+      });
       const { html } = await render(kv, 'slow.com');
       expect(html).toMatch(/SaaS &amp; dev tools neighbors/);
-      expect(html).toMatch(/nb-you/);
+      expect(html).toMatch(/class="nb-row nb-you"/);
       expect(html).toMatch(/#8/);
       expect(html).toMatch(/href="https:\/\/slop-detect\.com\/score\/slow\.com"/);
+      const peerRows = [...html.matchAll(/<a class="nb-row"[\s\S]*?<\/a>/g)].map((m) => m[0]);
+      expect(peerRows.length).toBe(5);
+      for (const peerRow of peerRows) {
+        expect(peerRow).toMatch(/opt-in required/i);
+        expect(peerRow).not.toMatch(/class="nb-grade"/);
+      }
     }
   );
 });

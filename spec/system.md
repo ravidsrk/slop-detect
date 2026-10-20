@@ -34,7 +34,7 @@ Taken in-page over the first **2,500 visible elements** under `body` (elements w
 
 ## Color comparison
 
-Colors are parsed to sRGB channels from hex (3/4/6/8 digits, alpha ignored), `rgb()/rgba()`, and `hsl()/hsla()`. Two colors **match at tolerance `t`** when every channel differs by at most `t` (`max(|ΔR|, |ΔG|, |ΔB|) ≤ t`, 0–255 scale — a per-channel L∞ distance, not a perceptual ΔE). Colors that cannot be parsed (e.g. `oklch()`, named colors) match only by exact, case-insensitive string equality. A perceptual (Oklab) comparator is planned; see [ROADMAP.md](../ROADMAP.md).
+Colors are parsed to sRGB channels from hex (3/4/6/8 digits, alpha ignored), `rgb()/rgba()`, and `hsl()/hsla()`. Two colors **match at tolerance `t`** when every channel differs by at most `t` (`max(|ΔR|, |ΔG|, |ΔB|) ≤ t`, 0–255 scale — a per-channel L∞ distance). Colors that cannot be parsed (e.g. `oklch()`, named colors) match only by exact, case-insensitive string equality. A perceptual (Oklab) comparator is planned; see [ROADMAP.md](../ROADMAP.md).
 
 Font families compare by **primary family**: the first entry in the stack that is not a generic/system keyword (`sans-serif`, `serif`, `monospace`, `system-ui`, `ui-*`, `-apple-system`, `BlinkMacSystemFont`, emoji families, …), lower-cased with quotes stripped.
 

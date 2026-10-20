@@ -17,13 +17,14 @@
 // surfaces. This page must itself score Clean on the detector it reports.
 
 import { raw } from 'hono/html';
-import { DEFINITIONS_VERSION } from '@slop-detect/core';
-import { getStats } from './_data.js';
+import { DEFINITIONS_VERSION, PATTERNS } from '@slop-detect/core';
+import { getListing, getStats, getWatch, isEmailVerifiedListing } from './_data.js';
 import { tierFor, tierFill, tierText } from './_theme.js';
 import { BRAND_FONTS_HEAD, BRAND_CSS } from './_brand.js';
 import { Nav, Footer, StatsStrip, LeaderboardRow, Cta, ScanInput, UI_CSS } from './_ui.js';
 
 const ORIGIN = 'https://slop-detect.com';
+const CALIBRATION_URL = 'https://github.com/ravidsrk/slop-detect/blob/main/CALIBRATION.md';
 
 // Display names + order for the corpus categories (see leaderboard/corpus.json).
 const CATEGORY_NAMES: Record<string, string> = {
@@ -60,8 +61,7 @@ const PAGE_CSS = `
   /* distribution histogram */
   .hb-fig{margin:22px 0 0}
   .hb{display:grid;grid-template-columns:repeat(${BUCKETS},1fr);gap:7px;align-items:end;list-style:none}
-  .hb-col{display:grid;grid-template-rows:18px ${BAR_MAX}px auto;align-items:end;justify-items:center;gap:6px;cursor:pointer;padding:4px 2px;border-radius:3px;transition:background var(--t)}
-  .hb-col:hover,.hb-col.active{background:var(--bg-2)}
+  .hb-col{display:grid;grid-template-rows:18px ${BAR_MAX}px auto;align-items:end;justify-items:center;gap:6px;padding:4px 2px;border-radius:3px}
   .hb-n{font-family:var(--mono);font-size:12px;color:var(--text-5);line-height:1}
   .hb-bar{width:100%;align-self:end;border-radius:3px 3px 0 0;min-height:2px;height:var(--h);animation:hb-grow .6s ease both}
   .hb-x{font-family:var(--mono);font-size:12px;color:var(--text-6);line-height:1}
@@ -158,10 +158,6 @@ function Histogram({ sites, scored }: { sites: any[]; scored: number }) {
           return (
             <li
               class="hb-col"
-              data-bucket={String(i)}
-              data-lo={String(lo)}
-              data-hi={String(hi)}
-              title={`Click to filter scores ${lo}–${hi}`}
               aria-label={`Scores ${lo} to ${hi}: ${n} ${n === 1 ? 'page' : 'pages'}`}
             >
               <span class="hb-n" aria-hidden="true">
@@ -185,43 +181,150 @@ function Histogram({ sites, scored }: { sites: any[]; scored: number }) {
       </div>
       <figcaption class="hb-cap" id="hbCaption">
         Slop scores across {scored} scanned pages, in ten bands. Lower is cleaner: Clean is
-        0&ndash;9, Mild 10&ndash;27, Heavy 28+. Click any band to filter the boards below.
+        0&ndash;9, Mild 10&ndash;27, Heavy 28+. Individual scores stay off this chart.
       </figcaption>
     </figure>
   );
 }
 
-// One ranked row — the domain links into its /score hub (history, re-scan, claim).
-function Row({ s, rank, origin }: { s: any; rank: number; origin: string }) {
+// One corpus or directory row — third-party grades and tiers are withheld unless
+// the domain is an email-verified directory listing (FIX-04).
+function Row({ s, origin, verified }: { s: any; origin: string; verified?: any }) {
+  if (verified) {
+    return (
+      <LeaderboardRow
+        rank={null}
+        domain={s.domain}
+        score={verified.score ?? s.score}
+        grade={verified.grade ?? s.grade}
+        tier={verified.tier ?? s.tier}
+        href={`${origin}/score/${s.domain}`}
+      />
+    );
+  }
   return (
-    <LeaderboardRow
-      rank={rank}
-      domain={s.domain}
-      score={s.score}
-      grade={s.grade}
-      tier={s.tier}
-      href={`${origin}/score/${s.domain}`}
-    />
+    <li class="lr">
+      <span class="lr-rank">·</span>
+      <span class="lr-name">
+        <a class="lr-dom" href={`${origin}/score/${s.domain}`}>
+          {s.domain}
+        </a>
+      </span>
+      <span class="lr-score">opt-in required</span>
+    </li>
   );
 }
 
-// Cleanest overall: the top 10 across every category, a positive Hall of Clean.
-function CleanestOverall({ sites, origin }: { sites: any[]; origin: string }) {
-  const top = sites
-    .slice()
-    .sort((a, b) => a.score - b.score)
-    .slice(0, 10);
+// Per-pattern prevalence computed from leaderboard.json (FIX-04).
+function PatternPrevalence({ sites, scored, data }: { sites: any[]; scored: number; data: any }) {
+  const denom = Math.max(1, scored || sites.length);
+  const totalFlagged = sites.reduce((acc, s) => acc + (Number(s.patternsFlagged) || 0), 0);
+  const avgFlagged = Math.round((totalFlagged / denom) * 10) / 10;
+
+  const bands = [
+    { label: '0 patterns triggered', count: 0 },
+    { label: '1–2 patterns triggered', count: 0 },
+    { label: '3–4 patterns triggered', count: 0 },
+    { label: '5+ patterns triggered', count: 0 },
+  ];
+  const byPatternId: Record<string, number> = {};
+  const sitesCarryRules = sites.some(
+    (s) =>
+      (Array.isArray(s.patterns) && s.patterns.length > 0) ||
+      (Array.isArray(s.flaggedPatterns) && s.flaggedPatterns.length > 0)
+  );
+  if (!sitesCarryRules && data?.patternPrevalence && typeof data.patternPrevalence === 'object') {
+    for (const [id, n] of Object.entries<any>(data.patternPrevalence)) {
+      byPatternId[id] = Number(n) || 0;
+    }
+  }
+  for (const s of sites) {
+    const f = Number(s.patternsFlagged) || 0;
+    if (f <= 0) bands[0].count += 1;
+    else if (f <= 2) bands[1].count += 1;
+    else if (f <= 4) bands[2].count += 1;
+    else bands[3].count += 1;
+
+    if (Array.isArray(s.patterns)) {
+      for (const p of s.patterns) {
+        if (p && p.id && p.triggered) byPatternId[p.id] = (byPatternId[p.id] || 0) + 1;
+      }
+    } else if (Array.isArray(s.flaggedPatterns)) {
+      for (const id of s.flaggedPatterns) {
+        if (id) byPatternId[String(id)] = (byPatternId[String(id)] || 0) + 1;
+      }
+    }
+  }
+  const perPatternRows = Object.entries(byPatternId).sort((a, b) => b[1] - a[1]);
+
   return (
-    <ol class="lb-2col stack-900">
-      {top.map((s, i) => (
-        <Row s={s} rank={i + 1} origin={origin} />
-      ))}
-    </ol>
+    <div>
+      <p class="lb-sec-sub">
+        Mean patterns triggered per page: <strong>{avgFlagged}</strong> of {PATTERNS.length} rules (
+        <a href={CALIBRATION_URL}>uncalibrated beta</a>).
+      </p>
+      <table class="lb-tbl">
+        <caption>Per-pattern trigger density across {scored} corpus pages.</caption>
+        <thead>
+          <tr>
+            <th scope="col">pattern band</th>
+            <th scope="col" class="lb-num">
+              pages
+            </th>
+            <th scope="col" class="lb-num">
+              prevalence
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {bands.map((b) => (
+            <tr>
+              <td>{b.label}</td>
+              <td class="lb-num">{b.count}</td>
+              <td class="lb-num">{Math.round((b.count / denom) * 100)}%</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {perPatternRows.length > 0 ? (
+        <table class="lb-tbl">
+          <caption>Per-pattern prevalence by rule ID across {scored} corpus pages.</caption>
+          <thead>
+            <tr>
+              <th scope="col">pattern id</th>
+              <th scope="col" class="lb-num">
+                pages
+              </th>
+              <th scope="col" class="lb-num">
+                prevalence
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {perPatternRows.map(([id, count]) => (
+              <tr>
+                <td>{id}</td>
+                <td class="lb-num">{count}</td>
+                <td class="lb-num">{Math.round((count / denom) * 100)}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : null}
+    </div>
   );
 }
 
-// Per-category boards, cleanest-first within each, in a 2-up grid.
-function CategoryBoards({ sites, origin }: { sites: any[]; origin: string }) {
+// Per-category boards with aggregate statistics; third-party grades withheld unless verified.
+function CategoryBoards({
+  sites,
+  origin,
+  verifiedMap,
+}: {
+  sites: any[];
+  origin: string;
+  verifiedMap: Map<string, any>;
+}) {
   const groups: Record<string, any[]> = {};
   for (const s of sites) (groups[s.category || 'other'] ||= []).push(s);
   const keys = [
@@ -238,43 +341,39 @@ function CategoryBoards({ sites, origin }: { sites: any[]; origin: string }) {
           placeholder="Filter domains (e.g. stripe, linear)…"
           aria-label="Filter domains"
         />
-        <div class="lb-tiers" role="group" aria-label="Filter by tier">
-          <button type="button" class="lb-tier-btn active" data-tier-filter="all">
-            all tiers
-          </button>
-          <button type="button" class="lb-tier-btn" data-tier-filter="Clean">
-            Clean (0–9)
-          </button>
-          <button type="button" class="lb-tier-btn" data-tier-filter="Mild">
-            Mild (10–27)
-          </button>
-          <button type="button" class="lb-tier-btn" data-tier-filter="Heavy">
-            Heavy (28+)
-          </button>
-        </div>
         <a class="lb-compare-link" href={`${origin}/compare`}>
           compare head-to-head →
         </a>
       </div>
       <div class="lb-boards stack-900" id="lbCategoryBoards">
         {keys.map((k) => {
-          const rows = groups[k].slice().sort((a, b) => a.score - b.score);
+          const rawRows = groups[k].slice();
+          const catAvg =
+            Math.round(
+              (rawRows.reduce((sum, r) => sum + (Number(r.score) || 0), 0) /
+                Math.max(1, rawRows.length)) *
+                10
+            ) / 10;
+          const rows = rawRows.sort((a, b) =>
+            String(a.domain || '').localeCompare(String(b.domain || ''))
+          );
           return (
             <section aria-label={CATEGORY_NAMES[k] || k} data-cat-sec={k}>
               <h3 class="lb-board-h">
-                {CATEGORY_NAMES[k] || k} <small>· {rows.length}</small>
+                {CATEGORY_NAMES[k] || k}{' '}
+                <small>
+                  · {rows.length} · avg {catAvg}/100 (uncalibrated beta)
+                </small>
               </h3>
               <ol>
-                {rows.map((s, i) => (
-                  <div
-                    class="lb-filter-row"
-                    data-domain={String(s.domain || '').toLowerCase()}
-                    data-tier={s.tier}
-                    data-score={String(s.score)}
-                  >
-                    <Row s={s} rank={i + 1} origin={origin} />
-                  </div>
-                ))}
+                {rows.map((s) => {
+                  const v = verifiedMap.get(String(s.domain || '').toLowerCase());
+                  return (
+                    <div class="lb-filter-row" data-domain={String(s.domain || '').toLowerCase()}>
+                      <Row s={s} origin={origin} verified={v} />
+                    </div>
+                  );
+                })}
               </ol>
             </section>
           );
@@ -295,7 +394,7 @@ function builderEntries(byBuilder: Record<string, any> | undefined) {
 function BuilderTable({ entries }: { entries: [string, any][] }) {
   return (
     <table class="lb-tbl">
-      <caption>Average slop score grouped by how the site was built.</caption>
+      <caption>Average slop score (uncalibrated beta) grouped by how the site was built.</caption>
       <thead>
         <tr>
           <th scope="col">built with</th>
@@ -326,6 +425,27 @@ export async function onRequestGet({ request, env }: { request: { url: string };
   const origin = new URL(request.url).origin;
   const data = await loadData(request);
   const live = env?.RESULTS ? await getStats(env.RESULTS).catch(() => null) : null;
+  // Only the corpus domains on this page can show a grade. Checking the whole
+  // directory would read a watch for every listing (listAllSites walks up to
+  // 5,000 rows) on a public request.
+  const corpusDomains = [
+    ...new Set(
+      ((data?.sites || []) as any[])
+        .map((s) => String(s?.domain || '').toLowerCase())
+        .filter(Boolean)
+    ),
+  ];
+  const verifiedMap = new Map<string, any>();
+  if (env?.RESULTS) {
+    await Promise.all(
+      corpusDomains.map(async (dom) => {
+        const w = await getWatch(env.RESULTS, dom).catch(() => null);
+        if (!isEmailVerifiedListing(w)) return;
+        const listing = await getListing(env.RESULTS, dom).catch(() => null);
+        verifiedMap.set(dom, listing || w);
+      })
+    );
+  }
 
   const generating = !data || !data.scored;
   const stats = data?.stats || {};
@@ -345,16 +465,16 @@ export async function onRequestGet({ request, env }: { request: { url: string };
       <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>The State of AI Design Slop · slop-detect</title>
+        <title>The State of Design Slop · slop-detect</title>
         <meta
           name="description"
-          content="A reproducible scan of well-known landing pages against the AI-design-slop fingerprint: how much of the web now looks AI-generated, and who's still clean."
+          content="A reproducible scan of well-known landing pages against the design-slop fingerprint: aggregate default-template pattern prevalence across the web."
         />
         <link rel="canonical" href={`${ORIGIN}/leaderboard`} />
-        <meta property="og:title" content="The State of AI Design Slop" />
+        <meta property="og:title" content="The State of Design Slop" />
         <meta
           property="og:description"
-          content="How much of the web now looks AI-generated: a reproducible scan of well-known landing pages."
+          content="Default-template pattern prevalence across a reproducible scan of well-known landing pages."
         />
         <meta property="og:url" content={`${ORIGIN}/leaderboard`} />
         <meta property="og:image" content={`${ORIGIN}/og.png`} />
@@ -367,8 +487,8 @@ export async function onRequestGet({ request, env }: { request: { url: string };
 
         <header class="lb-head">
           <div class="lb-wrap">
-            <p class="lb-eyebrow">/leaderboard · the state of slop</p>
-            <h1 class="lb-h1">The state of AI design slop</h1>
+            <p class="lb-eyebrow">/leaderboard · the state of slop · uncalibrated beta</p>
+            <h1 class="lb-h1">The state of design slop</h1>
             {generating ? (
               <p class="lb-pos">
                 The latest scan is being generated; check back shortly. Meanwhile,{' '}
@@ -378,15 +498,16 @@ export async function onRequestGet({ request, env }: { request: { url: string };
               <p class="lb-pos">
                 We scanned <strong>{scored}</strong> well-known landing pages across AI builders,
                 SaaS, big tech, and a few deliberately plain classics, against the {def} fingerprint
-                the CLI runs. <strong>{stats.slopShare}%</strong> carry detectable AI-design-slop
-                tells (score 10 or higher); the cleanest pages below show it is a choice, not a
-                default.
+                the CLI runs (<a href={CALIBRATION_URL}>uncalibrated beta</a>).{' '}
+                <strong>{stats.slopShare}%</strong> carry detectable default-template tells (score
+                10 or higher).
               </p>
             )}
             <p class="lb-disc">
-              A slop score is a signal, not a verdict. Everyone uses AI now; this measures how
-              generic a page reads, never the team behind it. The public directory is owner-gated: a
-              site is listed only when its owner asks.
+              A slop score is a signal, not a verdict. This measures how generic a page reads, never
+              the team behind it. Third-party grades and tiers are withheld unless the domain owner
+              opts in via email-verified directory listing (
+              <a href={`${origin}/directory`}>/directory</a>).
             </p>
           </div>
         </header>
@@ -395,7 +516,11 @@ export async function onRequestGet({ request, env }: { request: { url: string };
           <StatsStrip
             segments={[
               [{ n: scored.toLocaleString('en-US') }, ' pages scanned'],
-              ['avg slop ', { n: stats.avgScore, color: tierText(tierFor(stats.avgScore)) }],
+              [
+                'avg slop ',
+                { n: stats.avgScore, color: tierText(tierFor(stats.avgScore)) },
+                ' (uncalibrated beta)',
+              ],
               [{ n: stats.cleanCount, color: 'var(--clean-text)' }, ' Clean'],
               [{ n: stats.mildCount, color: 'var(--mild-text)' }, ' Mild'],
               [{ n: stats.heavyCount, color: 'var(--heavy-text)' }, ' Heavy'],
@@ -408,7 +533,8 @@ export async function onRequestGet({ request, env }: { request: { url: string };
             <p class="lb-live">
               Across every page slop-detect has scored:{' '}
               <strong>{live.count.toLocaleString('en-US')}</strong> scans, average{' '}
-              <strong>{live.avgScore}</strong>/100, {live.slopShare}% carry slop.
+              <strong>{live.avgScore}</strong>/100 (uncalibrated beta), {live.slopShare}% carry
+              slop.
             </p>
           ) : null}
 
@@ -419,28 +545,28 @@ export async function onRequestGet({ request, env }: { request: { url: string };
                   Slop distribution
                 </h2>
                 <p class="lb-sec-sub">
-                  Where the corpus falls on the 0&ndash;100 scale. Most pages cluster where AI
-                  defaults land.
+                  Where the corpus falls on the 0&ndash;100 scale. Most pages cluster where
+                  default-template styles land.
                 </p>
                 <Histogram sites={sites} scored={scored} />
               </section>
 
-              <section class="lb-sec" aria-labelledby="lb-clean">
-                <h2 class="lb-sec-h" id="lb-clean">
-                  Cleanest overall <span class="lb-dir-pill">Slop score · lower is better</span>
+              <section class="lb-sec" aria-labelledby="lb-prev">
+                <h2 class="lb-sec-h" id="lb-prev">
+                  Per-pattern prevalence <span class="lb-dir-pill">Aggregate statistics</span>
                 </h2>
-                <p class="lb-sec-sub">
-                  The ten lowest scores in the corpus. Every name links to its score hub.
-                </p>
-                <CleanestOverall sites={sites} origin={origin} />
+                <PatternPrevalence sites={sites} scored={scored} data={data} />
               </section>
 
               <section class="lb-sec" aria-labelledby="lb-cat">
                 <h2 class="lb-sec-h" id="lb-cat">
-                  By category <span class="lb-dir-pill">Slop score · lower is better</span>
+                  By category <span class="lb-dir-pill">Aggregate stats · opt-in grades only</span>
                 </h2>
-                <p class="lb-sec-sub">Cleanest first within each group.</p>
-                <CategoryBoards sites={sites} origin={origin} />
+                <p class="lb-sec-sub">
+                  Category averages and corpus domains. Individual third-party grades are shown only
+                  for email-verified directory listings.
+                </p>
+                <CategoryBoards sites={sites} origin={origin} verifiedMap={verifiedMap} />
               </section>
 
               {builders.length > 0 ? (
@@ -476,11 +602,11 @@ export async function onRequestGet({ request, env }: { request: { url: string };
           </section>
 
           <p class="lb-meth">
-            Methodology: each URL scanned once in a headless browser against the 27-pattern,
-            weighted, deterministic AI-design-slop fingerprint (definitions {def}), {String(when)}.
-            Reproduce any row: <code>npx slop-detect &lt;url&gt;</code>. A slop score is a
-            fingerprint, not a verdict: everyone uses AI now, so it measures how generic the result
-            reads, nothing about the team behind it.
+            Methodology: each URL scanned once in a headless browser against the {PATTERNS.length}
+            -pattern, weighted, deterministic design-slop fingerprint (definitions {def},{' '}
+            <a href={CALIBRATION_URL}>uncalibrated beta</a>), {String(when)}. Reproduce any row:{' '}
+            <code>npx slop-detect &lt;url&gt;</code>. A slop score is a fingerprint, not a verdict:
+            it measures how generic the result reads, nothing about the team behind it.
           </p>
         </main>
 
@@ -490,20 +616,16 @@ export async function onRequestGet({ request, env }: { request: { url: string };
   var search=document.getElementById('lbSearch');
   var rows=Array.prototype.slice.call(document.querySelectorAll('.lb-filter-row'));
   var tierBtns=Array.prototype.slice.call(document.querySelectorAll('[data-tier-filter]'));
-  var hbCols=Array.prototype.slice.call(document.querySelectorAll('.hb-col[data-bucket]'));
   if(!rows.length)return;
   var activeTier='all';
-  var activeBand=null;
   function apply(){
     var q=(search&&search.value?search.value:'').trim().toLowerCase();
     rows.forEach(function(r){
       var dom=r.getAttribute('data-domain')||'';
       var tier=r.getAttribute('data-tier')||'';
-      var sc=parseFloat(r.getAttribute('data-score')||'0');
       var okDom=!q||dom.indexOf(q)!==-1;
       var okTier=activeTier==='all'||tier===activeTier;
-      var okBand=!activeBand||(sc>=activeBand.lo&&sc<=activeBand.hi);
-      r.hidden=!(okDom&&okTier&&okBand);
+      r.hidden=!(okDom&&okTier);
     });
   }
   if(search)search.addEventListener('input',apply);
@@ -511,20 +633,6 @@ export async function onRequestGet({ request, env }: { request: { url: string };
     b.addEventListener('click',function(){
       activeTier=b.getAttribute('data-tier-filter')||'all';
       tierBtns.forEach(function(x){x.classList.toggle('active',x===b);});
-      apply();
-    });
-  });
-  hbCols.forEach(function(c){
-    c.addEventListener('click',function(){
-      var lo=parseFloat(c.getAttribute('data-lo')||'0');
-      var hi=parseFloat(c.getAttribute('data-hi')||'100');
-      if(activeBand&&activeBand.lo===lo){
-        activeBand=null;
-        hbCols.forEach(function(x){x.classList.remove('active');});
-      }else{
-        activeBand={lo:lo,hi:hi};
-        hbCols.forEach(function(x){x.classList.toggle('active',x===c);});
-      }
       apply();
     });
   });

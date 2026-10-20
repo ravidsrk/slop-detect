@@ -13,12 +13,22 @@
 
 import { badgeColors } from './_theme.js';
 
-export function badgeSvg(domain, slim) {
+const CALIBRATION_URL = 'https://github.com/ravidsrk/slop-detect/blob/main/CALIBRATION.md';
+
+export function badgeSvg(domain, slim, opts) {
+  if (domain && typeof domain === 'object' && slim === undefined) {
+    slim = domain;
+    domain = slim.domain || '';
+  }
+  const withheld = (opts && opts.withheld === true) || (slim && slim.withheld === true);
+  const showScore = !!(slim && !withheld);
   const label = 'slop';
-  const value = slim ? `${slim.grade} · ${slim.score}` : 'no scan';
+  // A withheld badge must not carry the grade, the score, or the tier color.
+  const value = showScore ? `${slim.grade} · ${slim.score}` : slim ? 'opt-in' : 'no scan';
+  const betaLabel = 'uncalibrated beta';
   // Right segment: tier bg + ink from the badge-colors table; the neutral grey
-  // default (badgeColors('Unknown')) carries the "no scan" state.
-  const { bg, ink } = badgeColors(slim ? slim.tier : 'Unknown');
+  // default (badgeColors('Unknown')) carries "no scan" and withheld grades.
+  const { bg, ink } = badgeColors(showScore ? slim.tier : 'Unknown');
 
   // JetBrains Mono geometry. The face advances ≈ 0.6em, so ~7.25px per glyph at
   // 12px; each segment gets 8px of horizontal breathing room on each side.
@@ -29,7 +39,9 @@ export function badgeSvg(domain, slim) {
   const radius = 4; // design "Radii": 4px badge corners.
 
   const leftW = Math.round(label.length * charW) + padX * 2;
-  const rightW = Math.round(value.length * charW) + padX * 2;
+  const scoreW = Math.round(value.length * charW) + padX * 2;
+  const betaW = Math.round(betaLabel.length * charW) + padX * 2;
+  const rightW = scoreW + betaW;
   const pillW = leftW + rightW;
 
   // The badge is the one surface the system allows a shadow (design "Shadows":
@@ -41,7 +53,13 @@ export function badgeSvg(domain, slim) {
   const w = pillW + mx * 2;
   const h = height + mTop + mBottom;
   const baseline = mTop + Math.round(height / 2 + fontSize * 0.355);
-  const name = domain ? `slop score for ${domain}: ${value}` : `slop: ${value}`;
+  const name = withheld
+    ? domain
+      ? `public slop grade for ${domain} withheld`
+      : 'public slop grade withheld'
+    : domain
+      ? `slop score for ${domain}: ${value}`
+      : `slop: ${value}`;
 
   return (
     <svg
@@ -52,7 +70,8 @@ export function badgeSvg(domain, slim) {
       role="img"
       aria-label={name}
     >
-      <title>{name}</title>
+      <title>{`${name} (uncalibrated beta)`}</title>
+      <desc>uncalibrated beta</desc>
       <defs>
         <clipPath id="r">
           <rect x={mx} y={mTop} width={pillW} height={height} rx={radius} />
@@ -76,9 +95,14 @@ export function badgeSvg(domain, slim) {
         <text x={mx + leftW / 2} y={baseline} fill="#F4F5F2">
           {label}
         </text>
-        <text x={mx + leftW + rightW / 2} y={baseline} fill={ink}>
+        <text x={mx + leftW + scoreW / 2} y={baseline} fill={ink}>
           {value}
         </text>
+        <a href={CALIBRATION_URL} target="_blank" rel="noopener noreferrer">
+          <text x={mx + leftW + scoreW + betaW / 2} y={baseline} fill={ink}>
+            {betaLabel}
+          </text>
+        </a>
       </g>
     </svg>
   ).toString();

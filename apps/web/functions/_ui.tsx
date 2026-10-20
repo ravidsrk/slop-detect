@@ -464,8 +464,14 @@ export function LeaderboardRow({ rank, domain, score, grade, tier = 'Clean', hre
   return (
     <a class="lr" href={href}>
       <span class="lr-rank">
-        <span class="sr-only">#</span>
-        {rank}
+        {rank == null ? (
+          '·'
+        ) : (
+          <>
+            <span class="sr-only">#</span>
+            {rank}
+          </>
+        )}
       </span>
       <span class="lr-name">
         <LetterAvatar name={domain} size={20} />
@@ -485,7 +491,7 @@ export function LeaderboardRow({ rank, domain, score, grade, tier = 'Clean', hre
 // the uppercase TIER in its text color, and `score grade`.
 export function ScoreTierBadge({ tier = 'Clean', score, grade }) {
   return (
-    <span class="stb">
+    <span class="stb" title="uncalibrated beta">
       <span class="stb-dot" style={`background:${tierFill(tier)}`} aria-hidden="true" />
       <span class="stb-tier" style={`color:${tierText(tier)}`}>
         {String(tier).toUpperCase()}
@@ -493,6 +499,7 @@ export function ScoreTierBadge({ tier = 'Clean', score, grade }) {
       <span class="stb-meta">
         {score} {grade}
       </span>
+      <span class="sr-only"> (uncalibrated beta)</span>
     </span>
   );
 }
@@ -502,7 +509,12 @@ export function ScoreTierBadge({ tier = 'Clean', score, grade }) {
 export function LiveBadge({ tier = 'Clean', grade, score }) {
   const c = badgeColors(tier);
   return (
-    <span class="live-badge" role="img" aria-label={`slop-detect: ${grade} · ${score}`}>
+    <span
+      class="live-badge"
+      role="img"
+      aria-label={`slop-detect: ${grade} · ${score} (uncalibrated beta)`}
+      title="uncalibrated beta"
+    >
       <span class="lb-l">slop</span>
       <span class="lb-r" style={`background:${c.bg};color:${c.ink}`}>
         {grade} · {score}

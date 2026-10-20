@@ -35,24 +35,24 @@ export function gradeForScore(score) {
 // Deterministic verdict one-liner. Picks from a small pool by tier, made stable
 // by hashing the triggered-pattern signature so the same page always gets the
 // same line (good for caching + repeatability), but different pages vary.
-const VERDICTS = {
+export const VERDICTS = {
   Clean: [
-    'Crafted, not generated. This page has a point of view.',
-    'Clean. Reads like a human made deliberate choices.',
-    'No template tells here — this one earned its look.',
-    'Premium-feeling. The AI-slop fingerprint is absent.',
+    'Matches few default-template patterns. Distinct visual choices.',
+    'Clean. Minimal overlap with common default-template patterns.',
+    'Few default-template patterns matched — custom layout and palette.',
+    'Restrained palette and typography. Default-template patterns are absent.',
   ],
   Mild: [
-    'Mostly clean, with a few template tells creeping in.',
-    'Decent bones, but the slop is starting to show.',
-    'A handful of AI-default choices away from genuinely sharp.',
-    'Good page wearing a couple of borrowed clichés.',
+    'Mostly clean, with a few default-template patterns present.',
+    'Matches a few default-template patterns; most layout choices are distinct.',
+    'A handful of default-template patterns away from clean.',
+    'Moderate overlap with default-template patterns across a few styling rules.',
   ],
   Heavy: [
-    'Heavy slop. This wears the Cursor/v0/Bolt starter kit head to toe.',
-    'Straight off the AI assembly line — gradients, Inter, the works.',
-    'You can smell the default template from here.',
-    'Maximum genericness. Every tell is firing at once.',
+    'Heavy slop. High overlap with common default-template patterns.',
+    'Matches many default-template patterns — gradients, default fonts, and repeated card grids.',
+    'Dense concentration of default-template patterns.',
+    'High match count of default-template patterns across typography, color, and layout.',
   ],
 };
 
