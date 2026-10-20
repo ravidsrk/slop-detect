@@ -147,10 +147,14 @@ slop-detect https://your-site.com --design-md auto
 
 ---
 
-## 08 · Programmatic (`@slop-detect/core`)
+## 08 · Programmatic (`slop-detect-core`)
+
+```bash
+npm install slop-detect-core
+```
 
 ```javascript
-import { scorePatterns, PATTERNS, DEFINITIONS_VERSION } from '@slop-detect/core';
+import { scorePatterns, PATTERNS, DEFINITIONS_VERSION } from 'slop-detect-core';
 
 const summary = scorePatterns(results);
 console.log(summary.score, summary.grade, summary.tier);
