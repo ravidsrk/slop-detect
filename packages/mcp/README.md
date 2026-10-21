@@ -92,7 +92,29 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 
 | Env var | Default | Purpose |
 | --- | --- | --- |
-| `SLOP_DETECT_API` | `https://slop-detect.com` | API base URL. Point it at a local dev build (e.g. `http://localhost:8788`) when hacking on the web app. |
+| `SLOP_DETECT_API` | `https://slop-detect.com` | API base URL. Point it at a local dev build (e.g. `http://localhost:8788`) when hacking on the web app. Ignored in `--local` mode. |
+| `SLOP_DETECT_LOCAL` | unset | Set to `1` for the same behavior as `--local`. |
+
+## Local mode
+
+The hosted API rejects loopback addresses. Start the server with `--local` to score `http://localhost`, `http://127.0.0.1`, and `file://` on this machine:
+
+```bash
+npx -y slop-detect-mcp --local
+```
+
+That needs the optional `slop-detect` package (Playwright) installed beside this one. Local mode does not call `https://slop-detect.com/api/*`. The same runner is what `hooks/scan-local.mjs` uses from a Claude Code PostToolUse or Stop hook. Set `SLOP_LOCAL_URL` to the dev server. A scored page exits 0. A scan that cannot run exits 2. That exit is not a Clean score.
+
+```json
+{
+  "mcpServers": {
+    "slop-detect": {
+      "command": "npx",
+      "args": ["-y", "slop-detect-mcp", "--local"]
+    }
+  }
+}
+```
 
 ```json
 {

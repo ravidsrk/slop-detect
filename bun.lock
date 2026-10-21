@@ -87,6 +87,15 @@
         "@modelcontextprotocol/sdk": "^1.29.0",
         "@slop-detect/core": "workspace:*",
       },
+      "devDependencies": {
+        "slop-detect": "workspace:*",
+      },
+      "peerDependencies": {
+        "slop-detect": "^0.8.0",
+      },
+      "optionalPeers": [
+        "slop-detect",
+      ],
     },
   },
   "overrides": {

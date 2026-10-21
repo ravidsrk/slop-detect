@@ -95,3 +95,17 @@ jobs:
             echo "::error::Clean artisan fixture should score Clean (< 12), got $score"
             exit 1
           fi
+      - name: MCP local hook scans a dev server
+        env:
+          SKIP_PLAYWRIGHT_DOWNLOAD: 1
+        run: |
+          cd packages/cli/test/fixtures
+          python3 -m http.server 8766 >/tmp/hook-http.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8766/clean-artisan.html >/dev/null && break
+            sleep 0.2
+          done
+          cd "$GITHUB_WORKSPACE"
+          SLOP_LOCAL_URL=http://127.0.0.1:8766/clean-artisan.html \
+            node packages/mcp/hooks/scan-local.mjs > hook-result.json
+          node -e "const d=JSON.parse(require('fs').readFileSync('hook-result.json','utf8')); if (d.schemaVersion!==1 || typeof d.score!=='number' || d.blocked) { console.error(d); process.exit(1); } console.log('hook score', d.score);"

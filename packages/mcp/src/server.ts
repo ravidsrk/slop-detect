@@ -27,6 +27,16 @@ import {
   formatDesignMdLint,
   formatDesignMdDiff,
 } from './format.js';
+import {
+  isLocalMode,
+  isLoopbackOrFile,
+  localAeo,
+  localCatalogue,
+  localFixPrompt,
+  localModeRequested,
+  localScan,
+  setLocalMode,
+} from './local.js';
 
 // Read our own version from package.json so the MCP handshake never drifts from
 // the published version. Falls back to '0.0.0' if the file can't be read (e.g.
@@ -379,6 +389,23 @@ export async function handleCall(name, args) {
     return asToolResult('Missing required argument "url" (a string).', true);
   }
 
+  if (!isLocalMode() && isLoopbackOrFile(url)) {
+    return asToolResult(
+      'This URL is on localhost or file://. The hosted API cannot scan it. ' +
+        'Restart the server with `slop-detect-mcp --local` (or SLOP_DETECT_LOCAL=1) so the scan stays on this machine.',
+      true
+    );
+  }
+
+  if (isLocalMode()) {
+    try {
+      return await handleLocalScan(name, url, args);
+    } catch (err) {
+      const message = err && err.message ? err.message : String(err);
+      return asToolResult(message, true);
+    }
+  }
+
   if (name === 'scan_page') {
     const result = stampScanResult(await scanPage(url, extractScanOptions(args)));
     return asToolResult(formatScan(result), false, result);
@@ -395,6 +422,28 @@ export async function handleCall(name, args) {
   }
   if (name === 'fix_prompt') {
     const prompt = await fixPrompt(url, extractScanOptions(args));
+    return asToolResult(prompt);
+  }
+  return asToolResult(`Unknown tool: ${name}`, true);
+}
+
+async function handleLocalScan(name, url, args) {
+  if (name === 'scan_page') {
+    const result = await localScan(url, extractScanOptions(args));
+    return asToolResult(formatScan(result), false, result);
+  }
+  if (name === 'check_aeo') {
+    const report = await localAeo(url);
+    return asToolResult(formatAeo(report), false, report);
+  }
+  if (name === 'check_design_system') {
+    const designMdUrl =
+      args && typeof args.design_md_url === 'string' ? args.design_md_url.trim() : '';
+    const result = await localScan(url, { designMd: designMdUrl || true });
+    return asToolResult(formatSystem(result), false, result);
+  }
+  if (name === 'fix_prompt') {
+    const prompt = await localFixPrompt(url, extractScanOptions(args));
     return asToolResult(prompt);
   }
   return asToolResult(`Unknown tool: ${name}`, true);
@@ -419,7 +468,11 @@ export function createServer() {
       const msg =
         err instanceof ApiError
           ? err.message
-          : `Could not reach slop-detect.com: ${err && err.message ? err.message : String(err)}`;
+          : isLocalMode()
+            ? err && err.message
+              ? err.message
+              : String(err)
+            : `Could not reach slop-detect.com: ${err && err.message ? err.message : String(err)}`;
       return asToolResult(msg, true);
     }
   });
@@ -463,40 +516,34 @@ export function createServer() {
   server.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: RESOURCES }));
 
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-    const { uri } = request.params;
-    if (uri === 'slop://spec/design-md-template') {
-      return {
-        contents: [
-          {
-            uri,
-            mimeType: 'text/markdown',
-            text: DESIGN_MD_TEMPLATE,
-          },
-        ],
-      };
-    }
-    if (uri === 'slop://spec/patterns') {
-      const catalogue = await fetchPatterns();
-      return {
-        contents: [
-          {
-            uri,
-            mimeType: 'application/json',
-            text: JSON.stringify(catalogue, null, 2),
-          },
-        ],
-      };
-    }
-    throw new Error(`Unknown resource URI: ${uri}`);
+    const loaded = await loadResource(request.params.uri);
+    return { contents: [loaded] };
   });
 
   return server;
 }
 
+export async function loadResource(uri: string) {
+  if (uri === 'slop://spec/design-md-template') {
+    return { uri, mimeType: 'text/markdown', text: DESIGN_MD_TEMPLATE };
+  }
+  if (uri === 'slop://spec/patterns') {
+    const catalogue = isLocalMode() ? localCatalogue() : await fetchPatterns();
+    return {
+      uri,
+      mimeType: 'application/json',
+      text: JSON.stringify(catalogue, null, 2),
+    };
+  }
+  throw new Error(`Unknown resource URI: ${uri}`);
+}
+
 export async function startServer() {
+  setLocalMode(localModeRequested());
   const server = createServer();
   const transport = new StdioServerTransport();
   await server.connect(transport);
   // stdout is reserved for the JSON-RPC stream, so status goes to stderr.
-  process.stderr.write('slop-detect-mcp: listening on stdio\n');
+  const where = isLocalMode() ? ' (local mode, no calls to slop-detect.com)' : '';
+  process.stderr.write(`slop-detect-mcp: listening on stdio${where}\n`);
 }

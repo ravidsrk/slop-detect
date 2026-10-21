@@ -119,6 +119,8 @@ pull the fix prompt back into the editing loop. Four tools: `scan_page`,
 }
 ```
 
+Add `--local` (`npx -y slop-detect-mcp --local`, with the `slop-detect` package installed) when the page is on `localhost` or `file://`. That mode uses Playwright on this machine and does not call the hosted API.
+
 ### Gate it in CI (GitHub Action)
 
 [`slop-detect-action`](packages/action) scans a deploy-preview URL, posts a

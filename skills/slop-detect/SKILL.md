@@ -165,7 +165,10 @@ Exposes tools (`scan_page`, `check_aeo`, `check_design_system`, `fix_prompt`, `l
 
 ```bash
 npx -y slop-detect-mcp
+npx -y slop-detect-mcp --local
 ```
+
+`--local` scores `localhost` and `file://` with Playwright and does not call slop-detect.com. It needs the `slop-detect` package installed. The default server still uses the hosted API. `packages/mcp/hooks/scan-local.mjs` is the matching Claude Code PostToolUse / Stop command. Set `SLOP_LOCAL_URL` to the dev server.
 
 ### 3. CLI (`slop-detect`)
 

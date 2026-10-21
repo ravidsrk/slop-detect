@@ -29,6 +29,7 @@
   },
   "files": [
     "dist",
+    "hooks",
     "README.md",
     "LICENSE"
   ],
@@ -47,6 +48,17 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@slop-detect/core": "workspace:*"
+  },
+  "devDependencies": {
+    "slop-detect": "workspace:*"
+  },
+  "peerDependencies": {
+    "slop-detect": "^0.8.0"
+  },
+  "peerDependenciesMeta": {
+    "slop-detect": {
+      "optional": true
+    }
   },
   "keywords": [
     "slop",
