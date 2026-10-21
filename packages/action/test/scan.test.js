@@ -51,6 +51,10 @@ test('buildScanPayload includes axes, preset, designMd, and share options only w
     designMd: true,
     share: false,
   });
+  expect(buildScanPayload('https://example.com', { axes: 'design,craft' })).toEqual({
+    url: 'https://example.com',
+    axes: ['design', 'craft'],
+  });
 });
 
 test('emitPatternWarnings emits ::warning annotations for triggered patterns and system drift', () => {
@@ -91,7 +95,8 @@ test('reportBody renders 4-axis summary rows when copy, system, and AEO are pres
         copy: { score: 7, grade: 'A-', tier: 'Clean', patternsFlagged: 1, patternsTotal: 9 },
       },
       system: { declared: true, score: 92, tier: 'Aligned', drift: [] },
-      aeo: { score: 85, maxScore: 100, tier: 'AI-Ready', failed: [] },
+      aeo: { score: 85, maxScore: 100, tier: 'Eligible', failed: [] },
+      craft: { score: 80, failed: [{ id: 'zoom_disabled' }] },
     },
     { mode: 'grade', passed: true, reason: 'Grade A is at least as good as B.' },
     { withMarker: true }
@@ -101,6 +106,8 @@ test('reportBody renders 4-axis summary rows when copy, system, and AEO are pres
   expect(md).toContain('**Copy Slop** (lower is better)');
   expect(md).toContain('**System (`DESIGN.md`)** (higher is better)');
   expect(md).toContain('**AEO Readiness** (higher is better)');
+  expect(md).toContain('**Craft floor** (higher is better, does not change the gate)');
+  expect(md).toContain('80/100');
 });
 
 test('scanAeo returns the report when the AEO API succeeds', async () => {

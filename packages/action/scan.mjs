@@ -311,6 +311,12 @@ export function reportBody(apiBase, result, gate, { withMarker } = {}) {
       `| **AEO Readiness** (higher is better) | ${a.score}/${a.maxScore || 100} | ${a.tier} | ${a.failed?.length || 0} failed |`
     );
   }
+  const craft = result.craft || result.axes?.craft;
+  if (craft && typeof craft.score === 'number') {
+    extraAxesRows.push(
+      `| **Craft floor** (higher is better, does not change the gate) | ${craft.score}/100 | — | ${craft.failed?.length || 0} failed |`
+    );
+  }
 
   const lines = [
     withMarker ? STICKY_MARKER : null,

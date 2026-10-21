@@ -41,7 +41,7 @@ inputs:
     required: false
     default: 'https://slop-detect.com'
   axes:
-    description: 'Axes to score: "design" (default), "design,copy", or "all".'
+    description: 'Axes to score: "design" (default), "design,copy", "design,craft", or "all" (design + copy). Craft is a separate floor and does not change the fail-under gate. "all" stays design + copy so it keeps working against an API that has not deployed the craft axis yet.'
     required: false
     default: 'design'
   preset:
