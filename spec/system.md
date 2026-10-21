@@ -45,3 +45,5 @@ All declared and observed colors are parsed through the shared CSS Color 4 parse
 2. `contrast-ratio`: component foreground/background token pairs below `4.5:1` WCAG contrast.
 3. `orphaned-tokens`: declared palette tokens never referenced by any component when components are defined.
 4. `spec-version-mismatch`: warns when `specVersion` differs from `"alpha"`.
+
+The CLI runs the same checks with `slop-detect --lint-design-md <file>` (exit 1 on errors) and `slop-detect --diff-design-md <base> <head>` (exit 1 when a token is removed or changed). Neither command scans a URL. `slop-detect <url> --init-tokens` writes a DTCG `tokens.json` from the live DOM. Passing `--design-md` to a scan applies `applyDeclaredDesignWaivers()`: matching patterns drop out of the design score, `rawScore` keeps the unwaived total, and craft stays unchanged.

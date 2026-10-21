@@ -51,6 +51,9 @@ else console.log(`${result.score}/100 — ${result.tier} (${result.grade})`);
 | `parseDesignMd(markdown)` | Parses a Google Labs `DESIGN.md` specification into normalized tokens (or `null`) |
 | `scoreSystemCompliance(parsed, observed)` / `checkDesignSystem(...)` | Scores the observed `systemContext` from the page-eval script against `parseDesignMd()` output (`Aligned` / `Drifting` / `Off-system`) |
 | `generateDesignMd(observed, opts?)` | Bootstraps a `DESIGN.md` from an observed `systemContext` (every observed CTA fill, heading colour, font and radius is kept) |
+| `extractDtcgTokens(observed, opts?)` | DTCG 2025.10 `tokens.json` object from the same observed context |
+| `lintDesignMd(text)` / `diffDesignMd(base, head)` | Static DESIGN.md lint and token diff. Lint errors do not score a page |
+| `applyDeclaredDesignWaivers(result, parsed)` | When a parsed DESIGN.md is supplied, drops points for patterns that match declared tokens and keeps `rawScore`. Craft is unchanged |
 | `PRESETS` / `getPatterns(preset)` / `applyPreset(patterns, preset)` | Named pattern subsets (`full`, `strict`, `marketing`, `minimal`); `getPatterns('strict')` filters the built-in `PATTERNS` |
 | `compileRule(rule)` / `validateRule(rule)` | Declarative JSON/object rule compiler and validator |
 | `FIXES` / `buildFixPrompt(scanResult)` | Per-pattern remediation recipes and markdown fix-prompt generator |

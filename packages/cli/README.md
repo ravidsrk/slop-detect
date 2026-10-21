@@ -28,6 +28,10 @@ slop-detect <url> --axes design,copy    # explicit axis list (or --axes all)
 slop-detect <url> --aeo                 # run the AEO fetch-and-read audit
 slop-detect <url> --design-md auto      # check compliance against <origin>/DESIGN.md
 slop-detect <url> --design-md ./DESIGN.md  # check compliance against a local DESIGN.md
+slop-detect <url> --init-tokens > tokens.json  # DTCG tokens.json from the live DOM
+slop-detect --lint-design-md ./DESIGN.md       # static lint, no browser, exit 1 on errors
+slop-detect --diff-design-md base.md head.md   # exit 1 when a token is removed or changed
+slop-detect <url> --a11y                       # optional axe-core report; never changes a score
 slop-detect <url> --preset strict       # preset: full | strict | marketing | minimal
 slop-detect <url> --remote              # scan via https://slop-detect.com/api/scan (no browser)
 slop-detect <url> --fail-on heavy       # exit non-zero on heavy (or mild) tier for CI

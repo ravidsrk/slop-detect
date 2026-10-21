@@ -17,8 +17,15 @@ import {
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 
+import { lintDesignMd, diffDesignMd } from '@slop-detect/core';
 import { scanPage, checkAeo, checkSystem, fixPrompt, fetchPatterns, ApiError } from './api.js';
-import { formatScan, formatAeo, formatSystem } from './format.js';
+import {
+  formatScan,
+  formatAeo,
+  formatSystem,
+  formatDesignMdLint,
+  formatDesignMdDiff,
+} from './format.js';
 
 // Read our own version from package.json so the MCP handshake never drifts from
 // the published version. Falls back to '0.0.0' if the file can't be read (e.g.
@@ -171,6 +178,56 @@ export const TOOLS = [
       required: ['url'],
     },
   },
+  {
+    name: 'lint_design_md',
+    title: 'Lint a DESIGN.md File',
+    description:
+      'Statically lint DESIGN.md text for broken token references, component contrast below 4.5:1, orphaned palette tokens, and a specVersion other than alpha. Local only: it does not fetch a page and does not change any score.',
+    annotations: {
+      title: 'Lint a DESIGN.md File',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        design_md: {
+          type: 'string',
+          description: 'The full DESIGN.md document, including YAML front matter.',
+        },
+      },
+      required: ['design_md'],
+    },
+  },
+  {
+    name: 'diff_design_md',
+    title: 'Diff Two DESIGN.md Files',
+    description:
+      'Diff two DESIGN.md documents and report added, removed, and changed tokens. A removed or changed token is breaking. Local only: it does not fetch a page and does not rescore one.',
+    annotations: {
+      title: 'Diff Two DESIGN.md Files',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        base_design_md: {
+          type: 'string',
+          description: 'The base DESIGN.md text.',
+        },
+        head_design_md: {
+          type: 'string',
+          description: 'The head DESIGN.md text.',
+        },
+      },
+      required: ['base_design_md', 'head_design_md'],
+    },
+  },
 ];
 
 export const PROMPTS = [
@@ -267,7 +324,29 @@ function extractScanOptions(args: any) {
   return opts;
 }
 
+function handleLocalDesignMd(name, args) {
+  if (name === 'lint_design_md') {
+    const text = args && typeof args.design_md === 'string' ? args.design_md : '';
+    if (!text.trim()) {
+      return asToolResult('Missing required argument "design_md" (the DESIGN.md text).', true);
+    }
+    return asToolResult(formatDesignMdLint(lintDesignMd(text)));
+  }
+  const base = args && typeof args.base_design_md === 'string' ? args.base_design_md : '';
+  const head = args && typeof args.head_design_md === 'string' ? args.head_design_md : '';
+  if (!base.trim() || !head.trim()) {
+    return asToolResult(
+      'Missing required arguments "base_design_md" and "head_design_md".',
+      true
+    );
+  }
+  return asToolResult(formatDesignMdDiff(diffDesignMd(base, head)));
+}
+
 export async function handleCall(name, args) {
+  if (name === 'lint_design_md' || name === 'diff_design_md') {
+    return handleLocalDesignMd(name, args);
+  }
   const url = args && typeof args.url === 'string' ? args.url.trim() : '';
   if (!url) {
     return asToolResult('Missing required argument "url" (a string).', true);

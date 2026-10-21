@@ -161,7 +161,7 @@ curl -s -X POST -H 'Content-Type: application/json' \
 
 ### 2. MCP Server (`slop-detect-mcp`)
 
-Exposes tools (`scan_page`, `check_aeo`, `check_design_system`, `fix_prompt`), workflow prompts (`audit_landing_page`, `deslop_and_verify`), and spec resources (`slop://spec/patterns`, `slop://spec/design-md-template`) directly to MCP-capable agents:
+Exposes tools (`scan_page`, `check_aeo`, `check_design_system`, `fix_prompt`, `lint_design_md`, `diff_design_md`), workflow prompts (`audit_landing_page`, `deslop_and_verify`), and spec resources (`slop://spec/patterns`, `slop://spec/design-md-template`) directly to MCP-capable agents:
 
 ```bash
 npx -y slop-detect-mcp
@@ -175,6 +175,9 @@ npx slop-detect https://example.com --copy --craft --aeo --design-md auto
 npx slop-detect https://example.com --fail-on heavy --fail-under B
 npx slop-detect https://example.com --sarif > slop.sarif
 npx slop-detect https://example.com --init-design-md > DESIGN.md
+npx slop-detect https://example.com --init-tokens > tokens.json
+npx slop-detect --lint-design-md ./DESIGN.md
+npx slop-detect --diff-design-md ./base/DESIGN.md ./head/DESIGN.md
 npx slop-detect https://example.com --fix-prompt > fix.md
 npx slop-detect https://example.com --remote --json
 ```

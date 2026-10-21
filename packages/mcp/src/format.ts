@@ -160,3 +160,44 @@ export function formatAeo(report) {
 
   return lines.join('\n');
 }
+
+// Local DESIGN.md lint. No network and no page score.
+export function formatDesignMdLint(lint) {
+  const errors = lint?.errors || [];
+  const warnings = lint?.warnings || [];
+  const issues = lint?.issues || [];
+  const lines = [
+    `DESIGN.md lint: ${lint?.valid ? 'valid' : 'invalid'}`,
+    `specVersion: ${lint?.specVersion || 'unknown'}`,
+    `errors: ${errors.length}`,
+    `warnings: ${warnings.length}`,
+  ];
+  if (!issues.length) lines.push('  • No issues.');
+  for (const issue of issues) {
+    const where = issue.path ? ` (${issue.path})` : '';
+    lines.push(`  • ${issue.severity} ${issue.ruleId}${where}: ${issue.message}`);
+  }
+  lines.push(
+    '',
+    'Static check only. It does not score a page and does not change Clean, Mild, or Heavy.'
+  );
+  return lines.join('\n');
+}
+
+export function formatDesignMdDiff(diff) {
+  const added = diff?.added || [];
+  const removed = diff?.removed || [];
+  const changed = diff?.changed || [];
+  const lines = [
+    `DESIGN.md diff: ${diff?.breaking ? 'breaking' : 'compatible'}`,
+    `added: ${added.length}`,
+    `removed: ${removed.length}`,
+    `changed: ${changed.length}`,
+  ];
+  if (!added.length && !removed.length && !changed.length) lines.push('  • No token changes.');
+  for (const row of added) lines.push(`  • added ${row.path} = ${row.value}`);
+  for (const row of removed) lines.push(`  • removed ${row.path} = ${row.value}`);
+  for (const row of changed) lines.push(`  • changed ${row.path}: ${row.before} → ${row.after}`);
+  lines.push('', 'A removed or changed token is breaking. This diff does not rescore a page.');
+  return lines.join('\n');
+}

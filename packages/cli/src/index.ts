@@ -3,6 +3,8 @@ export {
   scanRemote,
   aeoRemote,
   loadDesignMd,
+  loadAxeSource,
+  runAxeOnPage,
   shouldIncludeSystem,
   buildSarifReport,
   type ScanOptions,

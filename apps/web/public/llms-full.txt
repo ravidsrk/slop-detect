@@ -134,7 +134,8 @@ npm package: `slop-detect`.
 npx -y slop-detect-mcp
 ```
 
-Exposes `scan_page`, `check_aeo`, `check_design_system`, `fix_prompt` to any MCP
+Exposes `scan_page`, `check_aeo`, `check_design_system`, `fix_prompt`,
+`lint_design_md`, and `diff_design_md` to any MCP
 client (Claude Code, Cursor, Windsurf). Server card:
 https://slop-detect.com/.well-known/mcp/server-card.json
 

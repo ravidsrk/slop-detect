@@ -15,6 +15,8 @@ import {
   scoreCopy,
   scoreCraft,
   combineAxes,
+  applyDeclaredDesignWaivers,
+  formatAxeReport,
   SCAN_PAGE_WAIT,
   waitFontsReadyInPage,
 } from '@slop-detect/core';
@@ -34,10 +36,44 @@ export interface ScanOptions {
   // includeSystem: true keep typechecking. Runtime equivalent: inject the
   // system extractor (also implied by designMd).
   includeSystem?: boolean;
+  // Optional axe-core report. Off unless the caller sets it. Never scored.
+  a11y?: boolean;
 }
 
 export function shouldIncludeSystem(opts: ScanOptions = {}) {
   return !!(opts.designMd || opts.includeSystem);
+}
+
+// F-07 (#262): axe-core is optional and off by default. The import stays
+// dynamic so a normal scan does not require the package. Findings are reported
+// separately and never change design, copy, craft, or Clean/Mild/Heavy.
+export async function loadAxeSource() {
+  let mod: any;
+  try {
+    // Non-literal so the CLI bundle does not require axe-core to be installed.
+    const spec = 'axe-core';
+    mod = await import(spec);
+  } catch {
+    throw new Error(
+      'axe-core is optional and off by default. Install it to use --a11y (`npm install axe-core`). The report never changes a score.'
+    );
+  }
+  const source = mod?.source || mod?.default?.source;
+  if (typeof source !== 'string' || source.length < 100) {
+    throw new Error('axe-core did not export a page script (expected axe.source).');
+  }
+  return source;
+}
+
+export async function runAxeOnPage(page, source: string) {
+  await page.addScriptTag({ content: source });
+  return page.evaluate(async () => {
+    const axe = (globalThis as any).axe;
+    if (!axe || typeof axe.run !== 'function') {
+      throw new Error('axe-core did not attach to the page.');
+    }
+    return axe.run(document, { resultTypes: ['violations'] });
+  });
 }
 
 // Playwright is heavy (pulls in a ~150 MB browser) and is ONLY needed for an
@@ -342,6 +378,13 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
       console.warn(`slop-detect: ${patternsErrored} pattern extractor(s) failed`);
     }
 
+    // Optional axe pass while the page is still open. A missing axe-core
+    // install throws before any score is emitted. Blocked pages skip it.
+    let axeResults = null;
+    if (opts.a11y) {
+      axeResults = await runAxeOnPage(page, await loadAxeSource());
+    }
+
     // Always extract every pattern (one cheap page eval), but score against the
     // selected preset's subset so the number — and the displayed pattern list —
     // reflect exactly what the caller asked for.
@@ -385,7 +428,10 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
         axes.copy = scoreCopy(data.textContext || {});
       }
       if (reqAxes.includes('craft') && data.craftSignals) {
-        axes.craft = scoreCraft(data.craftSignals);
+        axes.craft = scoreCraft(
+          data.craftSignals,
+          opts.a11y ? { enableAxe: true, axeResults } : {}
+        );
         result.craft = axes.craft;
       }
       result.axes = axes;
@@ -402,7 +448,12 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
     // fonts/colors/radii. Reported separately from the slop score — it measures
     // alignment with the site's OWN system (higher is better), not slop.
     if (opts.designMd) {
-      result.system = scoreSystemCompliance(parseDesignMd(opts.designMd), data.systemContext);
+      const parsedDesign = parseDesignMd(opts.designMd);
+      result.system = scoreSystemCompliance(parsedDesign, data.systemContext);
+      if (parsedDesign) Object.assign(result, applyDeclaredDesignWaivers(result, parsedDesign));
+    }
+    if (opts.a11y) {
+      result.a11y = { axe: formatAxeReport(axeResults, { enabled: true }) };
     }
     if (shouldIncludeSystem(opts) && data.systemContext) {
       result.systemContext = data.systemContext;

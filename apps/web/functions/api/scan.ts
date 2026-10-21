@@ -17,6 +17,7 @@ import {
   scoreCopy,
   scoreCraft,
   combineAxes,
+  applyDeclaredDesignWaivers,
   SCAN_PAGE_WAIT,
   waitFontsReadyInPage,
   readCapped,
@@ -356,11 +357,10 @@ export async function onRequestPost({ request, env, waitUntil }) {
         );
         if (res?.ok) mdText = await readCapped(res, 200_000);
       }
-      result.system = scoreSystemCompliance(
-        mdText ? parseDesignMd(mdText) : null,
-        data.systemContext
-      );
+      const parsedMd = mdText ? parseDesignMd(mdText) : null;
+      result.system = scoreSystemCompliance(parsedMd, data.systemContext);
       result.system.source = mdText ? mdUrl : null;
+      if (parsedMd) Object.assign(result, applyDeclaredDesignWaivers(result, parsedMd));
     }
 
     // Persist a slim snapshot so the scan gets a shareable permalink (/r/:id),

@@ -133,10 +133,11 @@ function healthyPageData(over = {}) {
       all_caps_labels: { triggered: true, count: 6, total: 20 },
     },
     textContext: {
-      text: 'Acme is the AI-native platform built for modern teams. '.repeat(8),
+      text: 'Acme is the AI-native platform built for modern teams. '.repeat(18),
       headings: ['Build faster with Acme', 'Why teams choose Acme', 'Pricing'],
       paragraphs: ['Acme is the AI-native platform built for modern teams.'],
-      wordCount: 64,
+      wordCount: 162,
+      proseWordCount: 162,
     },
     systemContext: null,
     ...over,
@@ -260,7 +261,7 @@ test('axes:[design,copy] adds the multi-axis shape + unified headline', async ()
   expect(r.axes.design.score).toBe(r.score);
   expect(r.axes.design.tier).toBe(r.tier);
   expect(Array.isArray(r.axes.design.patterns)).toBe(true);
-  // Copy axis ran (wordCount 64 > 40 threshold → not "thin").
+  // Copy axis ran (proseWordCount 162 meets the 150-word gate → not thin).
   expect(r.axes.copy.axis).toBe('copy');
   expect(typeof r.axes.copy.score).toBe('number');
   expect(TIERS).toContain(r.axes.copy.tier);

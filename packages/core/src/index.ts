@@ -162,6 +162,7 @@ import {
   computeDesignTypicality,
 } from './calibration.js';
 import { applyPreset } from './presets.js';
+import { applyDesignSystemWaivers } from './system.js';
 import { buildPageScript, detectBlocked, type BuildPageScriptOptions } from './page-script.js';
 import { assemblePatternResults } from './result-assembly.js';
 
@@ -892,6 +893,55 @@ export function combineAxes(axisSummaries: Record<string, any> = {}) {
     axesScored: present,
     dirtyAxes,
   };
+}
+
+// S-03 (#282): when a caller supplies a parsed DESIGN.md, drop points for
+// patterns that match tokens the site declared. The raw score stays on the
+// result. Craft, AEO, and system scores are left untouched.
+export function applyDeclaredDesignWaivers(result: any, parsedDesignMd: any) {
+  if (!result || result.blocked || typeof result.score !== 'number' || !parsedDesignMd) {
+    return result;
+  }
+  const waived = applyDesignSystemWaivers(result, parsedDesignMd);
+  const waivedPatterns = Array.isArray(waived.waivedPatterns) ? waived.waivedPatterns : [];
+  if (waivedPatterns.length === 0) {
+    return { ...result, waivedPatterns: [] };
+  }
+  const patterns = Array.isArray(waived.patterns) ? waived.patterns : [];
+  const waivedIds = new Set(waivedPatterns.map((w: any) => w.id));
+  const triggered = patterns.filter((p: any) => p.triggered && !p.waived);
+  const scoredTriggered = patterns.filter((p: any) => p.status === 'fail' && !p.waived);
+  const grade = gradeForScore(waived.score);
+  const next: any = {
+    ...waived,
+    grade,
+    verdict: verdictFor(waived.score, waived.tier, scoredTriggered.length > 0 ? scoredTriggered : triggered),
+    patternsFlagged: triggered.length,
+    patternsScored: scoredTriggered.length,
+    reviewCount: patterns.filter((p: any) => p.status === 'review').length,
+    evidence: Array.isArray(result.evidence)
+      ? result.evidence.filter((e: any) => !waivedIds.has(e.id))
+      : result.evidence,
+  };
+  if (next.axes && next.axes.design) {
+    next.axes = {
+      ...next.axes,
+      design: {
+        ...next.axes.design,
+        score: next.score,
+        tier: next.tier,
+        grade,
+        patternsFlagged: next.patternsFlagged,
+        patterns,
+      },
+    };
+    if (next.axes.copy || typeof next.unifiedScore === 'number') {
+      const summaries: Record<string, any> = { design: next.axes.design };
+      if (next.axes.copy) summaries.copy = next.axes.copy;
+      Object.assign(next, combineAxes(summaries));
+    }
+  }
+  return next;
 }
 
 // ── Programmatic convenience wrappers ────────────────────────────────────────

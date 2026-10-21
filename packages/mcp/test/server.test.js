@@ -15,20 +15,28 @@ function jsonRes(body, { ok = true, status = 200, text } = {}) {
   };
 }
 
-test('TOOLS lists all four tool names with url required and MCP annotations', () => {
+test('TOOLS lists the API tools and the local DESIGN.md tools', () => {
   expect(TOOLS.map((t) => t.name)).toEqual([
     'scan_page',
     'check_aeo',
     'check_design_system',
     'fix_prompt',
+    'lint_design_md',
+    'diff_design_md',
   ]);
+  const local = new Set(['lint_design_md', 'diff_design_md']);
   for (const t of TOOLS) {
-    expect(t.inputSchema.required).toContain('url');
     expect(typeof t.title).toBe('string');
     expect(t.annotations.readOnlyHint).toBe(true);
     expect(t.annotations.destructiveHint).toBe(false);
     expect(t.annotations.idempotentHint).toBe(true);
-    expect(t.annotations.openWorldHint).toBe(true);
+    if (local.has(t.name)) {
+      expect(t.annotations.openWorldHint).toBe(false);
+      expect(t.inputSchema.required).not.toContain('url');
+    } else {
+      expect(t.annotations.openWorldHint).toBe(true);
+      expect(t.inputSchema.required).toContain('url');
+    }
   }
   const system = TOOLS.find((t) => t.name === 'check_design_system');
   expect(system.inputSchema.properties.design_md_url).toBeTruthy();
@@ -171,4 +179,44 @@ test('fix_prompt returns prompt text; unknown tools error', async () => {
   const bad = await handleCall('nope', { url: 'https://example.com' });
   expect(bad.isError).toBe(true);
   expect(bad.content[0].text).toMatch(/Unknown tool/);
+});
+
+test('lint_design_md and diff_design_md stay local and do not require a url', async () => {
+  let called = false;
+  global.fetch = async () => {
+    called = true;
+    return jsonRes({});
+  };
+  const bad = `---
+name: Broken
+colors:
+  bg: "#ffffff"
+components:
+  btn:
+    backgroundColor: "{colors.missing}"
+---`;
+  const lint = await handleCall('lint_design_md', { design_md: bad });
+  expect(lint.isError).toBeFalsy();
+  expect(lint.content[0].text).toMatch(/broken-ref/);
+  expect(lint.content[0].text).toMatch(/invalid/);
+  expect(called).toBe(false);
+
+  const missing = await handleCall('lint_design_md', {});
+  expect(missing.isError).toBe(true);
+  expect(missing.content[0].text).toMatch(/design_md/);
+
+  const same = await handleCall('diff_design_md', {
+    base_design_md: bad,
+    head_design_md: bad,
+  });
+  expect(same.isError).toBeFalsy();
+  expect(same.content[0].text).toMatch(/compatible/);
+  expect(same.content[0].text).toMatch(/No token changes/);
+  expect(called).toBe(false);
+
+  const changed = await handleCall('diff_design_md', {
+    base_design_md: bad,
+    head_design_md: bad.replace('#ffffff', '#000000'),
+  });
+  expect(changed.content[0].text).toMatch(/breaking/);
 });

@@ -7,7 +7,8 @@
 // Scores any URL against the AI-design-slop fingerprint and emits a
 // pretty terminal report or a machine-readable JSON blob.
 
-import { scanUrl, scanRemote, aeoRemote, loadDesignMd, buildSarifReport } from '../src/index.js';
+import { readFileSync } from 'node:fs';
+import { scanUrl, scanRemote, aeoRemote, loadDesignMd, loadAxeSource, buildSarifReport } from '../src/index.js';
 import type { ScanOptions } from '../src/index.js';
 import {
   isPreset,
@@ -18,6 +19,9 @@ import {
   runAeoChecks,
   buildFixPrompt,
   generateDesignMd,
+  extractDtcgTokens,
+  lintDesignMd,
+  diffDesignMd,
 } from '@slop-detect/core';
 
 const CLI_VERSION = '0.8.0';
@@ -28,6 +32,10 @@ const flags = {
   sarif: false,
   fixPrompt: false,
   initDesignMd: false,
+  initTokens: false,
+  lintDesignMd: null as string | null,
+  diffDesignMd: null as [string, string] | null,
+  a11y: false,
   screenshot: false,
   verbose: false,
   preset: 'full',
@@ -83,6 +91,24 @@ for (let i = 0; i < args.length; i++) {
   else if (a === '--sarif') flags.sarif = true;
   else if (a === '--fix-prompt' || a === '--fix') flags.fixPrompt = true;
   else if (a === '--init-design-md') flags.initDesignMd = true;
+  else if (a === '--init-tokens') flags.initTokens = true;
+  else if (a === '--a11y') flags.a11y = true;
+  else if (a === '--lint-design-md' || a.startsWith('--lint-design-md=')) {
+    const val = a.startsWith('--lint-design-md=') ? a.slice('--lint-design-md='.length) : args[++i];
+    if (!val || val.startsWith('--')) {
+      console.error('--lint-design-md needs a local DESIGN.md path.');
+      process.exit(2);
+    }
+    flags.lintDesignMd = val;
+  } else if (a === '--diff-design-md') {
+    const base = args[++i];
+    const head = args[++i];
+    if (!base || !head || base.startsWith('--') || head.startsWith('--')) {
+      console.error('--diff-design-md needs two local paths: <base> <head>.');
+      process.exit(2);
+    }
+    flags.diffDesignMd = [base, head];
+  }
   else if (a === '--screenshot') flags.screenshot = true;
   else if (a === '--verbose' || a === '-v') flags.verbose = true;
   else if (a === '--version' || a === '-V') {
@@ -177,6 +203,64 @@ for (let i = 0; i < args.length; i++) {
   } else urls.push(a);
 }
 
+function readLocalText(path: string, flagName: string) {
+  try {
+    return readFileSync(path, 'utf8');
+  } catch (e) {
+    console.error(`Could not read ${path} for ${flagName}: ${e.message}`);
+    process.exit(2);
+  }
+}
+
+if (flags.lintDesignMd && flags.diffDesignMd) {
+  console.error('Pass either --lint-design-md or --diff-design-md, not both.');
+  process.exit(2);
+}
+
+if (flags.lintDesignMd || flags.diffDesignMd) {
+  if (urls.length) {
+    console.error(
+      '--lint-design-md and --diff-design-md read local DESIGN.md files and do not take a URL.'
+    );
+    process.exit(2);
+  }
+  if (flags.lintDesignMd) {
+    const lint = lintDesignMd(readLocalText(flags.lintDesignMd, '--lint-design-md'));
+    if (flags.json) console.log(JSON.stringify(lint, null, 2));
+    else {
+      console.log(
+        `DESIGN.md ${lint.valid ? 'valid' : 'invalid'} (specVersion ${lint.specVersion}, ${lint.errors.length} errors, ${lint.warnings.length} warnings)`
+      );
+      for (const issue of lint.issues) {
+        console.log(
+          `  ${issue.severity} ${issue.ruleId}${issue.path ? ` ${issue.path}` : ''}: ${issue.message}`
+        );
+      }
+      if (!lint.issues.length) console.log('  No issues.');
+    }
+    process.exit(lint.valid ? 0 : 1);
+  }
+  const [basePath, headPath] = flags.diffDesignMd;
+  const diff = diffDesignMd(
+    readLocalText(basePath, '--diff-design-md'),
+    readLocalText(headPath, '--diff-design-md')
+  );
+  if (flags.json) console.log(JSON.stringify(diff, null, 2));
+  else {
+    console.log(
+      `DESIGN.md diff: ${diff.breaking ? 'breaking' : 'compatible'} (${diff.added.length} added, ${diff.removed.length} removed, ${diff.changed.length} changed)`
+    );
+    for (const row of diff.added) console.log(`  added ${row.path} = ${row.value}`);
+    for (const row of diff.removed) console.log(`  removed ${row.path} = ${row.value}`);
+    for (const row of diff.changed)
+      console.log(`  changed ${row.path}: ${row.before} → ${row.after}`);
+    if (!diff.added.length && !diff.removed.length && !diff.changed.length) {
+      console.log('  No token changes.');
+    }
+  }
+  process.exit(diff.breaking ? 1 : 0);
+}
+
 if (urls.length === 0) {
   help();
   process.exit(2);
@@ -192,6 +276,27 @@ if (flags.timeout && flags.remote) {
 if (flags.initDesignMd && flags.remote) {
   console.error(
     '--init-design-md requires local DOM token extraction; drop --remote to generate DESIGN.md.'
+  );
+  process.exit(2);
+}
+
+if (flags.initTokens && flags.remote) {
+  console.error(
+    '--init-tokens requires local DOM token extraction; drop --remote to generate tokens.json.'
+  );
+  process.exit(2);
+}
+
+if (flags.initDesignMd && flags.initTokens) {
+  console.error(
+    '--init-design-md and --init-tokens both write the extracted system to stdout. Pass only one.'
+  );
+  process.exit(2);
+}
+
+if (flags.a11y && flags.remote) {
+  console.error(
+    '--a11y runs axe-core in the local browser. It never changes a score. Drop --remote.'
   );
   process.exit(2);
 }
@@ -232,6 +337,16 @@ Options:
   --sarif             Emit SARIF 2.1.0 report for GitHub Code Scanning
   --fix-prompt, --fix Emit the opinionated markdown remediation prompt
   --init-design-md    Extract live DOM tokens and generate a starter DESIGN.md
+  --init-tokens       Extract live DOM tokens and write a DTCG tokens.json
+  --lint-design-md <file>
+                      Lint a local DESIGN.md (broken refs, contrast, orphans).
+                      No URL and no browser. Exits 1 when the file has errors.
+  --diff-design-md <base> <head>
+                      Diff two local DESIGN.md files. Exits 1 when the diff
+                      removes or changes a token.
+  --a11y              Optional axe-core report. Off by default. Local browser
+                      only. Never changes Clean/Mild/Heavy, craft, or the gate.
+                      Requires the optional axe-core package.
   --screenshot        Include a base64 hero screenshot in JSON output
   --verbose, -v       Show evidence details for every triggered pattern
   --preset, -p <p>    Scoring preset: full (default), strict, marketing, minimal
@@ -261,6 +376,9 @@ Examples:
   slop-detect https://example.com --copy             # design + copy slop
   slop-detect https://example.com --fix-prompt       # generate LLM remediation prompt
   slop-detect https://example.com --init-design-md > DESIGN.md
+  slop-detect https://example.com --init-tokens > tokens.json
+  slop-detect --lint-design-md ./DESIGN.md
+  slop-detect --diff-design-md ./base/DESIGN.md ./head/DESIGN.md
   slop-detect https://mysite.com --fail-on heavy     # CI gate: fail on heavy slop
   slop-detect https://mysite.com --fail-under B      # CI gate: require at least grade B
 
@@ -296,6 +414,11 @@ function emoji(tier) {
   if (tier === 'Heavy') return '🔴';
   if (tier === 'Mild') return '🟡';
   return '🟢';
+}
+
+function waivedNote(result) {
+  if (!Array.isArray(result.waivedPatterns) || result.waivedPatterns.length === 0) return '';
+  return `  ${C.grey}(raw ${result.rawScore} · ${result.waivedPatterns.length} waived by DESIGN.md)${C.reset}`;
 }
 
 function renderPretty(result) {
@@ -344,20 +467,28 @@ function renderPretty(result) {
           `  ${String(ax.patternsFlagged).padStart(2)}/${ax.patternsTotal} flagged${note}`
       );
     }
+    if (Array.isArray(result.waivedPatterns) && result.waivedPatterns.length) {
+      console.log(
+        `  ${C.grey}DESIGN.md waived ${result.waivedPatterns.length} declared pattern(s); raw design score ${result.rawScore}.${C.reset}`
+      );
+    }
     console.log();
   } else {
     console.log(
       `  ${emoji(result.tier)} ${ts}${C.bold}${result.tier}${C.reset}` +
         `  ·  ${C.bold}${result.grade || '?'}${C.reset}` +
         `  ·  score ${C.bold}${result.score}${C.reset}/100` +
-        `  ·  ${C.bold}${result.patternsFlagged}${C.reset}/${result.patternsTotal} patterns triggered`
+        `  ·  ${C.bold}${result.patternsFlagged}${C.reset}/${result.patternsTotal} patterns triggered` +
+        waivedNote(result)
     );
     if (result.verdict) console.log(`  ${C.grey}${result.verdict}${C.reset}`);
     console.log();
   }
 
   // Design-axis pattern detail (always shown — it's the primary fingerprint).
-  const flagged = result.patterns.filter((p) => p.triggered);
+  // Declared DESIGN.md waivers stay out of the triggered list.
+  const flagged = result.patterns.filter((p) => p.triggered && !p.waived);
+  const waivedRows = result.patterns.filter((p) => p.waived);
   const clean = result.patterns.filter((p) => !p.triggered);
 
   if (flagged.length) {
@@ -393,6 +524,36 @@ function renderPretty(result) {
         console.log(`  ${C.red}✗${C.reset} ${p.label}  ${C.grey}(${p.weight})${C.reset}`);
       }
     }
+    console.log();
+  }
+
+  if (waivedRows.length) {
+    console.log(`${C.bold}Waived by DESIGN.md:${C.reset}`);
+    const reasons = new Map((result.waivedPatterns || []).map((w) => [w.id, w.reason]));
+    for (const p of waivedRows) {
+      console.log(`  ${C.grey}·${C.reset} ${p.label}  ${C.grey}${reasons.get(p.id) || ''}${C.reset}`);
+    }
+    console.log();
+  }
+
+  const axe = result.a11y && result.a11y.axe;
+  if (axe && axe.enabled) {
+    const count = typeof axe.violationCount === 'number' ? axe.violationCount : 0;
+    console.log(
+      `  ${C.bold}a11y${C.reset}   axe ${C.bold}${count}${C.reset} violations` +
+        `  ${C.grey}(separate · does not change the score)${C.reset}`
+    );
+    if (axe.error) console.log(`  ${C.yellow}⚠ ${axe.error}${C.reset}`);
+    const rules = Array.isArray(axe.rules) ? axe.rules : [];
+    for (const rule of rules.slice(0, 15)) {
+      console.log(
+        `  ${C.grey}·${C.reset} ${rule.ruleId}  ${C.grey}(${rule.impact}, ${rule.nodeCount} nodes)${C.reset}`
+      );
+    }
+    if (rules.length > 15) {
+      console.log(`  ${C.grey}… ${rules.length - 15} more in --json${C.reset}`);
+    }
+    if (axe.disclaimer) console.log(`  ${C.grey}${axe.disclaimer}${C.reset}`);
     console.log();
   }
 
@@ -505,10 +666,18 @@ if (
   process.exit(2);
 }
 
-const machineOutput = flags.json || flags.sarif || flags.fixPrompt || flags.initDesignMd;
+const machineOutput = flags.json || flags.sarif || flags.fixPrompt || flags.initDesignMd || flags.initTokens;
 
 // ── Main ────────────────────────────────────────────────────────────────────
 (async () => {
+  if (flags.a11y) {
+    try {
+      await loadAxeSource();
+    } catch (e) {
+      console.error(e.message || String(e));
+      process.exit(2);
+    }
+  }
   const results = [];
   for (const url of urls) {
     try {
@@ -518,7 +687,8 @@ const machineOutput = flags.json || flags.sarif || flags.fixPrompt || flags.init
         axes: flags.axes,
         api: flags.api,
         timeout: flags.timeout || undefined,
-        includeSystem: flags.initDesignMd || undefined,
+        includeSystem: flags.initDesignMd || flags.initTokens || undefined,
+        a11y: flags.a11y || undefined,
       };
       if (flags.designMd && !flags.remote) {
         const loaded = await loadDesignMd(flags.designMd, url);
@@ -570,6 +740,16 @@ const machineOutput = flags.json || flags.sarif || flags.fixPrompt || flags.init
       });
     });
     console.log(docs.join('\n\n'));
+  } else if (flags.initTokens) {
+    const docs = results.map((r) => {
+      if (r.error || r.blocked) return { url: r.url, error: r.error || r.code };
+      let host = 'Site';
+      try {
+        host = new URL(r.finalUrl || r.url).hostname.replace(/^www\./, '');
+      } catch {}
+      return extractDtcgTokens(r.systemContext || {}, { name: r.title || host });
+    });
+    console.log(JSON.stringify(docs.length === 1 ? docs[0] : docs, null, 2));
   } else if (flags.fixPrompt) {
     const prompts = results.map((r) =>
       r.error || r.blocked
