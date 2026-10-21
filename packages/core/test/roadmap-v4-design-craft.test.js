@@ -730,4 +730,129 @@ describe('#255..#264 F-00..F-09: Craft-floor axis separation and checks', () => 
     expect(axe.scored).toBe(false);
     expect(axe.violationCount).toBe(1);
   });
+
+  test('a :focus::after ring counts only for elements that match that selector', () => {
+    const focus = CRAFT_CHECKS.find((c) => c.id === 'focus_indicator_missing');
+    const make = (tagName, { className = '', matches }) => ({
+      tagName,
+      disabled: false,
+      className,
+      style: { outline: 'none', outlineWidth: '', boxShadow: '', borderColor: '' },
+      getAttribute: (name) => (name === 'href' && tagName === 'A' ? '/next' : null),
+      hasAttribute: (name) => name === 'href' && tagName === 'A',
+      getBoundingClientRect: () => ({ top: 20, width: 120, height: 36 }),
+      matches,
+    });
+    const button = make('BUTTON', { matches: (sel) => sel === 'button' });
+    const card = make('A', { className: 'card', matches: (sel) => sel === 'a.card' || sel === 'a' });
+    const prevDoc = globalThis.document;
+    const prevWin = globalThis.window;
+    const prevGcs = globalThis.getComputedStyle;
+    globalThis.document = {
+      styleSheets: [
+        {
+          cssRules: [
+            {
+              selectorText: 'a.card:focus::after',
+              cssText: 'a.card:focus::after { box-shadow: 0 0 0 3px #111; }',
+            },
+          ],
+        },
+      ],
+    };
+    globalThis.window = { innerHeight: 900 };
+    globalThis.getComputedStyle = () => ({
+      outlineStyle: 'none',
+      outlineWidth: '0px',
+      boxShadow: 'none',
+    });
+    try {
+      const scoped = focus.extract({ visible: [button, card] });
+      expect(scoped.missingCount).toBe(1);
+      expect(scoped.triggered).toBe(true);
+
+      globalThis.document = {
+        styleSheets: [
+          {
+            cssRules: [
+              {
+                selectorText: ':focus::after',
+                cssText: ':focus::after { outline: 2px solid #111; }',
+              },
+            ],
+          },
+        ],
+      };
+      const universal = focus.extract({ visible: [button, card] });
+      expect(universal.missingCount).toBe(0);
+      expect(universal.triggered).toBe(false);
+    } finally {
+      globalThis.document = prevDoc;
+      globalThis.window = prevWin;
+      globalThis.getComputedStyle = prevGcs;
+    }
+  });
+
+  test('unprobed required, pattern, and aria constraints stay unknown; pass needs a probe plus native :invalid', () => {
+    const fnf = CRAFT_CHECKS.find((c) => c.id === 'form_no_failure_feedback');
+    const run = (form) => {
+      const prev = globalThis.document;
+      globalThis.document = {
+        querySelector: (sel) => (sel === 'form' ? form : null),
+        querySelectorAll: (sel) => (sel === 'form' ? [form] : []),
+      };
+      try {
+        return fnf.extract({});
+      } finally {
+        globalThis.document = prev;
+      }
+    };
+    const input = (attrs, extra = {}) => ({
+      hasAttribute: (name) => Object.prototype.hasOwnProperty.call(attrs, name),
+      getAttribute: (name) => (Object.prototype.hasOwnProperty.call(attrs, name) ? attrs[name] : null),
+      matches: () => false,
+      ...extra,
+    });
+    const formOf = (inputs, { probed = false, errorText = '' } = {}) => ({
+      querySelectorAll: () => inputs,
+      querySelector: (sel) =>
+        sel.includes('alert') && errorText ? { textContent: errorText } : null,
+      getAttribute: (name) => (name === 'data-probed-empty' && probed ? 'true' : null),
+      hasAttribute: () => false,
+    });
+
+    const required = run(formOf([input({ required: '' })]));
+    expect(required.status).toBe('unknown');
+    expect(required.triggered).toBe(false);
+
+    const patterned = run(formOf([input({ pattern: '.+' })]));
+    expect(patterned.status).toBe('unknown');
+
+    const ariaRequired = run(formOf([input({ 'aria-required': 'true' })]));
+    expect(ariaRequired.status).toBe('unknown');
+
+    const ariaInvalid = run(formOf([input({ 'aria-invalid': 'true' })]));
+    expect(ariaInvalid.status).toBe('unknown');
+
+    const probedInvalid = run(
+      formOf([input({}, { matches: (sel) => sel === ':invalid' })], { probed: true }),
+    );
+    expect(probedInvalid.status).toBe('pass');
+    expect(probedInvalid.triggered).toBe(false);
+    expect(probedInvalid.hasInvalidPseudo).toBe(true);
+
+    const probedEmpty = run(formOf([input({})], { probed: true }));
+    expect(probedEmpty.status).toBe('fail');
+    expect(probedEmpty.triggered).toBe(true);
+
+    const requiredFieldOnly = evaluateFormFailureFeedback({
+      formPresent: true,
+      submittedEmpty: true,
+      hasRequiredField: true,
+      hasInvalidPseudo: false,
+      nativeInvalid: false,
+    });
+    expect(requiredFieldOnly.status).toBe('fail');
+    expect(requiredFieldOnly.triggered).toBe(true);
+  });
 });

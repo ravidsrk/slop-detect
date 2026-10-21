@@ -228,7 +228,7 @@ function buildDomFromHtml(html) {
         .trim();
       if (cleaned && current) {
         current._textParts.push(cleaned);
-        current.childNodes.push({ nodeType: 3, textContent: cleaned });
+        current.childNodes.push({ nodeType: 3, textContent: cleaned, nodeValue: cleaned });
       }
       continue;
     }
@@ -398,7 +398,7 @@ export function evaluatePioneerSnapshot(html, { extraPatterns = [] } = {}) {
     }
     const { patterns, patternsErrored } = assemblePatternResults(raw.signals);
     const designResult = scorePatterns(patterns);
-    const copyResult = scoreCopy(raw.text);
+    const copyResult = scoreCopy(raw.textContext || {});
     return { raw, patterns, patternsErrored, designResult, copyResult };
   } finally {
     globalThis.document = prevDoc;
@@ -422,10 +422,28 @@ describe('K-05 (#300): Pioneer HTML fixture regression suite (real page-script e
       expect(designResult.tier).not.toBe('Heavy');
       expect(designResult.score).toBeLessThan(10);
       expect(designResult.tier).toBe('Clean');
+      expect(copyResult.wordCount).toBeGreaterThan(40);
       expect(copyResult.score).toBeLessThan(8);
       expect(copyResult.tier).toBe('Clean');
     });
   }
+
+  test('scores extracted textContext, so copy that would be Heavy is Heavy', () => {
+    const pad = Array.from({ length: 40 }, () =>
+      'The ledger records each settlement in the database before the next batch window starts.',
+    ).join(' ');
+    const html = `<!doctype html><html><body>
+      <main>
+        <h1>Platform</h1>
+        <p>In today's fast-paced world we leverage seamless robust tools to elevate and unlock a streamlined harness. It's not just a ledger, it's a platform. This isn't just software. Whether you're a founder or an operator, the product is ready. ${pad} In conclusion the system is complete.</p>
+      </main>
+    </body></html>`;
+    const { copyResult, raw } = evaluatePioneerSnapshot(html);
+    expect(raw.text).toBeUndefined();
+    expect(raw.textContext.proseWordCount).toBeGreaterThanOrEqual(300);
+    expect(copyResult.score).toBeGreaterThanOrEqual(20);
+    expect(copyResult.tier).toBe('Heavy');
+  });
 
   test('Linear (Inter only) and Vercel (Geist only) trigger real slop_fonts.extract with interOrGeistOnly=true and receive 0 points via slop_fonts_co_signal', () => {
     const linear = evaluatePioneerSnapshot(loadPioneerHtml('linear'));

@@ -3061,7 +3061,7 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
         return { triggered: false, probedCount: 0, missingFirst5: 0, missingRatio: 0 };
       }
       let globalOutlineSuppressed = false;
-      let stylesheetPseudoFocusRing = false;
+      const pseudoFocusRingSelectors = [];
       try {
         for (const sheet of Array.from(document.styleSheets)) {
           let rules;
@@ -3075,7 +3075,7 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
             const sel = String(rule.selectorText || "");
             const cssText = String(rule.cssText || "");
             if (/:focus(?:-visible)?::(?:after|before)/i.test(sel) && /outline|box-shadow|border/i.test(cssText)) {
-              stylesheetPseudoFocusRing = true;
+              pseudoFocusRingSelectors.push(sel);
             }
             if (/:focus/.test(sel) && /outline\\s*:\\s*(?:none|0(?:px)?)\\b/i.test(cssText) && !/box-shadow|border-color|ring/i.test(cssText)) {
               globalOutlineSuppressed = true;
@@ -3084,11 +3084,23 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
         }
       } catch {
       }
+      const matchesPseudoFocusSelector = (el, sel) => {
+        const chunks = String(sel).split(",");
+        for (const chunk of chunks) {
+          const base = chunk.replace(/::(?:before|after)\\b/gi, "").replace(/:focus-visible\\b/gi, "").replace(/:focus\\b/gi, "").replace(/\\s+/g, " ").trim();
+          if (!base || base === "*") return true;
+          try {
+            if (typeof el.matches === "function" && el.matches(base)) return true;
+          } catch {
+          }
+        }
+        return false;
+      };
       let missingFirst5 = 0;
       let missingCount = 0;
       focusables.forEach((el, idx) => {
         const cs = getComputedStyle(el);
-        let hasPseudoRing = stylesheetPseudoFocusRing || el.getAttribute?.("data-pseudo-focus-ring") === "true";
+        let hasPseudoRing = el.getAttribute?.("data-pseudo-focus-ring") === "true" || pseudoFocusRingSelectors.some((sel) => matchesPseudoFocusSelector(el, sel));
         if (!hasPseudoRing) {
           try {
             const afterCs = getComputedStyle(el, "::after");
@@ -3353,9 +3365,7 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
             requestsMade: 0
           };
         }
-        const hasInvalidPseudo = Boolean(
-          probe.hasInvalidPseudo || probe.hasRequiredField || probe.nativeInvalid
-        );
+        const hasInvalidPseudo = Boolean(probe.hasInvalidPseudo || probe.nativeInvalid);
         const hasAriaInvalid = Boolean(probe.hasAriaInvalid || probe.hasInvalidAria);
         const hasVisibleErrorText2 = Boolean(
           probe.hasVisibleErrorText || (probe.visibleErrorCount ?? 0) > 0 || probe.errorMessageShown
@@ -3380,22 +3390,32 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
         form.querySelectorAll('input:not([type="hidden"]):not([type="submit"]), textarea, select')
       );
       if (inputs.length === 0) return { triggered: false, status: "na", requestsMade: 0 };
-      const hasRequiredOrValidation = inputs.some(
-        (inp) => inp.hasAttribute("required") || inp.getAttribute("aria-required") === "true" || inp.getAttribute("aria-invalid") === "true" || inp.hasAttribute("pattern") || typeof inp.matches === "function" && inp.matches(":invalid")
+      const nativeInvalid = inputs.some(
+        (inp) => typeof inp.matches === "function" && inp.matches(":invalid")
       );
       const errEl = form.querySelector('[role="alert"], [aria-live], .error, [data-error]');
       const hasVisibleErrorText = Boolean(errEl && (errEl.textContent || "").trim().length > 0);
-      if (hasRequiredOrValidation || hasVisibleErrorText) {
+      const wasProbedAttr = form.getAttribute("data-probed-empty") === "true";
+      if (wasProbedAttr && nativeInvalid) {
         return {
           formPresent: true,
-          hasInvalidPseudo: hasRequiredOrValidation,
+          hasInvalidPseudo: true,
           hasVisibleErrorText,
           status: "pass",
           triggered: false,
           requestsMade: 0
         };
       }
-      const wasProbedAttr = form.getAttribute("data-probed-empty") === "true" || form.hasAttribute("novalidate");
+      if (wasProbedAttr && hasVisibleErrorText) {
+        return {
+          formPresent: true,
+          hasInvalidPseudo: false,
+          hasVisibleErrorText: true,
+          status: "pass",
+          triggered: false,
+          requestsMade: 0
+        };
+      }
       if (!wasProbedAttr) {
         return {
           formPresent: true,
@@ -6832,7 +6852,7 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
         return { triggered: false, probedCount: 0, missingFirst5: 0, missingRatio: 0 };
       }
       let globalOutlineSuppressed = false;
-      let stylesheetPseudoFocusRing = false;
+      const pseudoFocusRingSelectors = [];
       try {
         for (const sheet of Array.from(document.styleSheets)) {
           let rules;
@@ -6846,7 +6866,7 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
             const sel = String(rule.selectorText || "");
             const cssText = String(rule.cssText || "");
             if (/:focus(?:-visible)?::(?:after|before)/i.test(sel) && /outline|box-shadow|border/i.test(cssText)) {
-              stylesheetPseudoFocusRing = true;
+              pseudoFocusRingSelectors.push(sel);
             }
             if (/:focus/.test(sel) && /outline\\s*:\\s*(?:none|0(?:px)?)\\b/i.test(cssText) && !/box-shadow|border-color|ring/i.test(cssText)) {
               globalOutlineSuppressed = true;
@@ -6855,11 +6875,23 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
         }
       } catch {
       }
+      const matchesPseudoFocusSelector = (el, sel) => {
+        const chunks = String(sel).split(",");
+        for (const chunk of chunks) {
+          const base = chunk.replace(/::(?:before|after)\\b/gi, "").replace(/:focus-visible\\b/gi, "").replace(/:focus\\b/gi, "").replace(/\\s+/g, " ").trim();
+          if (!base || base === "*") return true;
+          try {
+            if (typeof el.matches === "function" && el.matches(base)) return true;
+          } catch {
+          }
+        }
+        return false;
+      };
       let missingFirst5 = 0;
       let missingCount = 0;
       focusables.forEach((el, idx) => {
         const cs = getComputedStyle(el);
-        let hasPseudoRing = stylesheetPseudoFocusRing || el.getAttribute?.("data-pseudo-focus-ring") === "true";
+        let hasPseudoRing = el.getAttribute?.("data-pseudo-focus-ring") === "true" || pseudoFocusRingSelectors.some((sel) => matchesPseudoFocusSelector(el, sel));
         if (!hasPseudoRing) {
           try {
             const afterCs = getComputedStyle(el, "::after");
@@ -7124,9 +7156,7 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
             requestsMade: 0
           };
         }
-        const hasInvalidPseudo = Boolean(
-          probe.hasInvalidPseudo || probe.hasRequiredField || probe.nativeInvalid
-        );
+        const hasInvalidPseudo = Boolean(probe.hasInvalidPseudo || probe.nativeInvalid);
         const hasAriaInvalid = Boolean(probe.hasAriaInvalid || probe.hasInvalidAria);
         const hasVisibleErrorText2 = Boolean(
           probe.hasVisibleErrorText || (probe.visibleErrorCount ?? 0) > 0 || probe.errorMessageShown
@@ -7151,22 +7181,32 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
         form.querySelectorAll('input:not([type="hidden"]):not([type="submit"]), textarea, select')
       );
       if (inputs.length === 0) return { triggered: false, status: "na", requestsMade: 0 };
-      const hasRequiredOrValidation = inputs.some(
-        (inp) => inp.hasAttribute("required") || inp.getAttribute("aria-required") === "true" || inp.getAttribute("aria-invalid") === "true" || inp.hasAttribute("pattern") || typeof inp.matches === "function" && inp.matches(":invalid")
+      const nativeInvalid = inputs.some(
+        (inp) => typeof inp.matches === "function" && inp.matches(":invalid")
       );
       const errEl = form.querySelector('[role="alert"], [aria-live], .error, [data-error]');
       const hasVisibleErrorText = Boolean(errEl && (errEl.textContent || "").trim().length > 0);
-      if (hasRequiredOrValidation || hasVisibleErrorText) {
+      const wasProbedAttr = form.getAttribute("data-probed-empty") === "true";
+      if (wasProbedAttr && nativeInvalid) {
         return {
           formPresent: true,
-          hasInvalidPseudo: hasRequiredOrValidation,
+          hasInvalidPseudo: true,
           hasVisibleErrorText,
           status: "pass",
           triggered: false,
           requestsMade: 0
         };
       }
-      const wasProbedAttr = form.getAttribute("data-probed-empty") === "true" || form.hasAttribute("novalidate");
+      if (wasProbedAttr && hasVisibleErrorText) {
+        return {
+          formPresent: true,
+          hasInvalidPseudo: false,
+          hasVisibleErrorText: true,
+          status: "pass",
+          triggered: false,
+          requestsMade: 0
+        };
+      }
       if (!wasProbedAttr) {
         return {
           formPresent: true,

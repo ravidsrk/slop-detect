@@ -299,9 +299,10 @@ export function evaluateFormFailureFeedback(
       requestsMade: 0,
     };
   }
-  const hasInvalidPseudo = Boolean(
-    probe.hasInvalidPseudo || probe.hasRequiredField || probe.nativeInvalid,
-  );
+  // required/pattern/aria-* alone are not a probe result. Pass only when the
+  // probe observed native :invalid (hasInvalidPseudo / nativeInvalid) or another
+  // explicit feedback signal. hasRequiredField must not count as feedback.
+  const hasInvalidPseudo = Boolean(probe.hasInvalidPseudo || probe.nativeInvalid);
   const hasAriaInvalid = Boolean(probe.hasAriaInvalid || probe.hasInvalidAria);
   const hasVisibleErrorText = Boolean(
     probe.hasVisibleErrorText ||
@@ -640,9 +641,11 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
         return { triggered: false, probedCount: 0, missingFirst5: 0, missingRatio: 0 };
       }
 
-      // Check stylesheet rules for explicit outline: none / 0 without focus replacement
+      // Check stylesheet rules for explicit outline: none / 0 without focus replacement.
+      // A :focus::after / :focus::before ring applies only to elements that match
+      // that rule's selector. One card rule must not clear every control on the page.
       let globalOutlineSuppressed = false;
-      let stylesheetPseudoFocusRing = false;
+      const pseudoFocusRingSelectors: string[] = [];
       try {
         for (const sheet of Array.from(document.styleSheets)) {
           let rules: any;
@@ -656,7 +659,7 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
             const sel = String(rule.selectorText || '');
             const cssText = String(rule.cssText || '');
             if (/:focus(?:-visible)?::(?:after|before)/i.test(sel) && /outline|box-shadow|border/i.test(cssText)) {
-              stylesheetPseudoFocusRing = true;
+              pseudoFocusRingSelectors.push(sel);
             }
             if (
               /:focus/.test(sel) &&
@@ -671,11 +674,32 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
         // ignore cross-origin stylesheet errors
       }
 
+      const matchesPseudoFocusSelector = (el: any, sel: string) => {
+        const chunks = String(sel).split(',');
+        for (const chunk of chunks) {
+          const base = chunk
+            .replace(/::(?:before|after)\b/gi, '')
+            .replace(/:focus-visible\b/gi, '')
+            .replace(/:focus\b/gi, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+          if (!base || base === '*') return true;
+          try {
+            if (typeof el.matches === 'function' && el.matches(base)) return true;
+          } catch {
+            // ignore a selector the browser cannot match
+          }
+        }
+        return false;
+      };
+
       let missingFirst5 = 0;
       let missingCount = 0;
       focusables.forEach((el: any, idx: number) => {
         const cs = getComputedStyle(el);
-        let hasPseudoRing = stylesheetPseudoFocusRing || el.getAttribute?.('data-pseudo-focus-ring') === 'true';
+        let hasPseudoRing =
+          el.getAttribute?.('data-pseudo-focus-ring') === 'true' ||
+          pseudoFocusRingSelectors.some((sel) => matchesPseudoFocusSelector(el, sel));
         if (!hasPseudoRing) {
           try {
             const afterCs = getComputedStyle(el, '::after');
@@ -1037,9 +1061,7 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
             requestsMade: 0,
           };
         }
-        const hasInvalidPseudo = Boolean(
-          probe.hasInvalidPseudo || probe.hasRequiredField || probe.nativeInvalid,
-        );
+        const hasInvalidPseudo = Boolean(probe.hasInvalidPseudo || probe.nativeInvalid);
         const hasAriaInvalid = Boolean(probe.hasAriaInvalid || probe.hasInvalidAria);
         const hasVisibleErrorText = Boolean(
           probe.hasVisibleErrorText ||
@@ -1067,28 +1089,36 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
         form.querySelectorAll('input:not([type="hidden"]):not([type="submit"]), textarea, select'),
       );
       if (inputs.length === 0) return { triggered: false, status: 'na', requestsMade: 0 };
-      const hasRequiredOrValidation = inputs.some(
-        (inp: any) =>
-          inp.hasAttribute('required') ||
-          inp.getAttribute('aria-required') === 'true' ||
-          inp.getAttribute('aria-invalid') === 'true' ||
-          inp.hasAttribute('pattern') ||
-          (typeof inp.matches === 'function' && inp.matches(':invalid')),
+      // Constraint attributes are not evidence. Pass only when this DOM was
+      // probed and native :invalid matched, or a probed submit left visible
+      // error text. Unprobed required / pattern / aria-required / aria-invalid
+      // stays unknown.
+      const nativeInvalid = inputs.some(
+        (inp: any) => typeof inp.matches === 'function' && inp.matches(':invalid'),
       );
       const errEl = form.querySelector('[role="alert"], [aria-live], .error, [data-error]');
       const hasVisibleErrorText = Boolean(errEl && (errEl.textContent || '').trim().length > 0);
-      if (hasRequiredOrValidation || hasVisibleErrorText) {
+      const wasProbedAttr = form.getAttribute('data-probed-empty') === 'true';
+      if (wasProbedAttr && nativeInvalid) {
         return {
           formPresent: true,
-          hasInvalidPseudo: hasRequiredOrValidation,
+          hasInvalidPseudo: true,
           hasVisibleErrorText,
           status: 'pass',
           triggered: false,
           requestsMade: 0,
         };
       }
-      const wasProbedAttr =
-        form.getAttribute('data-probed-empty') === 'true' || form.hasAttribute('novalidate');
+      if (wasProbedAttr && hasVisibleErrorText) {
+        return {
+          formPresent: true,
+          hasInvalidPseudo: false,
+          hasVisibleErrorText: true,
+          status: 'pass',
+          triggered: false,
+          requestsMade: 0,
+        };
+      }
       if (!wasProbedAttr) {
         return {
           formPresent: true,
