@@ -5,6 +5,7 @@
 
 import {
   AEO_CHECKS,
+  buildAvoidList,
   buildFixPrompt,
   COPY_PATTERNS,
   CRAFT_CHECKS,
@@ -22,6 +23,7 @@ export interface LocalScanOptions {
   axes?: string[];
   preset?: string;
   designMd?: string | boolean;
+  brief?: boolean;
 }
 
 interface DesignMdLoad {
@@ -226,5 +228,6 @@ export async function localFixPrompt(url: string, opts: LocalScanOptions = {}) {
     const reason = result && result.error ? result.error : 'The page produced no score.';
     throw new Error(`Scan could not run. This is not a Clean score. ${reason}`);
   }
+  if (opts.brief) return buildAvoidList(result);
   return buildFixPrompt(result);
 }

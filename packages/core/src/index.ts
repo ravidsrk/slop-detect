@@ -87,6 +87,52 @@ export {
 } from './calibration.js';
 export { FIXES, buildFixPrompt, formatEvidence } from './fixes.js';
 export {
+  AVOID_LIST_WORD_CAP,
+  countWords,
+  scanCouldNotScore,
+  triggeredPatterns,
+  firstSample,
+  buildAvoidList,
+  diffScanFindings,
+  regressionAgainstBaseline,
+} from './brief.js';
+export {
+  SITE_SAMPLE_DEFAULT,
+  SITE_SAMPLE_MAX,
+  SITE_MIN_VISIBLE_WORDS,
+  normalizeSiteSampleSize,
+  sameOrigin,
+  canonicalPageUrl,
+  selectSiteSample,
+  urlsFromSitemap,
+  urlsFromHtmlLinks,
+  discoverSitePages,
+  collectSiteCopyPages,
+  stripHtml,
+  htmlToCopyInput,
+  pageEligibleForSiteScore,
+  dedupeTemplateFindings,
+  aggregateSiteScores,
+  patternShares,
+  buildRenderedSiteReport,
+  formatSiteSummary,
+  type SiteSample,
+  type HtmlCopyPage,
+  type TemplateFinding,
+  type SitePageScore,
+} from './site.js';
+export {
+  REPORT_FORMATS,
+  isReportFormat,
+  formatDefaultReport,
+  formatAgentReport,
+  formatGithubReport,
+  formatJunitReport,
+  formatGitlabReport,
+  type ReportFormat,
+} from './reporters.js';
+export { buildAeoFixFiles, type AeoFixOptions, type AeoFixPage } from './aeo-fixes.js';
+export {
   gradeForScore,
   verdictFor,
   GRADE_BANDS,
@@ -112,6 +158,7 @@ export {
   toMarkdownUrl,
   runAeoChecks,
   runAeoChecks as scoreAeo,
+  validateLlmsTxt,
   readCapped,
   MAX_HTML_BYTES,
 } from './aeo.js';
@@ -845,6 +892,23 @@ export function scoreMultiPageCopy(
     percentiles: { p10, p50, p90 },
     artifactFindings,
     pages: pageResults,
+  };
+}
+
+// Site copy report. Does not change scoreMultiPageCopy. The pre-2022 Heavy
+// rate stays null until that corpus is scored. Static HTML is not a render.
+export function scoreSiteCopy(
+  pages: Array<string | MultiPageCopyInput> = [],
+  opts: { minQualifyingPages?: number; boilerplateThreshold?: number } = {}
+) {
+  const result = scoreMultiPageCopy(pages, opts);
+  return {
+    ...result,
+    axis: 'copy' as const,
+    rendered: false as const,
+    pre2022HeavyRate: null,
+    pre2022HeavyRateStatus: 'unmeasured' as const,
+    definitionsVersion: DEFINITIONS_VERSION,
   };
 }
 

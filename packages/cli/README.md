@@ -36,6 +36,14 @@ slop-detect <url> --preset strict       # preset: full | strict | marketing | mi
 slop-detect <url> --remote              # scan via https://slop-detect.com/api/scan (no browser)
 slop-detect <url> --fail-on heavy       # exit non-zero on heavy (or mild) tier for CI
 slop-detect <url> --json                # machine-readable JSON output
+slop-detect result.json --format agent # one line per finding; also github, junit, gitlab, sarif
+slop-detect --brief result.json        # avoid list, at most 120 words; --fix-prompt stays the long prompt
+slop-detect --diff-scan before.json after.json
+slop-detect --copy-dir ./dist          # copy axis from HTML files; not a rendered design score
+slop-detect https://example.com --site-copy 5
+slop-detect https://example.com --site 5
+slop-detect --emit-aeo-fixes ./aeo --origin https://example.com
+slop-detect init --dir . --no-hooks    # project skill and MCP config; --scope=project only
 slop-detect <url> --screenshot          # include base64 viewport screenshot
 slop-detect <url> --timeout 30000       # navigation timeout in ms
 ```

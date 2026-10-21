@@ -18,7 +18,14 @@ import {
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 
-import { lintDesignMd, diffDesignMd, stampScanResult } from '@slop-detect/core';
+import {
+  AEO_CHECKS,
+  DEFINITIONS_VERSION,
+  buildAvoidList,
+  diffDesignMd,
+  lintDesignMd,
+  stampScanResult,
+} from '@slop-detect/core';
 import { scanPage, checkAeo, checkSystem, fixPrompt, fetchPatterns, ApiError } from './api.js';
 import {
   formatScan,
@@ -208,6 +215,11 @@ export const TOOLS = [
           type: 'string',
           description: 'Optional: URL to DESIGN.md or "auto" to include system drift remediation.',
         },
+        brief: {
+          type: 'boolean',
+          description:
+            'Optional. When true, return a short avoid list of at most 120 words. The default remains the long remediation prompt.',
+        },
       },
       required: ['url'],
     },
@@ -332,6 +344,13 @@ export const RESOURCES = [
       'Reference DESIGN.md file with YAML front-matter tokens (colors, typography, rounded, components) for the system compliance axis.',
     mimeType: 'text/markdown',
   },
+  {
+    uri: 'slop://spec/aeo',
+    name: 'AEO check catalogue',
+    description:
+      'AEO checks from the installed engine. Weight 0 checks stay in review. Pre-2022 false-positive rates are unmeasured.',
+    mimeType: 'application/json',
+  },
 ];
 
 // Wrap a tool body so any thrown error (network, ApiError, validation) becomes
@@ -348,7 +367,8 @@ function asToolResult(text, isError = false, structuredContent?) {
 }
 
 function extractScanOptions(args: any) {
-  const opts: { axes?: string[]; preset?: string; designMd?: string | boolean } = {};
+  const opts: { axes?: string[]; preset?: string; designMd?: string | boolean; brief?: boolean } =
+    {};
   if (Array.isArray(args?.axes) && args.axes.length > 0) {
     opts.axes = args.axes;
   } else if (args?.copy === true) {
@@ -361,6 +381,7 @@ function extractScanOptions(args: any) {
     const d = args.design_md_url.trim();
     opts.designMd = d === 'auto' ? true : d;
   }
+  if (args?.brief === true) opts.brief = true;
   return opts;
 }
 
@@ -421,6 +442,17 @@ export async function handleCall(name, args) {
     return asToolResult(formatSystem(result));
   }
   if (name === 'fix_prompt') {
+    if (args?.brief === true) {
+      const result = stampScanResult(await scanPage(url, extractScanOptions(args))) as {
+        blocked?: boolean;
+        error?: unknown;
+        score?: unknown;
+      };
+      if (!result || result.blocked || result.error || typeof result.score !== 'number') {
+        return asToolResult('Scan could not run. This is not a Clean score.', true);
+      }
+      return asToolResult(buildAvoidList(result));
+    }
     const prompt = await fixPrompt(url, extractScanOptions(args));
     return asToolResult(prompt);
   }
@@ -533,6 +565,29 @@ export async function loadResource(uri: string) {
       uri,
       mimeType: 'application/json',
       text: JSON.stringify(catalogue, null, 2),
+    };
+  }
+  if (uri === 'slop://spec/aeo') {
+    return {
+      uri,
+      mimeType: 'application/json',
+      text: JSON.stringify(
+        {
+          source: 'installed-engine',
+          definitionsVersion: DEFINITIONS_VERSION,
+          pre2022HeavyRate: null,
+          checks: AEO_CHECKS.map((check) => ({
+            id: check.id,
+            label: check.label,
+            weight: check.weight,
+            status: check.status,
+            likelihoodRatio: check.likelihoodRatio ?? null,
+            fpRatePre2022: check.fpRatePre2022 ?? null,
+          })),
+        },
+        null,
+        2
+      ),
     };
   }
   throw new Error(`Unknown resource URI: ${uri}`);

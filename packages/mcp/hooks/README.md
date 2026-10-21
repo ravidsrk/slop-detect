@@ -13,3 +13,5 @@ Point `SLOP_LOCAL_URL` at the dev server the agent just edited, for example `htt
 Use that same command in the harness hook file (Cursor `.cursor/hooks.json`, Codex `.codex/hooks.json`). Codex runs a hook only after you approve the hook file. This recipe does not submit anything to a marketplace or registry.
 
 The MCP server itself should be started with `--local` (`npx -y slop-detect-mcp --local` or `SLOP_DETECT_LOCAL=1`) so `scan_page`, `check_aeo`, `check_design_system`, and `fix_prompt` stay on this machine as well.
+
+`scan-regression.mjs` wraps that scan. The first scored run writes `.slop/session-baseline.json` and prints nothing. A later run prints only when the score rises or a new pattern appears. A blocked scan still exits 2. `slop-detect init` writes project files that call this command. It does not submit a marketplace listing.

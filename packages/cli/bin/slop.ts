@@ -26,12 +26,28 @@ import {
   GRADE_BANDS,
   runAeoChecks,
   buildFixPrompt,
+  buildAvoidList,
   generateDesignMd,
   extractDtcgTokens,
   lintDesignMd,
   diffDesignMd,
   stampScanResult,
+  formatSiteSummary,
+  isReportFormat,
 } from '@slop-detect/core';
+import { applyInitPlan, parseProviders, planInitFiles } from '../src/init-project.js';
+import {
+  avoidListWithinCap,
+  diffSavedScans,
+  discoverRenderedSite,
+  formatScanDocument,
+  pathExists,
+  readCopyDir,
+  readJsonFile,
+  siteCopyReport,
+  siteSummaryDocument,
+  writeAeoFixes,
+} from '../src/offline.js';
 
 const CLI_VERSION = '0.8.0';
 const args = process.argv.slice(2);
@@ -57,6 +73,22 @@ const flags = {
   api: null as string | null,
   designMd: null as string | null,
   timeout: null as number | null,
+  site: null as number | null,
+  siteCopy: null as number | null,
+  copyDir: null as string | null,
+  brief: false,
+  briefFile: null as string | null,
+  diffScan: null as [string, string] | null,
+  format: null as string | null,
+  emitAeoFixes: null as string | null,
+  origin: null as string | null,
+  siteName: null as string | null,
+  init: false,
+  initProviders: null as string | null,
+  initScope: 'project',
+  initCi: null as string | null,
+  noHooks: false,
+  initDir: null as string | null,
 };
 
 // Exit codes live in exitCodeForScanResults: 0 scored, 1 over the gate, 2 could
@@ -90,6 +122,15 @@ function parseAxes(val) {
   const out = [...new Set(list)];
   if (!out.includes('design')) out.unshift('design');
   return out;
+}
+
+function parseSampleSize(raw: string | undefined, flag: string): number {
+  const value = Number(raw);
+  if (!raw || String(raw).startsWith('--') || !Number.isInteger(value) || value < 1 || value > 15) {
+    console.error(`${flag} needs an integer from 1 to 15.`);
+    process.exit(2);
+  }
+  return value;
 }
 
 for (let i = 0; i < args.length; i++) {
@@ -186,6 +227,63 @@ for (let i = 0; i < args.length; i++) {
       process.exit(2);
     }
     flags.timeout = val;
+  } else if (a === '--site' || a.startsWith('--site=')) {
+    const raw = a.startsWith('--site=') ? a.slice('--site='.length) : args[++i];
+    flags.site = parseSampleSize(raw, '--site');
+  } else if (a === '--site-copy' || a.startsWith('--site-copy=')) {
+    const raw = a.startsWith('--site-copy=') ? a.slice('--site-copy='.length) : args[++i];
+    flags.siteCopy = parseSampleSize(raw, '--site-copy');
+  } else if (a === '--copy-dir' || a.startsWith('--copy-dir=')) {
+    const val = a.startsWith('--copy-dir=') ? a.slice('--copy-dir='.length) : args[++i];
+    if (!val || val.startsWith('--')) {
+      console.error('--copy-dir needs a directory of HTML files.');
+      process.exit(2);
+    }
+    flags.copyDir = val;
+  } else if (a === '--brief') {
+    const next = args[i + 1];
+    if (next && !next.startsWith('--') && !/^[a-z][a-z0-9+.-]*:/i.test(next)) {
+      flags.briefFile = args[++i];
+    }
+    flags.brief = true;
+  } else if (a === '--diff-scan') {
+    const before = args[++i];
+    const after = args[++i];
+    if (!before || !after || before.startsWith('--') || after.startsWith('--')) {
+      console.error('--diff-scan needs two scan JSON files: <before> <after>.');
+      process.exit(2);
+    }
+    flags.diffScan = [before, after];
+  } else if (a === '--format' || a.startsWith('--format=')) {
+    const val = a.startsWith('--format=') ? a.slice('--format='.length) : args[++i];
+    if (!val || !isReportFormat(val)) {
+      console.error(
+        `Unknown --format ${val || '(none)'}. Options: agent, github, sarif, junit, gitlab, json.`
+      );
+      process.exit(2);
+    }
+    flags.format = val;
+  } else if (a === '--emit-aeo-fixes' || a.startsWith('--emit-aeo-fixes=')) {
+    const val = a.startsWith('--emit-aeo-fixes=') ? a.slice('--emit-aeo-fixes='.length) : args[++i];
+    if (!val || val.startsWith('--')) {
+      console.error('--emit-aeo-fixes needs a directory to write starter files into.');
+      process.exit(2);
+    }
+    flags.emitAeoFixes = val;
+  } else if (a === '--origin' || a.startsWith('--origin=')) {
+    flags.origin = a.startsWith('--origin=') ? a.slice('--origin='.length) : args[++i];
+  } else if (a === '--site-name' || a.startsWith('--site-name=')) {
+    flags.siteName = a.startsWith('--site-name=') ? a.slice('--site-name='.length) : args[++i];
+  } else if (a === 'init') flags.init = true;
+  else if (a === '--providers' || a.startsWith('--providers=')) {
+    flags.initProviders = a.startsWith('--providers=') ? a.slice('--providers='.length) : args[++i];
+  } else if (a === '--scope' || a.startsWith('--scope=')) {
+    flags.initScope = a.startsWith('--scope=') ? a.slice('--scope='.length) : args[++i] || '';
+  } else if (a === '--ci' || a.startsWith('--ci=')) {
+    flags.initCi = a.startsWith('--ci=') ? a.slice('--ci='.length) : args[++i];
+  } else if (a === '--no-hooks') flags.noHooks = true;
+  else if (a === '--dir' || a.startsWith('--dir=')) {
+    flags.initDir = a.startsWith('--dir=') ? a.slice('--dir='.length) : args[++i];
   } else if (a === '--help' || a === '-h') {
     help();
     process.exit(0);
@@ -267,6 +365,124 @@ if (flags.lintDesignMd || flags.diffDesignMd) {
   process.exit(diff.breaking ? 1 : 0);
 }
 
+if (flags.format && flags.json && flags.format !== 'json') {
+  console.error('Pass either --json or --format, not both.');
+  process.exit(2);
+}
+if (flags.format && flags.sarif && flags.format !== 'sarif') {
+  console.error('Pass either --sarif or --format, not both.');
+  process.exit(2);
+}
+if (flags.site && flags.siteCopy) {
+  console.error('Pass either --site or --site-copy, not both.');
+  process.exit(2);
+}
+
+if (flags.init) {
+  if (urls.length) {
+    console.error('init writes project files and does not take a URL.');
+    process.exit(2);
+  }
+  try {
+    const providers = parseProviders(flags.initProviders || undefined);
+    const files = planInitFiles({
+      providers,
+      scope: flags.initScope,
+      ci: flags.initCi,
+      hooks: !flags.noHooks,
+    });
+    const dir = flags.initDir || process.cwd();
+    const wrote = applyInitPlan(dir, files);
+    console.log(
+      `init wrote ${wrote.written.length} file(s), left ${wrote.unchanged.length} unchanged, skipped ${wrote.skipped.length}.`
+    );
+    for (const path of wrote.written) console.log(`  wrote ${path}`);
+    for (const path of wrote.unchanged) console.log(`  unchanged ${path}`);
+    for (const path of wrote.skipped) console.log(`  skipped ${path}`);
+    process.exit(0);
+  } catch (e) {
+    console.error(e.message || String(e));
+    process.exit(2);
+  }
+}
+
+if (flags.copyDir) {
+  if (urls.length) {
+    console.error('--copy-dir reads local HTML and does not take a URL.');
+    process.exit(2);
+  }
+  if (!pathExists(flags.copyDir)) {
+    console.error(`Could not read ${flags.copyDir} for --copy-dir.`);
+    console.error('Scan could not run. This is not a Clean score.');
+    process.exit(2);
+  }
+  let report;
+  try {
+    report = readCopyDir(flags.copyDir);
+  } catch (e) {
+    console.error(e.message || String(e));
+    console.error('Scan could not run. This is not a Clean score.');
+    process.exit(2);
+  }
+  const copyLine =
+    report.status === 'ok'
+      ? `Site copy: ${report.score}/100 ${report.tier}. Qualifying pages: ${report.qualifyingPages}. Rendered: false. Pre-2022 Heavy rate: unmeasured.`
+      : `Site copy: ${report.status} (${report.qualifyingPages} qualifying, ${report.requiredPages} required). No site score. Rendered: false. Pre-2022 Heavy rate: unmeasured.`;
+  console.log(flags.json || flags.format === 'json' ? JSON.stringify(report, null, 2) : copyLine);
+  process.exit(0);
+}
+
+if (flags.emitAeoFixes) {
+  try {
+    const names = writeAeoFixes(flags.emitAeoFixes, {
+      origin: flags.origin || undefined,
+      siteName: flags.siteName || undefined,
+    });
+    console.log(`Wrote ${names.join(', ')} in ${flags.emitAeoFixes}.`);
+    process.exit(0);
+  } catch (e) {
+    console.error(e.message || String(e));
+    process.exit(2);
+  }
+}
+
+if (flags.diffScan) {
+  try {
+    const diff = diffSavedScans(readJsonFile(flags.diffScan[0]), readJsonFile(flags.diffScan[1]));
+    console.log(flags.json ? JSON.stringify(diff, null, 2) : diff.text);
+    process.exit(0);
+  } catch (e) {
+    console.error(e.message || String(e));
+    process.exit(2);
+  }
+}
+
+if (flags.briefFile) {
+  if (!pathExists(flags.briefFile)) {
+    console.error(`Could not read ${flags.briefFile} for --brief.`);
+    console.error('Scan could not run. This is not a Clean score.');
+    process.exit(2);
+  }
+  try {
+    const listed = avoidListWithinCap(readJsonFile(flags.briefFile));
+    console.log(listed.text);
+    process.exit(listed.text.includes('This is not a Clean score.') ? 2 : 0);
+  } catch (e) {
+    console.error(e.message || String(e));
+    process.exit(2);
+  }
+}
+
+if (flags.format && urls.length === 1 && pathExists(urls[0])) {
+  try {
+    console.log(formatScanDocument(readJsonFile(urls[0]), flags.format));
+    process.exit(0);
+  } catch (e) {
+    console.error(e.message || String(e));
+    process.exit(2);
+  }
+}
+
 if (urls.length === 0) {
   help();
   process.exit(2);
@@ -340,8 +556,25 @@ Usage:
 
 Options:
   --json, -j          Emit JSON instead of pretty output
+  --format <name>     agent, github, sarif, junit, gitlab, or json
   --sarif             Emit SARIF 2.1.0 report for GitHub Code Scanning
-  --fix-prompt, --fix Emit the opinionated markdown remediation prompt
+  --fix-prompt, --fix Emit the long remediation prompt
+  --brief [file]      Short avoid list (at most 120 words). Does not replace
+                      --fix-prompt. A saved scan JSON skips the browser.
+  --diff-scan <a> <b> Diff two saved scan JSON files
+  --copy-dir <dir>    Score HTML files on the copy axis. Does not render.
+                      Pre-2022 Heavy rate is unmeasured.
+  --site-copy <n>     Fetch up to n same-origin HTML pages and score copy.
+                      n is 1 to 15. Does not render. Not a design score.
+  --site <n>          Render up to n same-origin pages. Median beside homepage.
+                      Shared template selectors count once. Word gate is not
+                      applied, because scan results have no visible-word count.
+  --emit-aeo-fixes <dir>
+                      Write starter robots.txt, llms.txt, ard.json, and link
+                      headers. No model. Not a live mirror of ai.robots.txt.
+  init                Write project skill, MCP, and hook files (--dir, --providers,
+                      --scope=project, --no-hooks, --ci github). Not a registry
+                      submission. Does not write outside --dir or the project.
   --init-design-md    Extract live DOM tokens and generate a starter DESIGN.md
   --init-tokens       Extract live DOM tokens and write a DTCG tokens.json
   --lint-design-md <file>
@@ -675,11 +908,61 @@ if (
   process.exit(2);
 }
 
+if (
+  !flags.format &&
+  !flags.json &&
+  !flags.sarif &&
+  !flags.fixPrompt &&
+  !flags.brief &&
+  !process.env.CI &&
+  (process.env.CLAUDECODE || process.env.CURSOR_AGENT)
+) {
+  flags.format = 'agent';
+}
+
 const machineOutput =
-  flags.json || flags.sarif || flags.fixPrompt || flags.initDesignMd || flags.initTokens;
+  flags.json ||
+  flags.sarif ||
+  !!flags.format ||
+  flags.fixPrompt ||
+  flags.brief ||
+  flags.initDesignMd ||
+  flags.initTokens;
 
 // ── Main ────────────────────────────────────────────────────────────────────
 (async () => {
+  if (flags.siteCopy) {
+    if (urls.length !== 1) {
+      console.error('--site-copy needs one http(s) URL.');
+      process.exit(2);
+    }
+    const outcome = await siteCopyReport(urls[0], flags.siteCopy);
+    if (!outcome.ok) {
+      console.error(outcome.message);
+      process.exit(2);
+    }
+    const report = outcome.report;
+    const line =
+      report.status === 'ok'
+        ? `Site copy: ${report.score}/100 ${report.tier}. Qualifying pages: ${report.qualifyingPages}. Rendered: false. Pre-2022 Heavy rate: unmeasured.`
+        : `Site copy: ${report.status} (${report.qualifyingPages} qualifying, ${report.requiredPages} required). No site score. Rendered: false. Pre-2022 Heavy rate: unmeasured.`;
+    console.log(flags.json || flags.format === 'json' ? JSON.stringify(report, null, 2) : line);
+    process.exit(0);
+  }
+  if (flags.site) {
+    if (urls.length !== 1) {
+      console.error('--site needs one http(s) URL.');
+      process.exit(2);
+    }
+    try {
+      const discovered = await discoverRenderedSite(urls[0], flags.site);
+      urls.splice(0, urls.length, ...discovered);
+    } catch (e) {
+      console.error(e.message || String(e));
+      console.error('Scan could not run. This is not a Clean score.');
+      process.exit(2);
+    }
+  }
   if (flags.a11y) {
     try {
       await loadAxeSource();
@@ -690,6 +973,9 @@ const machineOutput =
   }
   const results = [];
   for (const url of urls) {
+    if (flags.site && results.length > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
     try {
       const scanOpts: ScanOptions = {
         screenshot: flags.screenshot,
@@ -760,6 +1046,9 @@ const machineOutput =
       return extractDtcgTokens(r.systemContext || {}, { name: r.title || host });
     });
     console.log(JSON.stringify(docs.length === 1 ? docs[0] : docs, null, 2));
+  } else if (flags.brief) {
+    const lists = results.map((r) => buildAvoidList(r));
+    console.log(lists.join('\n\n'));
   } else if (flags.fixPrompt) {
     const prompts = results.map((r) =>
       r.error || r.blocked
@@ -767,12 +1056,39 @@ const machineOutput =
         : buildFixPrompt(r)
     );
     console.log(prompts.join('\n\n---\n\n'));
+  } else if (flags.format) {
+    if (flags.format === 'json' && flags.site) {
+      console.log(
+        JSON.stringify(
+          {
+            definitionsVersion: DEFINITIONS_VERSION,
+            site: siteSummaryDocument(results),
+            pages: results,
+          },
+          null,
+          2
+        )
+      );
+    } else {
+      const payload = results.length === 1 ? results[0] : results;
+      console.log(formatScanDocument(stampScanResult(payload), flags.format));
+      if (flags.site) console.error(formatSiteSummary(siteSummaryDocument(results)));
+    }
   } else if (flags.sarif) {
     console.log(JSON.stringify(buildSarifReport(results), null, 2));
   } else if (flags.json) {
-    console.log(
-      JSON.stringify(stampScanResult(results.length === 1 ? results[0] : results), null, 2)
-    );
+    const payload = flags.site
+      ? {
+          definitionsVersion: DEFINITIONS_VERSION,
+          site: siteSummaryDocument(results),
+          pages: results,
+        }
+      : results.length === 1
+        ? results[0]
+        : results;
+    console.log(JSON.stringify(stampScanResult(payload), null, 2));
+  } else if (flags.site) {
+    console.log(formatSiteSummary(siteSummaryDocument(results)));
   }
 
   // ── CI gate (--fail-on / --fail-under) ──────────────────────────────────────

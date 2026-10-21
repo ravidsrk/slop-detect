@@ -4,6 +4,8 @@ The copy axis scores page prose for LLM-default writing tells and leaked generat
 
 Module: `packages/core/src/copyPatterns.ts`. Scoring: `scoreCopy()` and `scoreMultiPageCopy()` in `packages/core/src/index.ts`.
 
+`scoreSiteCopy()` wraps `scoreMultiPageCopy()` for a directory or a fetched HTML sample. It sets `rendered` to false and `pre2022HeavyRate` to null. Fewer than 5 qualifying English pages returns `insufficient_pages` and no site score. That wrapper does not change a single-page score.
+
 ## Copy pattern catalogue
 
 26 patterns. Each exposes `match(textCtx)` returning evidence with a boolean `triggered`. Rules in `review` status ship at weight 0 (`status: "review"`) and do not add points until promoted via the K-04 calibration gate.

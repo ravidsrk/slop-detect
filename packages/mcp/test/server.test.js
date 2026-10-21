@@ -1,5 +1,5 @@
 import { test, expect, afterEach } from 'vitest';
-import { handleCall, TOOLS, PROMPTS, RESOURCES } from '../src/server.ts';
+import { handleCall, loadResource, TOOLS, PROMPTS, RESOURCES } from '../src/server.ts';
 
 const realFetch = global.fetch;
 afterEach(() => {
@@ -44,6 +44,7 @@ test('TOOLS lists the API tools and the local DESIGN.md tools', () => {
   expect(RESOURCES.map((r) => r.uri)).toEqual([
     'slop://spec/patterns',
     'slop://spec/design-md-template',
+    'slop://spec/aeo',
   ]);
 });
 
@@ -229,4 +230,23 @@ components:
     head_design_md: bad.replace('#ffffff', '#000000'),
   });
   expect(changed.content[0].text).toMatch(/breaking/);
+});
+
+test('slop://spec/aeo is the installed catalogue and does not fetch', async () => {
+  let called = false;
+  global.fetch = async () => {
+    called = true;
+    throw new Error('aeo resource must not fetch');
+  };
+  const loaded = await loadResource('slop://spec/aeo');
+  const body = JSON.parse(loaded.text);
+  expect(called).toBe(false);
+  expect(body.source).toBe('installed-engine');
+  expect(body.pre2022HeavyRate).toBeNull();
+  expect(body.checks.length).toBeGreaterThan(0);
+  expect(
+    body.checks.every(
+      (check) => check.likelihoodRatio == null || typeof check.likelihoodRatio === 'number'
+    )
+  ).toBe(true);
 });
