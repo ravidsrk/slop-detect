@@ -43,6 +43,10 @@ jobs:
       - run: bun install
       - run: bun run build
       - run: bun run test
+      - name: Scan-result schema compatibility
+        run: |
+          git fetch origin main --depth=1
+          node schemas/check-schema-compat.mjs
 
   smoke-cli:
     name: Smoke test CLI
@@ -91,4 +95,3 @@ jobs:
             echo "::error::Clean artisan fixture should score Clean (< 12), got $score"
             exit 1
           fi
-

@@ -19,7 +19,14 @@ import {
   formatAxeReport,
   SCAN_PAGE_WAIT,
   waitFontsReadyInPage,
+  DEFINITIONS_VERSION,
+  SCAN_SCHEMA_VERSION,
 } from '@slop-detect/core';
+
+const LOCAL_ENVIRONMENT = {
+  viewport: { width: 1280, height: 800 },
+  userAgent: 'Mozilla/5.0 SlopDetector/1.0 (+https://github.com/ravidsrk/slop-detect)',
+};
 
 // Options accepted by the scan entry points. All optional — the CLI fills in
 // whatever flags were passed. Shared with bin/slop.ts so the flag object and the
@@ -368,6 +375,9 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
         patternsFlagged: 0,
         patternsTotal: PATTERNS.length,
         patterns: [],
+        definitionsVersion: DEFINITIONS_VERSION,
+        schemaVersion: SCAN_SCHEMA_VERSION,
+        environment: { ...LOCAL_ENVIRONMENT, chromium: browserVersion },
       };
       return result;
     }
@@ -409,6 +419,9 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
       patterns: scored,
       patternsErrored,
       browserVersion,
+      madeWith: data.madeWith ?? null,
+      schemaVersion: SCAN_SCHEMA_VERSION,
+      environment: { ...LOCAL_ENVIRONMENT, chromium: browserVersion },
     };
 
     // Multi-axis: attach per-axis summaries + a unified score when >1 axis asked.

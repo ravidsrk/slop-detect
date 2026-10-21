@@ -9,3 +9,4 @@ export {
   buildSarifReport,
   type ScanOptions,
 } from './detector.js';
+export { exitCodeForScanResults, type ScanExitFlags } from './exit-code.js';

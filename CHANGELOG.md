@@ -7,6 +7,7 @@ The engine catalogue is `DEFINITIONS_VERSION` `2026.11`. New and broadened rules
 - **DESIGN.md lint and diff are callable.** `slop-detect --lint-design-md <file>` and `--diff-design-md <base> <head>` run the engine checks with no browser. The MCP server adds local tools `lint_design_md` and `diff_design_md`. `--init-tokens` writes a DTCG `tokens.json` from the live DOM.
 - **Declared tokens waive matching design patterns.** A scan that is given a parseable DESIGN.md keeps `rawScore` and reports the waived score as `score`. Craft is not waived.
 - **`--a11y` is optional and off by default.** It needs the separate `axe-core` package, runs only in the local browser, and never changes a score or the fail-under gate.
+- **Scan documents carry `schemaVersion` 1.** `schemas/scan-result.v1.json` is the draft 2020-12 contract for CLI `--json`, `POST /api/scan`, `POST /api/aeo`, and MCP `structuredContent`. A blocked or errored scan exits 2. That code means the scan could not run. `--fail-on` and `--fail-under` still exit 1 only when a page was scored and is over the gate. This schema is not a v1.0 release.
 
 ## Unreleased — launch-readiness pass (2026-10-15)
 

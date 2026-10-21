@@ -18,6 +18,13 @@ function run(args) {
   return spawnSync('node', [BIN, ...args], { encoding: 'utf8' });
 }
 
+test('--help documents that a scan which cannot run exits 2', () => {
+  const r = run(['--help']);
+  expect(r.status).toBe(0);
+  expect(r.stdout).toMatch(/exits 2/);
+  expect(r.stdout).toMatch(/not a Clean score/);
+});
+
 test('--help exits 0 and lists the dynamic pattern catalogue', () => {
   const r = run(['--help']);
   expect(r.status).toBe(0);
@@ -42,8 +49,10 @@ test('non-http(s) scheme is rejected before any scan (exit 2)', () => {
   }
 });
 
-// Exit-code contract: 0 = ok, 1 = scan ran but failed the --fail-on gate (the CI
-// signal), 2 = usage/argument error. Usage errors must NOT collide with the gate.
+// Exit-code contract: 0 = a score was produced, 1 = a scored page failed the
+// --fail-on / --fail-under gate, 2 = the scan could not run or the invocation
+// is invalid. Exit 2 must not be treated as Clean, and it must not collide
+// with the gate.
 test('no args prints help and exits 2 (usage error)', () => {
   const r = run([]);
   expect(r.status).toBe(2);

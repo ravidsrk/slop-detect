@@ -77,7 +77,8 @@ jobs:
 ```
 
 `--fail-on mild` is stricter (fails on Mild or Heavy); `--fail-on heavy` fails only on
-Heavy slop. A blocked or errored scan also exits non-zero. Want the JSON too? Combine:
+Heavy slop. Those gates exit 1. A blocked or errored scan exits 2, with or without a
+gate. Exit 2 means the scan could not run. It is not a Clean score. Want the JSON too? Combine:
 
 ```bash
 npx -y slop-detect "$PREVIEW_URL" --json --fail-on heavy | tee slop.json

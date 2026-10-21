@@ -8,7 +8,15 @@
 // pretty terminal report or a machine-readable JSON blob.
 
 import { readFileSync } from 'node:fs';
-import { scanUrl, scanRemote, aeoRemote, loadDesignMd, loadAxeSource, buildSarifReport } from '../src/index.js';
+import {
+  scanUrl,
+  scanRemote,
+  aeoRemote,
+  loadDesignMd,
+  loadAxeSource,
+  buildSarifReport,
+  exitCodeForScanResults,
+} from '../src/index.js';
 import type { ScanOptions } from '../src/index.js';
 import {
   isPreset,
@@ -22,6 +30,7 @@ import {
   extractDtcgTokens,
   lintDesignMd,
   diffDesignMd,
+  stampScanResult,
 } from '@slop-detect/core';
 
 const CLI_VERSION = '0.8.0';
@@ -50,10 +59,8 @@ const flags = {
   timeout: null as number | null,
 };
 
-// Tier severity ordering for --fail-on. A scan exits non-zero when its tier is
-// at or above the requested threshold. 'blocked'/'error' always count as failures
-// regardless of threshold (you asked us to gate, we couldn't even score).
-const TIER_RANK = { Clean: 0, Mild: 1, Heavy: 2 };
+// Exit codes live in exitCodeForScanResults: 0 scored, 1 over the gate, 2 could
+// not scan. Exit 2 is never a Clean score.
 const VALID_FAIL_ON = ['mild', 'heavy'];
 
 // Parse --fail-under <grade|score> into a max allowed slop score (0..100).
@@ -108,8 +115,7 @@ for (let i = 0; i < args.length; i++) {
       process.exit(2);
     }
     flags.diffDesignMd = [base, head];
-  }
-  else if (a === '--screenshot') flags.screenshot = true;
+  } else if (a === '--screenshot') flags.screenshot = true;
   else if (a === '--verbose' || a === '-v') flags.verbose = true;
   else if (a === '--version' || a === '-V') {
     console.log(`slop-detect ${CLI_VERSION} (defs ${DEFINITIONS_VERSION})`);
@@ -362,8 +368,9 @@ Options:
                       system (DESIGN.md spec). <src> = file path, URL, or "auto"
                       (looks for <origin>/DESIGN.md). Reports drift, not slop —
                       higher is better.
-  --fail-on <tier>    Exit non-zero (1) if any page scores at/above tier: mild | heavy.
-                      A blocked or errored scan also exits 1. Use this to gate CI.
+  --fail-on <tier>    Exit 1 if any scored page is at/above tier: mild | heavy.
+                      A blocked or errored scan exits 2, with or without this flag.
+                      Exit 2 means the scan could not run. It is not a Clean score.
   --fail-under <g|n>  Exit non-zero (1) if any page's grade/score is worse than <g|n>
                       (e.g. --fail-under B or --fail-under 15).
   --timeout <ms>      Local Playwright navigation timeout in ms (default 30000)
@@ -531,7 +538,9 @@ function renderPretty(result) {
     console.log(`${C.bold}Waived by DESIGN.md:${C.reset}`);
     const reasons = new Map((result.waivedPatterns || []).map((w) => [w.id, w.reason]));
     for (const p of waivedRows) {
-      console.log(`  ${C.grey}·${C.reset} ${p.label}  ${C.grey}${reasons.get(p.id) || ''}${C.reset}`);
+      console.log(
+        `  ${C.grey}·${C.reset} ${p.label}  ${C.grey}${reasons.get(p.id) || ''}${C.reset}`
+      );
     }
     console.log();
   }
@@ -666,7 +675,8 @@ if (
   process.exit(2);
 }
 
-const machineOutput = flags.json || flags.sarif || flags.fixPrompt || flags.initDesignMd || flags.initTokens;
+const machineOutput =
+  flags.json || flags.sarif || flags.fixPrompt || flags.initDesignMd || flags.initTokens;
 
 // ── Main ────────────────────────────────────────────────────────────────────
 (async () => {
@@ -719,7 +729,7 @@ const machineOutput = flags.json || flags.sarif || flags.fixPrompt || flags.init
           console.log(`  ${C.yellow}⚠ AEO check failed: ${r.aeo.error}${C.reset}\n`);
       }
     } catch (err) {
-      const errResult = { url, error: err.message };
+      const errResult = stampScanResult({ url, error: err.message });
       results.push(errResult);
       if (!machineOutput) {
         console.error(`\n${C.red}${C.bold}✗ ${url}${C.reset}`);
@@ -760,32 +770,18 @@ const machineOutput = flags.json || flags.sarif || flags.fixPrompt || flags.init
   } else if (flags.sarif) {
     console.log(JSON.stringify(buildSarifReport(results), null, 2));
   } else if (flags.json) {
-    console.log(JSON.stringify(results.length === 1 ? results[0] : results, null, 2));
+    console.log(
+      JSON.stringify(stampScanResult(results.length === 1 ? results[0] : results), null, 2)
+    );
   }
 
   // ── CI gate (--fail-on / --fail-under) ──────────────────────────────────────
-  // Determine the exit code BEFORE the summary so the summary can annotate it.
-  // A result fails the gate if: it errored, it was blocked (couldn't score), or
-  // its effective tier/score ranks worse than the threshold.
-  let exitCode = 0;
-  if (flags.failOn) {
-    const threshold = TIER_RANK[flags.failOn];
-    const failed = results.some((r) => {
-      if (r.error || r.blocked) return true;
-      const tier = r.axes && r.axes.copy ? r.unifiedTier : r.tier;
-      return (TIER_RANK[tier] ?? 0) >= threshold;
-    });
-    if (failed) exitCode = 1;
-  }
-  if (flags.failUnderScore != null) {
-    const maxAllowed = flags.failUnderScore;
-    const failed = results.some((r) => {
-      if (r.error || r.blocked) return true;
-      const score = r.axes && r.axes.copy ? r.unifiedScore : r.score;
-      return typeof score !== 'number' || score > maxAllowed;
-    });
-    if (failed) exitCode = 1;
-  }
+  // 0 scored, 1 over the gate, 2 could not scan. An unscannable page wins over
+  // the gate so an outage is never reported as a finding or as Clean.
+  const exitCode = exitCodeForScanResults(results, {
+    failOn: flags.failOn,
+    failUnderScore: flags.failUnderScore,
+  });
 
   // Summary if multiple URLs
   if (urls.length > 1 && !machineOutput) {
@@ -814,12 +810,13 @@ const machineOutput = flags.json || flags.sarif || flags.fixPrompt || flags.init
 
   // Tell the user why we're failing (only when gating + actually failing, and
   // not in machine-output mode where stdout must stay a clean document).
-  if (flags.failOn && exitCode !== 0 && !machineOutput) {
+  if (exitCode === 2) {
+    console.error(`${C.red}${C.bold}✗ Scan could not run. This is not a Clean score.${C.reset}`);
+  } else if (flags.failOn && exitCode === 1 && !machineOutput) {
     console.error(
       `${C.red}${C.bold}✗ --fail-on ${flags.failOn.toLowerCase()}: one or more pages failed the gate.${C.reset}`
     );
-  }
-  if (flags.failUnderScore != null && exitCode !== 0 && !machineOutput) {
+  } else if (flags.failUnderScore != null && exitCode === 1 && !machineOutput) {
     console.error(
       `${C.red}${C.bold}✗ --fail-under ${flags.failUnderLabel}: one or more pages failed the gate.${C.reset}`
     );
@@ -827,5 +824,5 @@ const machineOutput = flags.json || flags.sarif || flags.fixPrompt || flags.init
   process.exit(exitCode);
 })().catch((e) => {
   console.error(e);
-  process.exit(1);
+  process.exit(2);
 });

@@ -8,11 +8,11 @@
 // SSRF is guarded by validateScanUrl() (shared with /api/scan). CORS, rate
 // limiting (gated AS a scan), and Turnstile are enforced by api/_middleware.js.
 
-import { runAeoChecks } from '@slop-detect/core';
+import { runAeoChecks, stampScanResult } from '@slop-detect/core';
 import { validateScanUrl, isAllowedUrl } from '../_shared.js';
 
 function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
+  return new Response(JSON.stringify(stampScanResult(data)), {
     status,
     headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
   });

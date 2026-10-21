@@ -5,6 +5,8 @@
 // Pure JS, zero deps. `fetch` is injectable so this runs identically in Node
 // (CLI), a Cloudflare Worker (web), or a test.
 
+import { SCAN_SCHEMA_VERSION } from './scan-schema.js';
+
 export const AEO_SCANNER_USER_AGENT = 'SlopDetector-AEO/1.0 (+https://slop-detect.com/bot)';
 
 export interface AIBotEntry {
@@ -563,7 +565,11 @@ export async function readCapped(res: Response, maxBytes = MAX_HTML_BYTES): Prom
   return new TextDecoder('utf-8', { fatal: false }).decode(merged.subarray(0, maxBytes));
 }
 
-function readBodyCapped(res: Response, maxBytes = MAX_HTML_BYTES, streamWhenOversized = false): Promise<string> {
+function readBodyCapped(
+  res: Response,
+  maxBytes = MAX_HTML_BYTES,
+  streamWhenOversized = false
+): Promise<string> {
   const cl = res.headers.get('content-length');
   if (cl && !streamWhenOversized) {
     const n = Number(cl);
@@ -805,7 +811,8 @@ export function evaluateRobotsTxt(
       trainingBlocked: [],
       cloudflareManaged: false,
       cloudflareSearchCollateral: [],
-      remediation: 'robots.txt returned 5xx or network error; per RFC 9309 §2.3 crawlers treat this as a temporary full disallow.',
+      remediation:
+        'robots.txt returned 5xx or network error; per RFC 9309 §2.3 crawlers treat this as a temporary full disallow.',
       warning: null,
       legacyTokensUsed: [],
       agentmaps: [],
@@ -896,7 +903,14 @@ export function evaluateRobotsTxt(
 
   const cloudflareSearchCollateral = parsed.cloudflareManaged
     ? searchBlocked.filter((b) =>
-        ['googlebot', 'bingbot', 'applebot', 'oai-searchbot', 'claude-searchbot', 'perplexitybot'].includes(b)
+        [
+          'googlebot',
+          'bingbot',
+          'applebot',
+          'oai-searchbot',
+          'claude-searchbot',
+          'perplexitybot',
+        ].includes(b)
       )
     : [];
 
@@ -986,7 +1000,13 @@ export function parsePreviewDirectives(
     if (botPrefixMatch) {
       const bot = botPrefixMatch[1].toLowerCase();
       const scope =
-        bot === 'googlebot' ? 'google' : bot === 'bingbot' ? 'bing' : bot === 'applebot' ? 'apple' : 'all';
+        bot === 'googlebot'
+          ? 'google'
+          : bot === 'bingbot'
+            ? 'bing'
+            : bot === 'applebot'
+              ? 'apple'
+              : 'all';
       addTokens(scope, botPrefixMatch[2]);
     } else {
       addTokens('all', xRobots);
@@ -1027,7 +1047,10 @@ export function parsePreviewDirectives(
         combined.includes('nocache'));
 
     return {
-      status: (hasHardBlock ? 'fail' : hasRestriction ? 'warn' : 'pass') as 'pass' | 'warn' | 'fail',
+      status: (hasHardBlock ? 'fail' : hasRestriction ? 'warn' : 'pass') as
+        | 'pass'
+        | 'warn'
+        | 'fail',
       directives: combined,
       maxSnippet,
     };
@@ -1036,13 +1059,16 @@ export function parsePreviewDirectives(
   // Measure [data-nosnippet] character coverage share
   const visibleProse = stripHtmlToText(htmlBody);
   const nosnippetMatches: string[] =
-    String(htmlBody || '').match(/<([a-z0-9]+)\b[^>]*\bdata-nosnippet\b[^>]*>([\s\S]*?)<\/\1>/gi) || [];
+    String(htmlBody || '').match(/<([a-z0-9]+)\b[^>]*\bdata-nosnippet\b[^>]*>([\s\S]*?)<\/\1>/gi) ||
+    [];
   const nosnippetChars = nosnippetMatches.reduce(
     (s: number, m: string) => s + stripHtmlToText(m).length,
     0
   );
   const nosnippetCharShare =
-    visibleProse.length > 0 ? Number(Math.min(1, nosnippetChars / visibleProse.length).toFixed(3)) : 0;
+    visibleProse.length > 0
+      ? Number(Math.min(1, nosnippetChars / visibleProse.length).toFixed(3))
+      : 0;
 
   const google = evalEngine('google');
   const bing = evalEngine('bing');
@@ -1056,8 +1082,7 @@ export function parsePreviewDirectives(
   const earnedWeight =
     scoreFor(google.status, 5) + scoreFor(bing.status, 2) + scoreFor(apple.status, 1);
 
-  const globalNoindex =
-    rawScopes.all.includes('noindex') || rawScopes.all.includes('none');
+  const globalNoindex = rawScopes.all.includes('noindex') || rawScopes.all.includes('none');
 
   const overallStatus: 'pass' | 'warn' | 'fail' =
     earnedWeight >= 7 ? 'pass' : earnedWeight >= 4 ? 'warn' : 'fail';
@@ -1102,7 +1127,8 @@ export function parseContentUsage(headerVal: string): {
     if (!m) continue;
     const key = m[1].toLowerCase();
     const rawVal = m[2].toLowerCase();
-    const val = rawVal === 'y' || rawVal === 'yes' || rawVal === '?1' || rawVal === 'allow' ? 'y' : 'n';
+    const val =
+      rawVal === 'y' || rawVal === 'yes' || rawVal === '?1' || rawVal === 'allow' ? 'y' : 'n';
     if (key === 'train-ai' || key === 'ai-use' || key === 'search') {
       preferences[key] = val;
     } else {
@@ -1190,7 +1216,10 @@ export function detectPromptInjection(
   hiddenSnippets.push(...inlineHiddenMatches);
 
   for (const snip of hiddenSnippets) {
-    const text = snip.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    const text = snip
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
     const isCanary = CANARY_PATTERNS.some((re) => re.test(text));
     if (isCanary) {
       findings.push({ vector: 'hidden_text', snippet: text.slice(0, 140), canary: true });
@@ -1216,11 +1245,15 @@ export function detectPromptInjection(
 
   // 4. JSON-LD and meta tag prompt injection
   const ldBlocks =
-    html.match(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi) ||
-    [];
+    html.match(
+      /<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
+    ) || [];
   for (const blk of ldBlocks) {
     if (PROMPT_INJECTION_LEXICON.some((re) => re.test(blk))) {
-      findings.push({ vector: 'jsonld_injection', snippet: blk.replace(/\s+/g, ' ').slice(0, 140) });
+      findings.push({
+        vector: 'jsonld_injection',
+        snippet: blk.replace(/\s+/g, ' ').slice(0, 140),
+      });
     }
   }
 
@@ -1297,7 +1330,9 @@ export function evaluateAgentOperability(htmlBody: string) {
   }
   const accessibleNameRatio =
     totalInteractive > 0 ? Number((namedInteractive / totalInteractive).toFixed(3)) : 1;
-  const emptyPriceShell = /<[^>]+class\s*=\s*["'][^"']*price[^"']*["'][^>]*>\s*<\/[^>]+>/i.test(html);
+  const emptyPriceShell = /<[^>]+class\s*=\s*["'][^"']*price[^"']*["'][^>]*>\s*<\/[^>]+>/i.test(
+    html
+  );
   const healthy = accessibleNameRatio >= 0.8 && !emptyPriceShell;
   return {
     healthy,
@@ -1337,7 +1372,10 @@ export function classifyEdgeResponse(
   if (st === 405 && wafAction === 'captcha') {
     return { outcome: 'captcha', status: 'fail', vendor: 'aws-waf', httpStatus: st };
   }
-  if (cfMitigated.includes('challenge') || /<title>\s*Just a moment\.\.\.\s*<\/title>/i.test(body)) {
+  if (
+    cfMitigated.includes('challenge') ||
+    /<title>\s*Just a moment\.\.\.\s*<\/title>/i.test(body)
+  ) {
     return { outcome: 'challenge', status: 'fail', vendor: 'cloudflare', httpStatus: st };
   }
   if (st === 402 && crawlerPrice) {
@@ -1363,7 +1401,10 @@ export function classifyEdgeResponse(
 }
 
 // ── Markdown twin & /llms.txt validators (FIX-15 #206) ───────────────────────
-export function validateMarkdownTwin(body: string, contentType: string): {
+export function validateMarkdownTwin(
+  body: string,
+  contentType: string
+): {
   valid: boolean;
   strippedLength: number;
   reason?: string;
@@ -1385,7 +1426,10 @@ export function validateMarkdownTwin(body: string, contentType: string): {
   return { valid: true, strippedLength: stripped.length };
 }
 
-export function validateLlmsTxt(body: string, contentType: string): {
+export function validateLlmsTxt(
+  body: string,
+  contentType: string
+): {
   valid: boolean;
   hasH1: boolean;
   linkCount: number;
@@ -1522,7 +1566,12 @@ export async function runAeoChecks(
   // If P0 itself was blocked/challenged by edge WAF, scanner vantage point is blocked -> unknown
   let edgeStatus: 'pass' | 'warn' | 'fail' | 'unknown' = p1Class.status;
   let edgeMsg = '';
-  if (!htmlOk && (p0Class.outcome === 'blocked' || p0Class.outcome === 'challenge' || p0Class.outcome === 'captcha')) {
+  if (
+    !htmlOk &&
+    (p0Class.outcome === 'blocked' ||
+      p0Class.outcome === 'challenge' ||
+      p0Class.outcome === 'captcha')
+  ) {
     edgeStatus = p1Class.status === 'fail' ? 'fail' : 'unknown';
     edgeMsg = `Edge WAF blocked/challenged baseline request (${p0Class.outcome}, status ${p0Class.httpStatus})`;
   } else if (p1Class.outcome === 'ok') {
@@ -1673,7 +1722,9 @@ export async function runAeoChecks(
   let advertisedHref: string | null = null;
   if (htmlOk && html) {
     const linkHeader = html.headers.get('link') || '';
-    const linkHeaderMatch = linkHeader.match(/<([^>]+)>\s*;\s*rel=["']?alternate["']?[^>]*type=["']?text\/markdown["']?/i);
+    const linkHeaderMatch = linkHeader.match(
+      /<([^>]+)>\s*;\s*rel=["']?alternate["']?[^>]*type=["']?text\/markdown["']?/i
+    );
     if (linkHeaderMatch) advertisedHref = linkHeaderMatch[1];
     if (!advertisedHref) {
       const head = htmlBody.slice(0, 50_000);
@@ -1833,9 +1884,7 @@ export async function runAeoChecks(
 
   // 10. html.vary (FIX-15: applicable ONLY when markdown content negotiation is observed)
   if (htmlOk && html) {
-    const htmlVary = (html.headers.get('vary') || '')
-      .split(',')
-      .map((s) => s.trim().toLowerCase());
+    const htmlVary = (html.headers.get('vary') || '').split(',').map((s) => s.trim().toLowerCase());
     const negVary = ((negotiatedRes && negotiatedRes.headers.get('vary')) || '')
       .split(',')
       .map((s) => s.trim().toLowerCase());
@@ -1902,9 +1951,7 @@ export async function runAeoChecks(
     const parsedCu = cuHeader ? parseContentUsage(cuHeader) : null;
     const parsedCs = csHeader ? parseContentSignal(csHeader) : null;
     const policyConflict = Boolean(
-      parsedCu &&
-        parsedCu.preferences.search === 'y' &&
-        !robotsVerdict.searchAllowed
+      parsedCu && parsedCu.preferences.search === 'y' && !robotsVerdict.searchAllowed
     );
     checks.push(
       makeCheckResult(
@@ -1947,7 +1994,9 @@ export async function runAeoChecks(
       makeCheckResult(
         pickCheck('content.dates'),
         'info',
-        datesFound.length > 0 ? `Found ${datesFound.length} date signal(s)` : 'No structured dates found',
+        datesFound.length > 0
+          ? `Found ${datesFound.length} date signal(s)`
+          : 'No structured dates found',
         { datesFound }
       )
     );
@@ -1992,6 +2041,7 @@ export async function runAeoChecks(
   const failed = checks.filter((c) => c.status === 'fail');
 
   return {
+    schemaVersion: SCAN_SCHEMA_VERSION,
     axis: 'aeo',
     url: url.toString(),
     mdUrl,

@@ -22,6 +22,7 @@ import {
   waitFontsReadyInPage,
   readCapped,
   DEFINITIONS_VERSION,
+  stampScanResult,
 } from '@slop-detect/core';
 import {
   newId,
@@ -61,7 +62,7 @@ function normalizeAxes(axes) {
 // CORS + Turnstile + rate-limit are handled by functions/api/_middleware.js.
 // This handler just returns JSON; the middleware merges Access-Control-* headers.
 function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
+  return new Response(JSON.stringify(stampScanResult(data)), {
     status,
     headers: { 'Content-Type': 'application/json' },
   });
@@ -306,6 +307,8 @@ export async function onRequestPost({ request, env, waitUntil }) {
       patterns: scored,
       patternsErrored,
       browserVersion,
+      madeWith: data.madeWith ?? null,
+      environment: browserVersion ? { chromium: browserVersion } : undefined,
       screenshot,
       navMs,
     };
@@ -412,6 +415,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
       }
     }
 
+    stampScanResult(result);
     if (cacheKey) {
       try {
         await env.RESULTS.put(cacheKey, JSON.stringify(result), { expirationTtl: 600 });

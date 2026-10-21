@@ -77,6 +77,11 @@ test('scan_page POSTs /api/scan and formats the result', async () => {
   expect(calls[0].url).toMatch(/\/api\/scan$/);
   expect(calls[0].body).toEqual({ url: 'https://example.com' });
   expect(r.content[0].text).toMatch(/Score: 4\/100/);
+  expect(r.structuredContent.schemaVersion).toBe(1);
+  expect(r.structuredContent.score).toBe(4);
+  expect(TOOLS.find((t) => t.name === 'scan_page').outputSchema.$id).toMatch(
+    /scan-result\.v1\.json$/
+  );
 });
 
 test('scan_page forwards optional copy/axes/preset/design_md_url and formats multi-axis output', async () => {
@@ -169,6 +174,11 @@ test('check_aeo POSTs /api/aeo; check_design_system forwards design_md_url', asy
     share: false,
   });
   expect(aeo.content[0].text).toMatch(/AI-Ready/);
+  expect(aeo.structuredContent.schemaVersion).toBe(1);
+  expect(aeo.structuredContent.score).toBe(80);
+  expect(TOOLS.find((t) => t.name === 'check_aeo').outputSchema.$id).toMatch(
+    /scan-result\.v1\.json$/
+  );
   expect(sys.content[0].text).toMatch(/Aligned/);
 });
 

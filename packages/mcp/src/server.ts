@@ -4,6 +4,7 @@
 // browser or API key.
 
 import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -17,7 +18,7 @@ import {
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 
-import { lintDesignMd, diffDesignMd } from '@slop-detect/core';
+import { lintDesignMd, diffDesignMd, stampScanResult } from '@slop-detect/core';
 import { scanPage, checkAeo, checkSystem, fixPrompt, fetchPatterns, ApiError } from './api.js';
 import {
   formatScan,
@@ -40,6 +41,27 @@ function readVersion() {
   }
 }
 const VERSION = readVersion();
+
+// Canonical contract is schemas/scan-result.v1.json at the repo root. The
+// published bundle looks next to dist as well as next to src.
+function loadScanResultSchema() {
+  const start = dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    join(start, '../../../schemas/scan-result.v1.json'),
+    join(start, '../../../../schemas/scan-result.v1.json'),
+    join(start, '../../../../../schemas/scan-result.v1.json'),
+  ];
+  for (const path of candidates) {
+    try {
+      return JSON.parse(readFileSync(path, 'utf8'));
+    } catch {
+      /* try the next location */
+    }
+  }
+  return undefined;
+}
+
+const SCAN_RESULT_SCHEMA = loadScanResultSchema();
 
 export const TOOLS = [
   {
@@ -82,6 +104,7 @@ export const TOOLS = [
       },
       required: ['url'],
     },
+    ...(SCAN_RESULT_SCHEMA ? { outputSchema: SCAN_RESULT_SCHEMA } : {}),
   },
   {
     name: 'check_aeo',
@@ -106,6 +129,7 @@ export const TOOLS = [
       },
       required: ['url'],
     },
+    ...(SCAN_RESULT_SCHEMA ? { outputSchema: SCAN_RESULT_SCHEMA } : {}),
   },
   {
     name: 'check_design_system',
@@ -303,8 +327,14 @@ export const RESOURCES = [
 // Wrap a tool body so any thrown error (network, ApiError, validation) becomes
 // MCP error content instead of crashing the process. A long-lived server must
 // never die on a single bad request.
-function asToolResult(text, isError = false) {
-  return { content: [{ type: 'text', text }], isError };
+function asToolResult(text, isError = false, structuredContent?) {
+  const result: {
+    content: Array<{ type: 'text'; text: string }>;
+    isError: boolean;
+    structuredContent?: unknown;
+  } = { content: [{ type: 'text', text }], isError };
+  if (structuredContent !== undefined) result.structuredContent = structuredContent;
+  return result;
 }
 
 function extractScanOptions(args: any) {
@@ -335,10 +365,7 @@ function handleLocalDesignMd(name, args) {
   const base = args && typeof args.base_design_md === 'string' ? args.base_design_md : '';
   const head = args && typeof args.head_design_md === 'string' ? args.head_design_md : '';
   if (!base.trim() || !head.trim()) {
-    return asToolResult(
-      'Missing required arguments "base_design_md" and "head_design_md".',
-      true
-    );
+    return asToolResult('Missing required arguments "base_design_md" and "head_design_md".', true);
   }
   return asToolResult(formatDesignMdDiff(diffDesignMd(base, head)));
 }
@@ -353,12 +380,12 @@ export async function handleCall(name, args) {
   }
 
   if (name === 'scan_page') {
-    const result = await scanPage(url, extractScanOptions(args));
-    return asToolResult(formatScan(result));
+    const result = stampScanResult(await scanPage(url, extractScanOptions(args)));
+    return asToolResult(formatScan(result), false, result);
   }
   if (name === 'check_aeo') {
-    const report = await checkAeo(url);
-    return asToolResult(formatAeo(report));
+    const report = stampScanResult(await checkAeo(url));
+    return asToolResult(formatAeo(report), false, report);
   }
   if (name === 'check_design_system') {
     const designMdUrl =

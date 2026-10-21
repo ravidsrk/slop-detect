@@ -165,6 +165,9 @@ import { applyPreset } from './presets.js';
 import { applyDesignSystemWaivers } from './system.js';
 import { buildPageScript, detectBlocked, type BuildPageScriptOptions } from './page-script.js';
 import { assemblePatternResults } from './result-assembly.js';
+import { SCAN_SCHEMA_VERSION, stampScanResult } from './scan-schema.js';
+
+export { SCAN_SCHEMA_VERSION, stampScanResult };
 
 // Honest self-identification User-Agent strings (#294 A-08).
 export const SCANNER_USER_AGENT = 'SlopDetector/0.8.0 (+https://slop-detect.com/bot)';
@@ -218,8 +221,7 @@ export interface PostPassRule {
 export const POST_PASS_RULES: PostPassRule[] = [
   {
     id: 'slop_fonts_centered_hero_cap',
-    description:
-      'Cap combined contribution of slop_fonts + centered_hero at <= 8 points (FIX-07)',
+    description: 'Cap combined contribution of slop_fonts + centered_hero at <= 8 points (FIX-07)',
     apply(patterns, effectiveWeights) {
       const sf = patterns.find((p) => p.id === 'slop_fonts' && p.triggered);
       const ch = patterns.find((p) => p.id === 'centered_hero' && p.triggered);
@@ -319,10 +321,7 @@ export const POST_PASS_RULES: PostPassRule[] = [
     apply(patterns, effectiveWeights) {
       const adjustments: ScoreAdjustment[] = [];
       const triggeredWithNodes = patterns.filter(
-        (p) =>
-          p.triggered &&
-          Array.isArray(p.evidence?.nodeIds) &&
-          p.evidence.nodeIds.length > 0
+        (p) => p.triggered && Array.isArray(p.evidence?.nodeIds) && p.evidence.nodeIds.length > 0
       );
       for (let i = 0; i < triggeredWithNodes.length; i++) {
         for (let j = i + 1; j < triggeredWithNodes.length; j++) {
@@ -404,13 +403,7 @@ export function scorePatterns(
       ruleStatus === 'review' ||
       ruleStatus === 'experimental' ||
       ruleStatus === 'retired';
-    const status = hasError
-      ? 'unknown'
-      : p.triggered
-        ? isReview
-          ? 'review'
-          : 'fail'
-        : 'pass';
+    const status = hasError ? 'unknown' : p.triggered ? (isReview ? 'review' : 'fail') : 'pass';
     return {
       ...p,
       label: p.label || def?.label || p.id,
@@ -517,8 +510,7 @@ export function scoreCopy(textCtx: any, _opts: Record<string, any> = {}) {
       : text
         ? text.split(/\s+/).filter(Boolean).length
         : 0;
-  const proseWordCount =
-    typeof ctx.proseWordCount === 'number' ? ctx.proseWordCount : wordCount;
+  const proseWordCount = typeof ctx.proseWordCount === 'number' ? ctx.proseWordCount : wordCount;
 
   // C-01 (#265): Language gate and prose length gate.
   const langInfo = detectEnglishProse(text, ctx.lang);
@@ -569,13 +561,7 @@ export function scoreCopy(textCtx: any, _opts: Record<string, any> = {}) {
         p.status === 'review' ||
         p.status === 'experimental' ||
         p.status === 'retired';
-      status = ev?.error
-        ? 'unknown'
-        : triggered
-          ? isReviewRule
-            ? 'review'
-            : 'fail'
-          : 'pass';
+      status = ev?.error ? 'unknown' : triggered ? (isReviewRule ? 'review' : 'fail') : 'pass';
     }
 
     return {
@@ -832,7 +818,9 @@ export function scoreMultiPageCopy(
     const base = Math.floor(pos);
     const rest = pos - base;
     if (sortedScores[base + 1] !== undefined) {
-      return Number((sortedScores[base] + rest * (sortedScores[base + 1] - sortedScores[base])).toFixed(2));
+      return Number(
+        (sortedScores[base] + rest * (sortedScores[base + 1] - sortedScores[base])).toFixed(2)
+      );
     }
     return sortedScores[base];
   };
@@ -915,7 +903,11 @@ export function applyDeclaredDesignWaivers(result: any, parsedDesignMd: any) {
   const next: any = {
     ...waived,
     grade,
-    verdict: verdictFor(waived.score, waived.tier, scoredTriggered.length > 0 ? scoredTriggered : triggered),
+    verdict: verdictFor(
+      waived.score,
+      waived.tier,
+      scoredTriggered.length > 0 ? scoredTriggered : triggered
+    ),
     patternsFlagged: triggered.length,
     patternsScored: scoredTriggered.length,
     reviewCount: patterns.filter((p: any) => p.status === 'review').length,
@@ -1026,6 +1018,7 @@ export function assembleScanResult(raw: any, opts: AssembleScanResultOptions = {
         patterns: [],
         patternsErrored: 0,
         definitionsVersion: DEFINITIONS_VERSION,
+        schemaVersion: SCAN_SCHEMA_VERSION,
       };
     }
   }
@@ -1055,6 +1048,7 @@ export function assembleScanResult(raw: any, opts: AssembleScanResultOptions = {
     patternsErrored,
     madeWith: data.madeWith || null,
     kitMatches,
+    schemaVersion: SCAN_SCHEMA_VERSION,
   };
 
   if (craftSummary) {

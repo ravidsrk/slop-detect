@@ -59,7 +59,8 @@ else console.log(`${result.score}/100 — ${result.tier} (${result.grade})`);
 | `FIXES` / `buildFixPrompt(scanResult)` | Per-pattern remediation recipes and markdown fix-prompt generator |
 | `scoreToGrade(score)` / `buildVerdict(score, tier, triggered?)` | Letter grade (`A+` to `F`) and human-readable one-line verdict |
 | `buildPageEvaluateScript(patterns?, opts?)` | Builds the self-contained browser evaluation script for `patterns` (default: all); `opts.includeSystem` adds the `DESIGN.md` observation pass. Also accepts the `buildPageScript(opts)` form |
-| `assembleScanResult(raw, opts?)` | Scores the `page.evaluate` payload: `opts.url`, `finalUrl`, `axes` (`['design']` default, `['design','copy']`, `'all'`), `patterns` subset, `preset`. Returns the design summary + `patterns`, `patternsErrored`, and with copy: `axes` + `unifiedScore/Tier/Grade`. Bot walls / empty renders return `{ blocked: true, score: null, code, error, hint }` |
+| `assembleScanResult(raw, opts?)` | Scores the `page.evaluate` payload: `opts.url`, `finalUrl`, `axes` (`['design']` default, `['design','copy']`, `'all'`), `patterns` subset, `preset`. Returns the design summary + `patterns`, `patternsErrored`, `schemaVersion`, and with copy: `axes` + `unifiedScore/Tier/Grade`. Bot walls / empty renders return `{ blocked: true, score: null, code, error, hint, schemaVersion }` |
+| `stampScanResult(doc)` / `SCAN_SCHEMA_VERSION` | Marks a scan document with schema major `1` (`schemas/scan-result.v1.json`). The stamp does not change a score |
 | `assemblePatternResults(signals)` / `detectBlocked(raw)` | Lower-level building blocks used by the reference runners |
 | `createColorHelpers()` / `createVisibilityHelpers()` | Color & DOM visibility predicates used inside `extract(ctx)` |
 | `isSlopFont` / `isAccentSerif` | Font-family classifiers |
