@@ -1,8 +1,8 @@
 # slop-detect
 
-> Score any landing page against the versioned four-axis AI-slop fingerprint (`definitions@2026.10`), from your terminal or CI pipeline.
+> Score any landing page against the versioned fingerprint (`definitions@2026.11`), from your terminal or CI pipeline.
 
-Playwright-based, deterministic, zero-config. Audits visual design slop (27 CSS/DOM rules), AI copy tells (9 prose rules), `DESIGN.md` token compliance, and Answer Engine Optimization (8 AEO crawler checks).
+Playwright-based, deterministic, zero-config. Audits visual design slop (45 CSS/DOM rules), copy tells (26 prose rules), `DESIGN.md` token compliance, a craft floor that never feeds Clean / Mild / Heavy, and Answer Engine Optimization (16 AEO checks). Weight 0 review rules add no points. Package version stays 0.8.0.
 
 ## Install
 
@@ -23,8 +23,9 @@ Chromium is installed lazily on the first local scan (~150 MB via Playwright), n
 slop-detect <url>                       # scan one URL (design axis)
 slop-detect <url1> <url2> <url3>        # scan many, print a comparison table
 slop-detect <url> --copy                # score design + copy axes (unified score)
+slop-detect <url> --craft               # also score the craft floor (never feeds Clean/Mild/Heavy)
 slop-detect <url> --axes design,copy    # explicit axis list (or --axes all)
-slop-detect <url> --aeo                 # run the 8-check AEO crawler & citation audit
+slop-detect <url> --aeo                 # run the AEO fetch-and-read audit
 slop-detect <url> --design-md auto      # check compliance against <origin>/DESIGN.md
 slop-detect <url> --design-md ./DESIGN.md  # check compliance against a local DESIGN.md
 slop-detect <url> --preset strict       # preset: full | strict | marketing | minimal
@@ -41,7 +42,7 @@ slop-detect <url> --timeout 30000       # navigation timeout in ms
 $ slop-detect https://www.aura.build --copy --aeo
 
 URL: https://www.aura.build
-SCORE: 36 / 100   →   Heavy (D)   (8 / 27 design patterns)
+SCORE: 36 / 100   →   Heavy (D)   (8 design patterns flagged)
 
   ✓ Slop fonts (Inter / Geist / Space Grotesk)        (+8)
   ✓ VibeCode Purple — filled indigo/violet CTAs       (+8)

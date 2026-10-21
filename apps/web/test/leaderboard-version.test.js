@@ -11,11 +11,15 @@ import { DEFINITIONS_VERSION } from '@slop-detect/core';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const LEADERBOARD_PATH = path.join(HERE, '..', 'public', 'leaderboard.json');
 
-test('leaderboard.json definitionsVersion matches engine DEFINITIONS_VERSION', () => {
+test('leaderboard.json records the definitions version its rows were scored under', () => {
   const leaderboard = JSON.parse(fs.readFileSync(LEADERBOARD_PATH, 'utf8'));
   expect(typeof DEFINITIONS_VERSION).toBe('string');
   expect(DEFINITIONS_VERSION.length).toBeGreaterThan(0);
-  expect(leaderboard.definitionsVersion).toBe(DEFINITIONS_VERSION);
+  // Rows were measured under 2026.10. A later engine bump must not relabel
+  // those scores. Re-score the corpus before setting rescored to true.
+  expect(leaderboard.definitionsVersion).toBe('2026.10');
+  expect(leaderboard.measuredDefinitionsVersion).toBe(leaderboard.definitionsVersion);
+  expect(leaderboard.rescored).toBe(false);
 });
 
 test('leaderboard.json stores triggered rule ids for the prevalence table', () => {

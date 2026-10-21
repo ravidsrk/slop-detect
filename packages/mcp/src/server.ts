@@ -80,12 +80,11 @@ export const TOOLS = [
     name: 'check_aeo',
     title: 'Check AEO Crawler & Citation Readiness',
     description:
-      'Check whether AI engines (ChatGPT, Claude, Perplexity, Google AI ' +
-      'Overviews) can actually read and cite a page. Returns an AEO ' +
-      'conformance score 0-100 (HIGHER is better), a tier (AI-Ready / Partial ' +
-      '/ Invisible), and which checks failed — AI-crawler blocking, noindex, ' +
-      'robots.txt disallows, missing markdown twin / llms.txt. Complements ' +
-      'scan_page: a page can look human-made yet still be invisible to AI search.',
+      'Check whether a page can be fetched and read. Returns an AEO ' +
+      'conformance score 0-100 (HIGHER is better), a tier (Eligible / ' +
+      'Partially Eligible / Restricted), and which checks failed. The scanner ' +
+      'uses its own user agent and does not impersonate vendor crawlers. ' +
+      'Complements scan_page.',
     annotations: {
       title: 'Check AEO Crawler & Citation Readiness',
       readOnlyHint: true,

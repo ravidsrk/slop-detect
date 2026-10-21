@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — definitions@2026.11 engine (not a v1.0)
+
+The engine catalogue is `DEFINITIONS_VERSION` `2026.11`. New and broadened rules ship at weight 0 (`status: review`) and add no points. Craft-floor findings do not change Clean / Mild / Heavy. Leaderboard rows and calibration accuracy stay the measured `2026.10` corpus (`rescored: false`). No likelihood ratios, Heavy false-positive rate, or live self-scan deltas are published for `2026.11`, because that re-score has not been run. Package versions stay `0.8.0`. This is not a v1.0.0 release.
+
 ## Unreleased — launch-readiness pass (2026-10-15)
 
 Decisions: launch without live monitoring (waitlist), directory listings are

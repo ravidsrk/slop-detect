@@ -32,7 +32,7 @@ https://slop-detect.com/api/llms.txt
 
 ## Packages (npm)
 
-- `slop-detect-core` (workspace `@slop-detect/core`): the scoring engine (27 design patterns, 9 copy patterns, `DESIGN.md` system compliance, 8 AEO checks).
+- `slop-detect-core` (workspace `@slop-detect/core`): the scoring engine (45 design patterns, 26 copy patterns, `DESIGN.md` system compliance, 16 AEO checks, and a craft floor that does not feed Clean / Mild / Heavy). Definitions `2026.11`. Package version stays 0.8.0.
 - `slop-detect`: the CLI.
 - `slop-detect-mcp`: the MCP server.
 

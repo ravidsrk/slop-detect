@@ -108,7 +108,7 @@ export function systemAxisColor(score: number | null | undefined): string {
 }
 
 // AEO (agent-readable) axis: higher is better.
-//   AI-Ready ≥ 80 · Partial ≥ 50 · Invisible < 50.
+//   Eligible ≥ 80 · Partially Eligible ≥ 50 · Restricted < 50.
 export function aeoAxisColor(score: number): string {
   const s = Number(score) || 0;
   if (s >= 80) return '#0E6B3A';

@@ -13,6 +13,7 @@ import {
   parseDesignMd,
   scoreSystemCompliance,
   scoreCopy,
+  scoreCraft,
   combineAxes,
   SCAN_PAGE_WAIT,
   waitFontsReadyInPage,
@@ -109,7 +110,7 @@ async function ensureChromium() {
 // Normalize the requested axes into a deduped, valid list. Default: design only.
 // Accepts an array (['design','copy']), 'all', or undefined.
 function normalizeAxes(axes) {
-  const VALID = ['design', 'copy'];
+  const VALID = ['design', 'copy', 'craft'];
   if (axes === 'all') return [...VALID];
   if (!Array.isArray(axes) || axes.length === 0) return ['design'];
   const out = axes.filter((a) => VALID.includes(a));
@@ -349,8 +350,8 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
     const scoring = scorePatterns(scored);
 
     // Which axes to compute. Default = design only (fully backward-compatible:
-    // top-level score/grade/patterns stay exactly as before). Opt into copy via
-    // opts.axes = ['design','copy'] or 'all'.
+    // top-level score/grade/patterns stay exactly as before). Opt into copy or
+    // craft via opts.axes. Craft never feeds the unified design/copy score.
     const reqAxes = normalizeAxes(opts.axes);
 
     result = {
@@ -383,9 +384,16 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
       if (reqAxes.includes('copy')) {
         axes.copy = scoreCopy(data.textContext || {});
       }
+      if (reqAxes.includes('craft') && data.craftSignals) {
+        axes.craft = scoreCraft(data.craftSignals);
+        result.craft = axes.craft;
+      }
       result.axes = axes;
       const summaries = {};
-      for (const a of reqAxes) if (axes[a]) summaries[a] = axes[a];
+      for (const a of reqAxes) {
+        if (a === 'craft') continue;
+        if (axes[a]) summaries[a] = axes[a];
+      }
       Object.assign(result, combineAxes(summaries));
     }
 

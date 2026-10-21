@@ -9,7 +9,7 @@ Part of [slop-detect](https://slop-detect.com): the versioned fingerprint that c
 | Tool | Input | What it does |
 | --- | --- | --- |
 | `scan_page` | `{ url }` | Scans the page and returns a grade, a 0-100 score (**lower is better**), the slop tier, a verdict, the triggered patterns, and a shareable result URL. |
-| `check_aeo` | `{ url }` | Checks whether AI engines (ChatGPT, Claude, Perplexity, Google AI Overviews) can read and cite the page. Returns an AEO score 0-100 (**higher is better**), a tier (AI-Ready / Partial / Invisible), and which checks failed. |
+| `check_aeo` | `{ url }` | Checks whether a page can be fetched and read. Returns an AEO score 0-100 (**higher is better**), a tier (Eligible / Partially Eligible / Restricted), and which checks failed. The scanner does not impersonate vendor crawlers. |
 | `check_design_system` | `{ url, design_md_url? }` | Checks whether the page honors its own DESIGN.md. Returns a compliance score 0-100 (**higher is better**), a tier (Aligned / Drifting / Off-system / No system / No data), and named drift. Default file is `<origin>/DESIGN.md`; pass `design_md_url` to override. `No system` means no parseable DESIGN.md tokens; `No data` means nothing observable to check. |
 | `fix_prompt` | `{ url }` | Returns a copy-paste prompt that tells a coding agent exactly how to de-slop the page. |
 

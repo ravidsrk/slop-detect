@@ -62,7 +62,7 @@ function parseFailUnder(raw: string | undefined): { maxScore: number; label: str
   return null;
 }
 
-const VALID_AXES = ['design', 'copy'];
+const VALID_AXES = ['design', 'copy', 'craft'];
 function parseAxes(val) {
   if (!val) return null;
   if (val === 'all') return [...VALID_AXES];
@@ -88,7 +88,8 @@ for (let i = 0; i < args.length; i++) {
   else if (a === '--version' || a === '-V') {
     console.log(`slop-detect ${CLI_VERSION} (defs ${DEFINITIONS_VERSION})`);
     process.exit(0);
-  } else if (a === '--copy') flags.axes = ['design', 'copy'];
+  } else if (a === '--copy') flags.axes = [...new Set([...flags.axes, 'copy'])];
+  else if (a === '--craft') flags.axes = [...new Set([...flags.axes, 'craft'])];
   else if (a === '--aeo') flags.aeo = true;
   else if (a === '--remote') flags.remote = true;
   else if (a === '--api' || a.startsWith('--api=')) {
@@ -234,8 +235,9 @@ Options:
   --screenshot        Include a base64 hero screenshot in JSON output
   --verbose, -v       Show evidence details for every triggered pattern
   --preset, -p <p>    Scoring preset: full (default), strict, marketing, minimal
-  --axes <list>       Axes to score: design (default), copy. Comma-separated or "all"
-  --copy              Shorthand for --axes design,copy
+  --axes <list>       Axes to score: design (default), copy, craft. Comma-separated or "all"
+  --copy              Also score the copy axis
+  --craft             Also score the craft-floor axis (never feeds Clean/Mild/Heavy)
   --aeo               Add the AEO axis: can AI engines (ChatGPT/Claude/Perplexity)
                       actually read & cite this page? (network checks, no browser)
   --remote            Scan via the slop-detect.com API instead of a local browser
@@ -318,18 +320,22 @@ function renderPretty(result) {
   console.log();
 
   // Multi-axis: show the unified headline + per-axis breakdown.
-  const multi = result.axes && result.axes.copy;
+  // Craft is a separate floor (higher is better) and has no Clean/Mild/Heavy tier.
+  const scoredAxes = result.axes
+    ? Object.fromEntries(Object.entries(result.axes).filter(([name]) => name !== 'craft'))
+    : null;
+  const multi = scoredAxes && scoredAxes.copy;
   if (multi) {
     const ut = tierStyle(result.unifiedTier);
     console.log(
       `  ${emoji(result.unifiedTier)} ${ut}${C.bold}${result.unifiedTier}${C.reset}` +
         `  ·  ${C.bold}${result.unifiedGrade}${C.reset}` +
         `  ·  unified ${C.bold}${result.unifiedScore}${C.reset}/100` +
-        `  ${C.grey}(${result.axes ? Object.keys(result.axes).length : 1} axes)${C.reset}`
+        `  ${C.grey}(${Object.keys(scoredAxes).length} axes)${C.reset}`
     );
     console.log();
-    for (const name of Object.keys(result.axes)) {
-      const ax = result.axes[name];
+    for (const name of Object.keys(scoredAxes)) {
+      const ax = scoredAxes[name];
       const ax_ts = tierStyle(ax.tier);
       const note = ax.thin ? `${C.grey} (too little copy to judge)${C.reset}` : '';
       console.log(
@@ -374,6 +380,22 @@ function renderPretty(result) {
     console.log();
   }
 
+  if (result.craft) {
+    const craft = result.craft;
+    console.log(
+      `  ${C.bold}craft${C.reset}   score ${C.bold}${craft.score}${C.reset}/100` +
+        `  ${C.grey}(floor · does not change ${result.tier})${C.reset}`
+    );
+    const failed = craft.failed || [];
+    if (failed.length) {
+      console.log(`${C.bold}Craft floor:${C.reset}`);
+      for (const p of failed) {
+        console.log(`  ${C.red}✗${C.reset} ${p.label}  ${C.grey}(${p.weight})${C.reset}`);
+      }
+    }
+    console.log();
+  }
+
   // Copy axis detail.
   if (result.axes && result.axes.copy && !result.axes.copy.thin) {
     const cflag = result.axes.copy.patterns.filter((p) => p.triggered);
@@ -393,24 +415,24 @@ function renderPretty(result) {
 }
 
 function aeoTierStyle(tier) {
-  if (tier === 'AI-Ready') return C.green;
-  if (tier === 'Partial') return C.yellow;
+  if (tier === 'Eligible' || tier === 'AI-Ready') return C.green;
+  if (tier === 'Partially Eligible' || tier === 'Partial') return C.yellow;
   return C.red;
 }
 function aeoEmoji(tier) {
-  if (tier === 'AI-Ready') return '🟢';
-  if (tier === 'Partial') return '🟡';
+  if (tier === 'Eligible' || tier === 'AI-Ready') return '🟢';
+  if (tier === 'Partially Eligible' || tier === 'Partial') return '🟡';
   return '🔴';
 }
 
 function renderAeo(aeo) {
   const ts = aeoTierStyle(aeo.tier);
   console.log(
-    `  ${aeoEmoji(aeo.tier)} ${C.bold}AEO    ${C.reset} ${ts}${aeo.tier.padEnd(10)}${C.reset}` +
+    `  ${aeoEmoji(aeo.tier)} ${C.bold}AEO    ${C.reset} ${ts}${String(aeo.tier).padEnd(20)}${C.reset}` +
       `  score ${C.bold}${String(aeo.score).padStart(3)}${C.reset}/${aeo.maxScore}` +
       `  ${C.grey}(${aeo.passed.length}/${aeo.checks.length} checks · ${aeo.durationMs}ms)${C.reset}`
   );
-  console.log(`  ${C.grey}Can AI engines read & cite this page?${C.reset}`);
+  console.log(`  ${C.grey}Can this page be fetched and read?${C.reset}`);
   console.log();
   const failed = aeo.failed;
   if (failed.length) {

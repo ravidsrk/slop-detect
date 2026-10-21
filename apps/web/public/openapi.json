@@ -779,7 +779,7 @@
         "properties": {
           "version": {
             "type": "string",
-            "example": "2026.10",
+            "example": "2026.11",
             "description": "DEFINITIONS_VERSION of the catalogue."
           },
           "count": {

@@ -46,6 +46,7 @@ const ORIGIN = 'https://slop-detect.com';
 const N_DESIGN = PATTERNS.length;
 const N_COPY = COPY_PATTERNS.length;
 const N_AEO = AEO_CHECKS.length;
+const N_AEO_REQUIRED = AEO_CHECKS.filter((c) => c.severity === 'required').length;
 
 // The four product axes. The engine scores design + copy directly; the system and
 // AEO axes are separate live endpoints. Each carries its identity color and its
@@ -254,7 +255,7 @@ const CODE = {
     c.cmt("// pattern's detect() in-page, then hand the triggered results to the scorer."),
     `${c.kw('const')} summary = ${c.cmd('scorePatterns')}(results);`,
     `console.${c.cmd('log')}(summary.score, summary.grade, summary.tier);`,
-    `console.${c.cmd('log')}(PATTERNS.length, DEFINITIONS_VERSION); ${c.cmt('// 27 2026.10')}`,
+    `console.${c.cmd('log')}(PATTERNS.length, DEFINITIONS_VERSION); ${c.cmt(`// ${N_DESIGN} ${DEFINITIONS_VERSION}`)}`,
   ].join('\n'),
 
   mcp: [
@@ -737,15 +738,16 @@ export async function onRequestGet({ request }) {
                 The AEO axis asks a different question: can AI engines actually fetch, read, and
                 cite this page? A page can look perfectly human-made and still be invisible to
                 ChatGPT, Claude, or Perplexity because it blocks their crawlers or serves JS soup.{' '}
-                {N_AEO} weighted checks, total weight 100. The four required checks are the
-                fundamentals; the rest are recommended bonuses. Higher is better: AI-Ready (≥80),
-                Partial (≥50), Invisible (&lt;50).
+                {N_AEO} checks. {N_AEO_REQUIRED} required checks carry the scored fundamentals.
+                Recommended checks add the rest of the applicable points. Weight 0 checks are
+                reported and do not change the score. Higher is better: Eligible (≥80), Partially
+                Eligible (≥50), Restricted (&lt;50).
               </p>
               <DocFigure
                 src="/media/docs-aeo-crawler-pipeline.png"
-                alt="AEO agent-readable verification pipeline schematic showing AI crawlers evaluating eight weighted checkpoints"
+                alt="AEO agent-readable verification pipeline schematic"
                 figNum="FIG. 02"
-                caption="AEO verification circuit: eight weighted checks across crawler access, llms.txt, markdown twins, JSON-LD, and semantic SSR HTML."
+                caption={`AEO verification circuit: ${N_AEO} checks across fetch access, robots and snippet controls, server-rendered prose, markdown twins, and llms.txt.`}
               />
               <table class="tbl">
                 <thead>

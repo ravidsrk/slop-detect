@@ -124,8 +124,7 @@ export function formatSystem(result) {
 }
 
 // Renders a /api/aeo report. Score is 0-100 where HIGHER is better (the inverse
-// of the slop score), so we spell that out too. Tier: AI-Ready / Partial /
-// Invisible.
+// of the slop score). Tier: Eligible / Partially Eligible / Restricted.
 export function formatAeo(report) {
   const {
     url,
@@ -143,8 +142,8 @@ export function formatAeo(report) {
     : '  • None — passes every AEO check.';
 
   const lines = [
-    `AEO: can AI engines read & cite this page?`,
-    `Score: ${score}/${maxScore} (HIGHER is better — ${maxScore} = fully AI-ready · uncalibrated beta — ${CALIBRATION_URL})`,
+    `AEO: can this page be fetched and read?`,
+    `Score: ${score}/${maxScore} (HIGHER is better — ${maxScore} = fully eligible · uncalibrated beta — ${CALIBRATION_URL})`,
     `Tier: ${tier}`,
     url ? `Scanned: ${url}` : null,
     '',

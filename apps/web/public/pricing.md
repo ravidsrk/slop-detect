@@ -37,7 +37,7 @@ for why and what we're measuring.
 
 ## What's included (every plan)
 
-- Full 27-pattern deterministic design-slop fingerprint
+- Full 45-pattern deterministic design-slop fingerprint
 - Copy-slop axis (LLM phrasing tells)
 - AEO axis: can AI engines read & cite a page
 - System axis: DESIGN.md compliance ("does the page honor its own design system?")

@@ -84,8 +84,8 @@ which exercises both runners end-to-end.
 
 ## Conventions
 
-- 27 design patterns + 9 copy patterns + 8 AEO checks. `DEFINITIONS_VERSION` is
-  exported from `@slop-detect/core` (currently `2026.10`). Count is served
+- 45 design patterns + 26 copy patterns + 16 AEO checks. `DEFINITIONS_VERSION` is
+  exported from `@slop-detect/core` (currently `2026.11`). Count is served
   dynamically from `GET /api/patterns` (derived from `PATTERNS.length`). Never
   hardcode it in UI/docs.
 - Tiers (design): Clean 0–9, Mild 10–27, Heavy 28+.

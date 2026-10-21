@@ -15,6 +15,7 @@ import {
   parseDesignMd,
   scoreSystemCompliance,
   scoreCopy,
+  scoreCraft,
   combineAxes,
   SCAN_PAGE_WAIT,
   waitFontsReadyInPage,
@@ -47,7 +48,7 @@ export function scanFlowEvent(patch) {
 }
 
 // Normalize requested axes. Default: design only (backward-compatible).
-const VALID_AXES = ['design', 'copy'];
+const VALID_AXES = ['design', 'copy', 'craft'];
 function normalizeAxes(axes) {
   if (axes === 'all') return [...VALID_AXES];
   if (!Array.isArray(axes) || axes.length === 0) return ['design'];
@@ -308,10 +309,11 @@ export async function onRequestPost({ request, env, waitUntil }) {
       navMs,
     };
 
-    // Multi-axis (#08): opt into copy via { axes:['design','copy'] } or 'all'.
+    // Multi-axis: opt into copy and craft via { axes:['design','copy','craft'] } or 'all'.
+    // Craft is reported beside the design score and never feeds Clean/Mild/Heavy.
     const reqAxes = normalizeAxes(body?.axes);
-    if (reqAxes.includes('copy')) {
-      const axes = {
+    if (reqAxes.includes('copy') || reqAxes.includes('craft')) {
+      const axes: Record<string, any> = {
         design: {
           axis: 'design',
           score: scoring.score,
@@ -321,11 +323,18 @@ export async function onRequestPost({ request, env, waitUntil }) {
           patternsTotal: scoring.patternsTotal,
           patterns: scored,
         },
-        copy: scoreCopy(data.textContext || {}),
       };
+      if (reqAxes.includes('copy')) axes.copy = scoreCopy(data.textContext || {});
+      if (reqAxes.includes('craft') && data.craftSignals) {
+        axes.craft = scoreCraft(data.craftSignals);
+        result.craft = axes.craft;
+      }
       result.axes = axes;
-      const summaries = {};
-      for (const a of reqAxes) if (axes[a]) summaries[a] = axes[a];
+      const summaries: Record<string, any> = {};
+      for (const a of reqAxes) {
+        if (a === 'craft') continue;
+        if (axes[a]) summaries[a] = axes[a];
+      }
       Object.assign(result, combineAxes(summaries));
     }
 
