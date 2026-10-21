@@ -15,6 +15,12 @@ The engine catalogue is `DEFINITIONS_VERSION` `2026.11`. New and broadened rules
 - **`slop-detect init` writes project files.** Skill, MCP config, and optional hook recipes stay in the directory you pass. `--scope=global` is refused. Re-running does not duplicate a hook command. `--no-hooks` writes no hook files. Nothing is submitted to a registry.
 - **`--emit-aeo-fixes` writes starter files.** `robots.txt`, `llms.txt`, `ard.json`, and link headers are byte-stable and written without a model. The training list is the installed registry, not a live mirror. Search crawlers do not get per-bot Allow lines.
 - **`slop://spec/aeo` lists the installed AEO checks.** Likelihood ratios and the pre-2022 Heavy rate stay null.
+- **SARIF reports fingerprint each pattern and URL.** One run per page. The category is the page URL. Remediation help comes from the existing fix text. Failed AEO checks are included. A selector already on the finding is a logical location. Source lines are not invented. A blocked page is a `scan` error, not a pass.
+- **`compareScans` refuses a definitions-version mismatch.** That mismatch is not a score delta. `--compare-to` compares two saved scans offline, or one saved scan against a URL. `--fail-on-regression` exits 1 when the score rises above the allowed delta or a new pattern appears. A definitions change on the session baseline is a rescore, not a regression. `--save-baseline` writes one scored scan.
+- **`--runs` aggregates median or pessimistic scores beside the last scan.** The page score and patterns stay the last run. `runSummary` holds the aggregate. This is not a measured CLI-versus-API identity proof. Both paths use a 1280×800 viewport. Chromium versions are recorded and are not asserted equal.
+- **A non-full preset reports `fullScore`.** That field is the unfiltered design score. Copy, craft, AEO, and system are not rescored. The result names those axes when they were requested. The `full` preset leaves the JSON shape unchanged.
+- **MCP tools, prompts, and resources list the public favicon.** Text tools return `{ text }`. The SDK v2 plan is `packages/mcp/SDK-V2.md`. Nothing is published.
+- **Watch webhook payload builders exist for Slack, Discord, and JSON.** A definitions change is `rescored`, not a regression. The sweep still sends email. Live delivery, retries, and disable-after-failure are not wired.
 
 ## Unreleased — launch-readiness pass (2026-10-15)
 

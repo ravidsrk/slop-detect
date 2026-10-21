@@ -204,3 +204,168 @@ export function formatGitlabReport(result: any): string {
   }
   return JSON.stringify(rows, null, 2);
 }
+
+// A blocked or errored page could not be scanned. A fixture that already lists
+// pattern ids without a numeric score is still a findings document. An empty
+// document with no score is not a Clean result.
+function sarifUnscored(page: any): boolean {
+  if (!page || page.blocked || page.error) return true;
+  if (typeof page.score === 'number') return false;
+  const design = Array.isArray(page.patterns) && page.patterns.some((pattern: any) => pattern?.id);
+  const copy =
+    Array.isArray(page.axes?.copy?.patterns) &&
+    page.axes.copy.patterns.some((pattern: any) => pattern?.id);
+  const drift = Array.isArray(page.system?.drift) && page.system.drift.length > 0;
+  const checks = Array.isArray(page.aeo?.checks) && page.aeo.checks.length > 0;
+  const failed = Array.isArray(page.aeo?.failed) && page.aeo.failed.length > 0;
+  return !(design || copy || drift || checks || failed);
+}
+
+function helpMarkdown(id: string, fallback: string): string {
+  const fix = fixFor(id);
+  if (!fix) return fallback || id;
+  const parts = [fix.problem, fix.fix, fix.rule].filter((part) => typeof part === 'string' && part);
+  if (Array.isArray(fix.alternatives) && fix.alternatives.length) {
+    parts.push(fix.alternatives.map((item) => `- ${item}`).join('\n'));
+  }
+  return parts.join('\n\n') || fallback || id;
+}
+
+function selectorOfPattern(pattern: any): string {
+  return (
+    pattern?.evidence?.selector ||
+    pattern?.evidence?.domPath ||
+    pattern?.locations?.[0]?.selector ||
+    ''
+  );
+}
+
+function sarifResult(ruleId: string, uri: string, level: string, text: string, selector = '') {
+  const location: any = { physicalLocation: { artifactLocation: { uri } } };
+  if (selector) location.logicalLocations = [{ fullyQualifiedName: selector }];
+  return {
+    ruleId,
+    level,
+    message: { text: oneLine(text) },
+    locations: [location],
+    partialFingerprints: { primaryLocationLineHash: fingerprint(`${ruleId}|${uri}`) },
+  };
+}
+
+function ensureRule(rules: Map<string, any>, id: string, name: string, help: string, props: any) {
+  if (rules.has(id)) return;
+  rules.set(id, {
+    id,
+    name,
+    shortDescription: { text: oneLine(name) },
+    help: { markdown: help },
+    defaultConfiguration: { level: props.level || 'warning' },
+    properties: props,
+  });
+}
+
+// SARIF 2.1.0. One run per page URL. Fingerprints are pattern id plus URL.
+// Locations are the page URL. A selector, when the scan already has one, is a
+// logical location. This report does not invent a source line.
+export function buildSarifReport(results: any[] = []) {
+  const list = Array.isArray(results) ? results : [results];
+  const runs: any[] = [];
+  for (const page of list) {
+    if (!page) continue;
+    const uri = page.finalUrl || page.url || 'unscanned';
+    const rules = new Map<string, any>();
+    const sarifResults: any[] = [];
+    if (sarifUnscored(page)) {
+      ensureRule(rules, 'scan', 'scan', 'Scan could not run. This is not a Clean score.', {
+        level: 'error',
+        axis: 'scan',
+      });
+      sarifResults.push(
+        sarifResult('scan', uri, 'error', 'Scan could not run. This is not a Clean score.')
+      );
+    } else {
+      const design = Array.isArray(page.patterns) ? page.patterns : [];
+      const copy = Array.isArray(page.axes?.copy?.patterns) ? page.axes.copy.patterns : [];
+      for (const pattern of [...design, ...copy]) {
+        if (!pattern?.id) continue;
+        const level =
+          pattern.status === 'review' || pattern.weight === 0
+            ? 'warning'
+            : pattern.weight >= 6
+              ? 'error'
+              : 'warning';
+        ensureRule(
+          rules,
+          pattern.id,
+          pattern.short || pattern.label || pattern.id,
+          helpMarkdown(pattern.id, pattern.label || pattern.id),
+          {
+            level,
+            axis: pattern.axis || 'design',
+            category: pattern.category || pattern.axis || 'design',
+            weight: pattern.weight,
+          }
+        );
+        if (!pattern.triggered) continue;
+        sarifResults.push(
+          sarifResult(
+            pattern.id,
+            uri,
+            level,
+            `${pattern.label || pattern.id} (+${pattern.weight}) triggered on ${uri}`,
+            selectorOfPattern(pattern)
+          )
+        );
+      }
+      for (const drift of Array.isArray(page.system?.drift) ? page.system.drift : []) {
+        const ruleId = `system.${drift.id}`;
+        ensureRule(rules, ruleId, drift.id, drift.message || `DESIGN.md compliance: ${drift.id}`, {
+          level: 'warning',
+          axis: 'system',
+          category: 'system',
+        });
+        sarifResults.push(sarifResult(ruleId, uri, 'warning', drift.message || ruleId));
+      }
+      const aeoChecks = Array.isArray(page.aeo?.checks)
+        ? page.aeo.checks
+        : Array.isArray(page.aeo?.failed)
+          ? page.aeo.failed
+          : [];
+      for (const check of aeoChecks) {
+        if (!check?.id || (check.status !== 'fail' && check.status !== 'warn')) continue;
+        const ruleId = `aeo.${check.id}`;
+        const level =
+          check.status === 'fail' && check.severity === 'required' ? 'error' : 'warning';
+        ensureRule(
+          rules,
+          ruleId,
+          check.label || check.id,
+          check.message || check.label || check.id,
+          {
+            level,
+            axis: 'aeo',
+            category: 'aeo',
+          }
+        );
+        sarifResults.push(sarifResult(ruleId, uri, level, check.message || ruleId));
+      }
+    }
+    runs.push({
+      automationDetails: { id: `slop-detect/${fingerprint(uri)}` },
+      properties: { category: uri },
+      tool: {
+        driver: {
+          name: 'slop-detect',
+          informationUri: 'https://slop-detect.com',
+          rules: [...rules.values()],
+        },
+      },
+      results: sarifResults,
+    });
+  }
+  return {
+    $schema: 'https://json.schemastore.org/sarif-2.1.0.json',
+    version: '2.1.0',
+    runs,
+  };
+}

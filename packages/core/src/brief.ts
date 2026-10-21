@@ -125,10 +125,108 @@ export function diffScanFindings(
   return { removed, added, kitsAdded, kitsRemoved, text };
 }
 
+function axisScore(result: any, axis: string): number | null {
+  if (axis === 'design') return typeof result?.score === 'number' ? result.score : null;
+  const value = result?.axes?.[axis]?.score;
+  return typeof value === 'number' ? value : null;
+}
+
+// Refuse a comparison when the definitions versions differ. A mismatch is an
+// error, not a score delta. Environment differences are reported and do not
+// erase the numeric delta.
+export function compareScans(
+  baseline: any,
+  current: any,
+  opts: { maxDelta?: number } = {}
+): {
+  comparable: boolean;
+  error: string | null;
+  delta: number | null;
+  copyDelta: number | null;
+  patternsAdded: string[];
+  patternsResolved: string[];
+  regression: boolean;
+  environmentDiff: boolean;
+  text: string;
+} {
+  const left = baseline?.definitionsVersion;
+  const right = current?.definitionsVersion;
+  const empty = {
+    patternsAdded: [] as string[],
+    patternsResolved: [] as string[],
+    regression: false,
+    environmentDiff: false,
+    copyDelta: null as number | null,
+  };
+  if (!left || !right || left !== right) {
+    return {
+      ...empty,
+      comparable: false,
+      error:
+        'definitionsVersion mismatch. Re-score the baseline before comparing. This is not a score delta.',
+      delta: null,
+      text: 'definitionsVersion mismatch. Re-score the baseline before comparing. This is not a score delta.',
+    };
+  }
+  if (scanCouldNotScore(baseline) || scanCouldNotScore(current)) {
+    return {
+      ...empty,
+      comparable: false,
+      error: 'Scan could not run. This is not a Clean score.',
+      delta: null,
+      text: 'Scan could not run. This is not a Clean score.',
+    };
+  }
+  const beforeIds = triggeredPatterns(baseline).map((pattern) => String(pattern.id));
+  const afterIds = triggeredPatterns(current).map((pattern) => String(pattern.id));
+  const beforeSet = new Set(beforeIds);
+  const afterSet = new Set(afterIds);
+  const patternsResolved = beforeIds.filter((id) => !afterSet.has(id));
+  const patternsAdded = afterIds.filter((id) => !beforeSet.has(id));
+  const delta = current.score - baseline.score;
+  const beforeCopy = axisScore(baseline, 'copy');
+  const afterCopy = axisScore(current, 'copy');
+  const copyDelta = beforeCopy == null || afterCopy == null ? null : afterCopy - beforeCopy;
+  const maxDelta = Number.isInteger(opts.maxDelta) ? (opts.maxDelta as number) : 0;
+  const regression = delta > maxDelta || patternsAdded.length > 0;
+  const environmentDiff =
+    JSON.stringify(baseline.environment || null) !== JSON.stringify(current.environment || null);
+  const parts = [
+    `Score ${baseline.score} → ${current.score} (${delta >= 0 ? '+' : ''}${delta}).`,
+    `Added: ${patternsAdded.length ? patternsAdded.join(', ') : 'none'}.`,
+    `Resolved: ${patternsResolved.length ? patternsResolved.join(', ') : 'none'}.`,
+  ];
+  if (copyDelta != null) parts.push(`Copy ${copyDelta >= 0 ? '+' : ''}${copyDelta}.`);
+  if (environmentDiff) parts.push('Environment differs.');
+  return {
+    comparable: true,
+    error: null,
+    delta,
+    copyDelta,
+    patternsAdded,
+    patternsResolved,
+    regression,
+    environmentDiff,
+    text: parts.join(' '),
+  };
+}
+
 export function regressionAgainstBaseline(
-  baseline: { score?: number; patterns?: string[] } | null | undefined,
+  baseline: { score?: number; patterns?: string[]; definitionsVersion?: string } | null | undefined,
   current: any
 ): { establish: boolean; silent: boolean; worse: boolean; text: string } {
+  if (
+    baseline?.definitionsVersion &&
+    current?.definitionsVersion &&
+    baseline.definitionsVersion !== current.definitionsVersion
+  ) {
+    return {
+      establish: false,
+      silent: false,
+      worse: false,
+      text: `Definitions ${baseline.definitionsVersion} → ${current.definitionsVersion}. This is a rescore, not a regression.`,
+    };
+  }
   if (scanCouldNotScore(current)) {
     return {
       establish: false,

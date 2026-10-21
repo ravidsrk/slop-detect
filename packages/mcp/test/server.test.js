@@ -250,3 +250,38 @@ test('slop://spec/aeo is the installed catalogue and does not fetch', async () =
     )
   ).toBe(true);
 });
+
+test('icons point at the public favicon and text tools are not scan documents', async () => {
+  const icon = 'https://slop-detect.com/favicon.svg';
+  for (const entry of [...TOOLS, ...PROMPTS, ...RESOURCES]) {
+    expect(entry.icons[0].src).toBe(icon);
+    expect(entry.icons[0].mimeType).toBe('image/svg+xml');
+  }
+  expect(TOOLS.map((tool) => tool.name)).toEqual([
+    'scan_page',
+    'check_aeo',
+    'check_design_system',
+    'fix_prompt',
+    'lint_design_md',
+    'diff_design_md',
+  ]);
+  for (const name of ['scan_page', 'fix_prompt']) {
+    const preset = TOOLS.find((tool) => tool.name === name).inputSchema.properties.preset.enum;
+    expect(preset).toContain('editorial');
+    expect(preset).toContain('devtool');
+  }
+  for (const name of ['check_design_system', 'fix_prompt', 'lint_design_md', 'diff_design_md']) {
+    const schema = TOOLS.find((tool) => tool.name === name).outputSchema;
+    expect(schema.properties.text.type).toBe('string');
+    expect(schema.required).toEqual(['text']);
+    expect(schema.$id).toBeUndefined();
+  }
+  expect(TOOLS.find((tool) => tool.name === 'scan_page').outputSchema.$id).toMatch(
+    /scan-result\.v1\.json$/
+  );
+  const lint = await handleCall('lint_design_md', {
+    design_md: '---\nname: Brand\n---\n\n# Brand\n',
+  });
+  expect(lint.structuredContent.text).toBe(lint.content[0].text);
+  expect(lint.structuredContent.schemaVersion).toBeUndefined();
+});

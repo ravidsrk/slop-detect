@@ -12,6 +12,7 @@ import {
   scorePatterns,
   applyPreset,
   isPreset,
+  presetCoverage,
   parseDesignMd,
   scoreSystemCompliance,
   scoreCopy,
@@ -364,6 +365,19 @@ export async function onRequestPost({ request, env, waitUntil }) {
       result.system = scoreSystemCompliance(parsedMd, data.systemContext);
       result.system.source = mdText ? mdUrl : null;
       if (parsedMd) Object.assign(result, applyDeclaredDesignWaivers(result, parsedMd));
+    }
+
+    // A non-full preset filters design patterns only. fullScore is that
+    // unfiltered design score. Copy, craft, AEO, and system are not rescored.
+    if (preset !== 'full') {
+      result.fullScore = scorePatterns(patterns).score;
+      const coverageAxes = [...reqAxes];
+      if (wantsSystem) coverageAxes.push('system');
+      const coverage = presetCoverage(preset, coverageAxes);
+      if (coverage.warning) {
+        result.presetWarning = coverage.warning;
+        result.presetNotApplied = coverage.notApplied;
+      }
     }
 
     // Persist a slim snapshot so the scan gets a shareable permalink (/r/:id),

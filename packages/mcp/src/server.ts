@@ -80,6 +80,23 @@ function loadScanResultSchema() {
 
 const SCAN_RESULT_SCHEMA = loadScanResultSchema();
 
+const TEXT_OUTPUT_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    text: { type: 'string' },
+  },
+  required: ['text'],
+};
+
+const PUBLIC_ICON = [
+  {
+    src: 'https://slop-detect.com/favicon.svg',
+    mimeType: 'image/svg+xml',
+    sizes: ['any'],
+  },
+];
+
 export const TOOLS = [
   {
     name: 'scan_page',
@@ -110,8 +127,9 @@ export const TOOLS = [
         },
         preset: {
           type: 'string',
-          enum: ['full', 'strict', 'marketing', 'minimal'],
-          description: 'Optional: scoring preset (default: "full").',
+          enum: ['full', 'strict', 'marketing', 'minimal', 'editorial', 'devtool'],
+          description:
+            'Optional: scoring preset (default: "full"). Presets filter design patterns. Copy, AEO, and system scores stay unchanged.',
         },
         design_md_url: {
           type: 'string',
@@ -121,6 +139,7 @@ export const TOOLS = [
       },
       required: ['url'],
     },
+    icons: PUBLIC_ICON,
     ...(SCAN_RESULT_SCHEMA ? { outputSchema: SCAN_RESULT_SCHEMA } : {}),
   },
   {
@@ -146,6 +165,7 @@ export const TOOLS = [
       },
       required: ['url'],
     },
+    icons: PUBLIC_ICON,
     ...(SCAN_RESULT_SCHEMA ? { outputSchema: SCAN_RESULT_SCHEMA } : {}),
   },
   {
@@ -179,6 +199,8 @@ export const TOOLS = [
       },
       required: ['url'],
     },
+    icons: PUBLIC_ICON,
+    outputSchema: TEXT_OUTPUT_SCHEMA,
   },
   {
     name: 'fix_prompt',
@@ -208,8 +230,9 @@ export const TOOLS = [
         },
         preset: {
           type: 'string',
-          enum: ['full', 'strict', 'marketing', 'minimal'],
-          description: 'Optional: scoring preset (default: "full").',
+          enum: ['full', 'strict', 'marketing', 'minimal', 'editorial', 'devtool'],
+          description:
+            'Optional: scoring preset (default: "full"). Presets filter design patterns. Copy, AEO, and system scores stay unchanged.',
         },
         design_md_url: {
           type: 'string',
@@ -223,6 +246,8 @@ export const TOOLS = [
       },
       required: ['url'],
     },
+    icons: PUBLIC_ICON,
+    outputSchema: TEXT_OUTPUT_SCHEMA,
   },
   {
     name: 'lint_design_md',
@@ -246,6 +271,8 @@ export const TOOLS = [
       },
       required: ['design_md'],
     },
+    icons: PUBLIC_ICON,
+    outputSchema: TEXT_OUTPUT_SCHEMA,
   },
   {
     name: 'diff_design_md',
@@ -273,6 +300,8 @@ export const TOOLS = [
       },
       required: ['base_design_md', 'head_design_md'],
     },
+    icons: PUBLIC_ICON,
+    outputSchema: TEXT_OUTPUT_SCHEMA,
   },
 ];
 
@@ -288,6 +317,7 @@ export const PROMPTS = [
         required: true,
       },
     ],
+    icons: PUBLIC_ICON,
   },
   {
     name: 'deslop_and_verify',
@@ -300,6 +330,7 @@ export const PROMPTS = [
         required: true,
       },
     ],
+    icons: PUBLIC_ICON,
   },
 ];
 
@@ -336,6 +367,7 @@ export const RESOURCES = [
     description:
       'Live JSON catalogue of design patterns, copy patterns, AEO checks, and DESIGN.md system checks from slop-detect.com.',
     mimeType: 'application/json',
+    icons: PUBLIC_ICON,
   },
   {
     uri: 'slop://spec/design-md-template',
@@ -343,6 +375,7 @@ export const RESOURCES = [
     description:
       'Reference DESIGN.md file with YAML front-matter tokens (colors, typography, rounded, components) for the system compliance axis.',
     mimeType: 'text/markdown',
+    icons: PUBLIC_ICON,
   },
   {
     uri: 'slop://spec/aeo',
@@ -350,12 +383,17 @@ export const RESOURCES = [
     description:
       'AEO checks from the installed engine. Weight 0 checks stay in review. Pre-2022 false-positive rates are unmeasured.',
     mimeType: 'application/json',
+    icons: PUBLIC_ICON,
   },
 ];
 
 // Wrap a tool body so any thrown error (network, ApiError, validation) becomes
 // MCP error content instead of crashing the process. A long-lived server must
 // never die on a single bad request.
+function textResult(text, isError = false) {
+  return asToolResult(text, isError, { text });
+}
+
 function asToolResult(text, isError = false, structuredContent?) {
   const result: {
     content: Array<{ type: 'text'; text: string }>;
@@ -389,16 +427,16 @@ function handleLocalDesignMd(name, args) {
   if (name === 'lint_design_md') {
     const text = args && typeof args.design_md === 'string' ? args.design_md : '';
     if (!text.trim()) {
-      return asToolResult('Missing required argument "design_md" (the DESIGN.md text).', true);
+      return textResult('Missing required argument "design_md" (the DESIGN.md text).', true);
     }
-    return asToolResult(formatDesignMdLint(lintDesignMd(text)));
+    return textResult(formatDesignMdLint(lintDesignMd(text)));
   }
   const base = args && typeof args.base_design_md === 'string' ? args.base_design_md : '';
   const head = args && typeof args.head_design_md === 'string' ? args.head_design_md : '';
   if (!base.trim() || !head.trim()) {
-    return asToolResult('Missing required arguments "base_design_md" and "head_design_md".', true);
+    return textResult('Missing required arguments "base_design_md" and "head_design_md".', true);
   }
-  return asToolResult(formatDesignMdDiff(diffDesignMd(base, head)));
+  return textResult(formatDesignMdDiff(diffDesignMd(base, head)));
 }
 
 export async function handleCall(name, args) {
@@ -439,7 +477,7 @@ export async function handleCall(name, args) {
     const designMdUrl =
       args && typeof args.design_md_url === 'string' ? args.design_md_url.trim() : '';
     const result = await checkSystem(url, designMdUrl || undefined);
-    return asToolResult(formatSystem(result));
+    return textResult(formatSystem(result));
   }
   if (name === 'fix_prompt') {
     if (args?.brief === true) {
@@ -449,12 +487,12 @@ export async function handleCall(name, args) {
         score?: unknown;
       };
       if (!result || result.blocked || result.error || typeof result.score !== 'number') {
-        return asToolResult('Scan could not run. This is not a Clean score.', true);
+        return textResult('Scan could not run. This is not a Clean score.', true);
       }
-      return asToolResult(buildAvoidList(result));
+      return textResult(buildAvoidList(result));
     }
     const prompt = await fixPrompt(url, extractScanOptions(args));
-    return asToolResult(prompt);
+    return textResult(prompt);
   }
   return asToolResult(`Unknown tool: ${name}`, true);
 }
@@ -472,11 +510,11 @@ async function handleLocalScan(name, url, args) {
     const designMdUrl =
       args && typeof args.design_md_url === 'string' ? args.design_md_url.trim() : '';
     const result = await localScan(url, { designMd: designMdUrl || true });
-    return asToolResult(formatSystem(result), false, result);
+    return textResult(formatSystem(result));
   }
   if (name === 'fix_prompt') {
     const prompt = await localFixPrompt(url, extractScanOptions(args));
-    return asToolResult(prompt);
+    return textResult(prompt);
   }
   return asToolResult(`Unknown tool: ${name}`, true);
 }

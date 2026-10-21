@@ -1,6 +1,8 @@
 import { test, expect } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { PRESETS } from '@slop-detect/core';
+import { writeBaseline } from '../src/offline.ts';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -157,4 +159,67 @@ test('init is idempotent, refuses a home-directory scope, and honors --no-hooks'
   const globalScope = run(['init', '--dir', dir, '--scope', 'global']);
   expect(globalScope.status).toBe(2);
   expect(globalScope.stderr).toMatch(/project directory only/);
+});
+
+function savedScan(score, ids, version = '2026.11') {
+  return {
+    url: 'https://example.com',
+    score,
+    tier: score >= 28 ? 'Heavy' : score >= 10 ? 'Mild' : 'Clean',
+    definitionsVersion: version,
+    patterns: ids.map((id) => ({ id, triggered: true, evidence: { samples: [id] } })),
+    environment: { viewport: { width: 1280, height: 800 } },
+  };
+}
+
+test('--runs and --aggregate reject bad values before a fetch', () => {
+  const runs = run(['https://example.com', '--runs', '0']);
+  expect(runs.status).toBe(2);
+  expect(runs.stderr).toMatch(/1 to 5/);
+  const aggregate = run(['https://example.com', '--aggregate', 'mean']);
+  expect(aggregate.status).toBe(2);
+  expect(aggregate.stderr).toMatch(/median or pessimistic/);
+});
+
+test('--compare-to stays offline and refuses a definitions mismatch', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'slop-compare-'));
+  const before = join(dir, 'before.json');
+  const after = join(dir, 'after.json');
+  writeFileSync(before, JSON.stringify(savedScan(4, ['slop_fonts'], '2026.10')));
+  writeFileSync(after, JSON.stringify(savedScan(10, ['slop_fonts'])));
+  const mismatch = run(['--compare-to', before, after]);
+  expect(mismatch.status).toBe(2);
+  expect(mismatch.stderr).toMatch(/not a score delta/);
+  expect(mismatch.stdout).toBe('');
+
+  writeFileSync(before, JSON.stringify(savedScan(4, ['slop_fonts'])));
+  writeFileSync(after, JSON.stringify(savedScan(10, ['slop_fonts', 'purple_accent'])));
+  const regression = run(['--compare-to', before, after, '--fail-on-regression']);
+  expect(regression.status).toBe(1);
+  expect(regression.stdout).toMatch(/Score 4 → 10/);
+  expect(regression.stdout).toMatch(/purple_accent/);
+
+  writeFileSync(after, JSON.stringify(savedScan(4, ['slop_fonts'])));
+  const same = run(['--compare-to', before, after, '--fail-on-regression']);
+  expect(same.status).toBe(0);
+  expect(same.stdout).toMatch(/\+0/);
+
+  const withUrl = run(['--compare-to', before, after, 'https://example.com']);
+  expect(withUrl.status).toBe(2);
+  expect(withUrl.stderr).toMatch(/does not take URLs/);
+});
+
+test('writeBaseline refuses an unscored page and writes a scored one', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'slop-baseline-'));
+  expect(() => writeBaseline(join(dir, 'nope.json'), { error: 'down' })).toThrow(
+    /not a Clean score/
+  );
+  const dest = join(dir, 'nested', 'base.json');
+  writeBaseline(dest, savedScan(4, ['slop_fonts']));
+  expect(JSON.parse(readFileSync(dest, 'utf8')).score).toBe(4);
+});
+
+test('the CLI readme names every preset id', () => {
+  const readme = readFileSync(new URL('../README.md', import.meta.url), 'utf8');
+  for (const id of Object.keys(PRESETS)) expect(readme).toContain(id);
 });

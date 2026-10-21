@@ -10,6 +10,8 @@ import {
   assemblePatternResults,
   scorePatterns,
   applyPreset,
+  presetCoverage,
+  buildSarifReport as buildCoreSarifReport,
   parseDesignMd,
   scoreSystemCompliance,
   scoreCopy,
@@ -246,90 +248,7 @@ export async function aeoRemote(url, opts: ScanOptions = {}) {
 }
 
 export function buildSarifReport(results: any[]) {
-  const list = Array.isArray(results) ? results : [results];
-  const rulesMap = new Map<string, any>();
-  const sarifResults: any[] = [];
-
-  for (const r of list) {
-    if (!r || r.error || r.blocked) continue;
-    const uri = r.finalUrl || r.url || 'https://example.com';
-    const designPatterns = Array.isArray(r.patterns) ? r.patterns : [];
-    const copyPatterns = Array.isArray(r.axes?.copy?.patterns) ? r.axes.copy.patterns : [];
-    for (const p of [...designPatterns, ...copyPatterns]) {
-      if (!rulesMap.has(p.id)) {
-        rulesMap.set(p.id, {
-          id: p.id,
-          name: p.short || p.id,
-          shortDescription: { text: p.label || p.id },
-          defaultConfiguration: {
-            level: p.weight >= 6 ? 'error' : 'warning',
-          },
-          properties: {
-            axis: p.axis || 'design',
-            category: p.category || 'design',
-            weight: p.weight,
-          },
-        });
-      }
-      if (p.triggered) {
-        sarifResults.push({
-          ruleId: p.id,
-          level: p.weight >= 6 ? 'error' : 'warning',
-          message: {
-            text: `${p.label} (+${p.weight}) triggered on ${uri}`,
-          },
-          locations: [
-            {
-              physicalLocation: {
-                artifactLocation: { uri },
-              },
-            },
-          ],
-          properties: {
-            weight: p.weight,
-            axis: p.axis || 'design',
-            evidence: p.evidence || {},
-          },
-        });
-      }
-    }
-    if (Array.isArray(r.system?.drift)) {
-      for (const d of r.system.drift) {
-        const ruleId = `system.${d.id}`;
-        if (!rulesMap.has(ruleId)) {
-          rulesMap.set(ruleId, {
-            id: ruleId,
-            name: d.id,
-            shortDescription: { text: `DESIGN.md compliance: ${d.id}` },
-            defaultConfiguration: { level: 'warning' },
-          });
-        }
-        sarifResults.push({
-          ruleId,
-          level: 'warning',
-          message: { text: d.message },
-          locations: [{ physicalLocation: { artifactLocation: { uri } } }],
-        });
-      }
-    }
-  }
-
-  return {
-    $schema: 'https://json.schemastore.org/sarif-2.1.0.json',
-    version: '2.1.0',
-    runs: [
-      {
-        tool: {
-          driver: {
-            name: 'slop-detect',
-            informationUri: 'https://slop-detect.com',
-            rules: [...rulesMap.values()],
-          },
-        },
-        results: sarifResults,
-      },
-    ],
-  };
+  return buildCoreSarifReport(results);
 }
 
 export async function scanUrl(url, opts: ScanOptions = {}) {
@@ -470,6 +389,18 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
     }
     if (shouldIncludeSystem(opts) && data.systemContext) {
       result.systemContext = data.systemContext;
+    }
+    // fullScore is the unfiltered design score. It is not rawScore (that field
+    // is the pre-waiver score) and it is omitted when the preset is already full.
+    if (preset !== 'full') {
+      result.fullScore = scorePatterns(patterns).score;
+      const coverageAxes = [...reqAxes];
+      if (opts.designMd) coverageAxes.push('system');
+      const coverage = presetCoverage(preset, coverageAxes);
+      if (coverage.warning) {
+        result.presetWarning = coverage.warning;
+        result.presetNotApplied = coverage.notApplied;
+      }
     }
 
     if (opts.screenshot) {

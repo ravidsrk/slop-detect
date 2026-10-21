@@ -2,7 +2,7 @@
 // reporters, and AEO starter files.
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { dirname, join, relative } from 'node:path';
 import {
   buildAeoFixFiles,
   buildAvoidList,
@@ -111,6 +111,14 @@ export function avoidListWithinCap(result: any): { text: string; words: number }
 
 export function diffSavedScans(before: any, after: any) {
   return diffScanFindings(before, after);
+}
+
+export function writeBaseline(path: string, result: any) {
+  if (!result || result.blocked || result.error || typeof result.score !== 'number') {
+    throw new Error('Scan could not run. This is not a Clean score.');
+  }
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${JSON.stringify(result, null, 2)}\n`);
 }
 
 export function pathExists(path: string): boolean {

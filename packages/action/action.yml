@@ -45,7 +45,7 @@ inputs:
     required: false
     default: 'design'
   preset:
-    description: 'Scoring preset: full (default), strict, marketing, minimal.'
+    description: 'Scoring preset: full (default), strict, marketing, minimal, editorial, devtool. Presets filter the design score. Copy, craft, AEO, and system are not rescored.'
     required: false
     default: 'full'
   design-md:
@@ -72,6 +72,10 @@ inputs:
     description: 'Token used to post the sticky PR comment.'
     required: false
     default: ${{ github.token }}
+  sarif:
+    description: 'Write a SARIF 2.1.0 file to this path. The job summary is still written. This action does not upload the file. Source lines are not invented.'
+    required: false
+    default: ''
 
 outputs:
   score:
@@ -101,6 +105,9 @@ outputs:
   result-url:
     description: 'Shareable result page URL.'
     value: ${{ steps.scan.outputs.result-url }}
+  sarif-file:
+    description: 'Path of the SARIF file when the sarif input is set.'
+    value: ${{ steps.scan.outputs.sarif-file }}
 
 runs:
   using: 'composite'
@@ -124,4 +131,5 @@ runs:
         INPUT_API_KEY: ${{ inputs.api-key }}
         INPUT_SHARE: ${{ inputs.share }}
         INPUT_COMMENT: ${{ inputs.comment }}
+        INPUT_SARIF: ${{ inputs.sarif }}
         GITHUB_TOKEN: ${{ inputs.github-token }}

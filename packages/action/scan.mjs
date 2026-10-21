@@ -9,8 +9,9 @@
 // summary → (in a PR) upsert a sticky comment → apply the fail-under gate and
 // exit non-zero if the page is too sloppy.
 
-import { appendFileSync, readFileSync } from 'node:fs';
+import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { buildActionSarif } from './sarif.mjs';
 
 // ---------------------------------------------------------------------------
 // Tiny helpers
@@ -474,6 +475,12 @@ async function main() {
 
   // Job summary — same markdown as the comment but without the sticky marker.
   writeSummary(`${reportBody(apiBase, result, gate, { withMarker: false })}\n`);
+
+  const sarifPath = (process.env.INPUT_SARIF || '').trim();
+  if (sarifPath) {
+    writeFileSync(sarifPath, `${JSON.stringify(buildActionSarif([result]), null, 2)}\n`);
+    setOutput('sarif-file', sarifPath);
+  }
 
   log(
     `Result: grade ${result.grade}, score ${result.score}/100, tier ${result.tier}${resultUrl ? ` → ${resultUrl}` : ''}`

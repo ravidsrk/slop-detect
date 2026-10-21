@@ -34,6 +34,9 @@ import {
   stampScanResult,
   formatSiteSummary,
   isReportFormat,
+  compareScans,
+  aggregateRuns,
+  presetCoverage,
 } from '@slop-detect/core';
 import { applyInitPlan, parseProviders, planInitFiles } from '../src/init-project.js';
 import {
@@ -47,6 +50,7 @@ import {
   siteCopyReport,
   siteSummaryDocument,
   writeAeoFixes,
+  writeBaseline,
 } from '../src/offline.js';
 
 const CLI_VERSION = '0.8.0';
@@ -79,6 +83,13 @@ const flags = {
   brief: false,
   briefFile: null as string | null,
   diffScan: null as [string, string] | null,
+  compareTo: null as string | null,
+  compareCurrent: null as string | null,
+  failOnRegression: false,
+  maxDelta: 0,
+  saveBaseline: null as string | null,
+  runs: null as number | null,
+  aggregate: 'median' as 'median' | 'pessimistic',
   format: null as string | null,
   emitAeoFixes: null as string | null,
   origin: null as string | null,
@@ -254,6 +265,43 @@ for (let i = 0; i < args.length; i++) {
       process.exit(2);
     }
     flags.diffScan = [before, after];
+  } else if (a === '--compare-to' || a.startsWith('--compare-to=')) {
+    const baseline = a.startsWith('--compare-to=') ? a.slice('--compare-to='.length) : args[++i];
+    if (!baseline || baseline.startsWith('--')) {
+      console.error('--compare-to needs a baseline scan JSON file.');
+      process.exit(2);
+    }
+    flags.compareTo = baseline;
+    const next = args[i + 1];
+    if (next && !next.startsWith('--') && !/^[a-z][a-z0-9+.-]*:/i.test(next)) {
+      flags.compareCurrent = args[++i];
+    }
+  } else if (a === '--fail-on-regression') {
+    flags.failOnRegression = true;
+    const next = args[i + 1];
+    if (next && /^\d+$/.test(next)) flags.maxDelta = Number(args[++i]);
+  } else if (a === '--save-baseline' || a.startsWith('--save-baseline=')) {
+    const path = a.startsWith('--save-baseline=') ? a.slice('--save-baseline='.length) : args[++i];
+    if (!path || path.startsWith('--')) {
+      console.error('--save-baseline needs a file path.');
+      process.exit(2);
+    }
+    flags.saveBaseline = path;
+  } else if (a === '--runs' || a.startsWith('--runs=')) {
+    const raw = a.startsWith('--runs=') ? a.slice('--runs='.length) : args[++i];
+    const n = Number(raw);
+    if (!Number.isInteger(n) || n < 1 || n > 5) {
+      console.error('--runs needs an integer from 1 to 5.');
+      process.exit(2);
+    }
+    flags.runs = n;
+  } else if (a === '--aggregate' || a.startsWith('--aggregate=')) {
+    const val = a.startsWith('--aggregate=') ? a.slice('--aggregate='.length) : args[++i];
+    if (val !== 'median' && val !== 'pessimistic') {
+      console.error('--aggregate must be median or pessimistic.');
+      process.exit(2);
+    }
+    flags.aggregate = val;
   } else if (a === '--format' || a.startsWith('--format=')) {
     const val = a.startsWith('--format=') ? a.slice('--format='.length) : args[++i];
     if (!val || !isReportFormat(val)) {
@@ -473,6 +521,28 @@ if (flags.briefFile) {
   }
 }
 
+if (flags.compareTo && flags.compareCurrent) {
+  if (urls.length) {
+    console.error('--compare-to with two files does not take URLs.');
+    process.exit(2);
+  }
+  try {
+    const report = compareScans(readJsonFile(flags.compareTo), readJsonFile(flags.compareCurrent), {
+      maxDelta: flags.maxDelta,
+    });
+    if (!report.comparable) {
+      console.error(report.error || report.text);
+      process.exit(2);
+    }
+    console.log(flags.json ? JSON.stringify(report, null, 2) : report.text);
+    process.exit(flags.failOnRegression && report.regression ? 1 : 0);
+  } catch (e) {
+    console.error(e.message || String(e));
+    console.error('Scan could not run. This is not a Clean score.');
+    process.exit(2);
+  }
+}
+
 if (flags.format && urls.length === 1 && pathExists(urls[0])) {
   try {
     console.log(formatScanDocument(readJsonFile(urls[0]), flags.format));
@@ -562,6 +632,19 @@ Options:
   --brief [file]      Short avoid list (at most 120 words). Does not replace
                       --fix-prompt. A saved scan JSON skips the browser.
   --diff-scan <a> <b> Diff two saved scan JSON files
+  --compare-to <baseline> [current]
+                      Compare scan JSON. A definitions mismatch is not a score
+                      delta. Two files and no URL stays offline. One file scans
+                      the URL, then compares. --fail-on-regression [maxDelta]
+                      exits 1 when the score rises above maxDelta (default 0)
+                      or a new pattern appears. A mismatch exits 2.
+  --save-baseline <file>
+                      Write this scan as a baseline. One URL. An unscored page
+                      exits 2 and is not a Clean score.
+  --runs <n>          Scan 1 to 5 times. The page score stays the last run.
+                      A median or --aggregate pessimistic score is printed
+                      beside it. Not a measured CLI-vs-API identity proof.
+  --aggregate <m>     median (default) or pessimistic. Used with --runs.
   --copy-dir <dir>    Score HTML files on the copy axis. Does not render.
                       Pre-2022 Heavy rate is unmeasured.
   --site-copy <n>     Fetch up to n same-origin HTML pages and score copy.
@@ -588,7 +671,9 @@ Options:
                       Requires the optional axe-core package.
   --screenshot        Include a base64 hero screenshot in JSON output
   --verbose, -v       Show evidence details for every triggered pattern
-  --preset, -p <p>    Scoring preset: full (default), strict, marketing, minimal
+  --preset, -p <p>    Scoring preset: full (default), strict, marketing, minimal,
+                      editorial, devtool. Filters design only. Copy, craft,
+                      AEO, and system keep their own scores.
   --axes <list>       Axes to score: design (default), copy, craft. Comma-separated or "all"
   --copy              Also score the copy axis
   --craft             Also score the craft-floor axis (never feeds Clean/Mild/Heavy)
@@ -972,55 +1057,105 @@ const machineOutput =
     }
   }
   const results = [];
+  const attemptCount = flags.runs || 1;
   for (const url of urls) {
     if (flags.site && results.length > 0) {
       await new Promise((resolve) => setTimeout(resolve, 200));
     }
-    try {
-      const scanOpts: ScanOptions = {
-        screenshot: flags.screenshot,
-        preset: flags.preset,
-        axes: flags.axes,
-        api: flags.api,
-        timeout: flags.timeout || undefined,
-        includeSystem: flags.initDesignMd || flags.initTokens || undefined,
-        a11y: flags.a11y || undefined,
-      };
-      if (flags.designMd && !flags.remote) {
-        const loaded = await loadDesignMd(flags.designMd, url);
-        if (loaded) scanOpts.designMd = loaded.text;
-        else if (!machineOutput)
-          console.error(
-            `${C.grey}No DESIGN.md found for ${url} (auto) — skipping the system axis.${C.reset}`
-          );
-      } else if (flags.designMd && flags.remote) {
-        scanOpts.designMd = flags.designMd;
+    const attempts = [];
+    for (let attempt = 0; attempt < attemptCount; attempt++) {
+      if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 200));
+      try {
+        const scanOpts: ScanOptions = {
+          screenshot: flags.screenshot,
+          preset: flags.preset,
+          axes: flags.axes,
+          api: flags.api,
+          timeout: flags.timeout || undefined,
+          includeSystem: flags.initDesignMd || flags.initTokens || undefined,
+          a11y: flags.a11y || undefined,
+        };
+        if (flags.designMd && !flags.remote) {
+          const loaded = await loadDesignMd(flags.designMd, url);
+          if (loaded) scanOpts.designMd = loaded.text;
+          else if (!machineOutput)
+            console.error(
+              `${C.grey}No DESIGN.md found for ${url} (auto) — skipping the system axis.${C.reset}`
+            );
+        } else if (flags.designMd && flags.remote) {
+          scanOpts.designMd = flags.designMd;
+        }
+        const r = flags.remote ? await scanRemote(url, scanOpts) : await scanUrl(url, scanOpts);
+        if (flags.aeo) {
+          try {
+            r.aeo = flags.remote
+              ? await aeoRemote(url, { api: flags.api })
+              : await runAeoChecks(url, { timeoutMs: 12000 });
+          } catch (e) {
+            r.aeo = { error: e.message };
+          }
+        }
+        if (!r.blocked && !r.error && flags.preset !== 'full') {
+          const axes = [...flags.axes];
+          if (flags.aeo) axes.push('aeo');
+          if (flags.designMd || r.system) axes.push('system');
+          const coverage = presetCoverage(flags.preset, axes);
+          if (coverage.warning) {
+            r.presetWarning = coverage.warning;
+            r.presetNotApplied = coverage.notApplied;
+          }
+        }
+        attempts.push({ result: r, thrown: false });
+      } catch (err) {
+        attempts.push({
+          result: stampScanResult({ url, error: err.message }),
+          thrown: true,
+        });
       }
-      const r = flags.remote ? await scanRemote(url, scanOpts) : await scanUrl(url, scanOpts);
-      if (flags.aeo) {
-        try {
-          r.aeo = flags.remote
-            ? await aeoRemote(url, { api: flags.api })
-            : await runAeoChecks(url, { timeoutMs: 12000 });
-        } catch (e) {
-          r.aeo = { error: e.message };
+    }
+    const last = attempts[attempts.length - 1];
+    const host = last.result;
+    if (attemptCount > 1) {
+      host.runSummary = aggregateRuns(
+        attempts.map((item) => item.result),
+        flags.aggregate || 'median'
+      );
+      if (!machineOutput) {
+        const summary = host.runSummary;
+        if (summary.ok) {
+          console.error(
+            `Runs ${summary.runs}: ${summary.method} score ${summary.aggregatedScore} (spread ${summary.spread}). The page score is the last run.`
+          );
+        } else {
+          console.error(summary.message);
         }
       }
-      results.push(r);
-      if (!machineOutput) {
-        renderPretty(r);
-        if (r.system) renderSystem(r.system);
-        if (r.aeo && !r.aeo.error) renderAeo(r.aeo);
-        else if (r.aeo && r.aeo.error)
-          console.log(`  ${C.yellow}⚠ AEO check failed: ${r.aeo.error}${C.reset}\n`);
-      }
-    } catch (err) {
-      const errResult = stampScanResult({ url, error: err.message });
-      results.push(errResult);
-      if (!machineOutput) {
+    }
+    results.push(host);
+    if (!machineOutput) {
+      if (last.thrown) {
         console.error(`\n${C.red}${C.bold}✗ ${url}${C.reset}`);
-        console.error(`  ${C.red}${err.message}${C.reset}\n`);
+        console.error(`  ${C.red}${host.error}${C.reset}\n`);
+      } else {
+        renderPretty(host);
+        if (host.system) renderSystem(host.system);
+        if (host.aeo && !host.aeo.error) renderAeo(host.aeo);
+        else if (host.aeo && host.aeo.error)
+          console.log(`  ${C.yellow}⚠ AEO check failed: ${host.aeo.error}${C.reset}\n`);
       }
+    }
+  }
+  if (flags.saveBaseline) {
+    if (urls.length !== 1) {
+      console.error('--save-baseline needs one URL.');
+      process.exit(2);
+    }
+    try {
+      writeBaseline(flags.saveBaseline, results[0]);
+      if (!machineOutput) console.error(`Saved baseline ${flags.saveBaseline}.`);
+    } catch (e) {
+      console.error(e.message || String(e));
+      process.exit(2);
     }
   }
   if (flags.initDesignMd) {
@@ -1098,6 +1233,30 @@ const machineOutput =
     failOn: flags.failOn,
     failUnderScore: flags.failUnderScore,
   });
+  let compareExit = 0;
+  if (flags.compareTo && !flags.compareCurrent) {
+    let baseline;
+    try {
+      baseline = readJsonFile(flags.compareTo);
+    } catch (e) {
+      console.error(e.message || String(e));
+      console.error('Scan could not run. This is not a Clean score.');
+      process.exit(2);
+    }
+    for (const result of results) {
+      const report = compareScans(baseline, result, { maxDelta: flags.maxDelta });
+      if (!report.comparable) {
+        console.error(report.error || report.text);
+        compareExit = 2;
+        continue;
+      }
+      const line = flags.json ? JSON.stringify(report, null, 2) : report.text;
+      if (machineOutput) console.error(line);
+      else console.log(line);
+      if (flags.failOnRegression && report.regression) compareExit = Math.max(compareExit, 1);
+    }
+  }
+  const finalExit = compareExit === 2 || exitCode === 2 ? 2 : Math.max(exitCode, compareExit);
 
   // Summary if multiple URLs
   if (urls.length > 1 && !machineOutput) {
@@ -1137,7 +1296,7 @@ const machineOutput =
       `${C.red}${C.bold}✗ --fail-under ${flags.failUnderLabel}: one or more pages failed the gate.${C.reset}`
     );
   }
-  process.exit(exitCode);
+  process.exit(finalExit);
 })().catch((e) => {
   console.error(e);
   process.exit(2);

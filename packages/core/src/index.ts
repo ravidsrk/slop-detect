@@ -95,6 +95,7 @@ export {
   buildAvoidList,
   diffScanFindings,
   regressionAgainstBaseline,
+  compareScans,
 } from './brief.js';
 export {
   SITE_SAMPLE_DEFAULT,
@@ -129,6 +130,7 @@ export {
   formatGithubReport,
   formatJunitReport,
   formatGitlabReport,
+  buildSarifReport,
   type ReportFormat,
 } from './reporters.js';
 export { buildAeoFixFiles, type AeoFixOptions, type AeoFixPage } from './aeo-fixes.js';
@@ -141,7 +143,8 @@ export {
   verdictFor as buildVerdict,
 } from './verdict.js';
 export { compileRule, compileRules, validateRule } from './rules.js';
-export { PRESETS, applyPreset, isPreset } from './presets.js';
+export { PRESETS, applyPreset, isPreset, presetCoverage, presetProfiles } from './presets.js';
+export { RUNS_MIN, RUNS_MAX, aggregateRuns } from './runs.js';
 export {
   AI_BOTS,
   AI_BOT_REGISTRY,
@@ -208,7 +211,7 @@ import {
   evaluateDefaultKits,
   computeDesignTypicality,
 } from './calibration.js';
-import { applyPreset } from './presets.js';
+import { applyPreset, presetCoverage } from './presets.js';
 import { applyDesignSystemWaivers } from './system.js';
 import { buildPageScript, detectBlocked, type BuildPageScriptOptions } from './page-script.js';
 import { assemblePatternResults } from './result-assembly.js';
@@ -1096,6 +1099,7 @@ export function assembleScanResult(raw: any, opts: AssembleScanResultOptions = {
   const preset = opts.preset || 'full';
   const scored = applyPreset(selected, preset);
   const scoring = scorePatterns(scored);
+  const fullDesign = preset === 'full' ? scoring : scorePatterns(selected);
 
   const craftSummary = data.craftSignals ? scoreCraft(data.craftSignals) : null;
   const kitMatches = evaluateDefaultKits(data.signals || {});
@@ -1142,6 +1146,14 @@ export function assembleScanResult(raw: any, opts: AssembleScanResultOptions = {
     result.axes = axes;
     if (axes.copy) {
       Object.assign(result, combineAxes({ design: axes.design, copy: axes.copy }));
+    }
+  }
+  if (preset !== 'full') {
+    result.fullScore = fullDesign.score;
+    const coverage = presetCoverage(preset, reqAxes);
+    if (coverage.warning) {
+      result.presetWarning = coverage.warning;
+      result.presetNotApplied = coverage.notApplied;
     }
   }
   if (data.systemContext) result.systemContext = data.systemContext;
