@@ -451,9 +451,8 @@ test('/r/:id renders SystemAeoCards so Live AEO check and DESIGN.md drift work o
 
 test('GET /api/patterns exposes design, copy, aeo, system, craft, and presets', async () => {
   const { onRequestGet: patternsGet } = await import('../functions/api/patterns.ts');
-  const { PATTERNS, COPY_PATTERNS, AEO_CHECKS, SYSTEM_CHECKS, CRAFT_CHECKS } = await import(
-    '@slop-detect/core'
-  );
+  const { PATTERNS, COPY_PATTERNS, AEO_CHECKS, SYSTEM_CHECKS, CRAFT_CHECKS } =
+    await import('@slop-detect/core');
   const res = await patternsGet();
   expect(res.status).toBe(200);
   const data = await res.json();

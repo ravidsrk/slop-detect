@@ -25,7 +25,7 @@ function uniqueMatches(text: string, re: RegExp, max = 5): string[] {
 function uniqueOriginalMatches(
   rawText: string,
   re: RegExp,
-  max = 5,
+  max = 5
 ): { count: number; samples: string[] } {
   const view = buildNormalizedTextView(rawText);
   const g = new RegExp(re.source, re.flags.includes('g') ? re.flags : re.flags + 'g');
@@ -79,7 +79,10 @@ const ENGLISH_FUNCTION_WORDS = new Set([
   'it',
 ]);
 
-export function detectEnglishProse(text: string, langAttr?: string): {
+export function detectEnglishProse(
+  text: string,
+  langAttr?: string
+): {
   isEnglish: boolean;
   lang: string;
   functionWordRatio: number;
@@ -88,12 +91,18 @@ export function detectEnglishProse(text: string, langAttr?: string): {
   if (langAttr && langAttr.trim()) {
     const cleanLang = langAttr.trim().toLowerCase();
     if (!cleanLang.startsWith('en')) {
-      return { isEnglish: false, lang: cleanLang, functionWordRatio: 0, reason: `lang="${langAttr}"` };
+      return {
+        isEnglish: false,
+        lang: cleanLang,
+        functionWordRatio: 0,
+        reason: `lang="${langAttr}"`,
+      };
     }
   }
-  const words = String(text || '')
-    .toLowerCase()
-    .match(/[a-z\u00C0-\u024F\u0400-\u04FF\u0600-\u06FF]+/gi) || [];
+  const words =
+    String(text || '')
+      .toLowerCase()
+      .match(/[a-z\u00C0-\u024F\u0400-\u04FF\u0600-\u06FF]+/gi) || [];
   if (words.length < 20) {
     return { isEnglish: true, lang: 'en', functionWordRatio: 1 };
   }
@@ -103,7 +112,12 @@ export function detectEnglishProse(text: string, langAttr?: string): {
   }
   const ratio = +(fnHits / words.length).toFixed(3);
   if (ratio < 0.04) {
-    return { isEnglish: false, lang: 'non-en', functionWordRatio: ratio, reason: 'low-english-function-words' };
+    return {
+      isEnglish: false,
+      lang: 'non-en',
+      functionWordRatio: ratio,
+      reason: 'low-english-function-words',
+    };
   }
   return { isEnglish: true, lang: 'en', functionWordRatio: ratio };
 }
@@ -335,10 +349,7 @@ function analyzeInvisibleCharacters(rawText: string) {
   const nbsp = countMatches(withoutUrls, /\u00A0/g);
 
   // Strip valid flag tag sequences: U+1F3F4 followed by U+E0020..U+E007E and terminated by U+E007F
-  const withoutValidFlags = withoutUrls.replace(
-    /\u{1F3F4}[\u{E0020}-\u{E007E}]+\u{E007F}/gu,
-    '',
-  );
+  const withoutValidFlags = withoutUrls.replace(/\u{1F3F4}[\u{E0020}-\u{E007E}]+\u{E007F}/gu, '');
   let tagChars = 0;
   for (const ch of withoutValidFlags) {
     const cp = ch.codePointAt(0)!;
@@ -849,7 +860,7 @@ export const COPY_PATTERNS = [
       for (const entry of CHATBOT_MARKUP_REGISTRY) {
         const g = new RegExp(
           entry.re.source,
-          entry.re.flags.includes('g') ? entry.re.flags : entry.re.flags + 'g',
+          entry.re.flags.includes('g') ? entry.re.flags : entry.re.flags + 'g'
         );
         let m: RegExpExecArray | null;
         let famCount = 0;
@@ -867,10 +878,13 @@ export const COPY_PATTERNS = [
         Array.isArray(blocks) &&
         blocks.length > 0 &&
         blocks
-          .filter((b: any) => CHATBOT_MARKUP_REGISTRY.some((r) => new RegExp(r.re.source, 'i').test(b.text || '')))
+          .filter((b: any) =>
+            CHATBOT_MARKUP_REGISTRY.some((r) => new RegExp(r.re.source, 'i').test(b.text || ''))
+          )
           .every((b: any) => b.inQuote);
       const isMetaDiscussion =
-        matchedFamilies.length >= 3 && /\b(?:artifact|tell|sign|detector|regex)\b/i.test(view.normalized);
+        matchedFamilies.length >= 3 &&
+        /\b(?:artifact|tell|sign|detector|regex)\b/i.test(view.normalized);
       const effectiveTier = allInQuote || isMetaDiscussion ? 'Warning' : 'Error';
 
       return {
@@ -1041,10 +1055,7 @@ export const COPY_PATTERNS = [
         /\((?:Add|Insert) [^)]{1,40} here\)/gi,
         /\b(?:INSERT|PASTE)_[A-Z0-9_]+\b/g,
       ];
-      const generic = [
-        /\b20\d\d-[Xx]{2}-[Xx]{2}\b/g,
-        /\{\{\s*[A-Za-z_][\w.]*\s*\}\}/g,
-      ];
+      const generic = [/\b20\d\d-[Xx]{2}-[Xx]{2}\b/g, /\{\{\s*[A-Za-z_][\w.]*\s*\}\}/g];
 
       let unambiguousHits = 0;
       let genericHits = 0;
@@ -1101,7 +1112,9 @@ export const COPY_PATTERNS = [
       const inlineLinks = countMatches(s, /\[([^\]\n]{1,80})\]\((https?:\/\/[^\s)]+)\)/g);
       const hrLines = countMatches(s, /(?:^|\n)\s*(?:---|\*\*\*|___)\s*(?:\n|$)/g);
 
-      const kinds = [boldItalic > 0, headingSyntax > 0, inlineLinks > 0, hrLines > 0].filter(Boolean).length;
+      const kinds = [boldItalic > 0, headingSyntax > 0, inlineLinks > 0, hrLines > 0].filter(
+        Boolean
+      ).length;
       const total = boldItalic + headingSyntax + inlineLinks + hrLines;
       const markdownMentions = countMatches(s, /\bmarkdown\b/gi);
       const downgraded = markdownMentions >= 2;
@@ -1140,7 +1153,8 @@ export const COPY_PATTERNS = [
     fpRatePre2022: null,
     match: ({ attributes, testimonials }: any) => {
       const attrs = Array.isArray(attributes) ? attributes : [];
-      const placeholderHosts = /(?:i\.pravatar\.cc|api\.dicebear\.com|randomuser\.me\/api\/portraits|ui-avatars\.com)/i;
+      const placeholderHosts =
+        /(?:i\.pravatar\.cc|api\.dicebear\.com|randomuser\.me\/api\/portraits|ui-avatars\.com)/i;
       const placeholderHits: string[] = [];
       const avatarSrcs: string[] = [];
 
@@ -1172,8 +1186,7 @@ export const COPY_PATTERNS = [
         duplicateAvatars,
         unattributedTestimonials: unattributedCount,
         samples: placeholderHits.slice(0, 4),
-        triggered:
-          placeholderHits.length >= 1 || duplicateAvatars >= 1 || unattributedCount >= 2,
+        triggered: placeholderHits.length >= 1 || duplicateAvatars >= 1 || unattributedCount >= 2,
       };
     },
   },
@@ -1288,11 +1301,12 @@ export const COPY_PATTERNS = [
     match: ({ text, paragraphs, blocks }: any) => {
       let opening = String(text || '').slice(0, 800);
       if (Array.isArray(blocks) && blocks.length > 0) {
-        opening = blocks
-          .filter((b: any) => !b.inHero)
-          .slice(0, 2)
-          .map((b: any) => b.text || '')
-          .join('\n\n') || opening;
+        opening =
+          blocks
+            .filter((b: any) => !b.inHero)
+            .slice(0, 2)
+            .map((b: any) => b.text || '')
+            .join('\n\n') || opening;
       } else if (Array.isArray(paragraphs) && paragraphs.length > 0) {
         opening = paragraphs.slice(0, 2).join('\n\n');
       }
@@ -1326,9 +1340,12 @@ export const COPY_PATTERNS = [
     fpRate: null,
     fpRatePre2022: null,
     match: ({ text, headings, paragraphs, wordCount }: any) => {
-      const paras = Array.isArray(paragraphs) && paragraphs.length >= 2
-        ? paragraphs
-        : String(text || '').split(/\n\n+/).filter(Boolean);
+      const paras =
+        Array.isArray(paragraphs) && paragraphs.length >= 2
+          ? paragraphs
+          : String(text || '')
+              .split(/\n\n+/)
+              .filter(Boolean);
 
       // Compute legacy_vs_modern_frame feature density (per 1,000 words)
       let legacyModernCo = 0;
@@ -1343,16 +1360,14 @@ export const COPY_PATTERNS = [
         return { overlap: 0, legacyVsModernPer1000, triggered: false };
       }
 
-      const openingSource = (Array.isArray(headings) && headings[0]) ? headings[0] : paras[0];
+      const openingSource = Array.isArray(headings) && headings[0] ? headings[0] : paras[0];
       const closingPara = paras[paras.length - 1];
       const summaryLead =
         /^\s*(?:in (?:conclusion|summary|short)|to (?:sum up|summarize|wrap up)|ultimately|at the end of the day|overall)\b/i;
 
       const contentWords = (s: string) =>
         new Set(
-          (s.toLowerCase().match(/[a-z]{4,}/g) || []).filter(
-            (w) => !ENGLISH_FUNCTION_WORDS.has(w),
-          ),
+          (s.toLowerCase().match(/[a-z]{4,}/g) || []).filter((w) => !ENGLISH_FUNCTION_WORDS.has(w))
         );
 
       const openSet = contentWords(openingSource);
@@ -1360,7 +1375,8 @@ export const COPY_PATTERNS = [
       let intersection = 0;
       for (const w of openSet) if (closeSet.has(w)) intersection++;
       const denom = Math.max(1, Math.min(openSet.size, closeSet.size));
-      const overlap = openSet.size > 0 && closeSet.size > 0 ? +(intersection / denom).toFixed(2) : 0;
+      const overlap =
+        openSet.size > 0 && closeSet.size > 0 ? +(intersection / denom).toFixed(2) : 0;
 
       const startsWithSummary = summaryLead.test(closingPara);
       return {
@@ -1392,20 +1408,23 @@ export const COPY_PATTERNS = [
     fpRatePre2022: null,
     match: ({ text }: any) => {
       const s = String(text || '');
-      const neverLeaves = countMatches(s, /\bnever leave(?:s)? your (?:browser|device|machine)\b/gi);
+      const neverLeaves = countMatches(
+        s,
+        /\bnever leave(?:s)? your (?:browser|device|machine)\b/gi
+      );
       const builtWritten = countMatches(
         s,
-        /\bbuilt with [a-z0-9.+-]+[^.?!\n]{0,40}\bwritten (?:in|from) [a-z0-9.+-]+/gi,
+        /\bbuilt with [a-z0-9.+-]+[^.?!\n]{0,40}\bwritten (?:in|from) [a-z0-9.+-]+/gi
       );
       const noXNoYMatches = uniqueOriginalMatches(
         s,
         /\bno\s+[a-z][^,.?!]{1,25},\s*no\s+[a-z][^,.?!]{1,25},\s*just\s+/gi,
-        3,
+        3
       );
       const lowercaseTagline = countMatches(s, /(?:^|\n)\s*one [a-z]{3,15}\.\s+one [a-z]{3,15}\./g);
 
       const nodeIds = noXNoYMatches.samples.map(
-        (m) => `copy:no_x_no_y:${m.slice(0, 24).toLowerCase()}`,
+        (m) => `copy:no_x_no_y:${m.slice(0, 24).toLowerCase()}`
       );
       const families = {
         never_leaves_browser: neverLeaves,
@@ -1445,7 +1464,8 @@ export const COPY_PATTERNS = [
     fpRatePre2022: null,
     match: ({ text, wordCount }: any) => {
       const s = String(text || '');
-      const re = /,\s+(?:ensuring|enabling|empowering|unlocking|fostering|driving|delivering|creating|providing|allowing|making|helping|streamlining|transforming)\b[^.?!]{5,80}[.?!]/gi;
+      const re =
+        /,\s+(?:ensuring|enabling|empowering|unlocking|fostering|driving|delivering|creating|providing|allowing|making|helping|streamlining|transforming)\b[^.?!]{5,80}[.?!]/gi;
       const count = countMatches(s, re);
       const samples = uniqueMatches(s, re, 3);
       const nomMatches = countMatches(s, /\b[a-z]{4,}(?:tion|ment|ness|ity)\b/gi);
@@ -1482,9 +1502,14 @@ export const COPY_PATTERNS = [
     fpRatePre2022: null,
     match: ({ text, paragraphs }: any) => {
       const source =
-        Array.isArray(paragraphs) && paragraphs.length > 0 ? paragraphs.join(' ') : String(text || '');
+        Array.isArray(paragraphs) && paragraphs.length > 0
+          ? paragraphs.join(' ')
+          : String(text || '');
       // Protect common abbreviations before splitting sentences
-      const cleaned = source.replace(/\b(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|vs|etc|e\.g|i\.e|Inc|Ltd|Co)\./gi, '$&_');
+      const cleaned = source.replace(
+        /\b(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|vs|etc|e\.g|i\.e|Inc|Ltd|Co)\./gi,
+        '$&_'
+      );
       const sentences = cleaned
         .split(/[.!?]+(?:\s+|$)/)
         .map((s) => s.trim().split(/\s+/).filter(Boolean).length)
@@ -1548,7 +1573,10 @@ export const COPY_PATTERNS = [
       if (!Array.isArray(logOddsLexicon) || logOddsLexicon.length === 0) {
         return { matchedTerms: [], score: 0, triggered: false };
       }
-      const tokens = (String(text || '').toLowerCase().match(/[a-z]+(?:-[a-z]+)*/g) || []);
+      const tokens =
+        String(text || '')
+          .toLowerCase()
+          .match(/[a-z]+(?:-[a-z]+)*/g) || [];
       const counts = new Map<string, number>();
       for (const t of tokens) counts.set(t, (counts.get(t) || 0) + 1);
 
@@ -1577,7 +1605,7 @@ export const COPY_PATTERNS = [
 export function computeFightinWordsLogOdds(
   aiPages: Array<{ text: string; domain?: string }>,
   humanPages: Array<{ text: string; domain?: string }>,
-  opts: { minZ?: number; minSites?: number; priorScale?: number } = {},
+  opts: { minZ?: number; minSites?: number; priorScale?: number } = {}
 ): Array<{
   term: string;
   aiCount: number;
@@ -1591,9 +1619,11 @@ export function computeFightinWordsLogOdds(
   const priorScale = opts.priorScale ?? 10;
 
   const tokenize = (s: string) =>
-    (String(s || '').toLowerCase().match(/[a-z]{3,}(?:-[a-z]{2,})*/g) || []).filter(
-      (w) => !ENGLISH_FUNCTION_WORDS.has(w),
-    );
+    (
+      String(s || '')
+        .toLowerCase()
+        .match(/[a-z]{3,}(?:-[a-z]{2,})*/g) || []
+    ).filter((w) => !ENGLISH_FUNCTION_WORDS.has(w));
 
   const aiCounts = new Map<string, number>();
   const humanCounts = new Map<string, number>();
@@ -1670,7 +1700,7 @@ export function computeFightinWordsLogOdds(
 export function computeVocabularyDrift(
   currentDocs: Array<{ text: string }>,
   baselineDocs: Array<{ text: string }>,
-  terms: string[],
+  terms: string[]
 ): {
   deltas: Record<string, number>;
   meanDelta: number;

@@ -44,7 +44,14 @@ export function evaluateMobileReflow(input: {
   elements?: Array<{
     tag?: string;
     text?: string;
-    rect: { left: number; top: number; right: number; bottom: number; width: number; height: number };
+    rect: {
+      left: number;
+      top: number;
+      right: number;
+      bottom: number;
+      width: number;
+      height: number;
+    };
     opacity?: number;
     bg?: { r: number; g: number; b: number; a?: number } | null;
     hasBorder?: boolean;
@@ -112,8 +119,14 @@ export function evaluateMobileReflow(input: {
       const a = textBoxes[i];
       const b = textBoxes[j];
       if (a.parentId && b.parentId && a.parentId !== b.parentId) continue;
-      const ox = Math.max(0, Math.min(a.rect.right, b.rect.right) - Math.max(a.rect.left, b.rect.left));
-      const oy = Math.max(0, Math.min(a.rect.bottom, b.rect.bottom) - Math.max(a.rect.top, b.rect.top));
+      const ox = Math.max(
+        0,
+        Math.min(a.rect.right, b.rect.right) - Math.max(a.rect.left, b.rect.left)
+      );
+      const oy = Math.max(
+        0,
+        Math.min(a.rect.bottom, b.rect.bottom) - Math.max(a.rect.top, b.rect.top)
+      );
       if (ox > 2 && oy > 2 && ox * oy > 4) {
         collisions.push(`${String(a.text).slice(0, 20)} × ${String(b.text).slice(0, 20)}`);
       }
@@ -122,8 +135,7 @@ export function evaluateMobileReflow(input: {
 
   const pageOverflowPx = Math.max(0, Math.round(sw - vw));
   // Page overflow triggers when > 8px AND either no elements were passed or at least one observable protrusion exists
-  const pageOverflow =
-    pageOverflowPx > 8 && (els.length === 0 || viewportProtrusions.length > 0);
+  const pageOverflow = pageOverflowPx > 8 && (els.length === 0 || viewportProtrusions.length > 0);
 
   const subtypes: string[] = [];
   if (pageOverflow) subtypes.push('page_overflow');
@@ -156,7 +168,7 @@ export function evaluateFocusIndicators(
     pseudoFocusRing?: boolean;
     afterFocusRing?: boolean;
     beforeFocusRing?: boolean;
-  }>,
+  }>
 ) {
   if (!Array.isArray(items) || items.length === 0) {
     return { triggered: false, probedCount: 0, missingFirst5: 0, missingCount: 0, missingRatio: 0 };
@@ -164,7 +176,7 @@ export function evaluateFocusIndicators(
   const hasIndicator = (x: any): boolean => {
     if (!x) return false;
     const hasPseudo = Boolean(
-      x.hasPseudoFocusRing || x.pseudoFocusRing || x.afterFocusRing || x.beforeFocusRing,
+      x.hasPseudoFocusRing || x.pseudoFocusRing || x.afterFocusRing || x.beforeFocusRing
     );
     if (hasPseudo) return true;
     if (typeof x.hasVisibleFocusIndicator === 'boolean') {
@@ -210,7 +222,7 @@ export function evaluateDeadCtas(
     focusMoved?: boolean;
     networkTriggered?: boolean;
     hasHandler?: boolean;
-  }>,
+  }>
 ) {
   if (!Array.isArray(ctas) || ctas.length === 0) {
     return {
@@ -230,18 +242,19 @@ export function evaluateDeadCtas(
 
   for (const cta of capped) {
     const href = typeof cta.href === 'string' ? cta.href.trim() : null;
-    const isPlaceholderHref = href === '#' || href === '' || /^javascript:\s*(?:void\(0\)|;)?$/i.test(href || '');
+    const isPlaceholderHref =
+      href === '#' || href === '' || /^javascript:\s*(?:void\(0\)|;)?$/i.test(href || '');
     if (isPlaceholderHref) placeholderHrefs++;
 
     const hadEffect = Boolean(
       cta.urlChanged ||
-        cta.hashChanged ||
-        cta.domMutated ||
-        cta.dialogOpened ||
-        cta.focusMoved ||
-        cta.networkTriggered ||
-        cta.hasHandler ||
-        (href && !isPlaceholderHref),
+      cta.hashChanged ||
+      cta.domMutated ||
+      cta.dialogOpened ||
+      cta.focusMoved ||
+      cta.networkTriggered ||
+      cta.hasHandler ||
+      (href && !isPlaceholderHref)
     );
     if (!hadEffect) {
       deadCount++;
@@ -284,7 +297,7 @@ export function evaluateFormFailureFeedback(
         preventedDefault?: boolean;
       }
     | null
-    | undefined,
+    | undefined
 ) {
   if (!probe || probe.formPresent === false) {
     return { triggered: false, status: 'na' as const, requestsMade: 0 };
@@ -305,15 +318,12 @@ export function evaluateFormFailureFeedback(
   const hasInvalidPseudo = Boolean(probe.hasInvalidPseudo || probe.nativeInvalid);
   const hasAriaInvalid = Boolean(probe.hasAriaInvalid || probe.hasInvalidAria);
   const hasVisibleErrorText = Boolean(
-    probe.hasVisibleErrorText ||
-      (probe.visibleErrorCount ?? 0) > 0 ||
-      probe.errorMessageShown,
+    probe.hasVisibleErrorText || (probe.visibleErrorCount ?? 0) > 0 || probe.errorMessageShown
   );
   const hasHandler = Boolean(
-    probe.requestBlocked || probe.hasSubmitHandler || probe.preventedDefault,
+    probe.requestBlocked || probe.hasSubmitHandler || probe.preventedDefault
   );
-  const hasFeedback =
-    hasInvalidPseudo || hasAriaInvalid || hasVisibleErrorText || hasHandler;
+  const hasFeedback = hasInvalidPseudo || hasAriaInvalid || hasVisibleErrorText || hasHandler;
   return {
     triggered: !hasFeedback,
     status: (hasFeedback ? 'pass' : 'fail') as 'pass' | 'fail',
@@ -327,15 +337,18 @@ export function evaluateFormFailureFeedback(
 
 // F-07 (#262): Optional axe-core adapter (off by default, never scored).
 export function formatAxeReport(
-  axeResults: {
-    violations?: Array<{
-      id: string;
-      impact?: string | null;
-      nodes?: unknown[];
-      helpUrl?: string;
-    }>;
-  } | null | undefined,
-  opts: { enabled?: boolean } = {},
+  axeResults:
+    | {
+        violations?: Array<{
+          id: string;
+          impact?: string | null;
+          nodes?: unknown[];
+          helpUrl?: string;
+        }>;
+      }
+    | null
+    | undefined,
+  opts: { enabled?: boolean } = {}
 ) {
   if (!opts.enabled || !axeResults) return null;
   const violations = Array.isArray(axeResults.violations) ? axeResults.violations : [];
@@ -583,8 +596,14 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
           const a = textBoxes[i];
           const b = textBoxes[j];
           if (a.parent !== b.parent) continue;
-          const ox = Math.max(0, Math.min(a.rect.right, b.rect.right) - Math.max(a.rect.left, b.rect.left));
-          const oy = Math.max(0, Math.min(a.rect.bottom, b.rect.bottom) - Math.max(a.rect.top, b.rect.top));
+          const ox = Math.max(
+            0,
+            Math.min(a.rect.right, b.rect.right) - Math.max(a.rect.left, b.rect.left)
+          );
+          const oy = Math.max(
+            0,
+            Math.min(a.rect.bottom, b.rect.bottom) - Math.max(a.rect.top, b.rect.top)
+          );
           if (ox > 2 && oy > 2 && ox * oy > 4) {
             collisions.push(`${a.text.slice(0, 20)} × ${b.text.slice(0, 20)}`);
           }
@@ -627,7 +646,10 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
       const vh = window.innerHeight || 900;
       const focusables = visible
         .filter((el: any) => {
-          if (!/^(A|BUTTON|INPUT|SELECT|TEXTAREA)$/.test(el.tagName) && !el.hasAttribute('tabindex')) {
+          if (
+            !/^(A|BUTTON|INPUT|SELECT|TEXTAREA)$/.test(el.tagName) &&
+            !el.hasAttribute('tabindex')
+          ) {
             return false;
           }
           if (el.tagName === 'A' && !el.hasAttribute('href')) return false;
@@ -658,7 +680,10 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
           for (const rule of Array.from(rules) as any[]) {
             const sel = String(rule.selectorText || '');
             const cssText = String(rule.cssText || '');
-            if (/:focus(?:-visible)?::(?:after|before)/i.test(sel) && /outline|box-shadow|border/i.test(cssText)) {
+            if (
+              /:focus(?:-visible)?::(?:after|before)/i.test(sel) &&
+              /outline|box-shadow|border/i.test(cssText)
+            ) {
               pseudoFocusRingSelectors.push(sel);
             }
             if (
@@ -705,21 +730,34 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
             const afterCs = getComputedStyle(el, '::after');
             const beforeCs = getComputedStyle(el, '::before');
             if (
-              (afterCs && ((afterCs.boxShadow && afterCs.boxShadow !== 'none') || (afterCs.outlineStyle && afterCs.outlineStyle !== 'none' && parseFloat(afterCs.outlineWidth) > 0))) ||
-              (beforeCs && ((beforeCs.boxShadow && beforeCs.boxShadow !== 'none') || (beforeCs.outlineStyle && beforeCs.outlineStyle !== 'none' && parseFloat(beforeCs.outlineWidth) > 0)))
+              (afterCs &&
+                ((afterCs.boxShadow && afterCs.boxShadow !== 'none') ||
+                  (afterCs.outlineStyle &&
+                    afterCs.outlineStyle !== 'none' &&
+                    parseFloat(afterCs.outlineWidth) > 0))) ||
+              (beforeCs &&
+                ((beforeCs.boxShadow && beforeCs.boxShadow !== 'none') ||
+                  (beforeCs.outlineStyle &&
+                    beforeCs.outlineStyle !== 'none' &&
+                    parseFloat(beforeCs.outlineWidth) > 0)))
             ) {
               hasPseudoRing = true;
             }
           } catch {}
         }
         const inlineOutlineNone =
-          el.style && (el.style.outline === 'none' || el.style.outline === '0' || el.style.outlineWidth === '0px');
-        const inlineHasReplacement =
-          Boolean(el.style && ((el.style.boxShadow && el.style.boxShadow !== 'none') || el.style.borderColor));
+          el.style &&
+          (el.style.outline === 'none' ||
+            el.style.outline === '0' ||
+            el.style.outlineWidth === '0px');
+        const inlineHasReplacement = Boolean(
+          el.style &&
+          ((el.style.boxShadow && el.style.boxShadow !== 'none') || el.style.borderColor)
+        );
         const classSuppressesFocus =
           /\bfocus:outline-none\b/.test(String(el.className || '')) &&
           !/\bfocus(?:-visible)?:ring\b|\bfocus(?:-visible)?:border\b|\bfocus(?:-visible)?:after:ring\b/.test(
-            String(el.className || ''),
+            String(el.className || '')
           );
         const noIndicator =
           !hasPseudoRing &&
@@ -758,11 +796,17 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
     fpRatePre2022: null,
     extract: () => {
       const stuck: string[] = [];
-      const all = document.body ? document.body.querySelectorAll('p, h1, h2, h3, h4, li, section, article, div') : [];
+      const all = document.body
+        ? document.body.querySelectorAll('p, h1, h2, h3, h4, li, section, article, div')
+        : [];
       let checked = 0;
       for (const el of Array.from(all)) {
         if (checked++ > 1500) break;
-        if (el.closest('details:not([open]), [hidden], [aria-hidden="true"], [role="tabpanel"][hidden], script, style, noscript, template')) {
+        if (
+          el.closest(
+            'details:not([open]), [hidden], [aria-hidden="true"], [role="tabpanel"][hidden], script, style, noscript, template'
+          )
+        ) {
           continue;
         }
         const tabpanel = el.closest('[role="tabpanel"]');
@@ -810,7 +854,8 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
       const vh = window.innerHeight || 900;
       const candidates = visible
         .filter((el: any) => {
-          if (!/^(A|BUTTON)$/.test(el.tagName) && el.getAttribute('role') !== 'button') return false;
+          if (!/^(A|BUTTON)$/.test(el.tagName) && el.getAttribute('role') !== 'button')
+            return false;
           if (el.disabled || el.getAttribute('aria-disabled') === 'true') return false;
           const r = el.getBoundingClientRect();
           if (r.top >= vh * 2 || r.width < 30 || r.height < 20) return false;
@@ -818,7 +863,10 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
           if (!txt || txt.length > 50) return false;
           if (/delete|remove|logout|sign out/i.test(txt)) return false;
           const href = el.getAttribute('href') || '';
-          if (/^(?:mailto:|tel:|javascript:)/i.test(href) && !/^javascript:\s*(?:void\(0\)|;)?$/i.test(href)) {
+          if (
+            /^(?:mailto:|tel:|javascript:)/i.test(href) &&
+            !/^javascript:\s*(?:void\(0\)|;)?$/i.test(href)
+          ) {
             return false;
           }
           if (el.hasAttribute('download')) return false;
@@ -845,7 +893,8 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
       for (const el of candidates) {
         const href = el.tagName === 'A' ? (el.getAttribute('href') ?? '').trim() : null;
         const isPlaceholder =
-          href !== null && (href === '' || href === '#' || /^javascript:\s*(?:void\(0\)|;)?$/i.test(href));
+          href !== null &&
+          (href === '' || href === '#' || /^javascript:\s*(?:void\(0\)|;)?$/i.test(href));
         if (isPlaceholder) placeholderHrefs++;
 
         const hasInteractiveAttr =
@@ -858,7 +907,9 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
 
         const isDead =
           (el.tagName === 'A' && isPlaceholder && !hasInteractiveAttr) ||
-          (el.tagName !== 'A' && !hasInteractiveAttr && el.getAttribute('data-dead-cta') === 'true');
+          (el.tagName !== 'A' &&
+            !hasInteractiveAttr &&
+            el.getAttribute('data-dead-cta') === 'true');
 
         if (isDead) {
           deadCount++;
@@ -902,10 +953,14 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
       let activeInfinite = 0;
       for (const el of visible) {
         const r = el.getBoundingClientRect();
-        if (r.width < 48 && r.height < 48 && /spin|load/i.test(String(el.className || ''))) continue;
-        if (el.getAttribute('role') === 'status' || el.getAttribute('aria-busy') === 'true') continue;
+        if (r.width < 48 && r.height < 48 && /spin|load/i.test(String(el.className || '')))
+          continue;
+        if (el.getAttribute('role') === 'status' || el.getAttribute('aria-busy') === 'true')
+          continue;
         const cs = getComputedStyle(el);
-        const dur = parseFloat(cs.animationDuration || '0') * (cs.animationDuration?.includes('ms') ? 1 : 1000);
+        const dur =
+          parseFloat(cs.animationDuration || '0') *
+          (cs.animationDuration?.includes('ms') ? 1 : 1000);
         if (
           cs.animationName &&
           cs.animationName !== 'none' &&
@@ -925,7 +980,8 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
   },
   {
     id: 'generic_control_labels',
-    label: 'Ambiguous generic link/button accessible names ("learn more", "click here") or filename alt text',
+    label:
+      'Ambiguous generic link/button accessible names ("learn more", "click here") or filename alt text',
     weight: 10,
     category: 'a11y',
     status: 'active',
@@ -1064,15 +1120,12 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
         const hasInvalidPseudo = Boolean(probe.hasInvalidPseudo || probe.nativeInvalid);
         const hasAriaInvalid = Boolean(probe.hasAriaInvalid || probe.hasInvalidAria);
         const hasVisibleErrorText = Boolean(
-          probe.hasVisibleErrorText ||
-            (probe.visibleErrorCount ?? 0) > 0 ||
-            probe.errorMessageShown,
+          probe.hasVisibleErrorText || (probe.visibleErrorCount ?? 0) > 0 || probe.errorMessageShown
         );
         const hasHandler = Boolean(
-          probe.requestBlocked || probe.hasSubmitHandler || probe.preventedDefault,
+          probe.requestBlocked || probe.hasSubmitHandler || probe.preventedDefault
         );
-        const hasFeedback =
-          hasInvalidPseudo || hasAriaInvalid || hasVisibleErrorText || hasHandler;
+        const hasFeedback = hasInvalidPseudo || hasAriaInvalid || hasVisibleErrorText || hasHandler;
         return {
           triggered: !hasFeedback,
           status: hasFeedback ? 'pass' : 'fail',
@@ -1086,7 +1139,7 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
       const form = document.querySelector('form');
       if (!form) return { triggered: false, status: 'na', requestsMade: 0 };
       const inputs = Array.from(
-        form.querySelectorAll('input:not([type="hidden"]):not([type="submit"]), textarea, select'),
+        form.querySelectorAll('input:not([type="hidden"]):not([type="submit"]), textarea, select')
       );
       if (inputs.length === 0) return { triggered: false, status: 'na', requestsMade: 0 };
       // Constraint attributes are not evidence. Pass only when this DOM was
@@ -1094,7 +1147,7 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
       // error text. Unprobed required / pattern / aria-required / aria-invalid
       // stays unknown.
       const nativeInvalid = inputs.some(
-        (inp: any) => typeof inp.matches === 'function' && inp.matches(':invalid'),
+        (inp: any) => typeof inp.matches === 'function' && inp.matches(':invalid')
       );
       const errEl = form.querySelector('[role="alert"], [aria-live], .error, [data-error]');
       const hasVisibleErrorText = Boolean(errEl && (errEl.textContent || '').trim().length > 0);
@@ -1146,7 +1199,7 @@ export const CRAFT_CHECK_IDS = new Set(CRAFT_CHECKS.map((c) => c.id));
 // Never feeds design score, copy score, or Clean/Mild/Heavy.
 export function scoreCraft(
   rawResults: Record<string, any> | Array<any> | null | undefined,
-  opts: { axeResults?: any; enableAxe?: boolean } = {},
+  opts: { axeResults?: any; enableAxe?: boolean } = {}
 ) {
   if (!rawResults) {
     return {
@@ -1160,7 +1213,9 @@ export function scoreCraft(
       checks: [],
       failed: [],
       advisories: [],
-      a11y: opts.enableAxe ? { axe: formatAxeReport(opts.axeResults, { enabled: true }) } : undefined,
+      a11y: opts.enableAxe
+        ? { axe: formatAxeReport(opts.axeResults, { enabled: true }) }
+        : undefined,
     };
   }
 
@@ -1220,7 +1275,9 @@ export function scoreCraft(
   });
 
   const score =
-    applicableWeight > 0 ? Math.max(0, Math.min(100, Math.round((earnedWeight / applicableWeight) * 100))) : 100;
+    applicableWeight > 0
+      ? Math.max(0, Math.min(100, Math.round((earnedWeight / applicableWeight) * 100)))
+      : 100;
   const coverage =
     applicableCount > 0 ? Math.round((measuredCount / applicableCount) * 100) / 100 : 1;
   const failed = checks.filter((c) => c.status === 'fail');

@@ -24,7 +24,9 @@ function fnv1a(str: string): number {
 }
 
 export function registrableDomain(urlOrHost: string): string {
-  let host = String(urlOrHost || '').trim().toLowerCase();
+  let host = String(urlOrHost || '')
+    .trim()
+    .toLowerCase();
   try {
     if (/^https?:\/\//i.test(host)) {
       host = new URL(host).hostname.toLowerCase();
@@ -47,7 +49,7 @@ export function registrableDomain(urlOrHost: string): string {
 // Guarantees no registrable domain appears in both dev and held_out.
 export function splitByDomain<T extends CalibrationRow>(
   rows: T[],
-  opts: { devRatio?: number; seed?: string } = {},
+  opts: { devRatio?: number; seed?: string } = {}
 ): {
   dev: Array<T & { domain: string; split: 'dev' }>;
   heldOut: Array<T & { domain: string; split: 'held_out' }>;
@@ -80,7 +82,10 @@ export function splitByDomain<T extends CalibrationRow>(
     const sorted = doms
       .slice()
       .sort((a, b) => fnv1a(`${seed}:${a}`) - fnv1a(`${seed}:${b}`) || a.localeCompare(b));
-    const devTarget = Math.max(1, Math.min(sorted.length - (sorted.length > 1 ? 1 : 0), Math.round(sorted.length * devRatio)));
+    const devTarget = Math.max(
+      1,
+      Math.min(sorted.length - (sorted.length > 1 ? 1 : 0), Math.round(sorted.length * devRatio))
+    );
     sorted.forEach((d, idx) => {
       domainAssignment.set(d, idx < devTarget ? 'dev' : 'held_out');
     });
@@ -125,7 +130,7 @@ export function clipLogLR(logLr: number, c: number = Math.log(10)): number {
 // with Haldane-Anscombe 0.5 continuity correction and 95% log-normal CI.
 export function computeLikelihoodRatio(
   rows: CalibrationRow[],
-  ruleId: string,
+  ruleId: string
 ): {
   ruleId: string;
   lr: number | null;
@@ -167,9 +172,11 @@ export function computeLikelihoodRatio(
   }
 
   // Haldane-Anscombe smoothing when a cell is 0
-  const bPos = builderPositives === 0 || humanPositives === 0 ? builderPositives + 0.5 : builderPositives;
+  const bPos =
+    builderPositives === 0 || humanPositives === 0 ? builderPositives + 0.5 : builderPositives;
   const bTot = builderPositives === 0 || humanPositives === 0 ? builderTotal + 1 : builderTotal;
-  const hPos = builderPositives === 0 || humanPositives === 0 ? humanPositives + 0.5 : humanPositives;
+  const hPos =
+    builderPositives === 0 || humanPositives === 0 ? humanPositives + 0.5 : humanPositives;
   const hTot = builderPositives === 0 || humanPositives === 0 ? humanTotal + 1 : humanTotal;
 
   const tpr = bPos / bTot;
@@ -212,7 +219,7 @@ export function clopperPearson95(k: number, n: number): [number, number] {
 // K-01 (#213): Human-only order-statistic threshold tau = S_(ceil((1 - alpha) * n))
 export function computeHumanOrderStatisticThreshold(
   humanRows: Array<{ score: number; split?: string }>,
-  alpha: number = 0.01,
+  alpha: number = 0.01
 ): {
   threshold: number;
   orderIndex: number;
@@ -263,7 +270,7 @@ export function canPromoteRule(input: {
     input.heavyFpRateAfter > input.heavyFpRateBefore
   ) {
     reasons.push(
-      `Heavy false-positive rate increased (${input.heavyFpRateBefore} -> ${input.heavyFpRateAfter})`,
+      `Heavy false-positive rate increased (${input.heavyFpRateBefore} -> ${input.heavyFpRateAfter})`
     );
   }
   return {
@@ -283,7 +290,7 @@ export function computeCoOccurrenceConfidence(
     likelihoodRatio?: number | null;
     status?: string;
   }>,
-  adjustments: Array<{ patternId: string; rule: string; pointsRemoved: number }> = [],
+  adjustments: Array<{ patternId: string; rule: string; pointsRemoved: number }> = []
 ): {
   status: 'high' | 'medium' | 'low' | 'unknown';
   strongTells: string[];
@@ -293,7 +300,7 @@ export function computeCoOccurrenceConfidence(
 } {
   const triggered = patterns.filter((p) => p.triggered);
   const measuredRules = patterns.filter(
-    (p) => typeof p.likelihoodRatio === 'number' && Number.isFinite(p.likelihoodRatio),
+    (p) => typeof p.likelihoodRatio === 'number' && Number.isFinite(p.likelihoodRatio)
   );
 
   if (measuredRules.length === 0) {
@@ -310,9 +317,7 @@ export function computeCoOccurrenceConfidence(
   const strongTells = triggered
     .filter(
       (p) =>
-        !discountedIds.has(p.id) &&
-        typeof p.likelihoodRatio === 'number' &&
-        p.likelihoodRatio >= 3,
+        !discountedIds.has(p.id) && typeof p.likelihoodRatio === 'number' && p.likelihoodRatio >= 3
     )
     .map((p) => p.id);
 
@@ -342,7 +347,8 @@ export function computeCoOccurrenceConfidence(
 // Self-contained in-page provenance extractor serialized into buildPageScript().
 export function extractMadeWith(rootDoc?: any) {
   const doc: any = rootDoc || (typeof document !== 'undefined' ? document : null);
-  const findings: Array<{ builder: string; tier: 'A' | 'C'; label: string; markers: string[] }> = [];
+  const findings: Array<{ builder: string; tier: 'A' | 'C'; label: string; markers: string[] }> =
+    [];
   if (!doc) return findings;
 
   const q = (sel: string) => {
@@ -360,7 +366,9 @@ export function extractMadeWith(rootDoc?: any) {
 
   const getMeta = (sel: string) => {
     const el = q(sel);
-    return el && typeof el.getAttribute === 'function' ? (el.getAttribute('content') || '').trim() : '';
+    return el && typeof el.getAttribute === 'function'
+      ? (el.getAttribute('content') || '').trim()
+      : '';
   };
 
   const gen = getMeta('meta[name="generator" i]');
@@ -387,7 +395,11 @@ export function extractMadeWith(rootDoc?: any) {
   // Tier A: Webflow
   const webflowMarkers: string[] = [];
   if (/^Webflow$/i.test(gen)) webflowMarkers.push('meta[name=generator]="Webflow"');
-  if (doc.documentElement && typeof doc.documentElement.hasAttribute === 'function' && doc.documentElement.hasAttribute('data-wf-site')) {
+  if (
+    doc.documentElement &&
+    typeof doc.documentElement.hasAttribute === 'function' &&
+    doc.documentElement.hasAttribute('data-wf-site')
+  ) {
     webflowMarkers.push('html[data-wf-site]');
   }
   if (webflowMarkers.length > 0) {
@@ -411,7 +423,10 @@ export function extractMadeWith(rootDoc?: any) {
   if (q('script[src*="cdn.gpteng.co/gptengineer.js"]')) {
     lovableMarkers.push('cdn.gpteng.co/gptengineer.js');
   }
-  if ((typeof doc.getElementById === 'function' && doc.getElementById('lovable-badge')) || q('#lovable-badge')) {
+  if (
+    (typeof doc.getElementById === 'function' && doc.getElementById('lovable-badge')) ||
+    q('#lovable-badge')
+  ) {
     lovableMarkers.push('#lovable-badge');
   }
   if (q('[src*="gpt-engineer-file-uploads"], [href*="gpt-engineer-file-uploads"]')) {
@@ -452,7 +467,8 @@ export function extractMadeWith(rootDoc?: any) {
 
   // Tier A: Base44
   const base44Markers: string[] = [];
-  if (/^Base44$/i.test(appTitle)) base44Markers.push('meta[name="apple-mobile-web-app-title"]="Base44"');
+  if (/^Base44$/i.test(appTitle))
+    base44Markers.push('meta[name="apple-mobile-web-app-title"]="Base44"');
   if (/^Base44$/i.test(appName)) base44Markers.push('meta[name="application-name"]="Base44"');
   if (base44Markers.length > 0) {
     findings.push({
@@ -466,7 +482,7 @@ export function extractMadeWith(rootDoc?: any) {
   // Tier C: Default component kits (shadcn/ui v4, Magic UI, Aceternity UI)
   const kitMarkers: string[] = [];
   const slotEls = qa(
-    '[data-slot="card-header"], [data-slot="card-action"], [data-slot="card-content"], [data-slot="card-footer"], [data-slot="dialog-content"], [data-slot="button"]',
+    '[data-slot="card-header"], [data-slot="card-action"], [data-slot="card-content"], [data-slot="card-footer"], [data-slot="dialog-content"], [data-slot="button"]'
   );
   if (slotEls.length >= 2) {
     kitMarkers.push(`shadcn-v4-data-slot(${slotEls.length})`);
@@ -532,25 +548,19 @@ export function extractMadeWith(rootDoc?: any) {
 export const DEFAULT_KITS = [
   {
     id: 'claude-opus-5.5-default',
-    label: "Anthropic Opus 5.5 frontend default kit",
+    label: 'Anthropic Opus 5.5 frontend default kit',
     source:
       'https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5#frontend-design-defaults',
     sourceDate: '2026-10-20',
     status: 'active' as const,
     threshold: 4,
-    signals: [
-      'cream_ground',
-      'hero_accent_word',
-      'numbered_labels',
-      'mono_labels',
-      'pill_buttons',
-    ],
+    signals: ['cream_ground', 'hero_accent_word', 'numbered_labels', 'mono_labels', 'pill_buttons'],
   },
 ];
 
 export function evaluateDefaultKits(
   rawSignals: Record<string, any> | null | undefined,
-  opts: { preset?: string } = {},
+  opts: { preset?: string } = {}
 ) {
   if (!rawSignals) return [];
   const suppressCream = opts.preset === 'editorial';
@@ -571,21 +581,18 @@ export function evaluateDefaultKits(
       const creamHit =
         !suppressCream &&
         Boolean(
-          rawSignals.cream_default_bg?.triggered ||
-            rawSignals.editorial_cream_kit?.creamBranch,
+          rawSignals.cream_default_bg?.triggered || rawSignals.editorial_cream_kit?.creamBranch
         );
       const heroAccentHit = Boolean(rawSignals.hero_accent_word?.triggered);
       const numberedHit = Boolean(
-        rawSignals.numbered_steps?.triggered ||
-          (rawSignals.numbered_steps?.bestRun ?? 0) >= 2,
+        rawSignals.numbered_steps?.triggered || (rawSignals.numbered_steps?.bestRun ?? 0) >= 2
       );
       const monoLabelsHit = Boolean(
         rawSignals.template_chrome_2026?.subSignals?.small_mono_labels ||
-          rawSignals.display_mono_heading?.triggered,
+        rawSignals.display_mono_heading?.triggered
       );
       const pillButtonsHit = Boolean(
-        rawSignals.template_chrome_2026?.pillButtons ||
-          rawSignals.hero_eyebrow_pill?.triggered,
+        rawSignals.template_chrome_2026?.pillButtons || rawSignals.hero_eyebrow_pill?.triggered
       );
 
       const sigMap: Record<string, boolean> = {
@@ -633,7 +640,7 @@ export interface DesignTypicalityResult {
 export function computeDesignTypicality(
   featureVector: number[] | null | undefined,
   referenceSet: number[][] | null | undefined = HUMAN_TYPICALITY_REFERENCE,
-  k: number = 25,
+  k: number = 25
 ): DesignTypicalityResult | null {
   if (
     !Array.isArray(featureVector) ||

@@ -192,7 +192,9 @@ export function createColorHelpers() {
     const hasComma = findTopLevelChar(mainPart, ',') !== -1;
     let tokens: string[];
     if (hasComma) {
-      tokens = splitTopLevel(mainPart, ',').map((s) => s.trim()).filter(Boolean);
+      tokens = splitTopLevel(mainPart, ',')
+        .map((s) => s.trim())
+        .filter(Boolean);
       if (tokens.length === 4 && alphaPart === undefined) {
         alphaPart = tokens[3];
         tokens = tokens.slice(0, 3);
@@ -478,7 +480,8 @@ export function createColorHelpers() {
           lg = -0.0420569 * pr + 1.0420571 * pg;
           lb = -0.0196376 * pr - 0.0786361 * pg + 1.0982735 * pb;
         } else if (space === 'a98-rgb') {
-          const toLinA98 = (u: number) => (u < 0 ? -Math.pow(-u, 563 / 256) : Math.pow(u, 563 / 256));
+          const toLinA98 = (u: number) =>
+            u < 0 ? -Math.pow(-u, 563 / 256) : Math.pow(u, 563 / 256);
           const ar = toLinA98(c1),
             ag = toLinA98(c2),
             ab = toLinA98(c3);
@@ -491,7 +494,10 @@ export function createColorHelpers() {
           const beta2020 = 0.018053968510807;
           const toLin2020 = (u: number) => {
             const abs = Math.abs(u);
-            const v = abs < beta2020 * 4.5 ? abs / 4.5 : Math.pow((abs + alpha2020 - 1) / alpha2020, 1 / 0.45);
+            const v =
+              abs < beta2020 * 4.5
+                ? abs / 4.5
+                : Math.pow((abs + alpha2020 - 1) / alpha2020, 1 / 0.45);
             return u < 0 ? -v : v;
           };
           const rr = toLin2020(c1),
@@ -529,7 +535,7 @@ export function createColorHelpers() {
         const parts = splitTopLevel(body, ',').map((p) => p.trim());
         if (parts.length !== 3) return null;
         const spaceMatch = parts[0].match(
-          /^in\s+(oklab|oklch|srgb|srgb-linear|display-p3|lab|lch|hsl|hwb)(?:\s+(shorter|longer|increasing|decreasing)\s+hue)?$/i,
+          /^in\s+(oklab|oklch|srgb|srgb-linear|display-p3|lab|lch|hsl|hwb)(?:\s+(shorter|longer|increasing|decreasing)\s+hue)?$/i
         );
         if (!spaceMatch) return null;
         const mixSpace = spaceMatch[1].toLowerCase();
@@ -592,7 +598,7 @@ export function createColorHelpers() {
           let dh = h2 - h1;
           if (dh > 180) dh -= 360;
           if (dh < -180) dh += 360;
-          const h = ((h1 + w2 * dh) % 360 + 360) % 360;
+          const h = (((h1 + w2 * dh) % 360) + 360) % 360;
           const lab = oklchToOklab(L, C, h);
           return buildFromOklab(lab.L, lab.a, lab.b, outAlpha, { L, C, h });
         }
@@ -670,7 +676,9 @@ export function createColorHelpers() {
     let i = 0;
     while (i < s.length) {
       if (s[i] === '#') {
-        const m = s.slice(i).match(/^#([0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{4}|[0-9a-fA-F]{3})\b/);
+        const m = s
+          .slice(i)
+          .match(/^#([0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{4}|[0-9a-fA-F]{3})\b/);
         if (m) {
           results.push(m[0]);
           i += m[0].length;
@@ -709,7 +717,9 @@ export function createColorHelpers() {
 
   // Extract gradient stops with unknown-stop tracking (FIX-05 / FIX-10).
   // Unparseable stops are returned with unknown: true and NEVER treated as opaque.
-  function extractGradientStops(bgImage: string): Array<{ raw: string; color: any; unknown: boolean }> {
+  function extractGradientStops(
+    bgImage: string
+  ): Array<{ raw: string; color: any; unknown: boolean }> {
     if (!bgImage || bgImage === 'none' || !/gradient\(/i.test(bgImage)) return [];
     const stops: Array<{ raw: string; color: any; unknown: boolean }> = [];
     const tokens = extractColorStrings(bgImage);
@@ -722,7 +732,9 @@ export function createColorHelpers() {
       }
     }
     // Check if gradient contains unparseable color-like functions or CSS var() stops (e.g. broken oklch/color-mix, var(--x))
-    const brokenMatch = bgImage.match(/\b(?:oklch|oklab|color-mix|color|lab|lch|rgba?|hsla?|hwb|var)\([^)]*\)/gi) || [];
+    const brokenMatch =
+      bgImage.match(/\b(?:oklch|oklab|color-mix|color|lab|lch|rgba?|hsla?|hwb|var)\([^)]*\)/gi) ||
+      [];
     for (const cand of brokenMatch) {
       if (!tokens.includes(cand) && !parseColorRaw(cand)) {
         stops.push({ raw: cand, color: null, unknown: true });

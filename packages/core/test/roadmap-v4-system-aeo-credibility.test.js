@@ -81,7 +81,13 @@ components:
       spacings: [16, 32],
       fontSizes: [48],
       typographyStyles: [
-        { tag: 'H1', fontFamily: 'Inter, sans-serif', fontSize: 48, lineHeight: 1.2, letterSpacing: 0 },
+        {
+          tag: 'H1',
+          fontFamily: 'Inter, sans-serif',
+          fontSize: 48,
+          lineHeight: 1.2,
+          letterSpacing: 0,
+        },
       ],
       componentPairs: [
         { tag: 'BUTTON', fg: 'rgb(245, 245, 247)', bg: 'rgb(10, 10, 11)', hasBgImage: false },
@@ -139,7 +145,10 @@ components:
     expect(waived.tier).toBe('Clean');
     expect(waived.waivedPatterns.length).toBe(3);
 
-    const tokenDiff = buildSystemTokenDiff({ score: 100, tier: 'Aligned', drift: [] }, waived.waivedPatterns);
+    const tokenDiff = buildSystemTokenDiff(
+      { score: 100, tier: 'Aligned', drift: [] },
+      waived.waivedPatterns
+    );
     expect(tokenDiff.waivedPatterns.length).toBe(3);
   });
 
@@ -336,10 +345,13 @@ describe('#233 FIX-13, #234 FIX-14, #206 FIX-15, #235 FIX-16, #237 FIX-18, A-01.
       const u = new URL(url);
       const accept = init?.headers?.Accept || '';
       if (u.pathname === '/' && !accept.includes('text/markdown')) {
-        return new Response('<!doctype html><html lang="en"><body><h1>Docs</h1><p>Hello world</p></body></html>', {
-          status: 200,
-          headers: { 'content-type': 'text/html' }, // no Vary: Accept
-        });
+        return new Response(
+          '<!doctype html><html lang="en"><body><h1>Docs</h1><p>Hello world</p></body></html>',
+          {
+            status: 200,
+            headers: { 'content-type': 'text/html' }, // no Vary: Accept
+          }
+        );
       }
       if (u.pathname === '/' && accept.includes('text/markdown')) {
         return new Response('<!doctype html><html><body>Not negotiated</body></html>', {
@@ -348,17 +360,23 @@ describe('#233 FIX-13, #234 FIX-14, #206 FIX-15, #235 FIX-16, #237 FIX-18, A-01.
         });
       }
       if (u.pathname === '/index.md') {
-        return new Response('# Docs\n\nStatic markdown twin content with real paragraphs.\n\n- Item one\n- Item two\n', {
-          status: 200,
-          headers: { 'content-type': 'text/markdown; charset=utf-8' },
-        });
+        return new Response(
+          '# Docs\n\nStatic markdown twin content with real paragraphs.\n\n- Item one\n- Item two\n',
+          {
+            status: 200,
+            headers: { 'content-type': 'text/markdown; charset=utf-8' },
+          }
+        );
       }
       if (u.pathname === '/llms.txt') {
         // SPA fallback returning HTML 200 at /llms.txt
-        return new Response('<!doctype html><html><body>404 page rendered as 200 HTML</body></html>', {
-          status: 200,
-          headers: { 'content-type': 'text/html' },
-        });
+        return new Response(
+          '<!doctype html><html><body>404 page rendered as 200 HTML</body></html>',
+          {
+            status: 200,
+            headers: { 'content-type': 'text/html' },
+          }
+        );
       }
       if (u.pathname === '/robots.txt') {
         return new Response('User-agent: *\nAllow: /\n', { status: 200 });
@@ -366,7 +384,9 @@ describe('#233 FIX-13, #234 FIX-14, #206 FIX-15, #235 FIX-16, #237 FIX-18, A-01.
       return new Response('not found', { status: 404 });
     };
 
-    const resStatic = await runAeoChecks('https://static-twin.example/', { fetchImpl: fetchStaticTwin });
+    const resStatic = await runAeoChecks('https://static-twin.example/', {
+      fetchImpl: fetchStaticTwin,
+    });
     expect(resStatic.checks.find((c) => c.id === 'md.twin').status).toBe('pass');
     expect(resStatic.checks.find((c) => c.id === 'md.twin').detail.negotiatedMarkdown).toBe(false);
     expect(resStatic.checks.find((c) => c.id === 'html.vary').status).toBe('na');
@@ -383,10 +403,13 @@ describe('#233 FIX-13, #234 FIX-14, #206 FIX-15, #235 FIX-16, #237 FIX-18, A-01.
         });
       }
       if (u.pathname === '/index.md') {
-        return new Response('<!doctype html><html><body><h1>Vercel HTML fallback</h1></body></html>', {
-          status: 200,
-          headers: { 'content-type': 'text/html' },
-        });
+        return new Response(
+          '<!doctype html><html><body><h1>Vercel HTML fallback</h1></body></html>',
+          {
+            status: 200,
+            headers: { 'content-type': 'text/html' },
+          }
+        );
       }
       return new Response('not found', { status: 404 });
     };
@@ -459,7 +482,13 @@ describe('#298 K-03, #299 K-04, #306 K-11, #213 K-01, #333, #315 W-09: Credibili
     const res = scorePatterns([
       { id: 'gradient_text', weight: 6, status: 'fail', triggered: true },
       { id: 'hero_accent_word', weight: 0, status: 'review', triggered: true },
-      { id: 'broken_rule', weight: 8, status: 'unknown', triggered: true, evidence: { error: 'boom' } },
+      {
+        id: 'broken_rule',
+        weight: 8,
+        status: 'unknown',
+        triggered: true,
+        evidence: { error: 'boom' },
+      },
     ]);
     expect(res.score).toBe(6);
     expect(res.unknownCount).toBe(1);

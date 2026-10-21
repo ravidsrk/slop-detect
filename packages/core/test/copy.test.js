@@ -12,7 +12,8 @@ import {
 
 function ctx(text, extra = {}) {
   const wordCount = extra.wordCount ?? (text ? text.split(/\s+/).filter(Boolean).length : 0);
-  const proseWordCount = extra.proseWordCount ?? (wordCount >= 40 ? Math.max(wordCount, 300) : wordCount);
+  const proseWordCount =
+    extra.proseWordCount ?? (wordCount >= 40 ? Math.max(wordCount, 300) : wordCount);
   return {
     text,
     headings: extra.headings || [],

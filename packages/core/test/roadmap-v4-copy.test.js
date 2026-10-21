@@ -66,7 +66,8 @@ describe('#231 FIX-11 & #299: Unicode artifacts split, script-aware exclusions, 
     expect(resTwo.score).toBe(0);
 
     // fake_bold_math_alnum keeps shipped weight 4 while unicode_artifacts stays retired
-    const mathBold = cleanText + ' Check out \uD835\uDDD4\uD835\uDDD6\uD835\uDDE0\uD835\uDDD8 today.';
+    const mathBold =
+      cleanText + ' Check out \uD835\uDDD4\uD835\uDDD6\uD835\uDDE0\uD835\uDDD8 today.';
     const resMath = scoreCopy({ text: mathBold, proseWordCount: 325, wordCount: 325 });
     const fbPat = resMath.patterns.find((p) => p.id === 'fake_bold_math_alnum');
     expect(fbPat.triggered).toBe(true);
@@ -331,9 +332,18 @@ describe('#277 C-14: Multi-page site copy aggregation + boilerplate removal', ()
 describe('#201 & #278 C-15: Monroe Fightin Words log-odds pipeline & permanently banned signals', () => {
   test('computeFightinWordsLogOdds and computeVocabularyDrift compute reproducible z-scores without hand-made tier lists', () => {
     const aiPages = [
-      { domain: 'a1.test', text: 'delve tapestry delve tapestry delve tapestry delve tapestry delve' },
-      { domain: 'a2.test', text: 'delve tapestry delve tapestry delve tapestry delve tapestry delve' },
-      { domain: 'a3.test', text: 'delve tapestry delve tapestry delve tapestry delve tapestry delve' },
+      {
+        domain: 'a1.test',
+        text: 'delve tapestry delve tapestry delve tapestry delve tapestry delve',
+      },
+      {
+        domain: 'a2.test',
+        text: 'delve tapestry delve tapestry delve tapestry delve tapestry delve',
+      },
+      {
+        domain: 'a3.test',
+        text: 'delve tapestry delve tapestry delve tapestry delve tapestry delve',
+      },
     ];
     const humanPages = [
       { domain: 'h1.test', text: 'database query latency index replica snapshot wal checkpoint' },

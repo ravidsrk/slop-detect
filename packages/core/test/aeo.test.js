@@ -132,7 +132,10 @@ test('runAeoChecks: fully AEO-ready site scores Eligible (100)', async () => {
 test('runAeoChecks: site that blocks search probe + disallows OAI-SearchBot + has noindex fails required checks', async () => {
   const fetchImpl = makeFetch((path, ua) => {
     if (path === '/robots.txt')
-      return { body: 'User-agent: OAI-SearchBot\nDisallow: /', headers: { 'content-type': 'text/plain' } };
+      return {
+        body: 'User-agent: OAI-SearchBot\nDisallow: /',
+        headers: { 'content-type': 'text/plain' },
+      };
     if (path === '/') {
       if (/searchprobe/i.test(ua)) return { status: 403, body: 'forbidden' };
       return {

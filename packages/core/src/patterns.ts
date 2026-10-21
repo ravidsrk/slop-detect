@@ -44,11 +44,7 @@ export const PATTERNS = [
         'clash display',
         'clash-display',
       ];
-      const secondaryPrefixes = [
-        'manrope',
-        'instrument serif',
-        'instrument-serif',
-      ];
+      const secondaryPrefixes = ['manrope', 'instrument serif', 'instrument-serif'];
       const resolveFam = (fam) => {
         if (typeof resolveRenderedFont === 'function') return resolveRenderedFont(fam);
         if (!fam) return '';
@@ -79,7 +75,7 @@ export const PATTERNS = [
         const resolved = resolveFam(fam);
         const slop = Boolean(
           resolved &&
-            (typeof resolveRenderedFont === 'function' ? isSlopFont(resolved) : isSlopFont(fam)),
+          (typeof resolveRenderedFont === 'function' ? isSlopFont(resolved) : isSlopFont(fam))
         );
         if (slop) {
           slopCount++;
@@ -97,9 +93,9 @@ export const PATTERNS = [
       const heroResolved = resolveFam(heroRawFam);
       const heroIsSlop = Boolean(
         heroResolved &&
-          (typeof resolveRenderedFont === 'function'
-            ? isSlopFont(heroResolved)
-            : isSlopFont(heroRawFam)),
+        (typeof resolveRenderedFont === 'function'
+          ? isSlopFont(heroResolved)
+          : isSlopFont(heroRawFam))
       );
       const heroIsPrimary = isPrimary(heroRawFam);
       const heroIsSecondary = isSecondary(heroRawFam);
@@ -138,7 +134,8 @@ export const PATTERNS = [
   // ── 1b. SLOP FONTS 2026 BROADENING (D-08 weight-0 review rule under K-04) ─
   {
     id: 'slop_fonts_2026',
-    label: 'Expanded 2026 default font stack (Syne / Fraunces / Outfit / Sora / Playfair / Lora / JetBrains Mono)',
+    label:
+      'Expanded 2026 default font stack (Syne / Fraunces / Outfit / Sora / Playfair / Lora / JetBrains Mono)',
     short: '2026 slop fonts',
     category: 'fonts',
     weight: 0,
@@ -356,7 +353,8 @@ export const PATTERNS = [
           typeof el.getBoundingClientRect === 'function'
             ? el.getBoundingClientRect()
             : { width: 400, height: 200 };
-        const area = Math.max(0, Math.min(vw, r.width || 0)) * Math.max(0, Math.min(vh, r.height || 0));
+        const area =
+          Math.max(0, Math.min(vw, r.width || 0)) * Math.max(0, Math.min(vh, r.height || 0));
         totalArea += area;
         const sec =
           (typeof el.closest === 'function' &&
@@ -424,7 +422,10 @@ export const PATTERNS = [
           right: parseColor(cs.borderRightColor),
           bottom: parseColor(cs.borderBottomColor),
         };
-        const colorDiffers = (sideCol: any, otherSideKeys: Array<'top' | 'left' | 'right' | 'bottom'>) => {
+        const colorDiffers = (
+          sideCol: any,
+          otherSideKeys: Array<'top' | 'left' | 'right' | 'bottom'>
+        ) => {
           if (!sideCol || sideCol.a <= 0.3) return false;
           for (const k of otherSideKeys) {
             if (widths[k] > 0 && colors[k] && colors[k].a > 0.1) {
@@ -504,7 +505,10 @@ export const PATTERNS = [
           bottom: parseColor(cs.borderBottomColor),
         };
         const radius = parseFloat(cs.borderRadius) || 0;
-        const colorDiffers = (sideCol: any, otherSideKeys: Array<'top' | 'left' | 'right' | 'bottom'>) => {
+        const colorDiffers = (
+          sideCol: any,
+          otherSideKeys: Array<'top' | 'left' | 'right' | 'bottom'>
+        ) => {
           if (!sideCol || sideCol.a <= 0.3) return false;
           for (const k of otherSideKeys) {
             if (widths[k] > 0 && colors[k] && colors[k].a > 0.1) {
@@ -660,7 +664,11 @@ export const PATTERNS = [
           for (let el = h1, d = 0; el && d < 25; el = el.parentElement, d++) {
             const acs = getComputedStyle(el);
             if (acs.transform && acs.transform !== 'none') scaled = true;
-            if ((acs as any).zoom !== undefined && (acs as any).zoom !== '' && String((acs as any).zoom) !== '1')
+            if (
+              (acs as any).zoom !== undefined &&
+              (acs as any).zoom !== '' &&
+              String((acs as any).zoom) !== '1'
+            )
               scaled = true;
             if (scaled) break;
           }
@@ -752,7 +760,13 @@ export const PATTERNS = [
     fpRate: null,
     fpRatePre2022: null,
     extract: () => {
-      return { count: 0, samples: [], retired: true, replacedBy: 'eyebrow_label', triggered: false };
+      return {
+        count: 0,
+        samples: [],
+        retired: true,
+        replacedBy: 'eyebrow_label',
+        triggered: false,
+      };
     },
   },
 
@@ -798,13 +812,18 @@ export const PATTERNS = [
         const hr = h.getBoundingClientRect();
         let foundForHeading = false;
         for (const el of visible) {
-          if (el === h || /^(H[1-6]|BUTTON|NAV|FOOTER|TABLE|TR|TD|TH|TIME)$/.test(el.tagName)) continue;
-          if (typeof el.closest === 'function' && el.closest('nav, footer, button, table, time')) continue;
+          if (el === h || /^(H[1-6]|BUTTON|NAV|FOOTER|TABLE|TR|TD|TH|TIME)$/.test(el.tagName))
+            continue;
+          if (typeof el.closest === 'function' && el.closest('nav, footer, button, table, time'))
+            continue;
           if (typeof el.getAttribute === 'function' && el.getAttribute('datetime')) continue;
           const r = el.getBoundingClientRect();
           // Must sit within 48px above the heading
           if (r.bottom > hr.top + 8 || r.bottom < hr.top - 48) continue;
-          if (Math.abs(r.left - hr.left) > 300 && Math.abs(r.left + r.width / 2 - (hr.left + hr.width / 2)) > 200) {
+          if (
+            Math.abs(r.left - hr.left) > 300 &&
+            Math.abs(r.left + r.width / 2 - (hr.left + hr.width / 2)) > 200
+          ) {
             continue;
           }
           const txt = (el.textContent || '').trim();
@@ -936,13 +955,17 @@ export const PATTERNS = [
         const r = el.getBoundingClientRect();
         if (r.width < 150 || r.width > 600 || r.height < 100 || r.height > 600) continue;
         const icon = el.querySelector(
-          ':scope > svg, :scope > img, :scope > div > svg, :scope > div > img',
+          ':scope > svg, :scope > img, :scope > div > svg, :scope > div > img'
         );
         if (!icon) continue;
         const ir = icon.getBoundingClientRect();
         if (ir.width > 80 || ir.height > 80) continue;
         if (ir.top > r.top + r.height * 0.4) continue;
-        if (icon.parentElement && icon.parentElement !== el && typeof getComputedStyle === 'function') {
+        if (
+          icon.parentElement &&
+          icon.parentElement !== el &&
+          typeof getComputedStyle === 'function'
+        ) {
           try {
             const wEl = icon.parentElement;
             const wr = wEl.getBoundingClientRect();
@@ -1012,9 +1035,7 @@ export const PATTERNS = [
         const n = parseInt(m[1], 10);
         if (n < 1 || n > 9) continue;
         const r =
-          typeof el.getBoundingClientRect === 'function'
-            ? el.getBoundingClientRect()
-            : { top: 0 };
+          typeof el.getBoundingClientRect === 'function' ? el.getBoundingClientRect() : { top: 0 };
         const tag = el.tagName ? el.tagName.toLowerCase() : 'div';
         const nid = el.id ? '#' + el.id : `${tag}:${Math.round(r.top || 0)}:${txt.slice(0, 20)}`;
         if (el.parentElement) {
@@ -1251,7 +1272,7 @@ export const PATTERNS = [
           /(radial|conic)-gradient\(/.test(bgImg) ||
           (/linear-gradient\(/.test(bgImg) &&
             parseFloat(
-              ((cs.filter && cs.filter.match(/blur\(([\d.]+)px\)/)?.[1]) || 0) as unknown as string,
+              ((cs.filter && cs.filter.match(/blur\(([\d.]+)px\)/)?.[1]) || 0) as unknown as string
             ) > 0);
         if (!isGrad) continue;
         const blurM = (cs.filter || '').match(/blur\(([\d.]+)px\)/);
@@ -1464,7 +1485,8 @@ export const PATTERNS = [
         checked,
         ratioFail: +ratioFail.toFixed(3),
         samples,
-        apcaNote: 'APCA, a candidate method; the WCAG 3 draft leaves the contrast measure undetermined',
+        apcaNote:
+          'APCA, a candidate method; the WCAG 3 draft leaves the contrast measure undetermined',
         triggered,
       };
     },
@@ -1840,7 +1862,7 @@ export const PATTERNS = [
             const hasArrowText = /[→↗»]\s*$/.test(txt);
             const hasArrowSvg = Boolean(
               typeof el.querySelector === 'function' &&
-                el.querySelector('svg[class*="arrow"], svg[data-icon*="arrow"]'),
+              el.querySelector('svg[class*="arrow"], svg[data-icon*="arrow"]')
             );
             if (hasArrowText || hasArrowSvg) arrowCtas++;
             const rad = parseFloat(cs.borderRadius) || 0;
@@ -2026,12 +2048,14 @@ export const PATTERNS = [
         parseColor(getComputedStyle(document.documentElement).backgroundColor);
       const h1Fam = h1 ? getComputedStyle(h1).fontFamily : '';
       const hasSerifH1 = Boolean(
-        h1 && (isAccentSerif(h1Fam) || /\bserif\b/i.test(h1Fam) && !/sans-serif/i.test(h1Fam)),
+        h1 && (isAccentSerif(h1Fam) || (/\bserif\b/i.test(h1Fam) && !/sans-serif/i.test(h1Fam)))
       );
 
       // Cream branch: surface within ΔE_OK <= 0.05 of #F4F1EA + serif H1 + terracotta (#D97757) or brass accent
       const nearCream =
-        bodyBg && typeof deltaEOklab === 'function' ? deltaEOklab(bodyBg, '#F4F1EA') <= 0.05 : false;
+        bodyBg && typeof deltaEOklab === 'function'
+          ? deltaEOklab(bodyBg, '#F4F1EA') <= 0.05
+          : false;
       let hasTerracottaOrBrass = false;
       let maxButtonCardRadius = 0;
       let hairlineRules = document.querySelectorAll('hr').length;
@@ -2047,7 +2071,14 @@ export const PATTERNS = [
             hasTerracottaOrBrass = true;
           } else if (typeof rgbToOklch === 'function') {
             const lch = rgbToOklch(col);
-            if (lch && lch.h >= 35 && lch.h <= 85 && lch.C >= 0.08 && lch.L >= 0.45 && lch.L <= 0.78) {
+            if (
+              lch &&
+              lch.h >= 35 &&
+              lch.h <= 85 &&
+              lch.C >= 0.08 &&
+              lch.L >= 0.45 &&
+              lch.L <= 0.78
+            ) {
               hasTerracottaOrBrass = true;
             }
           }
@@ -2056,10 +2087,7 @@ export const PATTERNS = [
           const rad = parseFloat(cs.borderRadius) || 0;
           if (rad > maxButtonCardRadius) maxButtonCardRadius = rad;
         }
-        if (
-          parseFloat(cs.borderTopWidth) === 1 ||
-          parseFloat(cs.borderBottomWidth) === 1
-        ) {
+        if (parseFloat(cs.borderTopWidth) === 1 || parseFloat(cs.borderBottomWidth) === 1) {
           hairlineRules++;
         }
         const fs = parseFloat(cs.fontSize) || 16;
@@ -2071,7 +2099,7 @@ export const PATTERNS = [
 
       const creamBranch = Boolean(nearCream && hasSerifH1 && hasTerracottaOrBrass);
       const broadsheetBranch = Boolean(
-        hasSerifH1 && maxButtonCardRadius === 0 && hairlineRules >= 6 && trackedLabels >= 3,
+        hasSerifH1 && maxButtonCardRadius === 0 && hairlineRules >= 6 && trackedLabels >= 3
       );
       return {
         creamBranch,
@@ -2111,7 +2139,9 @@ export const PATTERNS = [
         'cta_footer',
       ];
       const rawSections = Array.from(
-        document.querySelectorAll('main > section, body > section, main > div, body > header, body > footer'),
+        document.querySelectorAll(
+          'main > section, body > section, main > div, body > header, body > footer'
+        )
       );
       const roles: string[] = [];
       rawSections.forEach((sec: any, idx: number) => {
@@ -2119,14 +2149,21 @@ export const PATTERNS = [
         const tag = sec.tagName.toLowerCase();
         let role = '';
         if (idx === 0 || sec.querySelector('h1')) role = 'hero';
-        else if (/trusted by|backed by|logos/i.test(txt) && sec.querySelectorAll('img, svg').length >= 4)
+        else if (
+          /trusted by|backed by|logos/i.test(txt) &&
+          sec.querySelectorAll('img, svg').length >= 4
+        )
           role = 'logo_bar';
-        else if (/frequently asked|\bfaq\b/i.test(txt) || sec.querySelectorAll('details').length >= 2)
+        else if (
+          /frequently asked|\bfaq\b/i.test(txt) ||
+          sec.querySelectorAll('details').length >= 2
+        )
           role = 'faq';
         else if (/pricing|\$\d+\s*\/\s*(?:mo|month|yr)/i.test(txt)) role = 'pricing';
         else if (/testimonial|what .* say|loved by/i.test(txt)) role = 'testimonials';
         else if (/\b99\.9%|\b\d+k\+|\b\d+m\+/i.test(txt)) role = 'stats';
-        else if (tag === 'footer' || /ready to get started|start your free/i.test(txt)) role = 'cta_footer';
+        else if (tag === 'footer' || /ready to get started|start your free/i.test(txt))
+          role = 'cta_footer';
         else if (sec.querySelector('h2, h3')) role = 'features';
         if (role && roles[roles.length - 1] !== role) roles.push(role);
       });
@@ -2178,7 +2215,7 @@ export const PATTERNS = [
       }
       if (
         document.querySelector(
-          'script[src*="statuspage.io"], script[src*="instatus"], script[src*="betteruptime"]',
+          'script[src*="statuspage.io"], script[src*="instatus"], script[src*="betteruptime"]'
         )
       ) {
         return { exempt: 'status-provider', count: 0, triggered: false };
@@ -2231,7 +2268,7 @@ export const PATTERNS = [
     extract: (ctx) => {
       const { visible, resolveRenderedFont, inHero } = ctx;
       const hasCodeInHero = visible.some(
-        (el: any) => /^(PRE|CODE)$/.test(el.tagName) && typeof inHero === 'function' && inHero(el),
+        (el: any) => /^(PRE|CODE)$/.test(el.tagName) && typeof inHero === 'function' && inHero(el)
       );
       if (hasCodeInHero) {
         return { exempt: 'code-in-hero', triggered: false };
@@ -2249,7 +2286,11 @@ export const PATTERNS = [
             ? resolveRenderedFont(cs.fontFamily)
             : cs.fontFamily || '';
         if (monoRe.test(rendered) || monoRe.test(cs.fontFamily || '')) {
-          hits.push({ tag: el.tagName, family: rendered || cs.fontFamily, fontSize: Math.round(fs) });
+          hits.push({
+            tag: el.tagName,
+            family: rendered || cs.fontFamily,
+            fontSize: Math.round(fs),
+          });
         }
       }
       return { hits, triggered: hits.length > 0 };
@@ -2287,7 +2328,8 @@ export const PATTERNS = [
         const cs = getComputedStyle(el);
         const rad = parseFloat(cs.borderRadius) || 0;
         if (rad < 4) continue;
-        const col = parseColor(cs.backgroundColor) || parseColor(cs.borderColor) || parseColor(cs.color);
+        const col =
+          parseColor(cs.backgroundColor) || parseColor(cs.borderColor) || parseColor(cs.color);
         if (!col || col.a < 0.1) continue;
         const lch = typeof rgbToOklch === 'function' ? rgbToOklch(col) : col.oklch;
         if (!lch || lch.C < 0.04) continue;
@@ -2446,7 +2488,9 @@ export const PATTERNS = [
         if (!isInfiniteLinear) continue;
         const kids = Array.from(el.children || []) as any[];
         if (kids.length >= 2) {
-          const texts = kids.map((k) => (k.textContent || '').trim() || k.innerHTML?.slice(0, 60) || '');
+          const texts = kids.map(
+            (k) => (k.textContent || '').trim() || k.innerHTML?.slice(0, 60) || ''
+          );
           const unique = new Set(texts.filter(Boolean));
           if (texts.length >= 2 && unique.size <= Math.ceil(texts.length / 2)) {
             tickers++;
@@ -2460,7 +2504,8 @@ export const PATTERNS = [
   // ── 38. FADE-UP MONOCULTURE (#197, weight 0 under K-04) ───────────────────
   {
     id: 'fade_up_monoculture',
-    label: 'At-rest fade-up entrance monoculture (≥6 below-fold elements at opacity 0 + translateY)',
+    label:
+      'At-rest fade-up entrance monoculture (≥6 below-fold elements at opacity 0 + translateY)',
     short: 'Fade-up monoculture',
     category: 'css',
     weight: 0,
@@ -2486,7 +2531,9 @@ export const PATTERNS = [
         const op = parseFloat(cs.opacity || '1');
         if (op > 0.01) continue;
         const tr = cs.transform || '';
-        const matrixMatch = tr.match(/matrix\([^,]+,[^,]+,[^,]+,[^,]+,[^,]+,\s*([+-]?\d+(?:\.\d+)?)\)/);
+        const matrixMatch = tr.match(
+          /matrix\([^,]+,[^,]+,[^,]+,[^,]+,[^,]+,\s*([+-]?\d+(?:\.\d+)?)\)/
+        );
         const translateYMatch = tr.match(/translateY\(\s*([+-]?\d+(?:\.\d+)?)px\)/i);
         const ty = matrixMatch
           ? parseFloat(matrixMatch[1])
@@ -2614,7 +2661,9 @@ export const PATTERNS = [
     fpRate: null,
     fpRatePre2022: null,
     extract: () => {
-      const sections = Array.from(document.querySelectorAll('main > section, body > section, main > div'));
+      const sections = Array.from(
+        document.querySelectorAll('main > section, body > section, main > div')
+      );
       if (sections.length === 0) {
         return {
           sectionCount: 0,
@@ -2631,7 +2680,8 @@ export const PATTERNS = [
       for (const sec of sections as any[]) {
         const cs = getComputedStyle(sec);
         const disp = cs.display || 'block';
-        const cols = disp === 'grid' ? (cs.gridTemplateColumns || '').split(' ').filter(Boolean).length : 1;
+        const cols =
+          disp === 'grid' ? (cs.gridTemplateColumns || '').split(' ').filter(Boolean).length : 1;
         const childBucket = Math.min(6, sec.children ? sec.children.length : 0);
         const sig = `${disp}:${cols}:${childBucket}`;
         sigCounts.set(sig, (sigCounts.get(sig) || 0) + 1);
@@ -2651,7 +2701,7 @@ export const PATTERNS = [
         const mean = paddings.reduce((s, v) => s + v, 0) / paddings.length;
         if (mean > 0) {
           const sd = Math.sqrt(
-            paddings.reduce((s, v) => s + (v - mean) * (v - mean), 0) / paddings.length,
+            paddings.reduce((s, v) => s + (v - mean) * (v - mean), 0) / paddings.length
           );
           paddingCV = +(sd / mean).toFixed(3);
         }
@@ -2693,14 +2743,14 @@ export const PATTERNS = [
       const surfaceLum = surfaceCol ? relativeLuminance(surfaceCol) : 1;
       const colorScheme = String(rootCs.colorScheme || '').toLowerCase();
       const missingColorSchemeDark = Boolean(
-        surfaceCol && surfaceCol.a >= 0.5 && surfaceLum < 0.08 && !colorScheme.includes('dark'),
+        surfaceCol && surfaceCol.a >= 0.5 && surfaceLum < 0.08 && !colorScheme.includes('dark')
       );
 
       // Sub-signal B: dynamic counters or numeric tables (>= 3 numeric cols) without tabular-nums
       // Static prices like "$49" do NOT trigger B.
       let missingTabularNums = 0;
       const counterEls = document.querySelectorAll(
-        '[data-counter], [data-target], [data-count], [class*="counter"], [class*="odometer"]',
+        '[data-counter], [data-target], [data-count], [class*="counter"], [class*="odometer"]'
       );
       for (const el of Array.from(counterEls)) {
         const txt = (el.textContent || '').trim();
@@ -2718,7 +2768,9 @@ export const PATTERNS = [
         const firstRow = tbl.querySelector('tbody tr, tr');
         if (!firstRow) continue;
         const cells = Array.from(firstRow.querySelectorAll('td'));
-        const numCells = cells.filter((c) => /^\s*[$€£+-]?\d[\d,.%]*\s*$/.test(c.textContent || ''));
+        const numCells = cells.filter((c) =>
+          /^\s*[$€£+-]?\d[\d,.%]*\s*$/.test(c.textContent || '')
+        );
         if (numCells.length >= 3) {
           const cs = getComputedStyle(numCells[0]);
           const fvn = String(cs.fontVariantNumeric || '').toLowerCase();

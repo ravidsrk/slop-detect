@@ -21,7 +21,14 @@ components:
 test('declared tokens waive matching design patterns and keep the raw score', () => {
   const parsed = parseDesignMd(DECLARED);
   const patterns = [
-    { id: 'purple_accent', label: 'Purple', weight: 4, triggered: true, status: 'fail', evidence: {} },
+    {
+      id: 'purple_accent',
+      label: 'Purple',
+      weight: 4,
+      triggered: true,
+      status: 'fail',
+      evidence: {},
+    },
     {
       id: 'slop_fonts',
       label: 'Fonts',
@@ -98,7 +105,14 @@ typography:
       grade: 'A-',
       patternsFlagged: 1,
       patterns: [
-        { id: 'bento_grid', label: 'Bento', weight: 4, triggered: true, status: 'fail', evidence: {} },
+        {
+          id: 'bento_grid',
+          label: 'Bento',
+          weight: 4,
+          triggered: true,
+          status: 'fail',
+          evidence: {},
+        },
       ],
     },
     parsed

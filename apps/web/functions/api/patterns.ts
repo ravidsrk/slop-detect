@@ -39,14 +39,14 @@ export async function onRequestGet() {
   const patterns = PATTERNS.map((p) => lifecycle(p, { since: p.since || 'baseline' }));
 
   const copyPatterns = (COPY_PATTERNS as any[]).map((p) =>
-    lifecycle(p, { category: p.category || 'copy', since: p.since || '2026.08' }),
+    lifecycle(p, { category: p.category || 'copy', since: p.since || '2026.08' })
   );
 
   const aeoChecks = (AEO_CHECKS as any[]).map((c) =>
     lifecycle(c, {
       severity: c.severity || 'recommended',
       required: c.severity === 'required',
-    }),
+    })
   );
 
   const systemChecks = SYSTEM_CHECKS.map((c) => lifecycle(c));

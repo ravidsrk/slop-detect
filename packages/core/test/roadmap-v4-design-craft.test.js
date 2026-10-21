@@ -165,14 +165,30 @@ describe('#227 FIX-07 & #238 FIX-19: Cross-pattern post-pass deduplication', () 
     });
 
     const sec1 = makeEl('div', 'SEC 0.1', { left: 80, top: 100, width: 80, height: 16 });
-    const h2a = makeEl('h2', 'Global Anycast Network', { left: 80, top: 124, width: 400, height: 36 }, { fontSize: '32px', letterSpacing: '0px', textTransform: 'none' });
+    const h2a = makeEl(
+      'h2',
+      'Global Anycast Network',
+      { left: 80, top: 124, width: 400, height: 36 },
+      { fontSize: '32px', letterSpacing: '0px', textTransform: 'none' }
+    );
     const sec2 = makeEl('div', 'SEC 0.2', { left: 80, top: 240, width: 80, height: 16 });
-    const h2b = makeEl('h2', 'Zero-Trust Access', { left: 80, top: 264, width: 400, height: 36 }, { fontSize: '32px', letterSpacing: '0px', textTransform: 'none' });
+    const h2b = makeEl(
+      'h2',
+      'Zero-Trust Access',
+      { left: 80, top: 264, width: 400, height: 36 },
+      { fontSize: '32px', letterSpacing: '0px', textTransform: 'none' }
+    );
     const sec3 = makeEl('div', 'SEC 0.3', { left: 80, top: 380, width: 80, height: 16 });
-    const h2c = makeEl('h2', 'Programmable Workers', { left: 80, top: 404, width: 400, height: 36 }, { fontSize: '32px', letterSpacing: '0px', textTransform: 'none' });
+    const h2c = makeEl(
+      'h2',
+      'Programmable Workers',
+      { left: 80, top: 404, width: 400, height: 36 },
+      { fontSize: '32px', letterSpacing: '0px', textTransform: 'none' }
+    );
 
     const prevGcs = globalThis.getComputedStyle;
-    globalThis.getComputedStyle = (el) => el._style || { fontSize: '16px', letterSpacing: '0px', textTransform: 'none' };
+    globalThis.getComputedStyle = (el) =>
+      el._style || { fontSize: '16px', letterSpacing: '0px', textTransform: 'none' };
     try {
       const visible = [sec1, h2a, sec2, h2b, sec3, h2c];
       const eyebrowDef = PATTERNS.find((p) => p.id === 'eyebrow_label');
@@ -189,8 +205,20 @@ describe('#227 FIX-07 & #238 FIX-19: Cross-pattern post-pass deduplication', () 
       // Even if both rules carry weight 3, the Cloudflare SEC pair is counted once (score 3),
       // shows both labels, and lists the shared nodeIds.
       const secScored = scorePatterns([
-        { id: 'eyebrow_label', label: eyebrowDef.label, weight: 3, triggered: true, evidence: eyebrowEv },
-        { id: 'numbered_steps', label: stepsDef.label, weight: 3, triggered: true, evidence: stepsEv },
+        {
+          id: 'eyebrow_label',
+          label: eyebrowDef.label,
+          weight: 3,
+          triggered: true,
+          evidence: eyebrowEv,
+        },
+        {
+          id: 'numbered_steps',
+          label: stepsDef.label,
+          weight: 3,
+          triggered: true,
+          evidence: stepsEv,
+        },
       ]);
       expect(secScored.score).toBe(3);
       expect(secScored.evidence.map((e) => e.label)).toEqual([eyebrowDef.label, stepsDef.label]);
@@ -201,18 +229,40 @@ describe('#227 FIX-07 & #238 FIX-19: Cross-pattern post-pass deduplication', () 
 
       // Disjoint nodes both count in full (3 + 4 = 7)
       const disjoint = scorePatterns([
-        { id: 'numbered_steps', weight: 3, triggered: true, evidence: { bestRun: 3, nodeIds: ['s1', 's2', 's3'] } },
-        { id: 'icon_card_grid', weight: 4, triggered: true, evidence: { maxGroupSize: 3, nodeIds: ['c1', 'c2', 'c3'] } },
+        {
+          id: 'numbered_steps',
+          weight: 3,
+          triggered: true,
+          evidence: { bestRun: 3, nodeIds: ['s1', 's2', 's3'] },
+        },
+        {
+          id: 'icon_card_grid',
+          weight: 4,
+          triggered: true,
+          evidence: { maxGroupSize: 3, nodeIds: ['c1', 'c2', 'c3'] },
+        },
       ]);
       expect(disjoint.score).toBe(7);
 
       // One incidental shared node out of 3 keeps both weights in full (3 + 4 = 7)
       const oneShared = scorePatterns([
-        { id: 'numbered_steps', weight: 3, triggered: true, evidence: { bestRun: 3, nodeIds: ['shared1', 's2', 's3'] } },
-        { id: 'icon_card_grid', weight: 4, triggered: true, evidence: { maxGroupSize: 3, nodeIds: ['shared1', 'c2', 'c3'] } },
+        {
+          id: 'numbered_steps',
+          weight: 3,
+          triggered: true,
+          evidence: { bestRun: 3, nodeIds: ['shared1', 's2', 's3'] },
+        },
+        {
+          id: 'icon_card_grid',
+          weight: 4,
+          triggered: true,
+          evidence: { maxGroupSize: 3, nodeIds: ['shared1', 'c2', 'c3'] },
+        },
       ]);
       expect(oneShared.score).toBe(7);
-      expect(oneShared.adjustments.some((a) => a.ruleId === 'overlapping_evidence_dedup')).toBe(false);
+      expect(oneShared.adjustments.some((a) => a.ruleId === 'overlapping_evidence_dedup')).toBe(
+        false
+      );
     } finally {
       globalThis.getComputedStyle = prevGcs;
     }
@@ -238,7 +288,13 @@ describe('#228 FIX-08, #229 FIX-09, #230 FIX-10, #239 FIX-20, #246 D-07, #247 D-
 
     // Scoring eyebrow_label adds 0 design points
     const scored = scorePatterns([
-      { id: 'eyebrow_label', weight: newRule.weight, status: newRule.status, triggered: true, evidence: { ratio: 1 } },
+      {
+        id: 'eyebrow_label',
+        weight: newRule.weight,
+        status: newRule.status,
+        triggered: true,
+        evidence: { ratio: 1 },
+      },
     ]);
     expect(scored.score).toBe(0);
 
@@ -313,7 +369,14 @@ describe('#228 FIX-08, #229 FIX-09, #230 FIX-10, #239 FIX-20, #246 D-07, #247 D-
     const makeCard = (styleOverrides = {}, role = '') => ({
       tagName: 'DIV',
       getAttribute: (k) => (k === 'role' ? role : null),
-      getBoundingClientRect: () => ({ width: 320, height: 180, top: 100, left: 80, right: 400, bottom: 280 }),
+      getBoundingClientRect: () => ({
+        width: 320,
+        height: 180,
+        top: 100,
+        left: 80,
+        right: 400,
+        bottom: 280,
+      }),
       _style: {
         borderTopWidth: '0px',
         borderLeftWidth: '0px',
@@ -338,17 +401,40 @@ describe('#228 FIX-08, #229 FIX-09, #230 FIX-10, #239 FIX-20, #246 D-07, #247 D-
       ];
       const legacyTop = legacyRule.extract({ visible: topCards, parseColor, deltaEOklab });
       expect(legacyTop.triggered).toBe(true);
-      expect(scorePatterns([{ id: 'accent_stripe', weight: 6, triggered: true, evidence: legacyTop }]).score).toBe(6);
+      expect(
+        scorePatterns([{ id: 'accent_stripe', weight: 6, triggered: true, evidence: legacyTop }])
+          .score
+      ).toBe(6);
 
       // 2px top stripe and bottom border do NOT trigger weight-6 accent_stripe; they trigger weight-0 accent_stripe_2026 and add 0 points
       const newCases = [
-        makeCard({ borderTopWidth: '2px', borderTopColor: 'rgb(99, 102, 241)', borderRadius: '8px' }),
-        makeCard({ borderBottomWidth: '3px', borderBottomColor: 'rgb(99, 102, 241)', borderRadius: '8px' }),
+        makeCard({
+          borderTopWidth: '2px',
+          borderTopColor: 'rgb(99, 102, 241)',
+          borderRadius: '8px',
+        }),
+        makeCard({
+          borderBottomWidth: '3px',
+          borderBottomColor: 'rgb(99, 102, 241)',
+          borderRadius: '8px',
+        }),
       ];
-      expect(legacyRule.extract({ visible: newCases, parseColor, deltaEOklab }).triggered).toBe(false);
+      expect(legacyRule.extract({ visible: newCases, parseColor, deltaEOklab }).triggered).toBe(
+        false
+      );
       const revRes = newRule.extract({ visible: newCases, parseColor, deltaEOklab });
       expect(revRes.triggered).toBe(true);
-      expect(scorePatterns([{ id: 'accent_stripe_2026', weight: 0, status: 'review', triggered: true, evidence: revRes }]).score).toBe(0);
+      expect(
+        scorePatterns([
+          {
+            id: 'accent_stripe_2026',
+            weight: 0,
+            status: 'review',
+            triggered: true,
+            evidence: revRes,
+          },
+        ]).score
+      ).toBe(0);
 
       // role=alert/note/status and a card whose four borders share one colour do NOT fire
       const excluded = [
@@ -376,7 +462,9 @@ describe('#228 FIX-08, #229 FIX-09, #230 FIX-10, #239 FIX-20, #246 D-07, #247 D-
           borderBottomColor: 'rgb(99, 102, 241)',
         }),
       ];
-      expect(legacyRule.extract({ visible: excluded, parseColor, deltaEOklab }).triggered).toBe(false);
+      expect(legacyRule.extract({ visible: excluded, parseColor, deltaEOklab }).triggered).toBe(
+        false
+      );
       expect(newRule.extract({ visible: excluded, parseColor, deltaEOklab }).triggered).toBe(false);
     } finally {
       globalThis.getComputedStyle = prevGcs;
@@ -405,7 +493,10 @@ describe('#228 FIX-08, #229 FIX-09, #230 FIX-10, #239 FIX-20, #246 D-07, #247 D-
     try {
       // Unloaded declared font must not fire slop_fonts
       const unloadedH1 = { textContent: 'Hero', _font: 'Inter' };
-      globalThis.getComputedStyle = (el) => ({ fontFamily: el._font || 'Arial', fontStyle: 'normal' });
+      globalThis.getComputedStyle = (el) => ({
+        fontFamily: el._font || 'Arial',
+        fontStyle: 'normal',
+      });
       const unloadedRes = slopFontsRule.extract({
         visible: [unloadedH1],
         h1: unloadedH1,
@@ -435,7 +526,13 @@ describe('#228 FIX-08, #229 FIX-09, #230 FIX-10, #239 FIX-20, #246 D-07, #247 D-
         expect(new2026Res.triggered).toBe(true);
         const scored = scorePatterns([
           { id: 'slop_fonts', weight: 8, triggered: legacyRes.triggered, evidence: legacyRes },
-          { id: 'slop_fonts_2026', weight: 0, status: 'review', triggered: new2026Res.triggered, evidence: new2026Res },
+          {
+            id: 'slop_fonts_2026',
+            weight: 0,
+            status: 'review',
+            triggered: new2026Res.triggered,
+            evidence: new2026Res,
+          },
         ]);
         expect(scored.score).toBe(0);
       }
@@ -453,7 +550,9 @@ describe('#228 FIX-08, #229 FIX-09, #230 FIX-10, #239 FIX-20, #246 D-07, #247 D-
         });
         expect(ev.triggered).toBe(true);
         expect(ev.interOrGeistOnly).toBe(true);
-        const scored = scorePatterns([{ id: 'slop_fonts', weight: 8, triggered: true, evidence: ev }]);
+        const scored = scorePatterns([
+          { id: 'slop_fonts', weight: 8, triggered: true, evidence: ev },
+        ]);
         expect(scored.score).toBe(0);
       }
     } finally {
@@ -663,18 +762,62 @@ describe('#255..#264 F-00..F-09: Craft-floor axis separation and checks', () => 
     // Blocker 9: 1 of 5 missing outline:none with no replacement triggers; pseudo ring passes
     expect(
       evaluateFocusIndicators([
-        { tag: 'button', outlineWidth: '0px', outlineStyle: 'none', boxShadow: 'none', borderChanged: false },
-        { tag: 'a', outlineWidth: '2px', outlineStyle: 'solid', boxShadow: 'none', borderChanged: false },
-        { tag: 'a', outlineWidth: '0px', outlineStyle: 'none', boxShadow: '0 0 0 2px #3b82f6', borderChanged: false },
-        { tag: 'button', outlineWidth: '0px', outlineStyle: 'none', boxShadow: 'none', borderChanged: false, hasPseudoFocusRing: true },
-        { tag: 'input', outlineWidth: '2px', outlineStyle: 'auto', boxShadow: 'none', borderChanged: false },
+        {
+          tag: 'button',
+          outlineWidth: '0px',
+          outlineStyle: 'none',
+          boxShadow: 'none',
+          borderChanged: false,
+        },
+        {
+          tag: 'a',
+          outlineWidth: '2px',
+          outlineStyle: 'solid',
+          boxShadow: 'none',
+          borderChanged: false,
+        },
+        {
+          tag: 'a',
+          outlineWidth: '0px',
+          outlineStyle: 'none',
+          boxShadow: '0 0 0 2px #3b82f6',
+          borderChanged: false,
+        },
+        {
+          tag: 'button',
+          outlineWidth: '0px',
+          outlineStyle: 'none',
+          boxShadow: 'none',
+          borderChanged: false,
+          hasPseudoFocusRing: true,
+        },
+        {
+          tag: 'input',
+          outlineWidth: '2px',
+          outlineStyle: 'auto',
+          boxShadow: 'none',
+          borderChanged: false,
+        },
       ]).triggered
     ).toBe(true);
 
     expect(
       evaluateFocusIndicators([
-        { tag: 'button', outlineWidth: '0px', outlineStyle: 'none', boxShadow: 'none', borderChanged: false, hasPseudoFocusRing: true },
-        { tag: 'a', outlineWidth: '2px', outlineStyle: 'solid', boxShadow: 'none', borderChanged: false },
+        {
+          tag: 'button',
+          outlineWidth: '0px',
+          outlineStyle: 'none',
+          boxShadow: 'none',
+          borderChanged: false,
+          hasPseudoFocusRing: true,
+        },
+        {
+          tag: 'a',
+          outlineWidth: '2px',
+          outlineStyle: 'solid',
+          boxShadow: 'none',
+          borderChanged: false,
+        },
       ]).triggered
     ).toBe(false);
 
@@ -722,7 +865,14 @@ describe('#255..#264 F-00..F-09: Craft-floor axis separation and checks', () => 
 
     const axe = formatAxeReport(
       {
-        violations: [{ id: 'color-contrast', impact: 'serious', nodes: [{}], helpUrl: 'https://dequeuniversity.com' }],
+        violations: [
+          {
+            id: 'color-contrast',
+            impact: 'serious',
+            nodes: [{}],
+            helpUrl: 'https://dequeuniversity.com',
+          },
+        ],
       },
       { enabled: true }
     );
@@ -744,7 +894,10 @@ describe('#255..#264 F-00..F-09: Craft-floor axis separation and checks', () => 
       matches,
     });
     const button = make('BUTTON', { matches: (sel) => sel === 'button' });
-    const card = make('A', { className: 'card', matches: (sel) => sel === 'a.card' || sel === 'a' });
+    const card = make('A', {
+      className: 'card',
+      matches: (sel) => sel === 'a.card' || sel === 'a',
+    });
     const prevDoc = globalThis.document;
     const prevWin = globalThis.window;
     const prevGcs = globalThis.getComputedStyle;
@@ -809,7 +962,8 @@ describe('#255..#264 F-00..F-09: Craft-floor axis separation and checks', () => 
     };
     const input = (attrs, extra = {}) => ({
       hasAttribute: (name) => Object.prototype.hasOwnProperty.call(attrs, name),
-      getAttribute: (name) => (Object.prototype.hasOwnProperty.call(attrs, name) ? attrs[name] : null),
+      getAttribute: (name) =>
+        Object.prototype.hasOwnProperty.call(attrs, name) ? attrs[name] : null,
       matches: () => false,
       ...extra,
     });
@@ -835,7 +989,7 @@ describe('#255..#264 F-00..F-09: Craft-floor axis separation and checks', () => 
     expect(ariaInvalid.status).toBe('unknown');
 
     const probedInvalid = run(
-      formOf([input({}, { matches: (sel) => sel === ':invalid' })], { probed: true }),
+      formOf([input({}, { matches: (sel) => sel === ':invalid' })], { probed: true })
     );
     expect(probedInvalid.status).toBe('pass');
     expect(probedInvalid.triggered).toBe(false);

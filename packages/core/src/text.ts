@@ -22,7 +22,8 @@ export function extractTextContext() {
     };
   }
 
-  var SKIP_TAGS = /^(NAV|FOOTER|HEADER|SCRIPT|STYLE|NOSCRIPT|SVG|CODE|PRE|KBD|SAMP|TEXTAREA|TEMPLATE)$/i;
+  var SKIP_TAGS =
+    /^(NAV|FOOTER|HEADER|SCRIPT|STYLE|NOSCRIPT|SVG|CODE|PRE|KBD|SAMP|TEXTAREA|TEMPLATE)$/i;
   var BLOCK_TAGS = /^(P|H1|H2|H3|H4|H5|H6|LI|DT|DD|BLOCKQUOTE|FIGCAPTION)$/i;
   var PROSE_TAGS = /^(P|LI|BLOCKQUOTE|DD)$/i;
   var hiddenBlocks = 0;
@@ -34,13 +35,15 @@ export function extractTextContext() {
       if (SKIP_TAGS.test(cur.tagName)) return true;
       if (cur.hasAttribute('hidden') || cur.getAttribute('aria-hidden') === 'true') return true;
       if (cur.tagName !== 'SUMMARY') {
-        var parentDetails = cur.parentElement && cur.parentElement.closest
-          ? cur.parentElement.closest('details:not([open])')
-          : null;
+        var parentDetails =
+          cur.parentElement && cur.parentElement.closest
+            ? cur.parentElement.closest('details:not([open])')
+            : null;
         if (parentDetails) return true;
       }
       var idCls = ((cur.id || '') + ' ' + (cur.className || '')).toLowerCase();
-      if (/\b(?:cookie-banner|cookie-consent|consent-banner|gdpr-banner)\b/.test(idCls)) return true;
+      if (/\b(?:cookie-banner|cookie-consent|consent-banner|gdpr-banner)\b/.test(idCls))
+        return true;
       var cs = getComputedStyle(cur);
       if (
         cs.display === 'none' ||
@@ -103,7 +106,9 @@ export function extractTextContext() {
   var paragraphs: string[] = [];
   var proseWordCount = 0;
 
-  var candidates = root.querySelectorAll('h1, h2, h3, h4, h5, h6, p, li, dt, dd, blockquote, figcaption');
+  var candidates = root.querySelectorAll(
+    'h1, h2, h3, h4, h5, h6, p, li, dt, dd, blockquote, figcaption'
+  );
   for (var i = 0; i < candidates.length; i++) {
     var el = candidates[i] as any;
     // Skip nested block inside another candidate block (e.g. <p> inside <li> or <blockquote>)
@@ -115,7 +120,9 @@ export function extractTextContext() {
       continue;
     }
 
-    var rawTxt = extractCleanNodeText(el).replace(/[ \t]+/g, ' ').trim();
+    var rawTxt = extractCleanNodeText(el)
+      .replace(/[ \t]+/g, ' ')
+      .trim();
     if (!rawTxt) continue;
     var wList = rawTxt.split(/\s+/).filter(Boolean);
     var wc = wList.length;
@@ -124,7 +131,9 @@ export function extractTextContext() {
     var inFooter = Boolean(el.closest && el.closest('footer, [role="contentinfo"]'));
     var inQuote = Boolean(el.closest && el.closest('blockquote, q'));
     var anc = el.closest
-      ? el.closest('[class*="chat"], [class*="message"], [class*="bubble"], [class*="transcript"], [class*="conversation"], [class*="demo"]')
+      ? el.closest(
+          '[class*="chat"], [class*="message"], [class*="bubble"], [class*="transcript"], [class*="conversation"], [class*="demo"]'
+        )
       : null;
     var inChatDemo = Boolean(anc);
     var tag = el.tagName.toLowerCase();
@@ -153,7 +162,11 @@ export function extractTextContext() {
   }
 
   // Fallback if page used plain <div> text without <p>/<li> tags
-  var text = blocks.map(function (b) { return b.text; }).join('\n\n');
+  var text = blocks
+    .map(function (b) {
+      return b.text;
+    })
+    .join('\n\n');
   if (!text && !isElementHidden(root)) {
     text = extractCleanNodeText(root).trim();
   }
@@ -354,7 +367,7 @@ export function buildNormalizedTextView(input: string): NormalizedTextView {
 export function extractOriginalSpan(
   view: NormalizedTextView,
   normStart: number,
-  normEnd: number,
+  normEnd: number
 ): string {
   if (!view || normEnd <= normStart || view.normToOrigStart.length === 0) return '';
   const clampedStart = Math.max(0, Math.min(view.normToOrigStart.length - 1, normStart));

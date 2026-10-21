@@ -32,7 +32,10 @@ function parseYamlSubset(src: string): Record<string, any> {
 
     const idx = line.indexOf(':');
     if (idx <= 0) continue;
-    const key = line.slice(0, idx).trim().replace(/^['"]|['"]$/g, '');
+    const key = line
+      .slice(0, idx)
+      .trim()
+      .replace(/^['"]|['"]$/g, '');
     let value = line.slice(idx + 1).trim();
 
     while (stack.length > 1 && indent <= stack[stack.length - 1].indent) stack.pop();
@@ -120,9 +123,15 @@ export function parseDesignMd(text: string): Record<string, any> | null {
   } catch {
     return null;
   }
-  const hasTokens = ['colors', 'typography', 'rounded', 'spacing', 'components', 'shadows', 'boxShadow'].some(
-    (k) => tree[k] && typeof tree[k] === 'object' && Object.keys(tree[k]).length > 0
-  );
+  const hasTokens = [
+    'colors',
+    'typography',
+    'rounded',
+    'spacing',
+    'components',
+    'shadows',
+    'boxShadow',
+  ].some((k) => tree[k] && typeof tree[k] === 'object' && Object.keys(tree[k]).length > 0);
   if (!hasTokens) return null;
   return {
     name: typeof tree.name === 'string' ? tree.name : null,
@@ -199,11 +208,25 @@ export function compareSystemColors(declaredStr: unknown, observedStr: unknown):
       return { status: 'match', deltaE: Number(dE.toFixed(4)), deltaAlpha: Number(dA.toFixed(4)) };
     }
     if (dE <= 0.05 && dA <= 0.05) {
-      return { status: 'near-miss', deltaE: Number(dE.toFixed(4)), deltaAlpha: Number(dA.toFixed(4)) };
+      return {
+        status: 'near-miss',
+        deltaE: Number(dE.toFixed(4)),
+        deltaAlpha: Number(dA.toFixed(4)),
+      };
     }
-    return { status: 'off-palette', deltaE: Number(dE.toFixed(4)), deltaAlpha: Number(dA.toFixed(4)) };
+    return {
+      status: 'off-palette',
+      deltaE: Number(dE.toFixed(4)),
+      deltaAlpha: Number(dA.toFixed(4)),
+    };
   }
-  const exact = String(declaredStr || '').trim().toLowerCase() === String(observedStr || '').trim().toLowerCase();
+  const exact =
+    String(declaredStr || '')
+      .trim()
+      .toLowerCase() ===
+    String(observedStr || '')
+      .trim()
+      .toLowerCase();
   return {
     status: exact ? 'match' : 'off-palette',
     deltaE: exact ? 0 : 1,
@@ -216,7 +239,10 @@ function colorsMatch(a: unknown, b: unknown, maxDeltaE = 0.02): boolean {
   return cmp.deltaE <= maxDeltaE && cmp.deltaAlpha <= 0.02;
 }
 
-function bestColorComparison(palette: string[], observedStr: string): { best: ColorComparison; token: string | null } {
+function bestColorComparison(
+  palette: string[],
+  observedStr: string
+): { best: ColorComparison; token: string | null } {
   let best: ColorComparison = { status: 'off-palette', deltaE: Infinity, deltaAlpha: 1 };
   let bestToken: string | null = null;
   for (const tok of palette) {
@@ -288,7 +314,10 @@ export function flattenDesignTokens(parsed: Record<string, any>) {
 
   for (const [styleKey, t] of Object.entries<any>(parsed?.typography || {})) {
     if (t && typeof t === 'object') {
-      const fam = typeof t.fontFamily === 'string' ? primaryFamily(t.fontFamily) || normFont(t.fontFamily) : null;
+      const fam =
+        typeof t.fontFamily === 'string'
+          ? primaryFamily(t.fontFamily) || normFont(t.fontFamily)
+          : null;
       if (fam) fonts.add(fam);
       const fs = parseLengthPx(t.fontSize);
       if (fs !== null && !fontSizes.includes(fs)) fontSizes.push(fs);
@@ -485,7 +514,8 @@ export function extractSystemContext() {
     if ((tag === 'A' || tag === 'BUTTON') && out.ctas.length < 30) {
       const bg = cs.backgroundColor || '';
       const a = bg.match(/rgba?\([^)]*?,\s*([\d.]+)\)$/);
-      const opaque = bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)' && (!a || parseFloat(a[1]) >= 0.5);
+      const opaque =
+        bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)' && (!a || parseFloat(a[1]) >= 0.5);
       if (opaque) {
         const hasBgImage = Boolean(cs.backgroundImage && cs.backgroundImage !== 'none');
         out.ctas.push({
@@ -670,7 +700,7 @@ export function scoreSystemCompliance(parsed: any, observed: any) {
     return {
       axis: 'system',
       declared: false,
-       evidence: [],
+      evidence: [],
       score: null,
       tier: 'No system',
       message: 'No parseable DESIGN.md tokens — nothing to check against.',
@@ -741,7 +771,12 @@ export function scoreSystemCompliance(parsed: any, observed: any) {
       for (const c of ctas) {
         const { best, token } = bestColorComparison(tokens.colors, c.bg);
         if (best.status === 'near-miss') {
-          nearMisses.push({ checkId: 'colors.cta', observed: c.bg, closestToken: token, deltaE: best.deltaE });
+          nearMisses.push({
+            checkId: 'colors.cta',
+            observed: c.bg,
+            closestToken: token,
+            deltaE: best.deltaE,
+          });
         } else if (best.status === 'off-palette') {
           off.push({ ...c, closestToken: token, deltaE: best.deltaE });
         }
@@ -767,7 +802,12 @@ export function scoreSystemCompliance(parsed: any, observed: any) {
     } else {
       const { best, token } = bestColorComparison(tokens.colors, obs.surface);
       if (best.status === 'near-miss') {
-        nearMisses.push({ checkId: 'colors.surface', observed: obs.surface, closestToken: token, deltaE: best.deltaE });
+        nearMisses.push({
+          checkId: 'colors.surface',
+          observed: obs.surface,
+          closestToken: token,
+          deltaE: best.deltaE,
+        });
         push('colors.surface', 'pass', 'surface color is a near-miss to the palette', {
           surface: obs.surface,
           closestToken: token,
@@ -798,7 +838,12 @@ export function scoreSystemCompliance(parsed: any, observed: any) {
       for (const h of hs) {
         const { best, token } = bestColorComparison(tokens.colors, h.color);
         if (best.status === 'near-miss') {
-          nearMisses.push({ checkId: 'colors.headings', observed: h.color, closestToken: token, deltaE: best.deltaE });
+          nearMisses.push({
+            checkId: 'colors.headings',
+            observed: h.color,
+            closestToken: token,
+            deltaE: best.deltaE,
+          });
         } else if (best.status === 'off-palette') {
           off.push({ ...h, deltaE: best.deltaE });
         }
@@ -808,7 +853,9 @@ export function scoreSystemCompliance(parsed: any, observed: any) {
           'colors.headings',
           'fail',
           `${off.length}/${hs.length} heading color(s) not in the palette`,
-          { samples: off.slice(0, 3).map((h) => ({ tag: h.tag, color: h.color, deltaE: h.deltaE })) }
+          {
+            samples: off.slice(0, 3).map((h) => ({ tag: h.tag, color: h.color, deltaE: h.deltaE })),
+          }
         );
       } else {
         push('colors.headings', 'pass', 'heading colors match the palette');
@@ -877,10 +924,14 @@ export function scoreSystemCompliance(parsed: any, observed: any) {
       push(
         'typography.scale',
         'skip',
-        !tokens.fontSizes.length ? 'no typography fontSize tokens declared' : 'no font sizes observed'
+        !tokens.fontSizes.length
+          ? 'no typography fontSize tokens declared'
+          : 'no font sizes observed'
       );
     } else {
-      const off = fontSizes.filter((fs: number) => !tokens.fontSizes.some((t) => Math.abs(t - fs) <= 0.5));
+      const off = fontSizes.filter(
+        (fs: number) => !tokens.fontSizes.some((t) => Math.abs(t - fs) <= 0.5)
+      );
       if (off.length > fontSizes.length / 2) {
         push(
           'typography.scale',
@@ -905,7 +956,9 @@ export function scoreSystemCompliance(parsed: any, observed: any) {
       push(
         'typography.styles',
         'skip',
-        !decStyles.length ? 'no composite typography styles declared' : 'no composite typography styles observed'
+        !decStyles.length
+          ? 'no composite typography styles declared'
+          : 'no composite typography styles observed'
       );
     } else {
       const matchesStyle = (obsItem: any, dec: TypographyStyleToken) => {
@@ -982,7 +1035,9 @@ export function scoreSystemCompliance(parsed: any, observed: any) {
   // S-01 (#280): Compute dual count-ratio and area-weighted coverage across 9 token classes.
   const coverage = computeClassCoverage(tokens, obs);
 
-  const evaluated = checks.filter((c) => c.status !== 'skip' && c.status !== 'unknown' && c.weight > 0);
+  const evaluated = checks.filter(
+    (c) => c.status !== 'skip' && c.status !== 'unknown' && c.weight > 0
+  );
   const maxScore = evaluated.reduce((s, c) => s + c.weight, 0);
   const got = evaluated.filter((c) => c.status === 'pass').reduce((s, c) => s + c.weight, 0);
   const ratio = maxScore ? got / maxScore : 1;
@@ -1005,7 +1060,10 @@ export function scoreSystemCompliance(parsed: any, observed: any) {
   };
 }
 
-function computeClassCoverage(tokens: ReturnType<typeof flattenDesignTokens>, obs: Record<string, any>) {
+function computeClassCoverage(
+  tokens: ReturnType<typeof flattenDesignTokens>,
+  obs: Record<string, any>
+) {
   const classes: Record<string, any> = {};
   const explicitSamples = obs.classSamples || {};
 
@@ -1119,7 +1177,11 @@ function computeClassCoverage(tokens: ReturnType<typeof flattenDesignTokens>, ob
     if (cls === 'textColor') {
       const hs = (obs.headings || []).map((h: any) => {
         const { best } = bestColorComparison(tokens.colors, h.color);
-        return { matched: best.status === 'match', nearMiss: best.status === 'near-miss', area: h.area || 1 };
+        return {
+          matched: best.status === 'match',
+          nearMiss: best.status === 'near-miss',
+          area: h.area || 1,
+        };
       });
       evalClass(cls, tokens.colors.length ? hs : []);
     } else if (cls === 'backgroundColor') {
@@ -1128,7 +1190,11 @@ function computeClassCoverage(tokens: ReturnType<typeof flattenDesignTokens>, ob
         ...(obs.ctas || []).map((c: any) => ({ bg: c.bg, area: c.area || 100 })),
       ].map((item) => {
         const { best } = bestColorComparison(tokens.colors, item.bg);
-        return { matched: best.status === 'match', nearMiss: best.status === 'near-miss', area: item.area };
+        return {
+          matched: best.status === 'match',
+          nearMiss: best.status === 'near-miss',
+          area: item.area,
+        };
       });
       evalClass(cls, tokens.colors.length ? bgs : []);
     } else if (cls === 'fontSize') {
@@ -1253,7 +1319,9 @@ export function lintDesignMd(text: string): {
 
   // Rule 3: orphaned-tokens (tokens declared in colors/rounded/spacing never referenced when components exist)
   const hasComponents =
-    tree.components && typeof tree.components === 'object' && Object.keys(tree.components).length > 0;
+    tree.components &&
+    typeof tree.components === 'object' &&
+    Object.keys(tree.components).length > 0;
   if (hasComponents && referencedPaths.size > 0) {
     const checkOrphans = (groupKey: string, node: any, prefix: string) => {
       for (const [k, v] of Object.entries<any>(node || {})) {
@@ -1366,11 +1434,12 @@ export function applyDesignSystemWaivers(scanResult: Record<string, any>, parsed
       });
       return { ...p, waived: true, status: 'review' };
     }
-    if ((p.id === 'slop_fonts' || p.id === 'centered_hero' || p.id === 'display_mono_heading') && tokens.fonts.length > 0) {
+    if (
+      (p.id === 'slop_fonts' || p.id === 'centered_hero' || p.id === 'display_mono_heading') &&
+      tokens.fonts.length > 0
+    ) {
       const heroFam = primaryFamily(p.evidence?.heroFam || p.evidence?.family || '');
-      const matchingFont = tokens.fonts.find((f) =>
-        heroFam ? f === heroFam : true
-      );
+      const matchingFont = tokens.fonts.find((f) => (heroFam ? f === heroFam : true));
       if (matchingFont) {
         waivedPatterns.push({
           id: p.id,
@@ -1474,7 +1543,11 @@ export interface ParseDtcgOptions {
 function dtcgColorValueToCss(val: any): string | null {
   if (typeof val === 'string') return val.trim();
   if (!val || typeof val !== 'object') return null;
-  if (typeof val.hex === 'string' && val.hex.trim() && (val.alpha === undefined || val.alpha === 1)) {
+  if (
+    typeof val.hex === 'string' &&
+    val.hex.trim() &&
+    (val.alpha === undefined || val.alpha === 1)
+  ) {
     return val.hex.trim();
   }
   const space = String(val.colorSpace || 'srgb').toLowerCase();
@@ -1592,7 +1665,7 @@ export function parseDtcgTokens(
       const ref = typeof node.$ref === 'string' ? node.$ref : undefined;
       const tokType =
         currentType ||
-        (typeof node.type === 'string' ? (nonConformant = true, node.type) : undefined) ||
+        (typeof node.type === 'string' ? ((nonConformant = true), node.type) : undefined) ||
         inferTokenType(pathParts, val);
       if (!currentType && !node.$type) {
         if (opts.lenient) nonConformant = true;
@@ -1710,7 +1783,12 @@ export function parseDtcgTokens(
   }
 
   return {
-    name: typeof raw.$name === 'string' ? raw.$name : typeof raw.name === 'string' ? raw.name : 'DTCG Tokens',
+    name:
+      typeof raw.$name === 'string'
+        ? raw.$name
+        : typeof raw.name === 'string'
+          ? raw.name
+          : 'DTCG Tokens',
     specVersion: '2025.10',
     dtcg: true,
     nonConformant,
@@ -1726,7 +1804,8 @@ export function parseDtcgTokens(
 
 function inferTokenType(pathParts: string[], val: any): string | undefined {
   const joined = pathParts.join('.').toLowerCase();
-  if (val && typeof val === 'object' && ('colorSpace' in val || 'components' in val)) return 'color';
+  if (val && typeof val === 'object' && ('colorSpace' in val || 'components' in val))
+    return 'color';
   if (/color|surface|ink|primary|accent|bg|background/.test(joined)) return 'color';
   if (/font|family/.test(joined)) return 'fontFamily';
   if (/radius|rounded/.test(joined)) return 'dimension';
@@ -1757,7 +1836,9 @@ export function extractDtcgTokens(
 ): Record<string, any> {
   const md = generateDesignMd(observed, opts);
   const parsed = parseDesignMd(md);
-  const tokens = parsed ? flattenDesignTokens(parsed) : { colors: [], fonts: [], radii: [], spacing: [] };
+  const tokens = parsed
+    ? flattenDesignTokens(parsed)
+    : { colors: [], fonts: [], radii: [], spacing: [] };
   const hexToSrgb = (hex: string) => {
     const rgb = parseCssColor(hex) || [0, 0, 0];
     return {

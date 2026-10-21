@@ -814,7 +814,9 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
 }
     function resolveRenderedFont(family, docFonts) {
   if (!family) return "";
-  const stack = String(family).split(",").map((f) => f.trim().replace(/^['"]|['"]$/g, "").toLowerCase()).filter(Boolean);
+  const stack = String(family).split(",").map(
+    (f) => f.trim().replace(/^['"]|['"]$/g, "").toLowerCase()
+  ).filter(Boolean);
   if (stack.length === 0) return "";
   const fontsSet = docFonts !== void 0 ? docFonts : typeof document !== "undefined" && document.fonts ? document.fonts : void 0;
   if (fontsSet === void 0 || fontsSet === null) return stack[0];
@@ -933,11 +935,7 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
         "clash display",
         "clash-display"
       ];
-      const secondaryPrefixes = [
-        "manrope",
-        "instrument serif",
-        "instrument-serif"
-      ];
+      const secondaryPrefixes = ["manrope", "instrument serif", "instrument-serif"];
       const resolveFam = (fam) => {
         if (typeof resolveRenderedFont2 === "function") return resolveRenderedFont2(fam);
         if (!fam) return "";
@@ -1112,16 +1110,16 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
       let heroHasGradient = false;
       for (const el of visible) {
         const cs = getComputedStyle(el);
-        const clip = cs.webkitBackgroundClip || cs.backgroundClip;
-        if (clip === "text" && /gradient\\(/.test(cs.backgroundImage || "")) {
+        const clip2 = cs.webkitBackgroundClip || cs.backgroundClip;
+        if (clip2 === "text" && /gradient\\(/.test(cs.backgroundImage || "")) {
           count++;
           if (el === h1) heroHasGradient = true;
         }
       }
       if (h1 && !heroHasGradient) {
         const cs = getComputedStyle(h1);
-        const clip = cs.webkitBackgroundClip || cs.backgroundClip;
-        if (clip === "text" && /gradient\\(/.test(cs.backgroundImage || "")) {
+        const clip2 = cs.webkitBackgroundClip || cs.backgroundClip;
+        if (clip2 === "text" && /gradient\\(/.test(cs.backgroundImage || "")) {
           heroHasGradient = true;
         }
       }
@@ -1432,7 +1430,13 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
 
     try {
       signals["all_caps_labels"] = (() => {
-      return { count: 0, samples: [], retired: true, replacedBy: "eyebrow_label", triggered: false };
+      return {
+        count: 0,
+        samples: [],
+        retired: true,
+        replacedBy: "eyebrow_label",
+        triggered: false
+      };
     })(ctx);
     } catch (e) {
       signals["all_caps_labels"] = { triggered: false, error: e.message };
@@ -1461,8 +1465,10 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
         const hr = h.getBoundingClientRect();
         let foundForHeading = false;
         for (const el of visible) {
-          if (el === h || /^(H[1-6]|BUTTON|NAV|FOOTER|TABLE|TR|TD|TH|TIME)$/.test(el.tagName)) continue;
-          if (typeof el.closest === "function" && el.closest("nav, footer, button, table, time")) continue;
+          if (el === h || /^(H[1-6]|BUTTON|NAV|FOOTER|TABLE|TR|TD|TH|TIME)$/.test(el.tagName))
+            continue;
+          if (typeof el.closest === "function" && el.closest("nav, footer, button, table, time"))
+            continue;
           if (typeof el.getAttribute === "function" && el.getAttribute("datetime")) continue;
           const r = el.getBoundingClientRect();
           if (r.bottom > hr.top + 8 || r.bottom < hr.top - 48) continue;
@@ -2144,8 +2150,8 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
         const cFam = (cCs.fontFamily || "").split(",")[0].replace(/['"]/g, "").trim().toLowerCase();
         if (cFam && h1Fam && cFam !== h1Fam) differedBy.push("fontFamily");
         if ((cCs.fontStyle || "normal") !== h1Style) differedBy.push("fontStyle");
-        const clip = cCs.webkitBackgroundClip || cCs.backgroundClip;
-        if (clip === "text" && /gradient\\(/i.test(cCs.backgroundImage || "")) {
+        const clip2 = cCs.webkitBackgroundClip || cCs.backgroundClip;
+        if (clip2 === "text" && /gradient\\(/i.test(cCs.backgroundImage || "")) {
           differedBy.push("gradientClip");
         }
         const cColor = parseColor2(cCs.color);
@@ -2391,7 +2397,9 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
         "cta_footer"
       ];
       const rawSections = Array.from(
-        document.querySelectorAll("main > section, body > section, main > div, body > header, body > footer")
+        document.querySelectorAll(
+          "main > section, body > section, main > div, body > header, body > footer"
+        )
       );
       const roles = [];
       rawSections.forEach((sec, idx) => {
@@ -2406,7 +2414,8 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
         else if (/pricing|\\$\\d+\\s*\\/\\s*(?:mo|month|yr)/i.test(txt)) role = "pricing";
         else if (/testimonial|what .* say|loved by/i.test(txt)) role = "testimonials";
         else if (/\\b99\\.9%|\\b\\d+k\\+|\\b\\d+m\\+/i.test(txt)) role = "stats";
-        else if (tag === "footer" || /ready to get started|start your free/i.test(txt)) role = "cta_footer";
+        else if (tag === "footer" || /ready to get started|start your free/i.test(txt))
+          role = "cta_footer";
         else if (sec.querySelector("h2, h3")) role = "features";
         if (role && roles[roles.length - 1] !== role) roles.push(role);
       });
@@ -2489,7 +2498,11 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
         if (fs < 24) continue;
         const rendered = typeof resolveRenderedFont2 === "function" ? resolveRenderedFont2(cs.fontFamily) : cs.fontFamily || "";
         if (monoRe.test(rendered) || monoRe.test(cs.fontFamily || "")) {
-          hits.push({ tag: el.tagName, family: rendered || cs.fontFamily, fontSize: Math.round(fs) });
+          hits.push({
+            tag: el.tagName,
+            family: rendered || cs.fontFamily,
+            fontSize: Math.round(fs)
+          });
         }
       }
       return { hits, triggered: hits.length > 0 };
@@ -2625,7 +2638,9 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
         if (!isInfiniteLinear) continue;
         const kids = Array.from(el.children || []);
         if (kids.length >= 2) {
-          const texts = kids.map((k) => (k.textContent || "").trim() || k.innerHTML?.slice(0, 60) || "");
+          const texts = kids.map(
+            (k) => (k.textContent || "").trim() || k.innerHTML?.slice(0, 60) || ""
+          );
           const unique = new Set(texts.filter(Boolean));
           if (texts.length >= 2 && unique.size <= Math.ceil(texts.length / 2)) {
             tickers++;
@@ -2653,7 +2668,9 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
         const op = parseFloat(cs.opacity || "1");
         if (op > 0.01) continue;
         const tr = cs.transform || "";
-        const matrixMatch = tr.match(/matrix\\([^,]+,[^,]+,[^,]+,[^,]+,[^,]+,\\s*([+-]?\\d+(?:\\.\\d+)?)\\)/);
+        const matrixMatch = tr.match(
+          /matrix\\([^,]+,[^,]+,[^,]+,[^,]+,[^,]+,\\s*([+-]?\\d+(?:\\.\\d+)?)\\)/
+        );
         const translateYMatch = tr.match(/translateY\\(\\s*([+-]?\\d+(?:\\.\\d+)?)px\\)/i);
         const ty = matrixMatch ? parseFloat(matrixMatch[1]) : translateYMatch ? parseFloat(translateYMatch[1]) : 0;
         if (ty >= 8 && ty <= 60) {
@@ -2742,7 +2759,9 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
 
     try {
       signals["section_template_repetition"] = (() => {
-      const sections = Array.from(document.querySelectorAll("main > section, body > section, main > div"));
+      const sections = Array.from(
+        document.querySelectorAll("main > section, body > section, main > div")
+      );
       if (sections.length === 0) {
         return {
           sectionCount: 0,
@@ -2826,7 +2845,9 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
         const firstRow = tbl.querySelector("tbody tr, tr");
         if (!firstRow) continue;
         const cells = Array.from(firstRow.querySelectorAll("td"));
-        const numCells = cells.filter((c) => /^\\s*[$€£+-]?\\d[\\d,.%]*\\s*$/.test(c.textContent || ""));
+        const numCells = cells.filter(
+          (c) => /^\\s*[$€£+-]?\\d[\\d,.%]*\\s*$/.test(c.textContent || "")
+        );
         if (numCells.length >= 3) {
           const cs = getComputedStyle(numCells[0]);
           const fvn = String(cs.fontVariantNumeric || "").toLowerCase();
@@ -3017,8 +3038,14 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
           const a = textBoxes[i];
           const b = textBoxes[j];
           if (a.parent !== b.parent) continue;
-          const ox = Math.max(0, Math.min(a.rect.right, b.rect.right) - Math.max(a.rect.left, b.rect.left));
-          const oy = Math.max(0, Math.min(a.rect.bottom, b.rect.bottom) - Math.max(a.rect.top, b.rect.top));
+          const ox = Math.max(
+            0,
+            Math.min(a.rect.right, b.rect.right) - Math.max(a.rect.left, b.rect.left)
+          );
+          const oy = Math.max(
+            0,
+            Math.min(a.rect.bottom, b.rect.bottom) - Math.max(a.rect.top, b.rect.top)
+          );
           if (ox > 2 && oy > 2 && ox * oy > 4) {
             collisions.push(\`\${a.text.slice(0, 20)} \\xD7 \${b.text.slice(0, 20)}\`);
           }
@@ -3112,7 +3139,9 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
           }
         }
         const inlineOutlineNone = el.style && (el.style.outline === "none" || el.style.outline === "0" || el.style.outlineWidth === "0px");
-        const inlineHasReplacement = Boolean(el.style && (el.style.boxShadow && el.style.boxShadow !== "none" || el.style.borderColor));
+        const inlineHasReplacement = Boolean(
+          el.style && (el.style.boxShadow && el.style.boxShadow !== "none" || el.style.borderColor)
+        );
         const classSuppressesFocus = /\\bfocus:outline-none\\b/.test(String(el.className || "")) && !/\\bfocus(?:-visible)?:ring\\b|\\bfocus(?:-visible)?:border\\b|\\bfocus(?:-visible)?:after:ring\\b/.test(
           String(el.className || "")
         );
@@ -3143,7 +3172,9 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
       let checked = 0;
       for (const el of Array.from(all)) {
         if (checked++ > 1500) break;
-        if (el.closest('details:not([open]), [hidden], [aria-hidden="true"], [role="tabpanel"][hidden], script, style, noscript, template')) {
+        if (el.closest(
+          'details:not([open]), [hidden], [aria-hidden="true"], [role="tabpanel"][hidden], script, style, noscript, template'
+        )) {
           continue;
         }
         const tabpanel = el.closest('[role="tabpanel"]');
@@ -3181,7 +3212,8 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
       const { visible, inHero } = ctx;
       const vh = window.innerHeight || 900;
       const candidates = visible.filter((el) => {
-        if (!/^(A|BUTTON)$/.test(el.tagName) && el.getAttribute("role") !== "button") return false;
+        if (!/^(A|BUTTON)$/.test(el.tagName) && el.getAttribute("role") !== "button")
+          return false;
         if (el.disabled || el.getAttribute("aria-disabled") === "true") return false;
         const r = el.getBoundingClientRect();
         if (r.top >= vh * 2 || r.width < 30 || r.height < 20) return false;
@@ -3244,8 +3276,10 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
       let activeInfinite = 0;
       for (const el of visible) {
         const r = el.getBoundingClientRect();
-        if (r.width < 48 && r.height < 48 && /spin|load/i.test(String(el.className || ""))) continue;
-        if (el.getAttribute("role") === "status" || el.getAttribute("aria-busy") === "true") continue;
+        if (r.width < 48 && r.height < 48 && /spin|load/i.test(String(el.className || "")))
+          continue;
+        if (el.getAttribute("role") === "status" || el.getAttribute("aria-busy") === "true")
+          continue;
         const cs = getComputedStyle(el);
         const dur = parseFloat(cs.animationDuration || "0") * (cs.animationDuration?.includes("ms") ? 1 : 1e3);
         if (cs.animationName && cs.animationName !== "none" && cs.animationPlayState !== "paused" && (cs.animationIterationCount === "infinite" || dur > 500)) {
@@ -3536,7 +3570,8 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
     });
   }
   const base44Markers = [];
-  if (/^Base44$/i.test(appTitle)) base44Markers.push('meta[name="apple-mobile-web-app-title"]="Base44"');
+  if (/^Base44$/i.test(appTitle))
+    base44Markers.push('meta[name="apple-mobile-web-app-title"]="Base44"');
   if (/^Base44$/i.test(appName)) base44Markers.push('meta[name="application-name"]="Base44"');
   if (base44Markers.length > 0) {
     findings.push({
@@ -3637,7 +3672,8 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
         if (parentDetails) return true;
       }
       var idCls = ((cur.id || "") + " " + (cur.className || "")).toLowerCase();
-      if (/\\b(?:cookie-banner|cookie-consent|consent-banner|gdpr-banner)\\b/.test(idCls)) return true;
+      if (/\\b(?:cookie-banner|cookie-consent|consent-banner|gdpr-banner)\\b/.test(idCls))
+        return true;
       var cs = getComputedStyle(cur);
       if (cs.display === "none" || cs.visibility === "hidden" || cs.visibility === "collapse" || parseFloat(cs.opacity || "1") <= 0.01) {
         return true;
@@ -3678,7 +3714,9 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
   var headings = [];
   var paragraphs = [];
   var proseWordCount = 0;
-  var candidates = root.querySelectorAll("h1, h2, h3, h4, h5, h6, p, li, dt, dd, blockquote, figcaption");
+  var candidates = root.querySelectorAll(
+    "h1, h2, h3, h4, h5, h6, p, li, dt, dd, blockquote, figcaption"
+  );
   for (var i = 0; i < candidates.length; i++) {
     var el = candidates[i];
     var nestedBlock = el.querySelector && el.querySelector("p, li, blockquote");
@@ -3695,7 +3733,9 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
     var inHero = rect.top < vh * 0.9;
     var inFooter = Boolean(el.closest && el.closest('footer, [role="contentinfo"]'));
     var inQuote = Boolean(el.closest && el.closest("blockquote, q"));
-    var anc = el.closest ? el.closest('[class*="chat"], [class*="message"], [class*="bubble"], [class*="transcript"], [class*="conversation"], [class*="demo"]') : null;
+    var anc = el.closest ? el.closest(
+      '[class*="chat"], [class*="message"], [class*="bubble"], [class*="transcript"], [class*="conversation"], [class*="demo"]'
+    ) : null;
     var inChatDemo = Boolean(anc);
     var tag = el.tagName.toLowerCase();
     var nodeId = tag + ":" + Math.round(rect.top || 0) + ":" + rawTxt.slice(0, 20);
@@ -4605,7 +4645,9 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
 }
     function resolveRenderedFont(family, docFonts) {
   if (!family) return "";
-  const stack = String(family).split(",").map((f) => f.trim().replace(/^['"]|['"]$/g, "").toLowerCase()).filter(Boolean);
+  const stack = String(family).split(",").map(
+    (f) => f.trim().replace(/^['"]|['"]$/g, "").toLowerCase()
+  ).filter(Boolean);
   if (stack.length === 0) return "";
   const fontsSet = docFonts !== void 0 ? docFonts : typeof document !== "undefined" && document.fonts ? document.fonts : void 0;
   if (fontsSet === void 0 || fontsSet === null) return stack[0];
@@ -4724,11 +4766,7 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
         "clash display",
         "clash-display"
       ];
-      const secondaryPrefixes = [
-        "manrope",
-        "instrument serif",
-        "instrument-serif"
-      ];
+      const secondaryPrefixes = ["manrope", "instrument serif", "instrument-serif"];
       const resolveFam = (fam) => {
         if (typeof resolveRenderedFont2 === "function") return resolveRenderedFont2(fam);
         if (!fam) return "";
@@ -4903,16 +4941,16 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
       let heroHasGradient = false;
       for (const el of visible) {
         const cs = getComputedStyle(el);
-        const clip = cs.webkitBackgroundClip || cs.backgroundClip;
-        if (clip === "text" && /gradient\\(/.test(cs.backgroundImage || "")) {
+        const clip2 = cs.webkitBackgroundClip || cs.backgroundClip;
+        if (clip2 === "text" && /gradient\\(/.test(cs.backgroundImage || "")) {
           count++;
           if (el === h1) heroHasGradient = true;
         }
       }
       if (h1 && !heroHasGradient) {
         const cs = getComputedStyle(h1);
-        const clip = cs.webkitBackgroundClip || cs.backgroundClip;
-        if (clip === "text" && /gradient\\(/.test(cs.backgroundImage || "")) {
+        const clip2 = cs.webkitBackgroundClip || cs.backgroundClip;
+        if (clip2 === "text" && /gradient\\(/.test(cs.backgroundImage || "")) {
           heroHasGradient = true;
         }
       }
@@ -5223,7 +5261,13 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
 
     try {
       signals["all_caps_labels"] = (() => {
-      return { count: 0, samples: [], retired: true, replacedBy: "eyebrow_label", triggered: false };
+      return {
+        count: 0,
+        samples: [],
+        retired: true,
+        replacedBy: "eyebrow_label",
+        triggered: false
+      };
     })(ctx);
     } catch (e) {
       signals["all_caps_labels"] = { triggered: false, error: e.message };
@@ -5252,8 +5296,10 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
         const hr = h.getBoundingClientRect();
         let foundForHeading = false;
         for (const el of visible) {
-          if (el === h || /^(H[1-6]|BUTTON|NAV|FOOTER|TABLE|TR|TD|TH|TIME)$/.test(el.tagName)) continue;
-          if (typeof el.closest === "function" && el.closest("nav, footer, button, table, time")) continue;
+          if (el === h || /^(H[1-6]|BUTTON|NAV|FOOTER|TABLE|TR|TD|TH|TIME)$/.test(el.tagName))
+            continue;
+          if (typeof el.closest === "function" && el.closest("nav, footer, button, table, time"))
+            continue;
           if (typeof el.getAttribute === "function" && el.getAttribute("datetime")) continue;
           const r = el.getBoundingClientRect();
           if (r.bottom > hr.top + 8 || r.bottom < hr.top - 48) continue;
@@ -5935,8 +5981,8 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
         const cFam = (cCs.fontFamily || "").split(",")[0].replace(/['"]/g, "").trim().toLowerCase();
         if (cFam && h1Fam && cFam !== h1Fam) differedBy.push("fontFamily");
         if ((cCs.fontStyle || "normal") !== h1Style) differedBy.push("fontStyle");
-        const clip = cCs.webkitBackgroundClip || cCs.backgroundClip;
-        if (clip === "text" && /gradient\\(/i.test(cCs.backgroundImage || "")) {
+        const clip2 = cCs.webkitBackgroundClip || cCs.backgroundClip;
+        if (clip2 === "text" && /gradient\\(/i.test(cCs.backgroundImage || "")) {
           differedBy.push("gradientClip");
         }
         const cColor = parseColor2(cCs.color);
@@ -6182,7 +6228,9 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
         "cta_footer"
       ];
       const rawSections = Array.from(
-        document.querySelectorAll("main > section, body > section, main > div, body > header, body > footer")
+        document.querySelectorAll(
+          "main > section, body > section, main > div, body > header, body > footer"
+        )
       );
       const roles = [];
       rawSections.forEach((sec, idx) => {
@@ -6197,7 +6245,8 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
         else if (/pricing|\\$\\d+\\s*\\/\\s*(?:mo|month|yr)/i.test(txt)) role = "pricing";
         else if (/testimonial|what .* say|loved by/i.test(txt)) role = "testimonials";
         else if (/\\b99\\.9%|\\b\\d+k\\+|\\b\\d+m\\+/i.test(txt)) role = "stats";
-        else if (tag === "footer" || /ready to get started|start your free/i.test(txt)) role = "cta_footer";
+        else if (tag === "footer" || /ready to get started|start your free/i.test(txt))
+          role = "cta_footer";
         else if (sec.querySelector("h2, h3")) role = "features";
         if (role && roles[roles.length - 1] !== role) roles.push(role);
       });
@@ -6280,7 +6329,11 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
         if (fs < 24) continue;
         const rendered = typeof resolveRenderedFont2 === "function" ? resolveRenderedFont2(cs.fontFamily) : cs.fontFamily || "";
         if (monoRe.test(rendered) || monoRe.test(cs.fontFamily || "")) {
-          hits.push({ tag: el.tagName, family: rendered || cs.fontFamily, fontSize: Math.round(fs) });
+          hits.push({
+            tag: el.tagName,
+            family: rendered || cs.fontFamily,
+            fontSize: Math.round(fs)
+          });
         }
       }
       return { hits, triggered: hits.length > 0 };
@@ -6416,7 +6469,9 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
         if (!isInfiniteLinear) continue;
         const kids = Array.from(el.children || []);
         if (kids.length >= 2) {
-          const texts = kids.map((k) => (k.textContent || "").trim() || k.innerHTML?.slice(0, 60) || "");
+          const texts = kids.map(
+            (k) => (k.textContent || "").trim() || k.innerHTML?.slice(0, 60) || ""
+          );
           const unique = new Set(texts.filter(Boolean));
           if (texts.length >= 2 && unique.size <= Math.ceil(texts.length / 2)) {
             tickers++;
@@ -6444,7 +6499,9 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
         const op = parseFloat(cs.opacity || "1");
         if (op > 0.01) continue;
         const tr = cs.transform || "";
-        const matrixMatch = tr.match(/matrix\\([^,]+,[^,]+,[^,]+,[^,]+,[^,]+,\\s*([+-]?\\d+(?:\\.\\d+)?)\\)/);
+        const matrixMatch = tr.match(
+          /matrix\\([^,]+,[^,]+,[^,]+,[^,]+,[^,]+,\\s*([+-]?\\d+(?:\\.\\d+)?)\\)/
+        );
         const translateYMatch = tr.match(/translateY\\(\\s*([+-]?\\d+(?:\\.\\d+)?)px\\)/i);
         const ty = matrixMatch ? parseFloat(matrixMatch[1]) : translateYMatch ? parseFloat(translateYMatch[1]) : 0;
         if (ty >= 8 && ty <= 60) {
@@ -6533,7 +6590,9 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
 
     try {
       signals["section_template_repetition"] = (() => {
-      const sections = Array.from(document.querySelectorAll("main > section, body > section, main > div"));
+      const sections = Array.from(
+        document.querySelectorAll("main > section, body > section, main > div")
+      );
       if (sections.length === 0) {
         return {
           sectionCount: 0,
@@ -6617,7 +6676,9 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
         const firstRow = tbl.querySelector("tbody tr, tr");
         if (!firstRow) continue;
         const cells = Array.from(firstRow.querySelectorAll("td"));
-        const numCells = cells.filter((c) => /^\\s*[$€£+-]?\\d[\\d,.%]*\\s*$/.test(c.textContent || ""));
+        const numCells = cells.filter(
+          (c) => /^\\s*[$€£+-]?\\d[\\d,.%]*\\s*$/.test(c.textContent || "")
+        );
         if (numCells.length >= 3) {
           const cs = getComputedStyle(numCells[0]);
           const fvn = String(cs.fontVariantNumeric || "").toLowerCase();
@@ -6808,8 +6869,14 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
           const a = textBoxes[i];
           const b = textBoxes[j];
           if (a.parent !== b.parent) continue;
-          const ox = Math.max(0, Math.min(a.rect.right, b.rect.right) - Math.max(a.rect.left, b.rect.left));
-          const oy = Math.max(0, Math.min(a.rect.bottom, b.rect.bottom) - Math.max(a.rect.top, b.rect.top));
+          const ox = Math.max(
+            0,
+            Math.min(a.rect.right, b.rect.right) - Math.max(a.rect.left, b.rect.left)
+          );
+          const oy = Math.max(
+            0,
+            Math.min(a.rect.bottom, b.rect.bottom) - Math.max(a.rect.top, b.rect.top)
+          );
           if (ox > 2 && oy > 2 && ox * oy > 4) {
             collisions.push(\`\${a.text.slice(0, 20)} \\xD7 \${b.text.slice(0, 20)}\`);
           }
@@ -6903,7 +6970,9 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
           }
         }
         const inlineOutlineNone = el.style && (el.style.outline === "none" || el.style.outline === "0" || el.style.outlineWidth === "0px");
-        const inlineHasReplacement = Boolean(el.style && (el.style.boxShadow && el.style.boxShadow !== "none" || el.style.borderColor));
+        const inlineHasReplacement = Boolean(
+          el.style && (el.style.boxShadow && el.style.boxShadow !== "none" || el.style.borderColor)
+        );
         const classSuppressesFocus = /\\bfocus:outline-none\\b/.test(String(el.className || "")) && !/\\bfocus(?:-visible)?:ring\\b|\\bfocus(?:-visible)?:border\\b|\\bfocus(?:-visible)?:after:ring\\b/.test(
           String(el.className || "")
         );
@@ -6934,7 +7003,9 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
       let checked = 0;
       for (const el of Array.from(all)) {
         if (checked++ > 1500) break;
-        if (el.closest('details:not([open]), [hidden], [aria-hidden="true"], [role="tabpanel"][hidden], script, style, noscript, template')) {
+        if (el.closest(
+          'details:not([open]), [hidden], [aria-hidden="true"], [role="tabpanel"][hidden], script, style, noscript, template'
+        )) {
           continue;
         }
         const tabpanel = el.closest('[role="tabpanel"]');
@@ -6972,7 +7043,8 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
       const { visible, inHero } = ctx;
       const vh = window.innerHeight || 900;
       const candidates = visible.filter((el) => {
-        if (!/^(A|BUTTON)$/.test(el.tagName) && el.getAttribute("role") !== "button") return false;
+        if (!/^(A|BUTTON)$/.test(el.tagName) && el.getAttribute("role") !== "button")
+          return false;
         if (el.disabled || el.getAttribute("aria-disabled") === "true") return false;
         const r = el.getBoundingClientRect();
         if (r.top >= vh * 2 || r.width < 30 || r.height < 20) return false;
@@ -7035,8 +7107,10 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
       let activeInfinite = 0;
       for (const el of visible) {
         const r = el.getBoundingClientRect();
-        if (r.width < 48 && r.height < 48 && /spin|load/i.test(String(el.className || ""))) continue;
-        if (el.getAttribute("role") === "status" || el.getAttribute("aria-busy") === "true") continue;
+        if (r.width < 48 && r.height < 48 && /spin|load/i.test(String(el.className || "")))
+          continue;
+        if (el.getAttribute("role") === "status" || el.getAttribute("aria-busy") === "true")
+          continue;
         const cs = getComputedStyle(el);
         const dur = parseFloat(cs.animationDuration || "0") * (cs.animationDuration?.includes("ms") ? 1 : 1e3);
         if (cs.animationName && cs.animationName !== "none" && cs.animationPlayState !== "paused" && (cs.animationIterationCount === "infinite" || dur > 500)) {
@@ -7327,7 +7401,8 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
     });
   }
   const base44Markers = [];
-  if (/^Base44$/i.test(appTitle)) base44Markers.push('meta[name="apple-mobile-web-app-title"]="Base44"');
+  if (/^Base44$/i.test(appTitle))
+    base44Markers.push('meta[name="apple-mobile-web-app-title"]="Base44"');
   if (/^Base44$/i.test(appName)) base44Markers.push('meta[name="application-name"]="Base44"');
   if (base44Markers.length > 0) {
     findings.push({
@@ -7428,7 +7503,8 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
         if (parentDetails) return true;
       }
       var idCls = ((cur.id || "") + " " + (cur.className || "")).toLowerCase();
-      if (/\\b(?:cookie-banner|cookie-consent|consent-banner|gdpr-banner)\\b/.test(idCls)) return true;
+      if (/\\b(?:cookie-banner|cookie-consent|consent-banner|gdpr-banner)\\b/.test(idCls))
+        return true;
       var cs = getComputedStyle(cur);
       if (cs.display === "none" || cs.visibility === "hidden" || cs.visibility === "collapse" || parseFloat(cs.opacity || "1") <= 0.01) {
         return true;
@@ -7469,7 +7545,9 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
   var headings = [];
   var paragraphs = [];
   var proseWordCount = 0;
-  var candidates = root.querySelectorAll("h1, h2, h3, h4, h5, h6, p, li, dt, dd, blockquote, figcaption");
+  var candidates = root.querySelectorAll(
+    "h1, h2, h3, h4, h5, h6, p, li, dt, dd, blockquote, figcaption"
+  );
   for (var i = 0; i < candidates.length; i++) {
     var el = candidates[i];
     var nestedBlock = el.querySelector && el.querySelector("p, li, blockquote");
@@ -7486,7 +7564,9 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
     var inHero = rect.top < vh * 0.9;
     var inFooter = Boolean(el.closest && el.closest('footer, [role="contentinfo"]'));
     var inQuote = Boolean(el.closest && el.closest("blockquote, q"));
-    var anc = el.closest ? el.closest('[class*="chat"], [class*="message"], [class*="bubble"], [class*="transcript"], [class*="conversation"], [class*="demo"]') : null;
+    var anc = el.closest ? el.closest(
+      '[class*="chat"], [class*="message"], [class*="bubble"], [class*="transcript"], [class*="conversation"], [class*="demo"]'
+    ) : null;
     var inChatDemo = Boolean(anc);
     var tag = el.tagName.toLowerCase();
     var nodeId = tag + ":" + Math.round(rect.top || 0) + ":" + rawTxt.slice(0, 20);

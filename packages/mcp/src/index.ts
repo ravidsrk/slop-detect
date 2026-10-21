@@ -8,4 +8,10 @@ export {
   ApiError,
   apiBase,
 } from './api.js';
-export { formatScan, formatAeo, formatSystem, formatDesignMdLint, formatDesignMdDiff } from './format.js';
+export {
+  formatScan,
+  formatAeo,
+  formatSystem,
+  formatDesignMdLint,
+  formatDesignMdDiff,
+} from './format.js';

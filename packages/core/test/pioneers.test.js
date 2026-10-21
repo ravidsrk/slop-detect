@@ -48,7 +48,8 @@ function matchesSingleSelector(el, sel) {
   if (s === '*') return true;
   if (s === ':root') return el.tagName === 'HTML';
   // Handle simple attribute selectors like meta[name="viewport"], a[href], [role="button"], [class*="card"]
-  const attrRe = /^([a-z0-9_-]+)?\[([a-z0-9_:-]+)(?:([*^$~|]?=)(?:"([^"]*)"|'([^']*)'|([^\]]*)))?\]$/i;
+  const attrRe =
+    /^([a-z0-9_-]+)?\[([a-z0-9_:-]+)(?:([*^$~|]?=)(?:"([^"]*)"|'([^']*)'|([^\]]*)))?\]$/i;
   const m = s.match(attrRe);
   if (m) {
     const [, tagPart, attrName, op, v1, v2, v3] = m;
@@ -170,7 +171,16 @@ function buildDomFromHtml(html) {
         };
       }
       if (this.tagName === 'HTML' || this.tagName === 'BODY') {
-        return { left: 0, top: 0, width: 1280, height: 1400, right: 1280, bottom: 1400, x: 0, y: 0 };
+        return {
+          left: 0,
+          top: 0,
+          width: 1280,
+          height: 1400,
+          right: 1280,
+          bottom: 1400,
+          x: 0,
+          y: 0,
+        };
       }
       if (this.tagName === 'HEAD' || this.tagName === 'META' || this.tagName === 'TITLE') {
         return { left: 0, top: 0, width: 0, height: 0, right: 0, bottom: 0, x: 0, y: 0 };
@@ -415,8 +425,7 @@ describe('K-05 (#300): Pioneer HTML fixture regression suite (real page-script e
     test(`${pioneer}.html runs all real extractors with 0 errors and scores Clean (< 10) on design and copy axes`, () => {
       const html = loadPioneerHtml(pioneer);
       expect(html.length).toBeGreaterThan(800);
-      const { patterns, patternsErrored, designResult, copyResult } =
-        evaluatePioneerSnapshot(html);
+      const { patterns, patternsErrored, designResult, copyResult } = evaluatePioneerSnapshot(html);
       expect(patterns.length).toBe(PATTERNS.length);
       expect(patternsErrored).toBe(0);
       expect(designResult.tier).not.toBe('Heavy');
@@ -429,8 +438,10 @@ describe('K-05 (#300): Pioneer HTML fixture regression suite (real page-script e
   }
 
   test('scores extracted textContext, so copy that would be Heavy is Heavy', () => {
-    const pad = Array.from({ length: 40 }, () =>
-      'The ledger records each settlement in the database before the next batch window starts.',
+    const pad = Array.from(
+      { length: 40 },
+      () =>
+        'The ledger records each settlement in the database before the next batch window starts.'
     ).join(' ');
     const html = `<!doctype html><html><body>
       <main>

@@ -123,7 +123,12 @@ export function resolveRenderedFont(family: string | null | undefined, docFonts?
   if (!family) return '';
   const stack = String(family)
     .split(',')
-    .map((f) => f.trim().replace(/^['"]|['"]$/g, '').toLowerCase())
+    .map((f) =>
+      f
+        .trim()
+        .replace(/^['"]|['"]$/g, '')
+        .toLowerCase()
+    )
     .filter(Boolean);
   if (stack.length === 0) return '';
 
@@ -142,7 +147,9 @@ export function resolveRenderedFont(family: string | null | undefined, docFonts?
   const pushFace = (face: any) => {
     if (face && face.family) {
       faces.push({
-        family: String(face.family).replace(/^['"]|['"]$/g, '').toLowerCase(),
+        family: String(face.family)
+          .replace(/^['"]|['"]$/g, '')
+          .toLowerCase(),
         status: String(face.status || 'unloaded').toLowerCase(),
       });
     }
@@ -193,7 +200,7 @@ export function resolveRenderedFont(family: string | null | undefined, docFonts?
           candidate.startsWith(f.family + ' ') ||
           candidate.startsWith(f.family + '-') ||
           f.family.startsWith(candidate + ' ') ||
-          f.family.startsWith(candidate + '-')),
+          f.family.startsWith(candidate + '-'))
     );
     if (loadedMatch) return candidate;
     if (systemFallbacks.has(candidate)) return candidate;

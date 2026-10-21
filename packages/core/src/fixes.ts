@@ -573,7 +573,7 @@ const EVIDENCE_FORMATTERS = {
       parts.push(`${e.eyebrowCount}/${e.headingCount} section headings have an eyebrow label`);
     }
     const sam = fmtList(
-      Array.isArray(e.samples) ? e.samples.map((s) => (typeof s === 'string' ? s : s.text)) : [],
+      Array.isArray(e.samples) ? e.samples.map((s) => (typeof s === 'string' ? s : s.text)) : []
     );
     if (sam) parts.push(`including ${sam}`);
     return parts.length ? parts.join(' — ') + '.' : null;
