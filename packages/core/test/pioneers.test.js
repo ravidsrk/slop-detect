@@ -597,4 +597,14 @@ describe('K-05 (#300): Pioneer HTML fixture regression suite (real page-script e
     const residue = copyResult.patterns.find((p) => p.id === 'chatbot_reply_residue');
     expect(residue.triggered).toBe(false);
   });
+
+  test('does not count a chat demo or short labels around a block', () => {
+    const demo = Array.from({ length: 150 }, () => 'alpha').join(' ');
+    const html = `<!doctype html><html><body><main>
+      <div><span class="message">${demo}</span></div>
+      <div>Four word label here<p>The ledger records each settlement before the next batch window opens today for the team.</p>Four word label here</div>
+    </main></body></html>`;
+    const { raw } = evaluatePioneerSnapshot(html);
+    expect(raw.textContext.proseWordCount).toBe(15);
+  });
 });

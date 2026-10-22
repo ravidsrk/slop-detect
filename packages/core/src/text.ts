@@ -244,7 +244,27 @@ export function extractTextContext() {
       return 0;
     }
     var flowWords = 0;
+    var returned = 0;
     var buf = '';
+    function flushBuf() {
+      var piece = buf
+        .replace(/[ \t]+/g, ' ')
+        .replace(/\s*\n\s*/g, '\n')
+        .trim();
+      buf = '';
+      if (piece) flowWords += emitPiece('div', piece, node);
+    }
+    // The eight-word minimum applies to one prose run. Inline quote splits
+    // stay in that run. A block child finishes the run. Chat-demo words are
+    // emitted with their own flags and stay out of the count.
+    function takeFlow() {
+      flushBuf();
+      var words = flowWords;
+      flowWords = 0;
+      if (contextFlags(node).inChatDemo) return;
+      if (deferProse) returned += words;
+      else if (words >= 8) proseWordCount += words;
+    }
     function consume(child: any) {
       if (!child) return;
       if (child.nodeType === 3) {
@@ -276,24 +296,13 @@ export function extractTextContext() {
         for (var ii = 0; ii < inlineKids.length; ii++) consume(inlineKids[ii]);
         return;
       }
-      flushBuf();
-      walk(child);
+      takeFlow();
+      walk(child, false);
     }
     var kids = node.childNodes;
     for (var c = 0; c < kids.length; c++) consume(kids[c]);
-    flushBuf();
-    if (!deferProse && flowWords >= 8 && !contextFlags(node).inChatDemo) {
-      proseWordCount += flowWords;
-    }
-    return flowWords;
-    function flushBuf() {
-      var piece = buf
-        .replace(/[ \t]+/g, ' ')
-        .replace(/\s*\n\s*/g, '\n')
-        .trim();
-      buf = '';
-      if (piece) flowWords += emitPiece('div', piece, node);
-    }
+    takeFlow();
+    return deferProse ? returned : 0;
   }
 
   walk(root);
