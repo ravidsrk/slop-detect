@@ -12,6 +12,7 @@ export function extractTextContext() {
       headings: [],
       paragraphs: [],
       blocks: [],
+      blockSpans: [],
       proseWordCount: 0,
       wordCount: 0,
       hiddenBlocks: 0,
@@ -111,128 +112,161 @@ export function extractTextContext() {
     inQuote: boolean;
     inChatDemo: boolean;
     nodeId: string;
+    start: number;
+    end: number;
+  }> = [];
+  var blockSpans: Array<{
+    tag: string;
+    start: number;
+    end: number;
+    inHero: boolean;
+    inFooter: boolean;
+    inQuote: boolean;
+    inChatDemo: boolean;
   }> = [];
   var headings: string[] = [];
   var paragraphs: string[] = [];
   var proseWordCount = 0;
-  var coveredEls: any[] = [];
   var textParts: string[] = [];
+  var joinedLen = 0;
   var BLOCK_LIMIT = 200;
   var BLOCK_TEXT_LIMIT = 400;
+  var SPAN_LIMIT = 2000;
+  var CANDIDATE = /^(H1|H2|H3|H4|H5|H6|P|LI|DT|DD|BLOCKQUOTE|FIGCAPTION)$/;
 
-  var candidates = root.querySelectorAll(
-    'h1, h2, h3, h4, h5, h6, p, li, dt, dd, blockquote, figcaption'
-  );
-  for (var i = 0; i < candidates.length; i++) {
-    var el = candidates[i] as any;
-
-    if (isElementHidden(el)) {
-      if ((el.textContent || '').trim()) hiddenBlocks++;
-      continue;
-    }
-
-    var ownOnly = el.tagName === 'LI' || el.tagName === 'BLOCKQUOTE';
-    var rawTxt = extractCleanNodeText(el, ownOnly)
-      .replace(/[ \t]+/g, ' ')
-      .trim();
-    if (!rawTxt) continue;
-    var wList = rawTxt.split(/\s+/).filter(Boolean);
-    var wc = wList.length;
+  function contextFlags(el: any) {
     var rect = el.getBoundingClientRect ? el.getBoundingClientRect() : { top: 0 };
-    var inHero = rect.top < vh * 0.9;
-    var inFooter = Boolean(el.closest && el.closest('footer, [role="contentinfo"]'));
-    var inQuote = Boolean(el.closest && el.closest('blockquote, q'));
     var anc = el.closest
       ? el.closest(
           '[class*="chat"], [class*="message"], [class*="bubble"], [class*="transcript"], [class*="conversation"], [class*="demo"]'
         )
       : null;
-    var inChatDemo = Boolean(anc);
-    var tag = el.tagName.toLowerCase();
-    var nodeId = tag + ':' + Math.round(rect.top || 0) + ':' + rawTxt.slice(0, 20);
+    return {
+      inHero: rect.top < vh * 0.9,
+      inFooter: Boolean(el.closest && el.closest('footer, [role="contentinfo"]')),
+      inQuote: Boolean(el.closest && el.closest('blockquote, q')),
+      inChatDemo: Boolean(anc),
+      top: Math.round(rect.top || 0),
+    };
+  }
 
-    coveredEls.push(el);
+  function appendPart(rawTxt: string) {
+    var start = joinedLen;
+    if (textParts.length) {
+      joinedLen += 2;
+      start = joinedLen;
+    }
     textParts.push(rawTxt);
+    joinedLen += rawTxt.length;
+    return { start: start, end: joinedLen };
+  }
+
+  function emitPiece(tag: string, rawTxt: string, el: any) {
+    if (!rawTxt) return;
+    var wList = rawTxt.split(/\s+/).filter(Boolean);
+    var wc = wList.length;
+    var flags = contextFlags(el);
+    var span = appendPart(rawTxt);
+    if (blockSpans.length < SPAN_LIMIT) {
+      blockSpans.push({
+        tag: tag,
+        start: span.start,
+        end: span.end,
+        inHero: flags.inHero,
+        inFooter: flags.inFooter,
+        inQuote: flags.inQuote,
+        inChatDemo: flags.inChatDemo,
+      });
+    }
     if (blocks.length < BLOCK_LIMIT) {
       var stored = rawTxt.slice(0, BLOCK_TEXT_LIMIT);
       blocks.push({
         tag: tag,
         text: stored,
         wordCount: stored.split(/\s+/).filter(Boolean).length,
-        inHero: inHero,
-        inFooter: inFooter,
-        inQuote: inQuote,
-        inChatDemo: inChatDemo,
-        nodeId: nodeId,
+        inHero: flags.inHero,
+        inFooter: flags.inFooter,
+        inQuote: flags.inQuote,
+        inChatDemo: flags.inChatDemo,
+        nodeId: tag + ':' + flags.top + ':' + rawTxt.slice(0, 20),
+        start: span.start,
+        end: span.end,
       });
     }
-
     if (/^(h1|h2|h3|h4|li|dt)$/.test(tag) && headings.length < 200) {
       headings.push(rawTxt.slice(0, 200));
     }
     if (tag === 'p' && paragraphs.length < 200) {
       paragraphs.push(rawTxt.slice(0, 400));
     }
-    if (PROSE_TAGS.test(el.tagName) && wc >= 8 && !inChatDemo) {
+    if ((PROSE_TAGS.test(tag) || tag === 'div') && wc >= 8 && !flags.inChatDemo) {
       proseWordCount += wc;
     }
   }
 
-  // Div and span prose is invisible to the heading/paragraph query. One heading
-  // used to make `text` nonempty and skip the root fallback, so the body was
-  // dropped. Collect text that no accepted block already covers, once.
-  function isCoveredNode(node: any): boolean {
-    var cur = node && node.nodeType === 1 ? node : node && node.parentElement;
-    while (cur && cur !== root.parentElement) {
-      for (var ci = 0; ci < coveredEls.length; ci++) {
-        if (coveredEls[ci] === cur) return true;
-      }
-      cur = cur.parentElement;
-    }
-    return false;
-  }
-  function collectUncovered(node: any, parts: string[]) {
+  function walkNestedCandidates(node: any) {
     if (!node || node.nodeType !== 1 || isElementHidden(node)) return;
+    if (SKIP_TAGS.test(node.tagName)) return;
+    if (CANDIDATE.test(node.tagName)) {
+      walk(node);
+      return;
+    }
     var kids = node.childNodes;
-    for (var ui = 0; ui < kids.length; ui++) {
-      var child = kids[ui];
-      if (child.nodeType === 3) {
-        if (!isCoveredNode(child) && child.nodeValue) parts.push(child.nodeValue);
-      } else if (child.nodeType === 1) {
-        if (SKIP_TAGS.test(child.tagName) || isCoveredNode(child)) continue;
-        collectUncovered(child, parts);
-      }
+    for (var i = 0; i < kids.length; i++) {
+      if (kids[i] && kids[i].nodeType === 1) walkNestedCandidates(kids[i]);
     }
-  }
-  var uncoveredParts: string[] = [];
-  collectUncovered(root, uncoveredParts);
-  var uncovered = uncoveredParts
-    .join(' ')
-    .replace(/[ \t]+/g, ' ')
-    .replace(/\s*\n\s*/g, '\n')
-    .trim();
-  if (uncovered) {
-    var uncoveredWords = uncovered.split(/\s+/).filter(Boolean);
-    textParts.push(uncovered);
-    if (blocks.length < BLOCK_LIMIT) {
-      var uncoveredStored = uncovered.slice(0, BLOCK_TEXT_LIMIT);
-      blocks.push({
-        tag: 'div',
-        text: uncoveredStored,
-        wordCount: uncoveredStored.split(/\s+/).filter(Boolean).length,
-        inHero: false,
-        inFooter: false,
-        inQuote: false,
-        inChatDemo: false,
-        nodeId: 'div:uncovered:' + uncovered.slice(0, 20),
-      });
-    }
-    if (paragraphs.length < 200) paragraphs.push(uncovered.slice(0, 400));
-    if (uncoveredWords.length >= 8) proseWordCount += uncoveredWords.length;
   }
 
-  // Page text stays the full candidate text. The blocks array is capped so a
-  // long page cannot return an unbounded payload.
+  function walk(node: any) {
+    if (!node || node.nodeType !== 1) return;
+    if (isElementHidden(node)) {
+      if ((node.textContent || '').trim()) hiddenBlocks++;
+      return;
+    }
+    if (SKIP_TAGS.test(node.tagName)) return;
+    if (CANDIDATE.test(node.tagName)) {
+      var ownOnly = node.tagName === 'LI' || node.tagName === 'BLOCKQUOTE';
+      var rawTxt = extractCleanNodeText(node, ownOnly)
+        .replace(/[ \t]+/g, ' ')
+        .trim();
+      emitPiece(node.tagName.toLowerCase(), rawTxt, node);
+      if (!ownOnly) return;
+      var nested = node.childNodes;
+      for (var n = 0; n < nested.length; n++) {
+        var kid = nested[n];
+        if (!kid || kid.nodeType !== 1) continue;
+        if (/^(P|LI|BLOCKQUOTE)$/.test(kid.tagName)) walk(kid);
+        else walkNestedCandidates(kid);
+      }
+      return;
+    }
+    var buf = '';
+    var kids = node.childNodes;
+    for (var c = 0; c < kids.length; c++) {
+      var child = kids[c];
+      if (!child) continue;
+      if (child.nodeType === 3) {
+        if (child.nodeValue) buf += child.nodeValue;
+      } else if (child.nodeType === 1) {
+        flushBuf();
+        walk(child);
+      }
+    }
+    flushBuf();
+    function flushBuf() {
+      var piece = buf
+        .replace(/[ \t]+/g, ' ')
+        .replace(/\s*\n\s*/g, '\n')
+        .trim();
+      buf = '';
+      if (piece) emitPiece('div', piece, node);
+    }
+  }
+
+  walk(root);
+
+  // Page text stays the full candidate text. Preview blocks stay capped.
+  // blockSpans point into that text so a copy check can read past the cap.
   var text = textParts.join('\n\n');
   if (!text && !isElementHidden(root)) {
     text = extractCleanNodeText(root).trim();
@@ -277,6 +311,7 @@ export function extractTextContext() {
     headings: headings,
     paragraphs: paragraphs,
     blocks: blocks,
+    blockSpans: blockSpans,
     proseWordCount: proseWordCount,
     wordCount: allWords.length,
     hiddenBlocks: hiddenBlocks,

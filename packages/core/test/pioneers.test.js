@@ -505,5 +505,45 @@ describe('K-05 (#300): Pioneer HTML fixture regression suite (real page-script e
     expect(text).toContain('Paragraph 219');
     expect(raw.textContext.blocks.length).toBeLessThanOrEqual(200);
     expect(raw.textContext.blocks.every((block) => block.text.length <= 400)).toBe(true);
+    const late = raw.textContext.blockSpans.find((span) =>
+      raw.textContext.text.slice(span.start, span.end).includes('Paragraph 219')
+    );
+    expect(late).toBeTruthy();
+  });
+
+  test('keeps div copy in order and still checks past the block preview cap', () => {
+    const filler = `${'word '.repeat(90)}as an AI language model`;
+    const html = `<!doctype html><html><body><main>
+      <div class="chat"><div>As an AI language model I cannot fulfill this request</div></div>
+      <div>In conclusion, welcome to the weekly planning desk.</div>
+      <p>The first note assigns an owner.</p>
+      <p>The second note names the date.</p>
+      <p>The third note stays specific.</p>
+      <p>${filler}</p>
+    </main></body></html>`;
+    const { raw, copyResult } = evaluatePioneerSnapshot(html);
+    const text = raw.textContext.text;
+    const chatAt = text.indexOf('cannot fulfill this request');
+    const openAt = text.indexOf('In conclusion, welcome');
+    const lateAt = text.indexOf('as an AI language model');
+    expect(chatAt).toBeGreaterThanOrEqual(0);
+    expect(openAt).toBeGreaterThan(chatAt);
+    expect(lateAt).toBeGreaterThan(openAt);
+    const chatSpan = raw.textContext.blockSpans.find((span) =>
+      text.slice(span.start, span.end).includes('cannot fulfill this request')
+    );
+    expect(chatSpan.inChatDemo).toBe(true);
+    const openSpan = raw.textContext.blockSpans.find((span) =>
+      text.slice(span.start, span.end).includes('In conclusion, welcome')
+    );
+    expect(openSpan.inChatDemo).toBe(false);
+    expect(raw.textContext.blockSpans.indexOf(openSpan)).toBeLessThan(
+      raw.textContext.blockSpans.length - 2
+    );
+    const residue = copyResult.patterns.find((p) => p.id === 'chatbot_reply_residue');
+    const closers = copyResult.patterns.find((p) => p.id === 'formulaic_closers');
+    expect(residue.triggered).toBe(true);
+    expect(residue.evidence.samples.join(' ')).not.toMatch(/cannot fulfill/i);
+    expect(closers.triggered).toBe(false);
   });
 });

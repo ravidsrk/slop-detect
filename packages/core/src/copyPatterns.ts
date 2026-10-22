@@ -51,6 +51,29 @@ function per1000(count: number, wordCount: number): number {
   return (count / wordCount) * 1000;
 }
 
+// Preview blocks are capped. Spans point into the full page text so a check
+// can read past that cap without shipping another copy of the paragraph.
+function positionedBlocks(ctx: { blockSpans?: unknown; blocks?: unknown }): any[] {
+  const spans = (ctx as any)?.blockSpans;
+  if (Array.isArray(spans) && spans.length) return spans;
+  const blocks = (ctx as any)?.blocks;
+  return Array.isArray(blocks) ? blocks : [];
+}
+
+function spanText(span: any, full: string): string {
+  if (
+    span &&
+    typeof full === 'string' &&
+    Number.isFinite(span.start) &&
+    Number.isFinite(span.end)
+  ) {
+    const start = Math.max(0, span.start);
+    const end = Math.min(full.length, span.end);
+    if (end > start) return full.slice(start, end);
+  }
+  return String(span?.text || '');
+}
+
 // English function-word list for C-01 language gate
 const ENGLISH_FUNCTION_WORDS = new Set([
   'the',
@@ -600,15 +623,17 @@ export const COPY_PATTERNS = [
     likelihoodRatio: null,
     fpRate: null,
     fpRatePre2022: null,
-    match: ({ text, paragraphs, blocks }: any) => {
+    match: ({ text, paragraphs, blocks, blockSpans }: any) => {
       const re =
         /\b(?:in conclusion|in summary|to sum up|to summarize|all in all|ultimately,|in the end,|when all is said and done)\b/gi;
       // C-07: Position-aware when multiple paragraphs/blocks exist: check last two prose blocks
-      let targetText = String(text || '');
-      if (Array.isArray(blocks) && blocks.length >= 3) {
-        targetText = blocks
+      const fullText = String(text || '');
+      let targetText = fullText;
+      const positioned = positionedBlocks({ blocks, blockSpans });
+      if (positioned.length >= 3) {
+        targetText = positioned
           .slice(-2)
-          .map((b: any) => b.text || '')
+          .map((b: any) => spanText(b, fullText))
           .join('\n\n');
       } else if (Array.isArray(paragraphs) && paragraphs.length >= 3) {
         targetText = paragraphs.slice(-2).join('\n\n');
@@ -846,7 +871,7 @@ export const COPY_PATTERNS = [
     likelihoodRatio: null,
     fpRate: null,
     fpRatePre2022: null,
-    match: ({ text, attributes, blocks }: any) => {
+    match: ({ text, attributes, blocks, blockSpans }: any) => {
       const view = buildNormalizedTextView(text || '');
       const attrString = Array.isArray(attributes)
         ? attributes.map((a: any) => `${a.attr}=${a.value}`).join('\n')
@@ -874,12 +899,14 @@ export const COPY_PATTERNS = [
       }
 
       // Downgrade to Warning if inside blockquote/q or meta-discussion of >=3 families near "artifact|tell|sign"
+      const quoteBlocks = positionedBlocks({ blocks, blockSpans });
       const allInQuote =
-        Array.isArray(blocks) &&
-        blocks.length > 0 &&
-        blocks
+        quoteBlocks.length > 0 &&
+        quoteBlocks
           .filter((b: any) =>
-            CHATBOT_MARKUP_REGISTRY.some((r) => new RegExp(r.re.source, 'i').test(b.text || ''))
+            CHATBOT_MARKUP_REGISTRY.some((r) =>
+              new RegExp(r.re.source, 'i').test(spanText(b, String(text || '')))
+            )
           )
           .every((b: any) => b.inQuote);
       const isMetaDiscussion =
@@ -917,14 +944,26 @@ export const COPY_PATTERNS = [
     likelihoodRatio: null,
     fpRate: null,
     fpRatePre2022: null,
-    match: ({ text, blocks }: any) => {
-      // Exclude blocks inside chat demos or blockquotes
-      let cleanText = String(text || '');
-      if (Array.isArray(blocks) && blocks.length > 0) {
-        cleanText = blocks
+    match: ({ text, blocks, blockSpans }: any) => {
+      // Exclude chat demos and quotes, but keep reading the full page text.
+      // Capped preview blocks must not drop a phrase that is still in `text`.
+      const full = String(text || '');
+      let cleanText = full;
+      const positioned = positionedBlocks({ blocks, blockSpans });
+      if (positioned.length > 0) {
+        const hasOffsets = positioned.some((b: any) => Number.isFinite(b?.end));
+        const kept = positioned
           .filter((b: any) => !b.inChatDemo && !b.inQuote)
-          .map((b: any) => b.text || '')
-          .join('\n\n');
+          .map((b: any) => spanText(b, full))
+          .filter(Boolean);
+        cleanText = kept.join('\n\n');
+        if (hasOffsets) {
+          const lastEnd = positioned.reduce((max: number, b: any) => {
+            return Number.isFinite(b?.end) && b.end > max ? b.end : max;
+          }, 0);
+          const tail = lastEnd < full.length ? full.slice(lastEnd).trim() : '';
+          if (tail) cleanText = cleanText ? `${cleanText}\n\n${tail}` : tail;
+        }
       }
       const view = buildNormalizedTextView(cleanText);
 
@@ -1298,14 +1337,16 @@ export const COPY_PATTERNS = [
     likelihoodRatio: null,
     fpRate: null,
     fpRatePre2022: null,
-    match: ({ text, paragraphs, blocks }: any) => {
-      let opening = String(text || '').slice(0, 800);
-      if (Array.isArray(blocks) && blocks.length > 0) {
+    match: ({ text, paragraphs, blocks, blockSpans }: any) => {
+      const full = String(text || '');
+      let opening = full.slice(0, 800);
+      const positioned = positionedBlocks({ blocks, blockSpans });
+      if (positioned.length > 0) {
         opening =
-          blocks
+          positioned
             .filter((b: any) => !b.inHero)
             .slice(0, 2)
-            .map((b: any) => b.text || '')
+            .map((b: any) => spanText(b, full))
             .join('\n\n') || opening;
       } else if (Array.isArray(paragraphs) && paragraphs.length > 0) {
         opening = paragraphs.slice(0, 2).join('\n\n');
