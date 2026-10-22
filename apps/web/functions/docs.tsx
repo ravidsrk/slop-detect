@@ -224,7 +224,7 @@ const CODE = {
     `slop-detect ${esc('<url> [...urls]')}        ${c.cmt('# score one or many pages')}`,
     `  ${c.key('--copy')}              ${c.cmt('# also score the copy axis')}`,
     `  ${c.key('--axes all')}          ${c.cmt('# design + copy together')}`,
-    `  ${c.key('--aeo')}               ${c.cmt('# score the 8-check AEO axis')}`,
+    `  ${c.key('--aeo')}               ${c.cmt('# score the ' + N_AEO + '-check AEO axis')}`,
     `  ${c.key('--design-md auto')}    ${c.cmt('# check against <origin>/DESIGN.md')}`,
     `  ${c.key('--preset strict')}     ${c.cmt('# score a curated subset')}`,
     `  ${c.key('--remote')}            ${c.cmt('# scan via the API, no local browser')}`,

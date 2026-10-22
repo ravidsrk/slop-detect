@@ -94,6 +94,62 @@ test('pattern-count copy matches the live engine catalogue dynamically', async (
   // index.html must not hardcode "(9 tells)" or "10/27".
   expect(landing).not.toContain('(9 tells)');
   expect(landing).not.toMatch(/\b10\/27\b/);
+
+  // Served JSON must not pin the retired 27/9/8 catalogue. Phrase hits and
+  // OpenAPI example numbers are both checked against the live engine counts.
+  const staleCatalogue = /\b27-pattern\b|\b9-pattern\b|\b8-check\b|\b10\/27\b|\(9 tells\)/;
+  const exampleAxis = {
+    count: 'design',
+    copyCount: 'copy',
+    aeoCount: 'aeo',
+    systemCount: 'system',
+  };
+  const catalogueExamples = (node, out = []) => {
+    if (!node || typeof node !== 'object') return out;
+    if (Array.isArray(node)) {
+      for (const item of node) catalogueExamples(item, out);
+      return out;
+    }
+    for (const [key, axis] of Object.entries(exampleAxis)) {
+      const prop = node[key];
+      if (prop && typeof prop === 'object' && typeof prop.example === 'number') {
+        out.push({ key, axis, example: prop.example });
+      }
+    }
+    for (const value of Object.values(node)) catalogueExamples(value, out);
+    return out;
+  };
+  const retired = catalogueExamples({
+    count: { example: 27 },
+    copyCount: { example: 9 },
+    aeoCount: { example: 8 },
+    systemCount: { example: 5 },
+  });
+  expect(retired.map((row) => row.example)).toEqual([27, 9, 8, 5]);
+  expect(retired.some((row) => row.example !== expected[row.axis])).toBe(true);
+
+  const publicJson = [];
+  const walkJson = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const child = path.join(dir, entry.name);
+      if (entry.isDirectory()) walkJson(child);
+      else if (entry.name.endsWith('.json')) publicJson.push(child);
+    }
+  };
+  walkJson(path.join(WEB, 'public'));
+  for (const file of publicJson) {
+    const rel = path.relative(ROOT, file);
+    const text = fs.readFileSync(file, 'utf8');
+    expect(text, `${rel} pins a stale catalogue count`).not.toMatch(staleCatalogue);
+    for (const row of catalogueExamples(JSON.parse(text))) {
+      expect(row.example, `${rel} ${row.key} example`).toBe(expected[row.axis]);
+    }
+  }
+  const docsSrc = fs.readFileSync(path.join(WEB, 'functions', 'docs.tsx'), 'utf8');
+  expect(docsSrc, 'docs.tsx must take the AEO count from the engine').not.toMatch(
+    /score the 8-check AEO axis/
+  );
+  expect(docsSrc).toMatch(/N_AEO \+ '-check AEO axis'/);
 });
 
 test('docs do not tell users to install @slop-detect/core from npm and only name registered check/pattern IDs', () => {

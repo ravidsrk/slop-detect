@@ -22,10 +22,10 @@
       "id": "scan_page",
       "name": "Scan page for design slop",
       "description": "Open a URL in headless Chromium and score it 0-100 against the deterministic AI-design-slop fingerprint. Optionally score the copy axis.",
-      "tags": ["design", "slop", "audit", "landing-page", "ai-generated"],
+      "tags": ["design", "slop", "audit", "landing-page", "default-template"],
       "examples": [
-        "Scan https://example.com for AI-design slop",
-        "How AI-generated does stripe.com look?"
+        "Scan https://example.com for default-template patterns",
+        "How many default-template patterns does stripe.com match?"
       ],
       "inputModes": ["application/json"],
       "outputModes": ["application/json"]

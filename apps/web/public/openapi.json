@@ -785,7 +785,7 @@
           "count": {
             "type": "integer",
             "description": "Number of patterns. Derived from the engine.",
-            "example": 27
+            "example": 45
           },
           "patterns": {
             "type": "array",
@@ -796,7 +796,7 @@
           "copyCount": {
             "type": "integer",
             "description": "Number of copy-axis patterns.",
-            "example": 9
+            "example": 26
           },
           "copyPatterns": {
             "type": "array",
@@ -807,7 +807,7 @@
           "aeoCount": {
             "type": "integer",
             "description": "Number of AEO checks.",
-            "example": 8
+            "example": 16
           },
           "aeoChecks": {
             "type": "array",
@@ -818,7 +818,7 @@
           "systemCount": {
             "type": "integer",
             "description": "Number of DESIGN.md system compliance checks.",
-            "example": 5
+            "example": 9
           },
           "systemChecks": {
             "type": "array",
