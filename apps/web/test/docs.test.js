@@ -78,9 +78,9 @@ test('renders the four axes with their polarity', async () => {
 });
 
 // ── the eight AEO checks ───────────────────────────────────────────────────────
-test('renders all eight AEO checks with weight + severity, from the engine', async () => {
+test('renders every AEO check with weight + severity, from the engine', async () => {
   const { html } = await render();
-  expect(AEO_CHECKS.length).toBe(8);
+  expect(AEO_CHECKS.length).toBeGreaterThan(0);
   for (const check of AEO_CHECKS) {
     expect(html, `aeo check ${check.id}`).toContain(htmlEsc(check.label));
   }

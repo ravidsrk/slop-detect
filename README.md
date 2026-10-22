@@ -1,6 +1,6 @@
 # slop-detect
 
-> **Score any landing page against the 27-rule AI-design-slop fingerprint, 9-rule copy axis, `DESIGN.md` system compliance, and 8-check AEO readiness — then keep it clean.**
+> **Score any landing page against the versioned design-slop fingerprint, copy axis, `DESIGN.md` system compliance, craft floor, and AEO readiness — then keep it clean.**
 > Detect Cursor / v0 / Lovable / Bolt templates in the wild, verify a page against its own `DESIGN.md`, check if AI answer engines can cite it, and generate a copy-pasteable fix prompt. Monitor a domain and get emailed when it drifts.
 
 <p>
@@ -30,21 +30,21 @@ What will you build today?
 
 https://www.aura.build
 Create beautiful designs
-  🟡 Mild  ·  score 20/100  ·  4/27 patterns triggered
+  🟡 Mild  ·  score 20/100  ·  4 patterns triggered
   ✗ AI-default font stack (Inter / Geist / Space Grotesk)       (+8)
   ✗ Glassmorphism (backdrop-filter blur on translucent layers)  (+4)
   ✗ Big colored box-shadow glows (purple/blue/pink)             (+4)
   ✗ Centered hero in generic sans (Inter-style)                 (+4)
 
 https://news.ycombinator.com
-  🟢 Clean  ·  score 3/100  ·  1/27 patterns triggered
+  🟢 Clean  ·  score 3/100  ·  1 pattern triggered
 ```
 
 ## Why this exists
 
 By April 2026, default-template landing pages had collapsed onto a measurable visual fingerprint. Inter font, purple-to-blue gradient hero, "Now in Beta" pill badge, gradient-letter testimonial avatars, identical icon-topped feature cards. [Adrian Krebs's study](https://www.adriankrebs.ch/blog/design-slop/) scored ~1,400 Show HN submissions with Playwright and found **67% carried detectable AI-design fingerprints**.
 
-`slop-detect` reproduces Krebs's methodology, adds the signals Meng To identified in his [May 2026 Aura tutorial](https://x.com/MengTo/status/2058893181740359863), integrates typography & contrast tells from [Impeccable](https://github.com/pbakaus/impeccable), and packages the four-axis engine (`definitions@2026.10`) across four surfaces:
+`slop-detect` reproduces Krebs's methodology, adds the signals Meng To identified in his [May 2026 Aura tutorial](https://x.com/MengTo/status/2058893181740359863), integrates typography & contrast tells from [Impeccable](https://github.com/pbakaus/impeccable), and packages the engine (`definitions@2026.11`) across four surfaces:
 
 - 🟢 **`slop-detect`**, Playwright-based CLI, run from your terminal or CI
 - 🟢 **`slop-detect.com`**, drop-in web UI & interactive 3D telemetry workbench
@@ -55,7 +55,7 @@ By April 2026, default-template landing pages had collapsed onto a measurable vi
   <img src="apps/web/public/media/docs-four-axes-architecture.png" alt="Four-Axis Telemetry Architecture (Design · Copy · System · AEO)" width="100%" />
 </p>
 
-All surfaces share the **same 27-rule design engine, 9-rule copy engine, `DESIGN.md` comparator, and 8-check AEO verifier** so a Heavy from the CLI is a Heavy from the web is a Heavy from the API.
+All surfaces share the **same engine** (45 design patterns, 26 copy patterns, 9 `DESIGN.md` checks, 16 AEO checks, and a craft floor that never feeds Clean / Mild / Heavy) so a Heavy from the CLI is a Heavy from the web is a Heavy from the API. Weight 0 review rules add no points.
 
 ## Try it now
 
@@ -119,6 +119,8 @@ pull the fix prompt back into the editing loop. Four tools: `scan_page`,
 }
 ```
 
+Add `--local` (`npx -y slop-detect-mcp --local`, with the `slop-detect` package installed) when the page is on `localhost` or `file://`. That mode uses Playwright on this machine and does not call the hosted API.
+
 ### Gate it in CI (GitHub Action)
 
 [`slop-detect-action`](packages/action) scans a deploy-preview URL, posts a
@@ -172,50 +174,17 @@ sell it. See the [privacy policy](https://slop-detect.com/privacy.md). Engine
 stays MIT and free forever; only continuity (history + alerts) is the paid
 layer, free during the current validation phase.
 
-## The 27 patterns
+## The 45 patterns
 
-`definitions@2026.10`, versioned ruleset. Scores from a given definition
+`definitions@2026.11`, versioned ruleset. Scores from a given definition
 version are comparable; the version ships in every result (`definitionsVersion`).
 Browse and filter all rules interactively at [`slop-detect.com/docs`](https://slop-detect.com/docs#catalogue).
 
-| # | Pattern | Weight | What it detects |
-|---|---|---|---|
-| 1 | **Slop fonts** | 8 | Inter / Geist / Space Grotesk / Instrument Serif italic accent |
-| 2 | **VibeCode Purple** | 8 | Indigo-violet (HSL 240–295°, ≥35% sat) on filled CTAs |
-| 3 | **Hero gradient text** | 6 | H1 with `background-clip: text` + gradient |
-| 4 | **Gradient backgrounds** | 4 | ≥5 visible elements with CSS gradient backgrounds |
-| 5 | **Accent stripe** | 6 | Cards with thick colored top/left border only |
-| 6 | **Glassmorphism** | 4 | `backdrop-filter: blur()` on translucent layers |
-| 7 | **Colored glows** | 4 | Box-shadows with ≥24px blur and non-grey color |
-| 8 | **Centered hero** | 4 | H1 centered (or in a centered container), ≥28px, in a slop font |
-| 9 | **Eyebrow pill** | 5 | Rounded pill above H1 ("Now in beta", "New") |
-| 10 | **All-caps labels** | 3 | `text-transform: uppercase` section labels |
-| 11 | **Perma-dark mode** | 4 | Dark page background (body / html / wrapper) with mid-grey body text |
-| 12 | **Icon card grid** | 4 | ≥3 identical feature cards with icon on top |
-| 13 | **Numbered steps** | 3 | "1 · 2 · 3" step sequences |
-| 14 | **Stat banner** | 3 | Big-number stat row ("10k+", "99.9%") |
-| 15 | **FAQ accordion** | 2 | Generic accordion with no schema markup |
-| 16 | **Gradient avatars** | 5 | Letter-only testimonial avatars on gradient backgrounds |
-| 17 | **Bento grid** | 4 | Apple-keynote mixed-span rounded card wall |
-| 18 | **Aurora blobs** | 5 | Blurred radial/conic gradient "aurora" backdrop |
-| 19 | **AI sparkles** | 3 | ✨ / lucide "Sparkles" "AI magic" tells |
-| 20 | **Cream bg** | 7 | Warm off-white / beige default page surface |
-| 21 | **Low contrast** | 7 | Washed-out grey body text below WCAG AA on a light background |
-| 22 | **Crushed tracking** | 5 | Display headings tracked tighter than -0.05em |
-| 23 | **Gray-on-color** | 4 | Neutral mid-grey text on a chromatic background |
-| 24 | **Oversized H1** | 4 | Long headline (≥40 chars) set at ≥72px |
-| 25 | **Nested cards** | 4 | Card-like element inside a card-like ancestor |
-| 26 | **Wide tracking** | 3 | Body copy letter-spacing above 0.05em |
-| 27 | **Flat hierarchy** | 3 | ≥3 font sizes with a max/min ratio below 2× |
+The weighted list, including weight 0 review rules, is the engine catalogue. Gray-on-color and wide body tracking moved to the craft floor and do not feed this score. Browse it at [`slop-detect.com/docs`](https://slop-detect.com/docs#catalogue), [`spec/patterns.md`](spec/patterns.md), or `GET /api/patterns`.
 
 **Tiers:** Clean (0–9) · Mild (10–27) · Heavy (≥28)
 
-Source: Krebs (Apr 2026, #1–14) + slop-detect additions (#15–16) + 2026.07 emerging
-tells (#17–19) + 2026.08 patterns (#20–27) ported from
-[Impeccable](https://github.com/pbakaus/impeccable) (Apache-2.0). See
-[`packages/core/src/patterns.ts`](packages/core/src/patterns.ts) for the full
-detection logic with weighted heuristics, or [`spec/patterns.md`](spec/patterns.md)
-for the versioned spec.
+Source: Krebs (Apr 2026) plus later catalogue additions through `definitions@2026.11`, including typography and contrast tells ported from [Impeccable](https://github.com/pbakaus/impeccable) (Apache-2.0). See [`packages/core/src/patterns.ts`](packages/core/src/patterns.ts).
 
 ### Scoring presets
 
@@ -229,7 +198,7 @@ slop-detect https://example.com --preset minimal       # the 3 dead-giveaways
 
 | Preset | Scores |
 |---|---|
-| `full` (default) | all 27 patterns |
+| `full` (default) | the full design catalogue |
 | `strict` | only weight ≥ 5 (fewest false positives, good CI gate) |
 | `marketing` | fonts, colours, gradients, hero treatment |
 | `minimal` | slop fonts + VibeCode purple + gradient text |
@@ -278,8 +247,8 @@ slop-detect https://example.com --axes all       # same thing
 ```
   🟡 Mild  ·  B-  ·  unified 22/100  (2 axes)
 
-  🟢 design  Clean   A-   score   8/100   2/27 flagged
-  🟡 copy    Mild    B-   score  18/100   4/9 flagged
+  🟢 design  Clean   A-   score   8/100   2 flagged
+  🟡 copy    Mild    B-   score  18/100   4 flagged
 
 Copy slop:
   ✗ AI buzzword density (leverage / seamless / robust …)  (+7)
@@ -288,10 +257,10 @@ Copy slop:
   ✗ Generic filler openers ("In today's fast-paced world") (+5)
 ```
 
-The 9 copy patterns: **buzzword density** (leverage/seamless/robust/elevate…),
+The copy axis has 26 patterns. Scored tells include **buzzword density** (leverage/seamless/robust/elevate…),
 **em-dash overload**, **"not just X, it's Y" antithesis**, **filler openers**,
 **formulaic closers**, **rule-of-three tricolons**, **"whether you're X or Y"**,
-**invisible Unicode artifacts**, **emoji bullet headers**. Each has its own fix
+and **emoji bullet headers**. Rules in `review` ship at weight 0. Each scored tell has a fix
 recipe, so `fix-prompt` covers both axes.
 
 Top-level `score`/`grade`/`patterns` stay **design-only** for backward
@@ -299,22 +268,13 @@ compatibility. Multi-axis adds `axes.{design,copy}` plus `unifiedScore` /
 `unifiedTier`. The unified score = max axis score + a small penalty when more
 than one axis is dirty. API: `{ "url": "...", "axes": ["design","copy"] }`.
 
-## The AEO axis: Answer Engine Optimization (8 checks)
+## The AEO axis: Answer Engine Optimization (16 checks)
 
 <p align="center">
-  <img src="apps/web/public/media/docs-aeo-crawler-pipeline.png" alt="AEO (Answer Engine Optimization) — 8-Check Agent-Readable Verification Pipeline" width="100%" />
+  <img src="apps/web/public/media/docs-aeo-crawler-pipeline.png" alt="AEO (Answer Engine Optimization) — agent-readable verification pipeline" width="100%" />
 </p>
 
-Can AI answer engines (`GPTBot`, `ClaudeBot`, `PerplexityBot`, `Google-Extended`) fetch, parse, and cite your page? The **AEO axis** runs 8 deterministic HTTP and HTML checks without a headless browser:
-
-1. `html.reachable` (10 pts, required) — Page is reachable (HTML 2xx)
-2. `bot.notBlocked` (25 pts, required) — AI crawlers are not blocked (`GPTBot` gets 2xx)
-3. `robots.aiAllowed` (20 pts, required) — `robots.txt` does not Disallow AI crawlers
-4. `html.indexable` (15 pts, required) — Page is indexable (no `noindex`)
-5. `md.twin` (10 pts, recommended) — Markdown twin served at `<url>.md`
-6. `html.linkAlternate` (8 pts, recommended) — HTML advertises the markdown twin (`Link rel="alternate"`)
-7. `site.llmsTxt` (7 pts, recommended) — `/llms.txt` published at the site root
-8. `html.vary` (5 pts, recommended) — HTML sends `Vary: Accept` (content-negotiation aware)
+Can a page be fetched and read without a headless browser? The **AEO axis** runs 16 HTTP and HTML checks. The scanner sends `SlopDetector-AEO/1.0 (+https://slop-detect.com/bot)` and does not impersonate Googlebot, GPTBot, or any other vendor crawler. Six required checks carry the scored fundamentals (`html.reachable`, `edge.access`, `robots.searchAllowed`, `html.indexable`, `ai.previewControls`, `html.serverTextCoverage`). Recommended checks cover the markdown twin, `html.linkAlternate`, `site.llmsTxt`, and `html.vary`. Weight 0 checks are reported and do not change the score. The full list is `GET /api/patterns`.
 
 ```bash
 npx slop-detect https://your-site.com --aeo
@@ -324,7 +284,7 @@ curl -s -X POST -H 'Content-Type: application/json' \
   -d '{"url":"https://your-site.com"}' | jq
 ```
 
-Higher is better: `AI-Ready` (≥80) · `Partial` (≥50) · `Invisible` (<50).
+Higher is better: `Eligible` (≥80) · `Partially Eligible` (≥50) · `Restricted` (<50).
 
 ## What's in this repo
 
@@ -343,8 +303,8 @@ slop-detect/
 └── spec/                            ← versioned pattern + AEO + conformance spec
 ```
 
-A bun + turborepo monorepo. `core` is the single source of truth for the 27 design
-patterns, 9 copy patterns, `DESIGN.md` checker, and 8 AEO checks; `cli`, `web`, and `mcp` are thin
+A bun + turborepo monorepo. `core` is the single source of truth for the 45 design
+patterns, 26 copy patterns, `DESIGN.md` checker, and 16 AEO checks; `cli`, `web`, and `mcp` are thin
 runtime adapters around it.
 
 ## Quickstart: contributing
@@ -417,7 +377,7 @@ The runner is yours — Playwright, Puppeteer, Cloudflare Browser Rendering, Bro
 
 ## Roadmap
 
-See [ROADMAP.md](ROADMAP.md) for the full strategic plan. Shipped through `v0.8.0` (`definitions@2026.09`):
+See [ROADMAP.md](ROADMAP.md) for the full strategic plan. The engine now carries `definitions@2026.11` (45 design, 26 copy, 16 AEO, 9 system checks, plus a craft floor). Published leaderboard and calibration deltas stay on the measured `2026.10` corpus. The v1.0 Heavy false-positive gate (≥1,520 held-out human controls, Heavy FPR ≤2% at 95% CI) is not met, and this tree does not claim v1.0.0. Shipped through `v0.8.0` (`definitions@2026.09`):
 
 - [x] **Shareable result permalinks & domain hubs**: `/r/<id>`, `/score/<domain>`, and `/report/<domain>`
 - [x] **OG share cards**: auto-generated 1200×630 image per result (`/og/<id>.png`)

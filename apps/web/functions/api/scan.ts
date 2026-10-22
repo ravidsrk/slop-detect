@@ -12,14 +12,19 @@ import {
   scorePatterns,
   applyPreset,
   isPreset,
+  presetCoverage,
   parseDesignMd,
   scoreSystemCompliance,
   scoreCopy,
+  scoreCraft,
+  measureMobileReflowOnPage,
   combineAxes,
+  applyDeclaredDesignWaivers,
   SCAN_PAGE_WAIT,
   waitFontsReadyInPage,
   readCapped,
   DEFINITIONS_VERSION,
+  stampScanResult,
 } from '@slop-detect/core';
 import {
   newId,
@@ -47,7 +52,7 @@ export function scanFlowEvent(patch) {
 }
 
 // Normalize requested axes. Default: design only (backward-compatible).
-const VALID_AXES = ['design', 'copy'];
+const VALID_AXES = ['design', 'copy', 'craft'];
 function normalizeAxes(axes) {
   if (axes === 'all') return [...VALID_AXES];
   if (!Array.isArray(axes) || axes.length === 0) return ['design'];
@@ -59,7 +64,7 @@ function normalizeAxes(axes) {
 // CORS + Turnstile + rate-limit are handled by functions/api/_middleware.js.
 // This handler just returns JSON; the middleware merges Access-Control-* headers.
 function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
+  return new Response(JSON.stringify(stampScanResult(data)), {
     status,
     headers: { 'Content-Type': 'application/json' },
   });
@@ -269,6 +274,10 @@ export async function onRequestPost({ request, env, waitUntil }) {
       );
     }
 
+    if (normalizeAxes(body?.axes).includes('craft') && data.craftSignals) {
+      data.craftSignals.mobile_reflow_failure = await measureMobileReflowOnPage(page);
+    }
+
     let screenshot = null;
     if (body.screenshot) {
       try {
@@ -304,14 +313,17 @@ export async function onRequestPost({ request, env, waitUntil }) {
       patterns: scored,
       patternsErrored,
       browserVersion,
+      madeWith: data.madeWith ?? null,
+      environment: browserVersion ? { chromium: browserVersion } : undefined,
       screenshot,
       navMs,
     };
 
-    // Multi-axis (#08): opt into copy via { axes:['design','copy'] } or 'all'.
+    // Multi-axis: opt into copy and craft via { axes:['design','copy','craft'] } or 'all'.
+    // Craft is reported beside the design score and never feeds Clean/Mild/Heavy.
     const reqAxes = normalizeAxes(body?.axes);
-    if (reqAxes.includes('copy')) {
-      const axes = {
+    if (reqAxes.includes('copy') || reqAxes.includes('craft')) {
+      const axes: Record<string, any> = {
         design: {
           axis: 'design',
           score: scoring.score,
@@ -321,11 +333,18 @@ export async function onRequestPost({ request, env, waitUntil }) {
           patternsTotal: scoring.patternsTotal,
           patterns: scored,
         },
-        copy: scoreCopy(data.textContext || {}),
       };
+      if (reqAxes.includes('copy')) axes.copy = scoreCopy(data.textContext || {});
+      if (reqAxes.includes('craft') && data.craftSignals) {
+        axes.craft = scoreCraft(data.craftSignals);
+        result.craft = axes.craft;
+      }
       result.axes = axes;
-      const summaries = {};
-      for (const a of reqAxes) if (axes[a]) summaries[a] = axes[a];
+      const summaries: Record<string, any> = {};
+      for (const a of reqAxes) {
+        if (a === 'craft') continue;
+        if (axes[a]) summaries[a] = axes[a];
+      }
       Object.assign(result, combineAxes(summaries));
     }
 
@@ -347,11 +366,23 @@ export async function onRequestPost({ request, env, waitUntil }) {
         );
         if (res?.ok) mdText = await readCapped(res, 200_000);
       }
-      result.system = scoreSystemCompliance(
-        mdText ? parseDesignMd(mdText) : null,
-        data.systemContext
-      );
+      const parsedMd = mdText ? parseDesignMd(mdText) : null;
+      result.system = scoreSystemCompliance(parsedMd, data.systemContext);
       result.system.source = mdText ? mdUrl : null;
+      if (parsedMd) Object.assign(result, applyDeclaredDesignWaivers(result, parsedMd));
+    }
+
+    // A non-full preset filters design patterns only. fullScore is that
+    // unfiltered design score. Copy, craft, AEO, and system are not rescored.
+    if (preset !== 'full') {
+      result.fullScore = scorePatterns(patterns).score;
+      const coverageAxes = [...reqAxes];
+      if (wantsSystem) coverageAxes.push('system');
+      const coverage = presetCoverage(preset, coverageAxes);
+      if (coverage.warning) {
+        result.presetWarning = coverage.warning;
+        result.presetNotApplied = coverage.notApplied;
+      }
     }
 
     // Persist a slim snapshot so the scan gets a shareable permalink (/r/:id),
@@ -403,6 +434,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
       }
     }
 
+    stampScanResult(result);
     if (cacheKey) {
       try {
         await env.RESULTS.put(cacheKey, JSON.stringify(result), { expirationTtl: 600 });

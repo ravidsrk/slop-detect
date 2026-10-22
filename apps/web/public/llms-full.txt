@@ -90,9 +90,9 @@ Response (abridged):
   "score": 34,
   "tier": "Heavy",
   "grade": "D",
-  "definitionsVersion": "2026.10",
+  "definitionsVersion": "2026.11",
   "patternsFlagged": 9,
-  "patternsTotal": 27,
+  "patternsTotal": 45,
   "patterns": [{ "id": "gradient_text", "weight": 6, "triggered": true }],
   "resultUrl": "https://slop-detect.com/r/ab12cd"
 }
@@ -106,7 +106,7 @@ Score whether AI engines can fetch, read & cite a page.
 { "url": "https://example.com" }
 ```
 
-Returns `{ score, tier, checks[] }`. Tiers: AI-Ready ≥80, Partial ≥50, Invisible <50.
+Returns `{ score, tier, checks[] }`. Tiers: Eligible ≥80, Partially Eligible ≥50, Restricted <50.
 
 ### GET /api/patterns
 
@@ -134,7 +134,8 @@ npm package: `slop-detect`.
 npx -y slop-detect-mcp
 ```
 
-Exposes `scan_page`, `check_aeo`, `check_design_system`, `fix_prompt` to any MCP
+Exposes `scan_page`, `check_aeo`, `check_design_system`, `fix_prompt`,
+`lint_design_md`, and `diff_design_md` to any MCP
 client (Claude Code, Cursor, Windsurf). Server card:
 https://slop-detect.com/.well-known/mcp/server-card.json
 

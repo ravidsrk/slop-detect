@@ -78,12 +78,12 @@ test('spec catalogue id sets and detail headings match the engine id sets exactl
   expect(tableIds(spec('system.md'))).toEqual(systemIds);
 });
 
-test('spec/system.md describes actual per-channel L-infinity color matching, not CIELAB delta-E', () => {
+test('spec/system.md describes perceptual Oklab color matching and CSS Color 4 parsing (#203)', () => {
   const sysDoc = spec('system.md');
-  expect(sysDoc).not.toMatch(/CIELAB|ΔE|delta[- ]?E/i);
-  expect(sysDoc).toMatch(/max\(\|ΔR\|,\s*\|ΔG\|,\s*\|ΔB\|\)/);
-  expect(sysDoc).toMatch(/\b10\b/);
-  expect(sysDoc).toMatch(/exact,?\s*case-insensitive string equality/i);
+  expect(sysDoc).toMatch(/Oklab/i);
+  expect(sysDoc).toMatch(/ΔE_OK\s*≤\s*0\.02/);
+  expect(sysDoc).toMatch(/0\.05/);
+  expect(sysDoc).toMatch(/parseColor/);
 });
 
 test('no unsourced prevalence figures or false pattern attributions in patterns.ts, fixes.ts, or spec/patterns.md', () => {

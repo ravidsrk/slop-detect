@@ -20,7 +20,7 @@ page matches many default-template patterns, not that it is bad.
 - [Brand & identity](https://slop-detect.com/brand): The design system, and the
   dogfood proof that this site passes its own detector.
 - [Pattern catalogue (JSON)](https://slop-detect.com/api/patterns): Every design
-  and copy pattern, with weights and the current definitions version (`2026.10`).
+  and copy pattern, with weights and the current definitions version (`2026.11`). Leaderboard rows stay on the measured 2026.10 corpus.
   Markdown twin: https://slop-detect.com/api/patterns.md.
 - [Blog](https://slop-detect.com/blog): research essays on how the score works,
   why fixed detectors decay, 2026.09 four-axis calibration, and AEO for
@@ -41,7 +41,7 @@ page matches many default-template patterns, not that it is bad.
   for the system axis, `--fail-on heavy` to gate CI, `--remote` to scan via the
   API with no local browser.
 - MCP server `slop-detect-mcp`: tools `scan_page`, `check_aeo`,
-  `check_design_system`, `fix_prompt`.
+  `check_design_system`, `fix_prompt`, `lint_design_md`, `diff_design_md`.
 
 ## Axes
 

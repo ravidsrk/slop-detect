@@ -5,6 +5,9 @@
 
 import { test, expect } from 'vitest';
 import { spawnSync } from 'node:child_process';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // The CLI is built to dist/; spawn the built binary (this test is an integration
@@ -14,6 +17,13 @@ const BIN = fileURLToPath(new URL('../dist/bin/slop.js', import.meta.url));
 function run(args) {
   return spawnSync('node', [BIN, ...args], { encoding: 'utf8' });
 }
+
+test('--help documents that a scan which cannot run exits 2', () => {
+  const r = run(['--help']);
+  expect(r.status).toBe(0);
+  expect(r.stdout).toMatch(/exits 2/);
+  expect(r.stdout).toMatch(/not a Clean score/);
+});
 
 test('--help exits 0 and lists the dynamic pattern catalogue', () => {
   const r = run(['--help']);
@@ -39,8 +49,10 @@ test('non-http(s) scheme is rejected before any scan (exit 2)', () => {
   }
 });
 
-// Exit-code contract: 0 = ok, 1 = scan ran but failed the --fail-on gate (the CI
-// signal), 2 = usage/argument error. Usage errors must NOT collide with the gate.
+// Exit-code contract: 0 = a score was produced, 1 = a scored page failed the
+// --fail-on / --fail-under gate, 2 = the scan could not run or the invocation
+// is invalid. Exit 2 must not be treated as Clean, and it must not collide
+// with the gate.
 test('no args prints help and exits 2 (usage error)', () => {
   const r = run([]);
   expect(r.status).toBe(2);
@@ -116,4 +128,99 @@ test('--init-design-md with --remote exits 2 before any scan', () => {
   const r = run(['https://example.com', '--remote', '--init-design-md']);
   expect(r.status).toBe(2);
   expect(r.stderr).toMatch(/--init-design-md requires local DOM token extraction/);
+});
+
+test('--init-tokens with --remote exits 2 before any scan', () => {
+  const r = run(['https://example.com', '--remote', '--init-tokens']);
+  expect(r.status).toBe(2);
+  expect(r.stderr).toMatch(/--init-tokens requires local DOM token extraction/);
+});
+
+test('--init-design-md together with --init-tokens exits 2', () => {
+  const r = run(['https://example.com', '--init-design-md', '--init-tokens']);
+  expect(r.status).toBe(2);
+  expect(r.stderr).toMatch(/Pass only one/);
+});
+
+test('--a11y with --remote exits 2 before any scan', () => {
+  const r = run(['https://example.com', '--remote', '--a11y']);
+  expect(r.status).toBe(2);
+  expect(r.stderr).toMatch(/--a11y runs axe-core in the local browser/);
+});
+
+test('--a11y without axe-core installed exits 2 before a scan', () => {
+  const r = run(['https://example.com', '--a11y']);
+  expect(r.status).toBe(2);
+  expect(r.stderr).toMatch(/axe-core is optional and off by default/);
+});
+
+test('--lint-design-md reports a broken ref and exits 1', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'slop-lint-'));
+  const file = join(dir, 'DESIGN.md');
+  writeFileSync(
+    file,
+    `---
+name: Broken
+colors:
+  bg: "#ffffff"
+components:
+  btn:
+    backgroundColor: "{colors.missing}"
+---
+`
+  );
+  const r = run(['--lint-design-md', file]);
+  expect(r.status).toBe(1);
+  expect(r.stdout).toMatch(/invalid/);
+  expect(r.stdout).toMatch(/broken-ref/);
+  const json = run(['--json', '--lint-design-md', file]);
+  expect(json.status).toBe(1);
+  expect(JSON.parse(json.stdout).valid).toBe(false);
+});
+
+test('--lint-design-md accepts a warning-only file and rejects a URL', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'slop-lint-ok-'));
+  const file = join(dir, 'DESIGN.md');
+  writeFileSync(
+    file,
+    `---
+name: Ok
+specVersion: "beta"
+colors:
+  ink: "#111111"
+typography:
+  body:
+    fontFamily: "Newsreader"
+---
+`
+  );
+  const r = run(['--lint-design-md', file]);
+  expect(r.status).toBe(0);
+  expect(r.stdout).toMatch(/valid/);
+  expect(r.stdout).toMatch(/spec-version-mismatch/);
+  const withUrl = run(['https://example.com', '--lint-design-md', file]);
+  expect(withUrl.status).toBe(2);
+  expect(withUrl.stderr).toMatch(/do not take a URL/);
+});
+
+test('--diff-design-md exits 1 on a token change and 0 when the files match', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'slop-diff-'));
+  const base = join(dir, 'base.md');
+  const head = join(dir, 'head.md');
+  const same = `---
+name: Brand
+colors:
+  ink: "#111111"
+---
+`;
+  writeFileSync(base, same);
+  writeFileSync(head, same);
+  const match = run(['--diff-design-md', base, head]);
+  expect(match.status).toBe(0);
+  expect(match.stdout).toMatch(/compatible/);
+  writeFileSync(head, same.replace('#111111', '#222222'));
+  const changed = run(['--diff-design-md', base, head]);
+  expect(changed.status).toBe(1);
+  expect(changed.stdout).toMatch(/breaking/);
+  expect(changed.stdout).toMatch(/changed colors.ink/);
 });

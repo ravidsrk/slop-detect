@@ -135,6 +135,18 @@ export const FIXES = {
     rule: 'No `text-transform: uppercase` with `letter-spacing` > 0 on section labels.',
   },
 
+  eyebrow_label: {
+    problem:
+      "Small uppercase or widely tracked eyebrow labels placed directly above every H2/H3 section heading ('FEATURES', 'HOW IT WORKS', 'WHY US') are a default template scaffold that adds visual clutter without hierarchy.",
+    fix: 'Remove repetitive section eyebrows and let the H2/H3 heading carry the section. If an eyebrow is needed on one key section, keep it sentence-case without wide tracking.',
+    alternatives: [
+      'Delete eyebrows above section headings and let H2 carry the hierarchy',
+      'Use sentence-case labels without wide letter-spacing on at most one section',
+      'Use simple section numbering only when order matters',
+    ],
+    rule: 'Do not place tracked or uppercase eyebrow labels above ≥60% of section headings.',
+  },
+
   perma_dark_mode: {
     problem:
       "Dark background + mid-grey body text (#a0a0a0 region, HSL saturation <15%, L 0.35–0.75) is the AI default for 'premium' feel. The mid-grey body text fails WCAG AA and signals 'I let v0 pick the colors'.",
@@ -555,6 +567,17 @@ const EVIDENCE_FORMATTERS = {
     if (sam) parts.push(`including ${sam}`);
     return parts.length ? parts.join(' — ') + '.' : null;
   },
+  eyebrow_label: (e) => {
+    const parts = [];
+    if (e.eyebrowCount != null && e.headingCount != null) {
+      parts.push(`${e.eyebrowCount}/${e.headingCount} section headings have an eyebrow label`);
+    }
+    const sam = fmtList(
+      Array.isArray(e.samples) ? e.samples.map((s) => (typeof s === 'string' ? s : s.text)) : []
+    );
+    if (sam) parts.push(`including ${sam}`);
+    return parts.length ? parts.join(' — ') + '.' : null;
+  },
   perma_dark_mode: (e) => {
     const parts = [];
     if (e.bodyDark) parts.push('body background is dark');
@@ -706,8 +729,16 @@ const EVIDENCE_FORMATTERS = {
 };
 
 export function formatEvidence(pattern) {
+  if (!pattern) return null;
   const formatter = EVIDENCE_FORMATTERS[pattern.id];
-  if (!formatter) return null;
+  if (!formatter) {
+    if (pattern.triggered && pattern.evidence) {
+      const sam = fmtList(pattern.evidence.samples);
+      if (sam) return `Detected ${pattern.label || pattern.id}: ${sam}.`;
+      return `Detected ${pattern.label || pattern.id} (${JSON.stringify(pattern.evidence).slice(0, 80)}).`;
+    }
+    return null;
+  }
   try {
     return formatter(pattern.evidence || {});
   } catch {
@@ -728,7 +759,7 @@ export function buildFixPrompt(result) {
   const designPatterns = result.patterns || [];
   const copyPatterns = (result.axes && result.axes.copy && result.axes.copy.patterns) || [];
   const allPatterns = [...designPatterns, ...copyPatterns];
-  const triggered = allPatterns.filter((p) => p.triggered);
+  const triggered = allPatterns.filter((p) => p.triggered && !p.waived);
   const passing = allPatterns.filter((p) => !p.triggered);
   const totalCount = allPatterns.length;
 
@@ -790,7 +821,7 @@ ${alts}
     : '';
 
   const aeoBlock = aeoFailed.length
-    ? `\n\n---\n\n## Agent-readiness (AEO) gaps (${result.aeo.score}/${result.aeo.maxScore || 100} · ${result.aeo.tier})\n\nThe following AEO checks failed or are missing. Fix them so AI answer engines (ChatGPT, Claude, Perplexity) can fetch, parse, and cite your page:\n\n` +
+    ? `\n\n---\n\n## Agent-readiness (AEO) gaps (${result.aeo.score}/${result.aeo.maxScore || 100} · ${result.aeo.tier})\n\nThe following AEO eligibility checks failed or are missing. Fix them so search and agent crawlers can fetch, index, and read your page without JavaScript:\n\n` +
       aeoFailed
         .map(
           (c) =>

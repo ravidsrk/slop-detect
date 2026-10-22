@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Template chrome sample</title>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Georgia, 'Times New Roman', serif; background: #ffffff; color: #1a1a1a; padding: 32px; }
+    .cta { display: inline-block; margin: 8px 12px 8px 0; padding: 12px 18px; background: #1a1a1a; color: #fff; text-decoration: none; } p { margin-bottom: 10px; }
+
+    .scan-floor { font-family: Georgia, "Times New Roman", serif; font-size: 16px; line-height: 1.5; color: #1a1a1a; background: transparent; margin-top: 24px; }
+    .scan-floor a { color: #1a1a1a; text-decoration: underline; margin-right: 16px; font-size: 16px; }
+    .scan-floor p { margin: 12px 0; max-width: 62ch; }
+  </style>
+</head>
+<body>
+<p>Portland · 1987</p>
+<p>Flour · weekly</p>
+<a class="cta" href="/catalogue">See the catalogue →</a>
+<a class="cta" href="/order">Order the sack →</a>
+<p>FLOUR — milled weekly</p>
+<p>SALT — packed daily</p>
+
+<!-- scan-floor: visible chrome so a focused fixture is not an empty page -->
+<nav class="scan-floor">
+  <a href="#about">About the mill</a>
+  <a href="#orders">Standing orders</a>
+  <a href="#desk">Call the desk</a>
+</nav>
+<section class="scan-floor">
+  <p>Orders are packed on weekdays and leave from the same warehouse that mills the flour.</p>
+  <p>Account notes stay in writing so a change made after noon waits until the next route.</p>
+</section>
+<footer class="scan-floor"><p>417 Front Street, Portland. The desk answers before noon.</p></footer>
+</body>
+</html>

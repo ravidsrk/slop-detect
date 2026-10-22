@@ -10,13 +10,26 @@ import {
   assemblePatternResults,
   scorePatterns,
   applyPreset,
+  presetCoverage,
+  buildSarifReport as buildCoreSarifReport,
   parseDesignMd,
   scoreSystemCompliance,
   scoreCopy,
+  scoreCraft,
+  measureMobileReflowOnPage,
   combineAxes,
+  applyDeclaredDesignWaivers,
+  formatAxeReport,
   SCAN_PAGE_WAIT,
   waitFontsReadyInPage,
+  DEFINITIONS_VERSION,
+  SCAN_SCHEMA_VERSION,
 } from '@slop-detect/core';
+
+const LOCAL_ENVIRONMENT = {
+  viewport: { width: 1280, height: 800 },
+  userAgent: 'Mozilla/5.0 SlopDetector/1.0 (+https://github.com/ravidsrk/slop-detect)',
+};
 
 // Options accepted by the scan entry points. All optional — the CLI fills in
 // whatever flags were passed. Shared with bin/slop.ts so the flag object and the
@@ -33,10 +46,44 @@ export interface ScanOptions {
   // includeSystem: true keep typechecking. Runtime equivalent: inject the
   // system extractor (also implied by designMd).
   includeSystem?: boolean;
+  // Optional axe-core report. Off unless the caller sets it. Never scored.
+  a11y?: boolean;
 }
 
 export function shouldIncludeSystem(opts: ScanOptions = {}) {
   return !!(opts.designMd || opts.includeSystem);
+}
+
+// F-07 (#262): axe-core is optional and off by default. The import stays
+// dynamic so a normal scan does not require the package. Findings are reported
+// separately and never change design, copy, craft, or Clean/Mild/Heavy.
+export async function loadAxeSource() {
+  let mod: any;
+  try {
+    // Non-literal so the CLI bundle does not require axe-core to be installed.
+    const spec = 'axe-core';
+    mod = await import(spec);
+  } catch {
+    throw new Error(
+      'axe-core is optional and off by default. Install it to use --a11y (`npm install axe-core`). The report never changes a score.'
+    );
+  }
+  const source = mod?.source || mod?.default?.source;
+  if (typeof source !== 'string' || source.length < 100) {
+    throw new Error('axe-core did not export a page script (expected axe.source).');
+  }
+  return source;
+}
+
+export async function runAxeOnPage(page, source: string) {
+  await page.addScriptTag({ content: source });
+  return page.evaluate(async () => {
+    const axe = (globalThis as any).axe;
+    if (!axe || typeof axe.run !== 'function') {
+      throw new Error('axe-core did not attach to the page.');
+    }
+    return axe.run(document, { resultTypes: ['violations'] });
+  });
 }
 
 // Playwright is heavy (pulls in a ~150 MB browser) and is ONLY needed for an
@@ -109,7 +156,7 @@ async function ensureChromium() {
 // Normalize the requested axes into a deduped, valid list. Default: design only.
 // Accepts an array (['design','copy']), 'all', or undefined.
 function normalizeAxes(axes) {
-  const VALID = ['design', 'copy'];
+  const VALID = ['design', 'copy', 'craft'];
   if (axes === 'all') return [...VALID];
   if (!Array.isArray(axes) || axes.length === 0) return ['design'];
   const out = axes.filter((a) => VALID.includes(a));
@@ -202,90 +249,7 @@ export async function aeoRemote(url, opts: ScanOptions = {}) {
 }
 
 export function buildSarifReport(results: any[]) {
-  const list = Array.isArray(results) ? results : [results];
-  const rulesMap = new Map<string, any>();
-  const sarifResults: any[] = [];
-
-  for (const r of list) {
-    if (!r || r.error || r.blocked) continue;
-    const uri = r.finalUrl || r.url || 'https://example.com';
-    const designPatterns = Array.isArray(r.patterns) ? r.patterns : [];
-    const copyPatterns = Array.isArray(r.axes?.copy?.patterns) ? r.axes.copy.patterns : [];
-    for (const p of [...designPatterns, ...copyPatterns]) {
-      if (!rulesMap.has(p.id)) {
-        rulesMap.set(p.id, {
-          id: p.id,
-          name: p.short || p.id,
-          shortDescription: { text: p.label || p.id },
-          defaultConfiguration: {
-            level: p.weight >= 6 ? 'error' : 'warning',
-          },
-          properties: {
-            axis: p.axis || 'design',
-            category: p.category || 'design',
-            weight: p.weight,
-          },
-        });
-      }
-      if (p.triggered) {
-        sarifResults.push({
-          ruleId: p.id,
-          level: p.weight >= 6 ? 'error' : 'warning',
-          message: {
-            text: `${p.label} (+${p.weight}) triggered on ${uri}`,
-          },
-          locations: [
-            {
-              physicalLocation: {
-                artifactLocation: { uri },
-              },
-            },
-          ],
-          properties: {
-            weight: p.weight,
-            axis: p.axis || 'design',
-            evidence: p.evidence || {},
-          },
-        });
-      }
-    }
-    if (Array.isArray(r.system?.drift)) {
-      for (const d of r.system.drift) {
-        const ruleId = `system.${d.id}`;
-        if (!rulesMap.has(ruleId)) {
-          rulesMap.set(ruleId, {
-            id: ruleId,
-            name: d.id,
-            shortDescription: { text: `DESIGN.md compliance: ${d.id}` },
-            defaultConfiguration: { level: 'warning' },
-          });
-        }
-        sarifResults.push({
-          ruleId,
-          level: 'warning',
-          message: { text: d.message },
-          locations: [{ physicalLocation: { artifactLocation: { uri } } }],
-        });
-      }
-    }
-  }
-
-  return {
-    $schema: 'https://json.schemastore.org/sarif-2.1.0.json',
-    version: '2.1.0',
-    runs: [
-      {
-        tool: {
-          driver: {
-            name: 'slop-detect',
-            informationUri: 'https://slop-detect.com',
-            rules: [...rulesMap.values()],
-          },
-        },
-        results: sarifResults,
-      },
-    ],
-  };
+  return buildCoreSarifReport(results);
 }
 
 export async function scanUrl(url, opts: ScanOptions = {}) {
@@ -331,6 +295,9 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
         patternsFlagged: 0,
         patternsTotal: PATTERNS.length,
         patterns: [],
+        definitionsVersion: DEFINITIONS_VERSION,
+        schemaVersion: SCAN_SCHEMA_VERSION,
+        environment: { ...LOCAL_ENVIRONMENT, chromium: browserVersion },
       };
       return result;
     }
@@ -341,6 +308,13 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
       console.warn(`slop-detect: ${patternsErrored} pattern extractor(s) failed`);
     }
 
+    // Optional axe pass while the page is still open. A missing axe-core
+    // install throws before any score is emitted. Blocked pages skip it.
+    let axeResults = null;
+    if (opts.a11y) {
+      axeResults = await runAxeOnPage(page, await loadAxeSource());
+    }
+
     // Always extract every pattern (one cheap page eval), but score against the
     // selected preset's subset so the number — and the displayed pattern list —
     // reflect exactly what the caller asked for.
@@ -349,8 +323,8 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
     const scoring = scorePatterns(scored);
 
     // Which axes to compute. Default = design only (fully backward-compatible:
-    // top-level score/grade/patterns stay exactly as before). Opt into copy via
-    // opts.axes = ['design','copy'] or 'all'.
+    // top-level score/grade/patterns stay exactly as before). Opt into copy or
+    // craft via opts.axes. Craft never feeds the unified design/copy score.
     const reqAxes = normalizeAxes(opts.axes);
 
     result = {
@@ -365,6 +339,9 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
       patterns: scored,
       patternsErrored,
       browserVersion,
+      madeWith: data.madeWith ?? null,
+      schemaVersion: SCAN_SCHEMA_VERSION,
+      environment: { ...LOCAL_ENVIRONMENT, chromium: browserVersion },
     };
 
     // Multi-axis: attach per-axis summaries + a unified score when >1 axis asked.
@@ -383,9 +360,20 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
       if (reqAxes.includes('copy')) {
         axes.copy = scoreCopy(data.textContext || {});
       }
+      if (reqAxes.includes('craft') && data.craftSignals) {
+        data.craftSignals.mobile_reflow_failure = await measureMobileReflowOnPage(page);
+        axes.craft = scoreCraft(
+          data.craftSignals,
+          opts.a11y ? { enableAxe: true, axeResults } : {}
+        );
+        result.craft = axes.craft;
+      }
       result.axes = axes;
       const summaries = {};
-      for (const a of reqAxes) if (axes[a]) summaries[a] = axes[a];
+      for (const a of reqAxes) {
+        if (a === 'craft') continue;
+        if (axes[a]) summaries[a] = axes[a];
+      }
       Object.assign(result, combineAxes(summaries));
     }
 
@@ -394,10 +382,27 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
     // fonts/colors/radii. Reported separately from the slop score — it measures
     // alignment with the site's OWN system (higher is better), not slop.
     if (opts.designMd) {
-      result.system = scoreSystemCompliance(parseDesignMd(opts.designMd), data.systemContext);
+      const parsedDesign = parseDesignMd(opts.designMd);
+      result.system = scoreSystemCompliance(parsedDesign, data.systemContext);
+      if (parsedDesign) Object.assign(result, applyDeclaredDesignWaivers(result, parsedDesign));
+    }
+    if (opts.a11y) {
+      result.a11y = { axe: formatAxeReport(axeResults, { enabled: true }) };
     }
     if (shouldIncludeSystem(opts) && data.systemContext) {
       result.systemContext = data.systemContext;
+    }
+    // fullScore is the unfiltered design score. It is not rawScore (that field
+    // is the pre-waiver score) and it is omitted when the preset is already full.
+    if (preset !== 'full') {
+      result.fullScore = scorePatterns(patterns).score;
+      const coverageAxes = [...reqAxes];
+      if (opts.designMd) coverageAxes.push('system');
+      const coverage = presetCoverage(preset, coverageAxes);
+      if (coverage.warning) {
+        result.presetWarning = coverage.warning;
+        result.presetNotApplied = coverage.notApplied;
+      }
     }
 
     if (opts.screenshot) {

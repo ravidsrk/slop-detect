@@ -1,6 +1,6 @@
 ---
 name: slop-detect
-description: Score any landing page against the 27-pattern design-slop fingerprint, 9-pattern copy axis, DESIGN.md system compliance, and 8-check AEO readiness, then generate a deterministic fix prompt. Use when the user asks to audit a landing page for default-template design or copy patterns, verify DESIGN.md compliance, check if AI answer engines can read/cite a site (AEO), or get specific feedback to clean up a generic site.
+description: Score any landing page against the versioned design-slop fingerprint, copy axis, DESIGN.md system compliance, craft floor, and AEO readiness, then generate a deterministic fix prompt. Use when the user asks to audit a landing page for default-template design or copy patterns, verify DESIGN.md compliance, check if answer engines can read a site (AEO), or get specific feedback to clean up a generic site.
 license: MIT
 metadata:
   author: ravidsrk
@@ -12,11 +12,12 @@ compatibility: Requires internet access. Uses the public slop-detect.com API (no
 
 # slop-detect
 
-Score any landing page against the versioned four-axis telemetry engine (`definitions@2026.10`):
-1. **Design Slop (27 CSS/DOM patterns)** — deterministic live-DOM inspection derived from Adrian Krebs's study of 1,400 Show HN submissions, Meng To's Aura study, and Impeccable typography/contrast rules.
-2. **Copy Slop (9 prose patterns)** — density-calibrated text analysis catching LLM buzzwords, em-dash overload, "not just X — it's Y" antithesis, tricolons, and formulaic openers/closers.
-3. **System Axis (`DESIGN.md` compliance)** — relative per-site audit checking whether the live DOM honors the site's own declared `DESIGN.md` tokens (fonts, palette, corner radii).
-4. **AEO Axis (8 crawler & citation checks)** — verifies whether AI answer engines (`GPTBot`, `ClaudeBot`, `PerplexityBot`, `Google-Extended`) can crawl, parse, and cite the page.
+Score any landing page against the versioned telemetry engine (`definitions@2026.11`):
+1. **Design Slop (45 CSS/DOM patterns)** — deterministic live-DOM inspection derived from Adrian Krebs's study of 1,400 Show HN submissions, Meng To's Aura study, and Impeccable typography/contrast rules. Weight 0 review rules add no points.
+2. **Copy Slop (26 prose patterns)** — density-calibrated text analysis. Weight 0 review rules add no points.
+3. **System Axis (`DESIGN.md` compliance)** — relative per-site audit checking whether the live DOM honors the site's own declared `DESIGN.md` or DTCG tokens.
+4. **AEO Axis (16 checks)** — whether a page can be fetched and read. The scanner uses its own user agent and does not impersonate vendor crawlers. Tiers are Eligible, Partially Eligible, and Restricted.
+5. **Craft floor (11 checks)** — a separate score. It never feeds design, copy, or Clean / Mild / Heavy.
 
 This skill is the **fast path**. When the user pastes a URL and asks anything about its design quality, default-template pattern overlap, copywriting tells, `DESIGN.md` drift, AEO readiness, or how to clean it up, call the tool rather than eyeballing the page yourself.
 
@@ -33,66 +34,109 @@ Trigger phrases (non-exhaustive):
 - "design slop audit", "slop score"
 - Any URL pasted with a vague "what do you think of this?" — run a scan first
 
-## Four-axis catalogue (`definitions@2026.10`)
+## Four-axis catalogue (`definitions@2026.11`)
 
-### Axis 1: The 27 design patterns (lower score = cleaner)
+The live counts below come from the engine. Weight 0 rules are listed and add no points. Published leaderboard scores stay on definitions 2026.10 until a re-score.
 
-| # | ID | Pattern | Weight | Tell |
-|---|---|---|---|---|
-| 1 | `slop_fonts` | Slop fonts | 8 | Inter / Geist / Space Grotesk / Plus Jakarta Sans / Outfit / Instrument Serif italic accent |
-| 2 | `purple_accent` | VibeCode Purple | 8 | Indigo–violet (HSL 240–295°, ≥35% sat) filled CTAs (`indigo-600`, `violet-600`) |
-| 3 | `gradient_text` | Hero gradient text | 6 | H1/H2 with `background-clip: text` + gradient |
-| 4 | `gradient_backgrounds` | Gradient backgrounds | 4 | ≥5 visible elements with CSS gradient backgrounds |
-| 5 | `accent_stripe` | Accent stripe | 6 | Cards with thick colored top/left border only |
-| 6 | `glassmorphism` | Glassmorphism | 4 | `backdrop-filter: blur()` on ≥2 non-nav translucent layers |
-| 7 | `colored_glows` | Colored glows | 4 | Box-shadows with ≥24px blur + chromatic color |
-| 8 | `centered_hero` | Centered hero | 4 | H1 centered, ≥28px, in a slop font |
-| 9 | `hero_eyebrow_pill` | Eyebrow pill | 5 | Rounded pill badge above H1 ("Now in beta", "New", "Introducing") |
-| 10 | `all_caps_labels` | All-caps labels | 3 | `text-transform: uppercase` section labels |
-| 11 | `perma_dark_mode` | Perma-dark mode | 4 | Dark canvas with mid-grey body text and no theme toggle |
-| 12 | `icon_card_grid` | Icon card grid | 4 | ≥3 identical feature cards with icon-on-top |
-| 13 | `numbered_steps` | Numbered steps | 3 | "1 · 2 · 3" step sequences |
-| 14 | `stat_banner` | Stat banner | 3 | Big-number vanity stat row ("10k+", "99.9%") |
-| 15 | `faq_accordion` | FAQ accordion | 2 | ≥3 accordion items in the lower half |
-| 16 | `gradient_letter_avatars` | Gradient avatars | 5 | Letter-only testimonial avatars on gradient fills |
-| 17 | `bento_grid` | Bento grid | 4 | Mixed-span rounded feature card wall |
-| 18 | `aurora_mesh_gradient` | Aurora blobs | 5 | Large blurred absolute/fixed radial/conic gradient backdrops |
-| 19 | `ai_sparkle_badges` | AI sparkles | 3 | ≥2 ✨ characters or `lucide-sparkles` SVGs |
-| 20 | `cream_default_bg` | Cream bg | 7 | Warm off-white / beige default page surface |
-| 21 | `low_contrast_text` | Low contrast | 7 | Body copy contrast below WCAG AA (4.5:1) on light surface |
-| 22 | `crushed_tracking` | Crushed tracking | 5 | Display headings tracked tighter than `-0.05em` |
-| 23 | `gray_on_color` | Gray-on-color | 4 | Neutral grey text sitting on a chromatic surface |
-| 24 | `oversized_hero_h1` | Oversized H1 | 4 | Long headline (≥40 chars) set at ≥72px |
-| 25 | `nested_cards` | Nested cards | 4 | Card-like element nested inside a card-like ancestor |
-| 26 | `wide_body_tracking` | Wide tracking | 3 | Body copy letter-spacing above `0.05em` |
-| 27 | `flat_type_hierarchy` | Flat hierarchy | 3 | ≥3 font sizes with max/min ratio below `2.0×` |
+### Axis 1: The 45 design patterns (lower score = cleaner)
+
+Weight 0 rows are in the catalogue and add no points until a measured promotion. Gray-on-color and wide body tracking are craft-floor checks, not design patterns.
+
+| # | ID | Pattern | Weight | Status |
+| --- | --- | --- | --- | --- |
+| 1 | `slop_fonts` | Slop fonts | 8 | decaying |
+| 2 | `slop_fonts_2026` | 2026 slop fonts | 0 | review |
+| 3 | `purple_accent` | Vibe purple | 4 | decaying |
+| 4 | `gradient_text` | Gradient text | 6 | active |
+| 5 | `gradient_backgrounds` | Gradient bgs | 4 | active |
+| 6 | `accent_stripe` | Accent stripe | 6 | active |
+| 7 | `accent_stripe_2026` | Accent stripe 2026 | 0 | review |
+| 8 | `glassmorphism` | Glass | 4 | active |
+| 9 | `colored_glows` | Colored glows | 4 | active |
+| 10 | `centered_hero` | Centered hero | 4 | active |
+| 11 | `hero_eyebrow_pill` | Eyebrow pill | 5 | active |
+| 12 | `all_caps_labels` | All-caps (retired) | 0 | retired |
+| 13 | `eyebrow_label` | Eyebrow labels | 0 | review |
+| 14 | `perma_dark_mode` | Perma dark | 4 | active |
+| 15 | `icon_card_grid` | Icon cards | 4 | active |
+| 16 | `numbered_steps` | Numbered steps | 3 | active |
+| 17 | `stat_banner` | Stat banner | 3 | active |
+| 18 | `faq_accordion` | FAQ | 2 | active |
+| 19 | `gradient_letter_avatars` | Letter avatars | 5 | active |
+| 20 | `bento_grid` | Bento grid | 4 | active |
+| 21 | `aurora_mesh_gradient` | Aurora blobs | 5 | active |
+| 22 | `ai_sparkle_badges` | AI sparkles | 3 | active |
+| 23 | `cream_default_bg` | Cream bg | 7 | active |
+| 24 | `low_contrast_text` | Low contrast | 7 | active |
+| 25 | `crushed_tracking` | Crushed tracking | 5 | active |
+| 26 | `oversized_hero_h1` | Oversized H1 | 4 | active |
+| 27 | `nested_cards` | Nested cards | 4 | active |
+| 28 | `flat_type_hierarchy` | Flat hierarchy | 3 | active |
+| 29 | `scaffold_defaults_unedited` | Scaffold defaults | 0 | review |
+| 30 | `hero_accent_word` | Hero accent word | 0 | review |
+| 31 | `template_chrome_2026` | 2026 chrome | 0 | review |
+| 32 | `uniform_radius_shadow` | Uniform radius/shadow | 0 | review |
+| 33 | `editorial_cream_kit` | Editorial kit | 0 | review |
+| 34 | `template_page_order` | Page order | 0 | review |
+| 35 | `pulsing_status_badge` | Pulsing badge | 0 | review |
+| 36 | `display_mono_heading` | Mono heading | 0 | review |
+| 37 | `chip_rainbow` | Chip rainbow | 0 | review |
+| 38 | `fake_macos_terminal` | Fake terminal | 0 | review |
+| 39 | `fake_logo_bar` | Fake logo bar | 0 | review |
+| 40 | `infinite_marquee_ticker` | Marquee ticker | 0 | review |
+| 41 | `fade_up_monoculture` | Fade-up monoculture | 0 | review |
+| 42 | `cursor_spotlight_gradient` | Cursor spotlight | 0 | review |
+| 43 | `uniform_card_hover` | Uniform hover | 0 | review |
+| 44 | `section_template_repetition` | Section repetition | 0 | review |
+| 45 | `unthemed_browser_surfaces` | Unthemed surfaces | 0 | review |
 
 **Design Tiers:** `Clean` (0–9) · `Mild` (10–27) · `Heavy` (≥28).
 
-### Axis 2: The 9 copy patterns (lower score = cleaner)
+### Axis 2: The 26 copy patterns (lower score = cleaner)
 
-| # | ID | Pattern | Weight | Tell |
-|---|---|---|---|---|
-| 1 | `buzzword_density` | AI buzzword density | 7 | High density of *leverage, seamless, robust, elevate, delve, tapestry, unleash* |
-| 2 | `em_dash_overload` | Em-dash overload | 5 | Excess `—` clauses per 1,000 words |
-| 3 | `antithesis_construction` | "Not just X — it's Y" | 6 | Negative-parallelism antithesis framing |
-| 4 | `filler_openers` | Generic filler openers | 5 | *"In today's fast-paced world…"* throat-clearing |
-| 5 | `formulaic_closers` | Formulaic closers | 4 | *"In conclusion"*, *"In summary"*, *"Ultimately"* sign-offs |
-| 6 | `rule_of_three` | Rule-of-three tricolons | 4 | Repeated *"fast, reliable, and scalable"* adjective cadence |
-| 7 | `whether_youre` | "Whether you're X or Y" | 3 | *"Whether you're a solo founder or Fortune 500…"* |
-| 8 | `unicode_artifacts` | Invisible Unicode artifacts | 4 | Zero-width spaces, narrow no-break spaces, or math-alnum fake-bold letters |
-| 9 | `emoji_bullet_headers` | Emoji bullet headers | 3 | Feature lists/headings led by 🚀 ✅ ✨ ⚡ 💡 |
+| # | ID | Pattern | Weight | Status |
+| --- | --- | --- | --- | --- |
+| 1 | `buzzword_density` | Buzzwords | 7 | active |
+| 2 | `em_dash_overload` | Em-dashes | 2 | decaying |
+| 3 | `antithesis_construction` | Not-just-X | 6 | rising |
+| 4 | `filler_openers` | Filler opener | 5 | decaying |
+| 5 | `formulaic_closers` | Closers | 4 | historical |
+| 6 | `rule_of_three` | Rule of three | 4 | decaying |
+| 7 | `whether_youre` | Whether-you | 3 | active |
+| 8 | `unicode_artifacts` | Unicode tells | 0 | retired |
+| 9 | `emoji_bullet_headers` | Emoji bullets | 3 | active |
+| 10 | `hidden_tag_characters` | Hidden tag chars | 0 | review |
+| 11 | `invisible_characters` | Invisible chars | 0 | review |
+| 12 | `fake_bold_math_alnum` | Fake-bold Unicode | 4 | active |
+| 13 | `chatbot_markup_leak` | Chatbot markup | 0 | review |
+| 14 | `chatbot_reply_residue` | Reply residue | 0 | review |
+| 15 | `ai_referral_utm_links` | AI UTM links | 0 | review |
+| 16 | `unfilled_placeholders` | Placeholders | 0 | review |
+| 17 | `leaked_markdown` | Raw Markdown | 0 | review |
+| 18 | `structural_fake_social_proof` | Fake social proof | 0 | review |
+| 19 | `bare_antithesis` | Bare antithesis | 0 | review |
+| 20 | `emoji_heading_ratio` | Emoji ratio | 0 | review |
+| 21 | `announced_structure` | Announced structure | 0 | review |
+| 22 | `restated_thesis_closer` | Restated thesis | 0 | review |
+| 23 | `context_leak_copy` | Context leak | 0 | review |
+| 24 | `trailing_participial_clauses` | Participial tails | 0 | review |
+| 25 | `sentence_length_uniformity` | Sentence uniformity | 0 | review |
+| 26 | `excess_vocabulary_log_odds` | Log-odds vocab | 0 | review |
 
 **Copy Tiers:** `Clean` (0–7) · `Mild` (8–19) · `Heavy` (≥20).
 
 ### Axis 3: System compliance (`DESIGN.md`) (higher score = better)
 
-Compares live DOM tokens against `<origin>/DESIGN.md` (`Aligned` ≥80 · `Drifting` 50–79 · `Off-system` <50).
+Compares live DOM tokens against `<origin>/DESIGN.md` or a DTCG `tokens.json` (9 checks). `Aligned` ≥80 · `Drifting` 50–79 · `Off-system` <50.
 
-### Axis 4: AEO readiness (8 checks, higher score = better)
+### Axis 4: AEO readiness (16 checks, higher score = better)
 
-`html.reachable` (10 pts, required) · `bot.notBlocked` (25 pts, required) · `robots.aiAllowed` (20 pts, required) · `html.indexable` (15 pts, required) · `md.twin` (10 pts, recommended) · `html.linkAlternate` (8 pts, recommended) · `site.llmsTxt` (7 pts, recommended) · `html.vary` (5 pts, recommended).
-**AEO Tiers:** `AI-Ready` (≥80) · `Partial` (50–79) · `Invisible` (<50).
+`html.reachable` (10 pts, required) · `edge.access` (20 pts, required) · `robots.searchAllowed` (20 pts, required) · `html.indexable` (12 pts, required) · `ai.previewControls` (8 pts, required) · `html.serverTextCoverage` (15 pts, required) · `md.twin` (6 pts, recommended) · `html.linkAlternate` (3 pts, recommended) · `site.llmsTxt` (2 pts, recommended) · `html.vary` (4 pts, recommended) · `ai.manipulation` (0 pts, info) · `agent.operability` (0 pts, info) · `agent.discovery` (0 pts, info) · `ai.usagePolicy` (0 pts, info) · `content.dates` (0 pts, info) · `jsonld.hygiene` (0 pts, info).
+**AEO Tiers:** `Eligible` (≥80) · `Partially Eligible` (50–79) · `Restricted` (<50). The scanner uses its own user agent and does not pretend to be Googlebot, GPTBot, or any other vendor crawler.
+
+### Craft floor (11 checks)
+
+A separate 0–100 floor. Findings never feed design, copy, or Clean / Mild / Heavy. Opt in with `--craft`. Weight 0 review checks add nothing.
 
 ## How to use it
 
@@ -117,20 +161,26 @@ curl -s -X POST -H 'Content-Type: application/json' \
 
 ### 2. MCP Server (`slop-detect-mcp`)
 
-Exposes tools (`scan_page`, `check_aeo`, `check_design_system`, `fix_prompt`), workflow prompts (`audit_landing_page`, `deslop_and_verify`), and spec resources (`slop://spec/patterns`, `slop://spec/design-md-template`) directly to MCP-capable agents:
+Exposes tools (`scan_page`, `check_aeo`, `check_design_system`, `fix_prompt`, `lint_design_md`, `diff_design_md`), workflow prompts (`audit_landing_page`, `deslop_and_verify`), and spec resources (`slop://spec/patterns`, `slop://spec/design-md-template`, `slop://spec/aeo`) directly to MCP-capable agents:
 
 ```bash
 npx -y slop-detect-mcp
+npx -y slop-detect-mcp --local
 ```
+
+`--local` scores `localhost` and `file://` with Playwright and does not call slop-detect.com. It needs the `slop-detect` package installed. The default server still uses the hosted API. `packages/mcp/hooks/scan-local.mjs` is the matching Claude Code PostToolUse / Stop command. Set `SLOP_LOCAL_URL` to the dev server.
 
 ### 3. CLI (`slop-detect`)
 
 ```bash
 npx slop-detect https://example.com
-npx slop-detect https://example.com --copy --aeo --design-md auto
+npx slop-detect https://example.com --copy --craft --aeo --design-md auto
 npx slop-detect https://example.com --fail-on heavy --fail-under B
 npx slop-detect https://example.com --sarif > slop.sarif
 npx slop-detect https://example.com --init-design-md > DESIGN.md
+npx slop-detect https://example.com --init-tokens > tokens.json
+npx slop-detect --lint-design-md ./DESIGN.md
+npx slop-detect --diff-design-md ./base/DESIGN.md ./head/DESIGN.md
 npx slop-detect https://example.com --fix-prompt > fix.md
 npx slop-detect https://example.com --remote --json
 ```

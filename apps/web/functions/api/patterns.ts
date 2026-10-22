@@ -10,42 +10,48 @@ import {
   COPY_PATTERNS,
   AEO_CHECKS,
   SYSTEM_CHECKS,
+  CRAFT_CHECKS,
   PRESETS,
   DEFINITIONS_VERSION,
 } from '@slop-detect/core';
 
+function lifecycle(p: any, extra: Record<string, unknown> = {}) {
+  return {
+    id: p.id,
+    label: p.label,
+    short: p.short ?? null,
+    category: p.category || extra.category || null,
+    weight: p.weight,
+    since: p.since || extra.since || null,
+    status: p.status || 'active',
+    evidenceGrade: p.evidenceGrade ?? null,
+    era: p.era ?? null,
+    modelFamilies: p.modelFamilies ?? [],
+    lastValidatedIn: p.lastValidatedIn ?? null,
+    likelihoodRatio: p.likelihoodRatio ?? null,
+    fpRate: p.fpRate ?? null,
+    fpRatePre2022: p.fpRatePre2022 ?? null,
+    ...extra,
+  };
+}
+
 export async function onRequestGet() {
-  const patterns = PATTERNS.map((p) => ({
-    id: p.id,
-    label: p.label,
-    short: p.short,
-    category: p.category || null,
-    weight: p.weight,
-    since: p.since || 'baseline',
-  }));
+  const patterns = PATTERNS.map((p) => lifecycle(p, { since: p.since || 'baseline' }));
 
-  const copyPatterns = (COPY_PATTERNS as any[]).map((p) => ({
-    id: p.id,
-    label: p.label,
-    short: p.short,
-    category: p.category || 'copy',
-    weight: p.weight,
-    since: p.since || '2026.08',
-  }));
+  const copyPatterns = (COPY_PATTERNS as any[]).map((p) =>
+    lifecycle(p, { category: p.category || 'copy', since: p.since || '2026.08' })
+  );
 
-  const aeoChecks = (AEO_CHECKS as any[]).map((c) => ({
-    id: c.id,
-    label: c.label,
-    severity: c.severity || 'recommended',
-    required: c.severity === 'required',
-    weight: c.weight,
-  }));
+  const aeoChecks = (AEO_CHECKS as any[]).map((c) =>
+    lifecycle(c, {
+      severity: c.severity || 'recommended',
+      required: c.severity === 'required',
+    })
+  );
 
-  const systemChecks = SYSTEM_CHECKS.map((c) => ({
-    id: c.id,
-    label: c.label,
-    weight: c.weight,
-  }));
+  const systemChecks = SYSTEM_CHECKS.map((c) => lifecycle(c));
+
+  const craftChecks = CRAFT_CHECKS.map((c) => lifecycle(c));
 
   return new Response(
     JSON.stringify({
@@ -58,6 +64,8 @@ export async function onRequestGet() {
       aeoChecks,
       systemCount: systemChecks.length,
       systemChecks,
+      craftCount: craftChecks.length,
+      craftChecks,
       presets: Object.keys(PRESETS),
     }),
     {

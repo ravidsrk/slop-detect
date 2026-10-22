@@ -79,14 +79,15 @@ test('primaryFamily skips generic families and quotes', () => {
   expect(primaryFamily('sans-serif')).toBe(null);
 });
 
-test('parseCssColor handles hex (3/6), rgb()/rgba(), and hsl()/hsla()', () => {
+test('parseCssColor handles hex (3/6), rgb()/rgba(), hsl()/hsla(), and CSS Color 4 oklch() (#203)', () => {
   expect(parseCssColor('#fff')).toEqual([255, 255, 255]);
   expect(parseCssColor('#B8422E')).toEqual([184, 66, 46]);
   expect(parseCssColor('rgb(184, 66, 46)')).toEqual([184, 66, 46]);
   expect(parseCssColor('rgba(184,66,46,0.9)')).toEqual([184, 66, 46]);
   expect(parseCssColor('hsl(0, 0%, 100%)')).toEqual([255, 255, 255]);
   expect(parseCssColor('hsla(148, 69%, 39%, 1)')).toEqual([31, 168, 95]);
-  expect(parseCssColor('oklch(62% 0.18 250)')).toBe(null);
+  expect(parseCssColor('oklch(62% 0.18 250)')).toEqual([0, 137, 237]);
+  expect(parseCssColor('not-a-color')).toBe(null);
 });
 
 // ── scoring ──────────────────────────────────────────────────────────────────
@@ -218,7 +219,7 @@ test('a page passes against the DESIGN.md generated from it, even with a wide pa
   expect(drifted.drift.some((d) => d.id === 'colors.cta')).toBe(true);
 });
 
-test('comparator matches spec/system.md: per-channel RGB tolerance and distinct-radii majority', () => {
+test('comparator matches spec/system.md: Oklab ΔE tolerance and distinct-radii majority (#203)', () => {
   const md = `---
 colors:
   brand: "#646464"
@@ -229,16 +230,16 @@ rounded:
   const parsed = parseDesignMd(md);
   const check = (observed, id) =>
     scoreSystemCompliance(parsed, observed).checks.find((c) => c.id === id).status;
-  // CTA: L∞ ≤ 10 on every channel.
-  expect(check({ ctas: [{ bg: 'rgb(110, 90, 110)' }] }, 'colors.cta')).toBe('pass');
-  expect(check({ ctas: [{ bg: 'rgb(111, 100, 100)' }] }, 'colors.cta')).toBe('fail');
+  // CTA: Oklab ΔE <= 0.02 is a match; ΔE > 0.05 is off-palette fail.
+  expect(check({ ctas: [{ bg: 'rgb(102, 100, 100)' }] }, 'colors.cta')).toBe('pass');
+  expect(check({ ctas: [{ bg: 'rgb(160, 80, 80)' }] }, 'colors.cta')).toBe('fail');
   // One off-palette CTA fails the whole check.
   expect(
     check({ ctas: [{ bg: 'rgb(100, 100, 100)' }, { bg: 'rgb(0, 0, 0)' }] }, 'colors.cta')
   ).toBe('fail');
-  // Surface + headings: tolerance 14.
-  expect(check({ surface: 'rgb(114, 86, 100)' }, 'colors.surface')).toBe('pass');
-  expect(check({ surface: 'rgb(115, 100, 100)' }, 'colors.surface')).toBe('fail');
+  // Surface: Oklab match/near-miss passes; off-palette fails.
+  expect(check({ surface: 'rgb(104, 98, 100)' }, 'colors.surface')).toBe('pass');
+  expect(check({ surface: 'rgb(180, 100, 100)' }, 'colors.surface')).toBe('fail');
   // Headings fail only when MORE than half are off-palette.
   const heads = (colors) => ({ headings: colors.map((color) => ({ tag: 'H2', color })) });
   expect(check(heads(['rgb(100,100,100)', 'rgb(0,0,0)']), 'colors.headings')).toBe('pass');

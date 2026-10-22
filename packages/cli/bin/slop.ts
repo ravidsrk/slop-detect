@@ -7,7 +7,16 @@
 // Scores any URL against the AI-design-slop fingerprint and emits a
 // pretty terminal report or a machine-readable JSON blob.
 
-import { scanUrl, scanRemote, aeoRemote, loadDesignMd, buildSarifReport } from '../src/index.js';
+import { readFileSync } from 'node:fs';
+import {
+  scanUrl,
+  scanRemote,
+  aeoRemote,
+  loadDesignMd,
+  loadAxeSource,
+  buildSarifReport,
+  exitCodeForScanResults,
+} from '../src/index.js';
 import type { ScanOptions } from '../src/index.js';
 import {
   isPreset,
@@ -17,8 +26,32 @@ import {
   GRADE_BANDS,
   runAeoChecks,
   buildFixPrompt,
+  buildAvoidList,
   generateDesignMd,
+  extractDtcgTokens,
+  lintDesignMd,
+  diffDesignMd,
+  stampScanResult,
+  formatSiteSummary,
+  isReportFormat,
+  compareScans,
+  aggregateRuns,
+  presetCoverage,
 } from '@slop-detect/core';
+import { applyInitPlan, parseProviders, planInitFiles } from '../src/init-project.js';
+import {
+  avoidListWithinCap,
+  diffSavedScans,
+  discoverRenderedSite,
+  formatScanDocument,
+  pathExists,
+  readCopyDir,
+  readJsonFile,
+  siteCopyReport,
+  siteSummaryDocument,
+  writeAeoFixes,
+  writeBaseline,
+} from '../src/offline.js';
 
 const CLI_VERSION = '0.8.0';
 const args = process.argv.slice(2);
@@ -28,6 +61,10 @@ const flags = {
   sarif: false,
   fixPrompt: false,
   initDesignMd: false,
+  initTokens: false,
+  lintDesignMd: null as string | null,
+  diffDesignMd: null as [string, string] | null,
+  a11y: false,
   screenshot: false,
   verbose: false,
   preset: 'full',
@@ -40,12 +77,33 @@ const flags = {
   api: null as string | null,
   designMd: null as string | null,
   timeout: null as number | null,
+  site: null as number | null,
+  siteCopy: null as number | null,
+  copyDir: null as string | null,
+  brief: false,
+  briefFile: null as string | null,
+  diffScan: null as [string, string] | null,
+  compareTo: null as string | null,
+  compareCurrent: null as string | null,
+  failOnRegression: false,
+  maxDelta: 0,
+  saveBaseline: null as string | null,
+  runs: null as number | null,
+  aggregate: 'median' as 'median' | 'pessimistic',
+  format: null as string | null,
+  emitAeoFixes: null as string | null,
+  origin: null as string | null,
+  siteName: null as string | null,
+  init: false,
+  initProviders: null as string | null,
+  initScope: 'project',
+  initCi: null as string | null,
+  noHooks: false,
+  initDir: null as string | null,
 };
 
-// Tier severity ordering for --fail-on. A scan exits non-zero when its tier is
-// at or above the requested threshold. 'blocked'/'error' always count as failures
-// regardless of threshold (you asked us to gate, we couldn't even score).
-const TIER_RANK = { Clean: 0, Mild: 1, Heavy: 2 };
+// Exit codes live in exitCodeForScanResults: 0 scored, 1 over the gate, 2 could
+// not scan. Exit 2 is never a Clean score.
 const VALID_FAIL_ON = ['mild', 'heavy'];
 
 // Parse --fail-under <grade|score> into a max allowed slop score (0..100).
@@ -62,7 +120,7 @@ function parseFailUnder(raw: string | undefined): { maxScore: number; label: str
   return null;
 }
 
-const VALID_AXES = ['design', 'copy'];
+const VALID_AXES = ['design', 'copy', 'craft'];
 function parseAxes(val) {
   if (!val) return null;
   if (val === 'all') return [...VALID_AXES];
@@ -77,18 +135,45 @@ function parseAxes(val) {
   return out;
 }
 
+function parseSampleSize(raw: string | undefined, flag: string): number {
+  const value = Number(raw);
+  if (!raw || String(raw).startsWith('--') || !Number.isInteger(value) || value < 1 || value > 15) {
+    console.error(`${flag} needs an integer from 1 to 15.`);
+    process.exit(2);
+  }
+  return value;
+}
+
 for (let i = 0; i < args.length; i++) {
   const a = args[i];
   if (a === '--json' || a === '-j') flags.json = true;
   else if (a === '--sarif') flags.sarif = true;
   else if (a === '--fix-prompt' || a === '--fix') flags.fixPrompt = true;
   else if (a === '--init-design-md') flags.initDesignMd = true;
-  else if (a === '--screenshot') flags.screenshot = true;
+  else if (a === '--init-tokens') flags.initTokens = true;
+  else if (a === '--a11y') flags.a11y = true;
+  else if (a === '--lint-design-md' || a.startsWith('--lint-design-md=')) {
+    const val = a.startsWith('--lint-design-md=') ? a.slice('--lint-design-md='.length) : args[++i];
+    if (!val || val.startsWith('--')) {
+      console.error('--lint-design-md needs a local DESIGN.md path.');
+      process.exit(2);
+    }
+    flags.lintDesignMd = val;
+  } else if (a === '--diff-design-md') {
+    const base = args[++i];
+    const head = args[++i];
+    if (!base || !head || base.startsWith('--') || head.startsWith('--')) {
+      console.error('--diff-design-md needs two local paths: <base> <head>.');
+      process.exit(2);
+    }
+    flags.diffDesignMd = [base, head];
+  } else if (a === '--screenshot') flags.screenshot = true;
   else if (a === '--verbose' || a === '-v') flags.verbose = true;
   else if (a === '--version' || a === '-V') {
     console.log(`slop-detect ${CLI_VERSION} (defs ${DEFINITIONS_VERSION})`);
     process.exit(0);
-  } else if (a === '--copy') flags.axes = ['design', 'copy'];
+  } else if (a === '--copy') flags.axes = [...new Set([...flags.axes, 'copy'])];
+  else if (a === '--craft') flags.axes = [...new Set([...flags.axes, 'craft'])];
   else if (a === '--aeo') flags.aeo = true;
   else if (a === '--remote') flags.remote = true;
   else if (a === '--api' || a.startsWith('--api=')) {
@@ -153,6 +238,100 @@ for (let i = 0; i < args.length; i++) {
       process.exit(2);
     }
     flags.timeout = val;
+  } else if (a === '--site' || a.startsWith('--site=')) {
+    const raw = a.startsWith('--site=') ? a.slice('--site='.length) : args[++i];
+    flags.site = parseSampleSize(raw, '--site');
+  } else if (a === '--site-copy' || a.startsWith('--site-copy=')) {
+    const raw = a.startsWith('--site-copy=') ? a.slice('--site-copy='.length) : args[++i];
+    flags.siteCopy = parseSampleSize(raw, '--site-copy');
+  } else if (a === '--copy-dir' || a.startsWith('--copy-dir=')) {
+    const val = a.startsWith('--copy-dir=') ? a.slice('--copy-dir='.length) : args[++i];
+    if (!val || val.startsWith('--')) {
+      console.error('--copy-dir needs a directory of HTML files.');
+      process.exit(2);
+    }
+    flags.copyDir = val;
+  } else if (a === '--brief') {
+    const next = args[i + 1];
+    if (next && !next.startsWith('--') && !/^[a-z][a-z0-9+.-]*:/i.test(next)) {
+      flags.briefFile = args[++i];
+    }
+    flags.brief = true;
+  } else if (a === '--diff-scan') {
+    const before = args[++i];
+    const after = args[++i];
+    if (!before || !after || before.startsWith('--') || after.startsWith('--')) {
+      console.error('--diff-scan needs two scan JSON files: <before> <after>.');
+      process.exit(2);
+    }
+    flags.diffScan = [before, after];
+  } else if (a === '--compare-to' || a.startsWith('--compare-to=')) {
+    const baseline = a.startsWith('--compare-to=') ? a.slice('--compare-to='.length) : args[++i];
+    if (!baseline || baseline.startsWith('--')) {
+      console.error('--compare-to needs a baseline scan JSON file.');
+      process.exit(2);
+    }
+    flags.compareTo = baseline;
+    const next = args[i + 1];
+    if (next && !next.startsWith('--') && !/^[a-z][a-z0-9+.-]*:/i.test(next)) {
+      flags.compareCurrent = args[++i];
+    }
+  } else if (a === '--fail-on-regression') {
+    flags.failOnRegression = true;
+    const next = args[i + 1];
+    if (next && /^\d+$/.test(next)) flags.maxDelta = Number(args[++i]);
+  } else if (a === '--save-baseline' || a.startsWith('--save-baseline=')) {
+    const path = a.startsWith('--save-baseline=') ? a.slice('--save-baseline='.length) : args[++i];
+    if (!path || path.startsWith('--')) {
+      console.error('--save-baseline needs a file path.');
+      process.exit(2);
+    }
+    flags.saveBaseline = path;
+  } else if (a === '--runs' || a.startsWith('--runs=')) {
+    const raw = a.startsWith('--runs=') ? a.slice('--runs='.length) : args[++i];
+    const n = Number(raw);
+    if (!Number.isInteger(n) || n < 1 || n > 5) {
+      console.error('--runs needs an integer from 1 to 5.');
+      process.exit(2);
+    }
+    flags.runs = n;
+  } else if (a === '--aggregate' || a.startsWith('--aggregate=')) {
+    const val = a.startsWith('--aggregate=') ? a.slice('--aggregate='.length) : args[++i];
+    if (val !== 'median' && val !== 'pessimistic') {
+      console.error('--aggregate must be median or pessimistic.');
+      process.exit(2);
+    }
+    flags.aggregate = val;
+  } else if (a === '--format' || a.startsWith('--format=')) {
+    const val = a.startsWith('--format=') ? a.slice('--format='.length) : args[++i];
+    if (!val || !isReportFormat(val)) {
+      console.error(
+        `Unknown --format ${val || '(none)'}. Options: agent, github, sarif, junit, gitlab, json.`
+      );
+      process.exit(2);
+    }
+    flags.format = val;
+  } else if (a === '--emit-aeo-fixes' || a.startsWith('--emit-aeo-fixes=')) {
+    const val = a.startsWith('--emit-aeo-fixes=') ? a.slice('--emit-aeo-fixes='.length) : args[++i];
+    if (!val || val.startsWith('--')) {
+      console.error('--emit-aeo-fixes needs a directory to write starter files into.');
+      process.exit(2);
+    }
+    flags.emitAeoFixes = val;
+  } else if (a === '--origin' || a.startsWith('--origin=')) {
+    flags.origin = a.startsWith('--origin=') ? a.slice('--origin='.length) : args[++i];
+  } else if (a === '--site-name' || a.startsWith('--site-name=')) {
+    flags.siteName = a.startsWith('--site-name=') ? a.slice('--site-name='.length) : args[++i];
+  } else if (a === 'init') flags.init = true;
+  else if (a === '--providers' || a.startsWith('--providers=')) {
+    flags.initProviders = a.startsWith('--providers=') ? a.slice('--providers='.length) : args[++i];
+  } else if (a === '--scope' || a.startsWith('--scope=')) {
+    flags.initScope = a.startsWith('--scope=') ? a.slice('--scope='.length) : args[++i] || '';
+  } else if (a === '--ci' || a.startsWith('--ci=')) {
+    flags.initCi = a.startsWith('--ci=') ? a.slice('--ci='.length) : args[++i];
+  } else if (a === '--no-hooks') flags.noHooks = true;
+  else if (a === '--dir' || a.startsWith('--dir=')) {
+    flags.initDir = a.startsWith('--dir=') ? a.slice('--dir='.length) : args[++i];
   } else if (a === '--help' || a === '-h') {
     help();
     process.exit(0);
@@ -176,6 +355,210 @@ for (let i = 0; i < args.length; i++) {
   } else urls.push(a);
 }
 
+function readLocalText(path: string, flagName: string) {
+  try {
+    return readFileSync(path, 'utf8');
+  } catch (e) {
+    console.error(`Could not read ${path} for ${flagName}: ${e.message}`);
+    process.exit(2);
+  }
+}
+
+if (flags.lintDesignMd && flags.diffDesignMd) {
+  console.error('Pass either --lint-design-md or --diff-design-md, not both.');
+  process.exit(2);
+}
+
+if (flags.lintDesignMd || flags.diffDesignMd) {
+  if (urls.length) {
+    console.error(
+      '--lint-design-md and --diff-design-md read local DESIGN.md files and do not take a URL.'
+    );
+    process.exit(2);
+  }
+  if (flags.lintDesignMd) {
+    const lint = lintDesignMd(readLocalText(flags.lintDesignMd, '--lint-design-md'));
+    if (flags.json) console.log(JSON.stringify(lint, null, 2));
+    else {
+      console.log(
+        `DESIGN.md ${lint.valid ? 'valid' : 'invalid'} (specVersion ${lint.specVersion}, ${lint.errors.length} errors, ${lint.warnings.length} warnings)`
+      );
+      for (const issue of lint.issues) {
+        console.log(
+          `  ${issue.severity} ${issue.ruleId}${issue.path ? ` ${issue.path}` : ''}: ${issue.message}`
+        );
+      }
+      if (!lint.issues.length) console.log('  No issues.');
+    }
+    process.exit(lint.valid ? 0 : 1);
+  }
+  const [basePath, headPath] = flags.diffDesignMd;
+  const diff = diffDesignMd(
+    readLocalText(basePath, '--diff-design-md'),
+    readLocalText(headPath, '--diff-design-md')
+  );
+  if (flags.json) console.log(JSON.stringify(diff, null, 2));
+  else {
+    console.log(
+      `DESIGN.md diff: ${diff.breaking ? 'breaking' : 'compatible'} (${diff.added.length} added, ${diff.removed.length} removed, ${diff.changed.length} changed)`
+    );
+    for (const row of diff.added) console.log(`  added ${row.path} = ${row.value}`);
+    for (const row of diff.removed) console.log(`  removed ${row.path} = ${row.value}`);
+    for (const row of diff.changed)
+      console.log(`  changed ${row.path}: ${row.before} → ${row.after}`);
+    if (!diff.added.length && !diff.removed.length && !diff.changed.length) {
+      console.log('  No token changes.');
+    }
+  }
+  process.exit(diff.breaking ? 1 : 0);
+}
+
+if (flags.format && flags.json && flags.format !== 'json') {
+  console.error('Pass either --json or --format, not both.');
+  process.exit(2);
+}
+if (flags.format && flags.sarif && flags.format !== 'sarif') {
+  console.error('Pass either --sarif or --format, not both.');
+  process.exit(2);
+}
+if (flags.site && flags.siteCopy) {
+  console.error('Pass either --site or --site-copy, not both.');
+  process.exit(2);
+}
+
+if (flags.init) {
+  if (urls.length) {
+    console.error('init writes project files and does not take a URL.');
+    process.exit(2);
+  }
+  try {
+    const providers = parseProviders(flags.initProviders || undefined);
+    const files = planInitFiles({
+      providers,
+      scope: flags.initScope,
+      ci: flags.initCi,
+      hooks: !flags.noHooks,
+    });
+    const dir = flags.initDir || process.cwd();
+    const wrote = applyInitPlan(dir, files);
+    console.log(
+      `init wrote ${wrote.written.length} file(s), left ${wrote.unchanged.length} unchanged, skipped ${wrote.skipped.length}.`
+    );
+    for (const path of wrote.written) console.log(`  wrote ${path}`);
+    for (const path of wrote.unchanged) console.log(`  unchanged ${path}`);
+    for (const path of wrote.skipped) console.log(`  skipped ${path}`);
+    process.exit(0);
+  } catch (e) {
+    console.error(e.message || String(e));
+    process.exit(2);
+  }
+}
+
+if (flags.copyDir) {
+  if (urls.length) {
+    console.error('--copy-dir reads local HTML and does not take a URL.');
+    process.exit(2);
+  }
+  if (!pathExists(flags.copyDir)) {
+    console.error(`Could not read ${flags.copyDir} for --copy-dir.`);
+    console.error('Scan could not run. This is not a Clean score.');
+    process.exit(2);
+  }
+  let report;
+  try {
+    report = readCopyDir(flags.copyDir);
+  } catch (e) {
+    console.error(e.message || String(e));
+    console.error('Scan could not run. This is not a Clean score.');
+    process.exit(2);
+  }
+  const copyLine =
+    report.status === 'ok'
+      ? `Site copy: ${report.score}/100 ${report.tier}. Qualifying pages: ${report.qualifyingPages}. Rendered: false. Pre-2022 Heavy rate: unmeasured.`
+      : `Site copy: ${report.status} (${report.qualifyingPages} qualifying, ${report.requiredPages} required). No site score. Rendered: false. Pre-2022 Heavy rate: unmeasured.`;
+  console.log(flags.json || flags.format === 'json' ? JSON.stringify(report, null, 2) : copyLine);
+  process.exit(0);
+}
+
+if (flags.emitAeoFixes) {
+  try {
+    const names = writeAeoFixes(flags.emitAeoFixes, {
+      origin: flags.origin || undefined,
+      siteName: flags.siteName || undefined,
+    });
+    console.log(`Wrote ${names.join(', ')} in ${flags.emitAeoFixes}.`);
+    process.exit(0);
+  } catch (e) {
+    console.error(e.message || String(e));
+    process.exit(2);
+  }
+}
+
+if (flags.diffScan) {
+  try {
+    const diff = diffSavedScans(readJsonFile(flags.diffScan[0]), readJsonFile(flags.diffScan[1]));
+    console.log(flags.json ? JSON.stringify(diff, null, 2) : diff.text);
+    process.exit(0);
+  } catch (e) {
+    console.error(e.message || String(e));
+    process.exit(2);
+  }
+}
+
+if (flags.briefFile) {
+  if (!pathExists(flags.briefFile)) {
+    console.error(`Could not read ${flags.briefFile} for --brief.`);
+    console.error('Scan could not run. This is not a Clean score.');
+    process.exit(2);
+  }
+  try {
+    const listed = avoidListWithinCap(readJsonFile(flags.briefFile));
+    console.log(listed.text);
+    process.exit(listed.text.includes('This is not a Clean score.') ? 2 : 0);
+  } catch (e) {
+    console.error(e.message || String(e));
+    process.exit(2);
+  }
+}
+
+if (flags.compareTo && flags.compareCurrent) {
+  if (urls.length) {
+    console.error('--compare-to with two files does not take URLs.');
+    process.exit(2);
+  }
+  try {
+    const report = compareScans(readJsonFile(flags.compareTo), readJsonFile(flags.compareCurrent), {
+      maxDelta: flags.maxDelta,
+    });
+    if (!report.comparable) {
+      console.error(report.error || report.text);
+      process.exit(2);
+    }
+    console.log(flags.json ? JSON.stringify(report, null, 2) : report.text);
+    process.exit(flags.failOnRegression && report.regression ? 1 : 0);
+  } catch (e) {
+    console.error(e.message || String(e));
+    console.error('Scan could not run. This is not a Clean score.');
+    process.exit(2);
+  }
+}
+
+if (flags.format && urls.length === 1 && pathExists(urls[0])) {
+  try {
+    const doc = readJsonFile(urls[0]);
+    console.log(formatScanDocument(doc, flags.format));
+    process.exit(
+      exitCodeForScanResults(doc, {
+        failOn: flags.failOn,
+        failUnderScore: flags.failUnderScore,
+      })
+    );
+  } catch (e) {
+    console.error(e.message || String(e));
+    process.exit(2);
+  }
+}
+
 if (urls.length === 0) {
   help();
   process.exit(2);
@@ -191,6 +574,27 @@ if (flags.timeout && flags.remote) {
 if (flags.initDesignMd && flags.remote) {
   console.error(
     '--init-design-md requires local DOM token extraction; drop --remote to generate DESIGN.md.'
+  );
+  process.exit(2);
+}
+
+if (flags.initTokens && flags.remote) {
+  console.error(
+    '--init-tokens requires local DOM token extraction; drop --remote to generate tokens.json.'
+  );
+  process.exit(2);
+}
+
+if (flags.initDesignMd && flags.initTokens) {
+  console.error(
+    '--init-design-md and --init-tokens both write the extracted system to stdout. Pass only one.'
+  );
+  process.exit(2);
+}
+
+if (flags.a11y && flags.remote) {
+  console.error(
+    '--a11y runs axe-core in the local browser. It never changes a score. Drop --remote.'
   );
   process.exit(2);
 }
@@ -228,14 +632,57 @@ Usage:
 
 Options:
   --json, -j          Emit JSON instead of pretty output
+  --format <name>     agent, github, sarif, junit, gitlab, or json
   --sarif             Emit SARIF 2.1.0 report for GitHub Code Scanning
-  --fix-prompt, --fix Emit the opinionated markdown remediation prompt
+  --fix-prompt, --fix Emit the long remediation prompt
+  --brief [file]      Short avoid list (at most 120 words). Does not replace
+                      --fix-prompt. A saved scan JSON skips the browser.
+  --diff-scan <a> <b> Diff two saved scan JSON files
+  --compare-to <baseline> [current]
+                      Compare scan JSON. A definitions mismatch is not a score
+                      delta. Two files and no URL stays offline. One file scans
+                      the URL, then compares. --fail-on-regression [maxDelta]
+                      exits 1 when the score rises above maxDelta (default 0)
+                      or a new pattern appears. A mismatch exits 2.
+  --save-baseline <file>
+                      Write this scan as a baseline. One URL. An unscored page
+                      exits 2 and is not a Clean score.
+  --runs <n>          Scan 1 to 5 times. The page score stays the last run.
+                      A median or --aggregate pessimistic score is printed
+                      beside it. Not a measured CLI-vs-API identity proof.
+  --aggregate <m>     median (default) or pessimistic. Used with --runs.
+  --copy-dir <dir>    Score HTML files on the copy axis. Does not render.
+                      Pre-2022 Heavy rate is unmeasured.
+  --site-copy <n>     Fetch up to n same-origin HTML pages and score copy.
+                      n is 1 to 15. Does not render. Not a design score.
+  --site <n>          Render up to n same-origin pages. Median beside homepage.
+                      Shared template selectors count once. Word gate is not
+                      applied, because scan results have no visible-word count.
+  --emit-aeo-fixes <dir>
+                      Write starter robots.txt, llms.txt, ard.json, and link
+                      headers. No model. Not a live mirror of ai.robots.txt.
+  init                Write project skill, MCP, and hook files (--dir, --providers,
+                      --scope=project, --no-hooks, --ci github). Not a registry
+                      submission. Does not write outside --dir or the project.
   --init-design-md    Extract live DOM tokens and generate a starter DESIGN.md
+  --init-tokens       Extract live DOM tokens and write a DTCG tokens.json
+  --lint-design-md <file>
+                      Lint a local DESIGN.md (broken refs, contrast, orphans).
+                      No URL and no browser. Exits 1 when the file has errors.
+  --diff-design-md <base> <head>
+                      Diff two local DESIGN.md files. Exits 1 when the diff
+                      removes or changes a token.
+  --a11y              Optional axe-core report. Off by default. Local browser
+                      only. Never changes Clean/Mild/Heavy, craft, or the gate.
+                      Requires the optional axe-core package.
   --screenshot        Include a base64 hero screenshot in JSON output
   --verbose, -v       Show evidence details for every triggered pattern
-  --preset, -p <p>    Scoring preset: full (default), strict, marketing, minimal
-  --axes <list>       Axes to score: design (default), copy. Comma-separated or "all"
-  --copy              Shorthand for --axes design,copy
+  --preset, -p <p>    Scoring preset: full (default), strict, marketing, minimal,
+                      editorial, devtool. Filters design only. Copy, craft,
+                      AEO, and system keep their own scores.
+  --axes <list>       Axes to score: design (default), copy, craft. Comma-separated or "all"
+  --copy              Also score the copy axis
+  --craft             Also score the craft-floor axis (never feeds Clean/Mild/Heavy)
   --aeo               Add the AEO axis: can AI engines (ChatGPT/Claude/Perplexity)
                       actually read & cite this page? (network checks, no browser)
   --remote            Scan via the slop-detect.com API instead of a local browser
@@ -245,8 +692,9 @@ Options:
                       system (DESIGN.md spec). <src> = file path, URL, or "auto"
                       (looks for <origin>/DESIGN.md). Reports drift, not slop —
                       higher is better.
-  --fail-on <tier>    Exit non-zero (1) if any page scores at/above tier: mild | heavy.
-                      A blocked or errored scan also exits 1. Use this to gate CI.
+  --fail-on <tier>    Exit 1 if any scored page is at/above tier: mild | heavy.
+                      A blocked or errored scan exits 2, with or without this flag.
+                      Exit 2 means the scan could not run. It is not a Clean score.
   --fail-under <g|n>  Exit non-zero (1) if any page's grade/score is worse than <g|n>
                       (e.g. --fail-under B or --fail-under 15).
   --timeout <ms>      Local Playwright navigation timeout in ms (default 30000)
@@ -259,6 +707,9 @@ Examples:
   slop-detect https://example.com --copy             # design + copy slop
   slop-detect https://example.com --fix-prompt       # generate LLM remediation prompt
   slop-detect https://example.com --init-design-md > DESIGN.md
+  slop-detect https://example.com --init-tokens > tokens.json
+  slop-detect --lint-design-md ./DESIGN.md
+  slop-detect --diff-design-md ./base/DESIGN.md ./head/DESIGN.md
   slop-detect https://mysite.com --fail-on heavy     # CI gate: fail on heavy slop
   slop-detect https://mysite.com --fail-under B      # CI gate: require at least grade B
 
@@ -296,6 +747,11 @@ function emoji(tier) {
   return '🟢';
 }
 
+function waivedNote(result) {
+  if (!Array.isArray(result.waivedPatterns) || result.waivedPatterns.length === 0) return '';
+  return `  ${C.grey}(raw ${result.rawScore} · ${result.waivedPatterns.length} waived by DESIGN.md)${C.reset}`;
+}
+
 function renderPretty(result) {
   // Blocked / dead-page result has no tier and no patterns to render.
   if (result.blocked) {
@@ -318,18 +774,22 @@ function renderPretty(result) {
   console.log();
 
   // Multi-axis: show the unified headline + per-axis breakdown.
-  const multi = result.axes && result.axes.copy;
+  // Craft is a separate floor (higher is better) and has no Clean/Mild/Heavy tier.
+  const scoredAxes = result.axes
+    ? Object.fromEntries(Object.entries(result.axes).filter(([name]) => name !== 'craft'))
+    : null;
+  const multi = scoredAxes && scoredAxes.copy;
   if (multi) {
     const ut = tierStyle(result.unifiedTier);
     console.log(
       `  ${emoji(result.unifiedTier)} ${ut}${C.bold}${result.unifiedTier}${C.reset}` +
         `  ·  ${C.bold}${result.unifiedGrade}${C.reset}` +
         `  ·  unified ${C.bold}${result.unifiedScore}${C.reset}/100` +
-        `  ${C.grey}(${result.axes ? Object.keys(result.axes).length : 1} axes)${C.reset}`
+        `  ${C.grey}(${Object.keys(scoredAxes).length} axes)${C.reset}`
     );
     console.log();
-    for (const name of Object.keys(result.axes)) {
-      const ax = result.axes[name];
+    for (const name of Object.keys(scoredAxes)) {
+      const ax = scoredAxes[name];
       const ax_ts = tierStyle(ax.tier);
       const note = ax.thin ? `${C.grey} (too little copy to judge)${C.reset}` : '';
       console.log(
@@ -338,20 +798,28 @@ function renderPretty(result) {
           `  ${String(ax.patternsFlagged).padStart(2)}/${ax.patternsTotal} flagged${note}`
       );
     }
+    if (Array.isArray(result.waivedPatterns) && result.waivedPatterns.length) {
+      console.log(
+        `  ${C.grey}DESIGN.md waived ${result.waivedPatterns.length} declared pattern(s); raw design score ${result.rawScore}.${C.reset}`
+      );
+    }
     console.log();
   } else {
     console.log(
       `  ${emoji(result.tier)} ${ts}${C.bold}${result.tier}${C.reset}` +
         `  ·  ${C.bold}${result.grade || '?'}${C.reset}` +
         `  ·  score ${C.bold}${result.score}${C.reset}/100` +
-        `  ·  ${C.bold}${result.patternsFlagged}${C.reset}/${result.patternsTotal} patterns triggered`
+        `  ·  ${C.bold}${result.patternsFlagged}${C.reset}/${result.patternsTotal} patterns triggered` +
+        waivedNote(result)
     );
     if (result.verdict) console.log(`  ${C.grey}${result.verdict}${C.reset}`);
     console.log();
   }
 
   // Design-axis pattern detail (always shown — it's the primary fingerprint).
-  const flagged = result.patterns.filter((p) => p.triggered);
+  // Declared DESIGN.md waivers stay out of the triggered list.
+  const flagged = result.patterns.filter((p) => p.triggered && !p.waived);
+  const waivedRows = result.patterns.filter((p) => p.waived);
   const clean = result.patterns.filter((p) => !p.triggered);
 
   if (flagged.length) {
@@ -374,6 +842,54 @@ function renderPretty(result) {
     console.log();
   }
 
+  if (result.craft) {
+    const craft = result.craft;
+    console.log(
+      `  ${C.bold}craft${C.reset}   score ${C.bold}${craft.score}${C.reset}/100` +
+        `  ${C.grey}(floor · does not change ${result.tier})${C.reset}`
+    );
+    const failed = craft.failed || [];
+    if (failed.length) {
+      console.log(`${C.bold}Craft floor:${C.reset}`);
+      for (const p of failed) {
+        console.log(`  ${C.red}✗${C.reset} ${p.label}  ${C.grey}(${p.weight})${C.reset}`);
+      }
+    }
+    console.log();
+  }
+
+  if (waivedRows.length) {
+    console.log(`${C.bold}Waived by DESIGN.md:${C.reset}`);
+    const reasons = new Map((result.waivedPatterns || []).map((w) => [w.id, w.reason]));
+    for (const p of waivedRows) {
+      console.log(
+        `  ${C.grey}·${C.reset} ${p.label}  ${C.grey}${reasons.get(p.id) || ''}${C.reset}`
+      );
+    }
+    console.log();
+  }
+
+  const axe = result.a11y && result.a11y.axe;
+  if (axe && axe.enabled) {
+    const count = typeof axe.violationCount === 'number' ? axe.violationCount : 0;
+    console.log(
+      `  ${C.bold}a11y${C.reset}   axe ${C.bold}${count}${C.reset} violations` +
+        `  ${C.grey}(separate · does not change the score)${C.reset}`
+    );
+    if (axe.error) console.log(`  ${C.yellow}⚠ ${axe.error}${C.reset}`);
+    const rules = Array.isArray(axe.rules) ? axe.rules : [];
+    for (const rule of rules.slice(0, 15)) {
+      console.log(
+        `  ${C.grey}·${C.reset} ${rule.ruleId}  ${C.grey}(${rule.impact}, ${rule.nodeCount} nodes)${C.reset}`
+      );
+    }
+    if (rules.length > 15) {
+      console.log(`  ${C.grey}… ${rules.length - 15} more in --json${C.reset}`);
+    }
+    if (axe.disclaimer) console.log(`  ${C.grey}${axe.disclaimer}${C.reset}`);
+    console.log();
+  }
+
   // Copy axis detail.
   if (result.axes && result.axes.copy && !result.axes.copy.thin) {
     const cflag = result.axes.copy.patterns.filter((p) => p.triggered);
@@ -393,24 +909,24 @@ function renderPretty(result) {
 }
 
 function aeoTierStyle(tier) {
-  if (tier === 'AI-Ready') return C.green;
-  if (tier === 'Partial') return C.yellow;
+  if (tier === 'Eligible' || tier === 'AI-Ready') return C.green;
+  if (tier === 'Partially Eligible' || tier === 'Partial') return C.yellow;
   return C.red;
 }
 function aeoEmoji(tier) {
-  if (tier === 'AI-Ready') return '🟢';
-  if (tier === 'Partial') return '🟡';
+  if (tier === 'Eligible' || tier === 'AI-Ready') return '🟢';
+  if (tier === 'Partially Eligible' || tier === 'Partial') return '🟡';
   return '🔴';
 }
 
 function renderAeo(aeo) {
   const ts = aeoTierStyle(aeo.tier);
   console.log(
-    `  ${aeoEmoji(aeo.tier)} ${C.bold}AEO    ${C.reset} ${ts}${aeo.tier.padEnd(10)}${C.reset}` +
+    `  ${aeoEmoji(aeo.tier)} ${C.bold}AEO    ${C.reset} ${ts}${String(aeo.tier).padEnd(20)}${C.reset}` +
       `  score ${C.bold}${String(aeo.score).padStart(3)}${C.reset}/${aeo.maxScore}` +
       `  ${C.grey}(${aeo.passed.length}/${aeo.checks.length} checks · ${aeo.durationMs}ms)${C.reset}`
   );
-  console.log(`  ${C.grey}Can AI engines read & cite this page?${C.reset}`);
+  console.log(`  ${C.grey}Can this page be fetched and read?${C.reset}`);
   console.log();
   const failed = aeo.failed;
   if (failed.length) {
@@ -483,56 +999,169 @@ if (
   process.exit(2);
 }
 
-const machineOutput = flags.json || flags.sarif || flags.fixPrompt || flags.initDesignMd;
+if (
+  !flags.format &&
+  !flags.json &&
+  !flags.sarif &&
+  !flags.fixPrompt &&
+  !flags.brief &&
+  !process.env.CI &&
+  (process.env.CLAUDECODE || process.env.CURSOR_AGENT)
+) {
+  flags.format = 'agent';
+}
+
+const machineOutput =
+  flags.json ||
+  flags.sarif ||
+  !!flags.format ||
+  flags.fixPrompt ||
+  flags.brief ||
+  flags.initDesignMd ||
+  flags.initTokens;
 
 // ── Main ────────────────────────────────────────────────────────────────────
 (async () => {
-  const results = [];
-  for (const url of urls) {
+  if (flags.siteCopy) {
+    if (urls.length !== 1) {
+      console.error('--site-copy needs one http(s) URL.');
+      process.exit(2);
+    }
+    const outcome = await siteCopyReport(urls[0], flags.siteCopy);
+    if (!outcome.ok) {
+      console.error(outcome.message);
+      process.exit(2);
+    }
+    const report = outcome.report;
+    const line =
+      report.status === 'ok'
+        ? `Site copy: ${report.score}/100 ${report.tier}. Qualifying pages: ${report.qualifyingPages}. Rendered: false. Pre-2022 Heavy rate: unmeasured.`
+        : `Site copy: ${report.status} (${report.qualifyingPages} qualifying, ${report.requiredPages} required). No site score. Rendered: false. Pre-2022 Heavy rate: unmeasured.`;
+    console.log(flags.json || flags.format === 'json' ? JSON.stringify(report, null, 2) : line);
+    process.exit(0);
+  }
+  if (flags.site) {
+    if (urls.length !== 1) {
+      console.error('--site needs one http(s) URL.');
+      process.exit(2);
+    }
     try {
-      const scanOpts: ScanOptions = {
-        screenshot: flags.screenshot,
-        preset: flags.preset,
-        axes: flags.axes,
-        api: flags.api,
-        timeout: flags.timeout || undefined,
-        includeSystem: flags.initDesignMd || undefined,
-      };
-      if (flags.designMd && !flags.remote) {
-        const loaded = await loadDesignMd(flags.designMd, url);
-        if (loaded) scanOpts.designMd = loaded.text;
-        else if (!machineOutput)
-          console.error(
-            `${C.grey}No DESIGN.md found for ${url} (auto) — skipping the system axis.${C.reset}`
-          );
-      } else if (flags.designMd && flags.remote) {
-        scanOpts.designMd = flags.designMd;
+      const discovered = await discoverRenderedSite(urls[0], flags.site);
+      urls.splice(0, urls.length, ...discovered);
+    } catch (e) {
+      console.error(e.message || String(e));
+      console.error('Scan could not run. This is not a Clean score.');
+      process.exit(2);
+    }
+  }
+  if (flags.a11y) {
+    try {
+      await loadAxeSource();
+    } catch (e) {
+      console.error(e.message || String(e));
+      process.exit(2);
+    }
+  }
+  const results = [];
+  const attemptCount = flags.runs || 1;
+  for (const url of urls) {
+    if (flags.site && results.length > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+    const attempts = [];
+    for (let attempt = 0; attempt < attemptCount; attempt++) {
+      if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 200));
+      try {
+        const scanOpts: ScanOptions = {
+          screenshot: flags.screenshot,
+          preset: flags.preset,
+          axes: flags.axes,
+          api: flags.api,
+          timeout: flags.timeout || undefined,
+          includeSystem: flags.initDesignMd || flags.initTokens || undefined,
+          a11y: flags.a11y || undefined,
+        };
+        if (flags.designMd && !flags.remote) {
+          const loaded = await loadDesignMd(flags.designMd, url);
+          if (loaded) scanOpts.designMd = loaded.text;
+          else if (!machineOutput)
+            console.error(
+              `${C.grey}No DESIGN.md found for ${url} (auto) — skipping the system axis.${C.reset}`
+            );
+        } else if (flags.designMd && flags.remote) {
+          scanOpts.designMd = flags.designMd;
+        }
+        const r = flags.remote ? await scanRemote(url, scanOpts) : await scanUrl(url, scanOpts);
+        if (flags.aeo) {
+          try {
+            r.aeo = flags.remote
+              ? await aeoRemote(url, { api: flags.api })
+              : await runAeoChecks(url, { timeoutMs: 12000 });
+          } catch (e) {
+            r.aeo = { error: e.message };
+          }
+        }
+        if (!r.blocked && !r.error && flags.preset !== 'full') {
+          const axes = [...flags.axes];
+          if (flags.aeo) axes.push('aeo');
+          if (flags.designMd || r.system) axes.push('system');
+          const coverage = presetCoverage(flags.preset, axes);
+          if (coverage.warning) {
+            r.presetWarning = coverage.warning;
+            r.presetNotApplied = coverage.notApplied;
+          }
+        }
+        attempts.push({ result: r, thrown: false });
+      } catch (err) {
+        attempts.push({
+          result: stampScanResult({ url, error: err.message }),
+          thrown: true,
+        });
       }
-      const r = flags.remote ? await scanRemote(url, scanOpts) : await scanUrl(url, scanOpts);
-      if (flags.aeo) {
-        try {
-          r.aeo = flags.remote
-            ? await aeoRemote(url, { api: flags.api })
-            : await runAeoChecks(url, { timeoutMs: 12000 });
-        } catch (e) {
-          r.aeo = { error: e.message };
+    }
+    const last = attempts[attempts.length - 1];
+    const host = last.result;
+    if (attemptCount > 1) {
+      host.runSummary = aggregateRuns(
+        attempts.map((item) => item.result),
+        flags.aggregate || 'median'
+      );
+      if (!machineOutput) {
+        const summary = host.runSummary;
+        if (summary.ok) {
+          console.error(
+            `Runs ${summary.runs}: ${summary.method} score ${summary.aggregatedScore} (spread ${summary.spread}). The page score is the last run.`
+          );
+        } else {
+          console.error(summary.message);
         }
       }
-      results.push(r);
-      if (!machineOutput) {
-        renderPretty(r);
-        if (r.system) renderSystem(r.system);
-        if (r.aeo && !r.aeo.error) renderAeo(r.aeo);
-        else if (r.aeo && r.aeo.error)
-          console.log(`  ${C.yellow}⚠ AEO check failed: ${r.aeo.error}${C.reset}\n`);
-      }
-    } catch (err) {
-      const errResult = { url, error: err.message };
-      results.push(errResult);
-      if (!machineOutput) {
+    }
+    results.push(host);
+    if (!machineOutput) {
+      if (last.thrown) {
         console.error(`\n${C.red}${C.bold}✗ ${url}${C.reset}`);
-        console.error(`  ${C.red}${err.message}${C.reset}\n`);
+        console.error(`  ${C.red}${host.error}${C.reset}\n`);
+      } else {
+        renderPretty(host);
+        if (host.system) renderSystem(host.system);
+        if (host.aeo && !host.aeo.error) renderAeo(host.aeo);
+        else if (host.aeo && host.aeo.error)
+          console.log(`  ${C.yellow}⚠ AEO check failed: ${host.aeo.error}${C.reset}\n`);
       }
+    }
+  }
+  if (flags.saveBaseline) {
+    if (urls.length !== 1) {
+      console.error('--save-baseline needs one URL.');
+      process.exit(2);
+    }
+    try {
+      writeBaseline(flags.saveBaseline, results[0]);
+      if (!machineOutput) console.error(`Saved baseline ${flags.saveBaseline}.`);
+    } catch (e) {
+      console.error(e.message || String(e));
+      process.exit(2);
     }
   }
   if (flags.initDesignMd) {
@@ -548,6 +1177,19 @@ const machineOutput = flags.json || flags.sarif || flags.fixPrompt || flags.init
       });
     });
     console.log(docs.join('\n\n'));
+  } else if (flags.initTokens) {
+    const docs = results.map((r) => {
+      if (r.error || r.blocked) return { url: r.url, error: r.error || r.code };
+      let host = 'Site';
+      try {
+        host = new URL(r.finalUrl || r.url).hostname.replace(/^www\./, '');
+      } catch {}
+      return extractDtcgTokens(r.systemContext || {}, { name: r.title || host });
+    });
+    console.log(JSON.stringify(docs.length === 1 ? docs[0] : docs, null, 2));
+  } else if (flags.brief) {
+    const lists = results.map((r) => buildAvoidList(r));
+    console.log(lists.join('\n\n'));
   } else if (flags.fixPrompt) {
     const prompts = results.map((r) =>
       r.error || r.blocked
@@ -555,35 +1197,72 @@ const machineOutput = flags.json || flags.sarif || flags.fixPrompt || flags.init
         : buildFixPrompt(r)
     );
     console.log(prompts.join('\n\n---\n\n'));
+  } else if (flags.format) {
+    if (flags.format === 'json' && flags.site) {
+      console.log(
+        JSON.stringify(
+          {
+            definitionsVersion: DEFINITIONS_VERSION,
+            site: siteSummaryDocument(results),
+            pages: results,
+          },
+          null,
+          2
+        )
+      );
+    } else {
+      const payload = results.length === 1 ? results[0] : results;
+      console.log(formatScanDocument(stampScanResult(payload), flags.format));
+      if (flags.site) console.error(formatSiteSummary(siteSummaryDocument(results)));
+    }
   } else if (flags.sarif) {
     console.log(JSON.stringify(buildSarifReport(results), null, 2));
   } else if (flags.json) {
-    console.log(JSON.stringify(results.length === 1 ? results[0] : results, null, 2));
+    const payload = flags.site
+      ? {
+          definitionsVersion: DEFINITIONS_VERSION,
+          site: siteSummaryDocument(results),
+          pages: results,
+        }
+      : results.length === 1
+        ? results[0]
+        : results;
+    console.log(JSON.stringify(stampScanResult(payload), null, 2));
+  } else if (flags.site) {
+    console.log(formatSiteSummary(siteSummaryDocument(results)));
   }
 
   // ── CI gate (--fail-on / --fail-under) ──────────────────────────────────────
-  // Determine the exit code BEFORE the summary so the summary can annotate it.
-  // A result fails the gate if: it errored, it was blocked (couldn't score), or
-  // its effective tier/score ranks worse than the threshold.
-  let exitCode = 0;
-  if (flags.failOn) {
-    const threshold = TIER_RANK[flags.failOn];
-    const failed = results.some((r) => {
-      if (r.error || r.blocked) return true;
-      const tier = r.axes && r.axes.copy ? r.unifiedTier : r.tier;
-      return (TIER_RANK[tier] ?? 0) >= threshold;
-    });
-    if (failed) exitCode = 1;
+  // 0 scored, 1 over the gate, 2 could not scan. An unscannable page wins over
+  // the gate so an outage is never reported as a finding or as Clean.
+  const exitCode = exitCodeForScanResults(results, {
+    failOn: flags.failOn,
+    failUnderScore: flags.failUnderScore,
+  });
+  let compareExit = 0;
+  if (flags.compareTo && !flags.compareCurrent) {
+    let baseline;
+    try {
+      baseline = readJsonFile(flags.compareTo);
+    } catch (e) {
+      console.error(e.message || String(e));
+      console.error('Scan could not run. This is not a Clean score.');
+      process.exit(2);
+    }
+    for (const result of results) {
+      const report = compareScans(baseline, result, { maxDelta: flags.maxDelta });
+      if (!report.comparable) {
+        console.error(report.error || report.text);
+        compareExit = 2;
+        continue;
+      }
+      const line = flags.json ? JSON.stringify(report, null, 2) : report.text;
+      if (machineOutput) console.error(line);
+      else console.log(line);
+      if (flags.failOnRegression && report.regression) compareExit = Math.max(compareExit, 1);
+    }
   }
-  if (flags.failUnderScore != null) {
-    const maxAllowed = flags.failUnderScore;
-    const failed = results.some((r) => {
-      if (r.error || r.blocked) return true;
-      const score = r.axes && r.axes.copy ? r.unifiedScore : r.score;
-      return typeof score !== 'number' || score > maxAllowed;
-    });
-    if (failed) exitCode = 1;
-  }
+  const finalExit = compareExit === 2 || exitCode === 2 ? 2 : Math.max(exitCode, compareExit);
 
   // Summary if multiple URLs
   if (urls.length > 1 && !machineOutput) {
@@ -612,18 +1291,19 @@ const machineOutput = flags.json || flags.sarif || flags.fixPrompt || flags.init
 
   // Tell the user why we're failing (only when gating + actually failing, and
   // not in machine-output mode where stdout must stay a clean document).
-  if (flags.failOn && exitCode !== 0 && !machineOutput) {
+  if (exitCode === 2) {
+    console.error(`${C.red}${C.bold}✗ Scan could not run. This is not a Clean score.${C.reset}`);
+  } else if (flags.failOn && exitCode === 1 && !machineOutput) {
     console.error(
       `${C.red}${C.bold}✗ --fail-on ${flags.failOn.toLowerCase()}: one or more pages failed the gate.${C.reset}`
     );
-  }
-  if (flags.failUnderScore != null && exitCode !== 0 && !machineOutput) {
+  } else if (flags.failUnderScore != null && exitCode === 1 && !machineOutput) {
     console.error(
       `${C.red}${C.bold}✗ --fail-under ${flags.failUnderLabel}: one or more pages failed the gate.${C.reset}`
     );
   }
-  process.exit(exitCode);
+  process.exit(finalExit);
 })().catch((e) => {
   console.error(e);
-  process.exit(1);
+  process.exit(2);
 });

@@ -1,10 +1,14 @@
 import { test, expect } from 'vitest';
-import { shouldIncludeSystem, buildSarifReport } from '../src/index.ts';
+import { shouldIncludeSystem, buildSarifReport, loadAxeSource } from '../src/index.ts';
 
 test('includeSystem remains a public ScanOptions field and enables extraction', () => {
   expect(shouldIncludeSystem({})).toBe(false);
   expect(shouldIncludeSystem({ includeSystem: true })).toBe(true);
   expect(shouldIncludeSystem({ includeSystem: false })).toBe(false);
+});
+
+test('loadAxeSource fails closed when the optional package is absent', async () => {
+  await expect(loadAxeSource()).rejects.toThrow(/optional and off by default/);
 });
 
 test('designMd still implies system extraction', () => {

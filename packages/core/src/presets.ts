@@ -32,7 +32,15 @@ export const PRESETS = {
     description:
       'Brand-surface tells a marketer can act on: fonts, colours, ' +
       'gradients, hero treatment. Skips structural/code-level signals.',
-    include: ['fonts', 'colors', 'images', 'centered_hero', 'hero_eyebrow_pill', 'all_caps_labels'],
+    include: [
+      'fonts',
+      'colors',
+      'images',
+      'centered_hero',
+      'hero_eyebrow_pill',
+      'all_caps_labels',
+      'eyebrow_label',
+    ],
   },
   minimal: {
     id: 'minimal',
@@ -40,6 +48,20 @@ export const PRESETS = {
     description:
       'The three most-cited dead-giveaways only: slop fonts, ' + 'VibeCode purple, gradient text.',
     only: ['slop_fonts', 'purple_accent', 'gradient_text'],
+  },
+  editorial: {
+    id: 'editorial',
+    label: 'Editorial / publication',
+    description:
+      'Suppresses warm-cream and serif editorial kit signals on genuine editorial publications (D-06, D-13).',
+    exclude: ['cream_default_bg', 'editorial_cream_kit'],
+  },
+  devtool: {
+    id: 'devtool',
+    label: 'Developer tool / CLI docs',
+    description:
+      'Suppresses monospace heading and dark-mode signals on developer and CLI documentation sites (D-14).',
+    exclude: ['display_mono_heading', 'perma_dark_mode'],
   },
 };
 
@@ -68,4 +90,45 @@ export function applyPreset(patterns, presetIdOrObj) {
 
 export function isPreset(id) {
   return Object.prototype.hasOwnProperty.call(PRESETS, id);
+}
+
+// Presets filter the design catalogue. They do not change copy, craft, AEO,
+// or DESIGN.md scores. Callers must say so instead of ignoring those axes.
+export function presetCoverage(presetId: string, axes: string[] = ['design']) {
+  const id = presetId || 'full';
+  const requested = [...new Set((axes || []).filter(Boolean))];
+  if (!requested.length) requested.push('design');
+  if (id === 'full' || !Object.prototype.hasOwnProperty.call(PRESETS, id)) {
+    return { applied: requested, notApplied: [] as string[], warning: null as string | null };
+  }
+  const applied = requested.includes('design') ? ['design'] : [];
+  const notApplied = requested.filter((axis) => axis !== 'design');
+  return {
+    applied,
+    notApplied,
+    warning: notApplied.length
+      ? `Preset ${id} was not applied to: ${notApplied.join(', ')}.`
+      : null,
+  };
+}
+
+export function presetProfiles() {
+  return Object.values(PRESETS).map((preset: any) => ({
+    id: preset.id,
+    label: preset.label,
+    description: preset.description,
+    design: preset.only
+      ? { only: preset.only }
+      : preset.include
+        ? { include: preset.include }
+        : preset.exclude
+          ? { exclude: preset.exclude }
+          : typeof preset.minWeight === 'number'
+            ? { minWeight: preset.minWeight }
+            : { weights: 'default' },
+    copy: preset.id === 'full' ? 'unchanged' : 'not-applied',
+    aeo: preset.id === 'full' ? 'unchanged' : 'not-applied',
+    system: preset.id === 'full' ? 'unchanged' : 'not-applied',
+    craft: 'never-scored',
+  }));
 }

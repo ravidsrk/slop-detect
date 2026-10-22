@@ -1,8 +1,8 @@
 # slop-detect
 
-> Score any landing page against the versioned four-axis AI-slop fingerprint (`definitions@2026.10`), from your terminal or CI pipeline.
+> Score any landing page against the versioned fingerprint (`definitions@2026.11`), from your terminal or CI pipeline.
 
-Playwright-based, deterministic, zero-config. Audits visual design slop (27 CSS/DOM rules), AI copy tells (9 prose rules), `DESIGN.md` token compliance, and Answer Engine Optimization (8 AEO crawler checks).
+Playwright-based, deterministic, zero-config. Audits visual design slop (45 CSS/DOM rules), copy tells (26 prose rules), `DESIGN.md` token compliance, a craft floor that never feeds Clean / Mild / Heavy, and Answer Engine Optimization (16 AEO checks). Weight 0 review rules add no points. Package version stays 0.8.0.
 
 ## Install
 
@@ -17,20 +17,39 @@ slop-detect https://your-site.com
 
 Chromium is installed lazily on the first local scan (~150 MB via Playwright), not at `npm install`. Set `SKIP_PLAYWRIGHT_DOWNLOAD=1` to skip that download when Playwright's Chromium is already installed (it does not select a system Chrome/Safari binary). `--remote` scans via the hosted API and needs no local Chromium.
 
+Local and hosted scans both use a 1280×800 viewport. The local user agent is `Mozilla/5.0 SlopDetector/1.0 (+https://github.com/ravidsrk/slop-detect)`. Each result records its Chromium version. Those versions are not asserted equal, and `--runs` is not a measured proof that the CLI and the API return the same score. The page score stays the last run. `runSummary.aggregatedScore` is the median or pessimistic aggregate. `--compare-to` refuses a definitions-version mismatch. That mismatch is not a score delta. A non-full preset reports `fullScore` as the unfiltered design score and names any requested axis the preset did not filter.
+
 ## Usage
 
 ```bash
 slop-detect <url>                       # scan one URL (design axis)
 slop-detect <url1> <url2> <url3>        # scan many, print a comparison table
 slop-detect <url> --copy                # score design + copy axes (unified score)
+slop-detect <url> --craft               # also score the craft floor (never feeds Clean/Mild/Heavy)
 slop-detect <url> --axes design,copy    # explicit axis list (or --axes all)
-slop-detect <url> --aeo                 # run the 8-check AEO crawler & citation audit
+slop-detect <url> --aeo                 # run the AEO fetch-and-read audit
 slop-detect <url> --design-md auto      # check compliance against <origin>/DESIGN.md
 slop-detect <url> --design-md ./DESIGN.md  # check compliance against a local DESIGN.md
-slop-detect <url> --preset strict       # preset: full | strict | marketing | minimal
+slop-detect <url> --init-tokens > tokens.json  # DTCG tokens.json from the live DOM
+slop-detect --lint-design-md ./DESIGN.md       # static lint, no browser, exit 1 on errors
+slop-detect --diff-design-md base.md head.md   # exit 1 when a token is removed or changed
+slop-detect <url> --a11y                       # optional axe-core report; never changes a score
+slop-detect <url> --preset strict       # preset: full | strict | marketing | minimal | editorial | devtool
 slop-detect <url> --remote              # scan via https://slop-detect.com/api/scan (no browser)
 slop-detect <url> --fail-on heavy       # exit non-zero on heavy (or mild) tier for CI
 slop-detect <url> --json                # machine-readable JSON output
+slop-detect result.json --format agent # one line per finding; also github, junit, gitlab, sarif
+slop-detect --brief result.json        # avoid list, at most 120 words; --fix-prompt stays the long prompt
+slop-detect --diff-scan before.json after.json
+slop-detect --compare-to before.json after.json
+slop-detect <url> --compare-to before.json --fail-on-regression
+slop-detect <url> --save-baseline .slop/baseline.json
+slop-detect <url> --runs 3 --aggregate pessimistic
+slop-detect --copy-dir ./dist          # copy axis from HTML files; not a rendered design score
+slop-detect https://example.com --site-copy 5
+slop-detect https://example.com --site 5
+slop-detect --emit-aeo-fixes ./aeo --origin https://example.com
+slop-detect init --dir . --no-hooks    # project skill and MCP config; --scope=project only
 slop-detect <url> --screenshot          # include base64 viewport screenshot
 slop-detect <url> --timeout 30000       # navigation timeout in ms
 ```
@@ -41,7 +60,7 @@ slop-detect <url> --timeout 30000       # navigation timeout in ms
 $ slop-detect https://www.aura.build --copy --aeo
 
 URL: https://www.aura.build
-SCORE: 36 / 100   →   Heavy (D)   (8 / 27 design patterns)
+SCORE: 36 / 100   →   Heavy (D)   (8 design patterns flagged)
 
   ✓ Slop fonts (Inter / Geist / Space Grotesk)        (+8)
   ✓ VibeCode Purple — filled indigo/violet CTAs       (+8)
@@ -72,7 +91,8 @@ jobs:
 ```
 
 `--fail-on mild` is stricter (fails on Mild or Heavy); `--fail-on heavy` fails only on
-Heavy slop. A blocked or errored scan also exits non-zero. Want the JSON too? Combine:
+Heavy slop. Those gates exit 1. A blocked or errored scan exits 2, with or without a
+gate. Exit 2 means the scan could not run. It is not a Clean score. Want the JSON too? Combine:
 
 ```bash
 npx -y slop-detect "$PREVIEW_URL" --json --fail-on heavy | tee slop.json

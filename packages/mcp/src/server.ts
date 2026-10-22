@@ -4,6 +4,7 @@
 // browser or API key.
 
 import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -17,8 +18,32 @@ import {
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 
+import {
+  AEO_CHECKS,
+  DEFINITIONS_VERSION,
+  buildAvoidList,
+  diffDesignMd,
+  lintDesignMd,
+  stampScanResult,
+} from '@slop-detect/core';
 import { scanPage, checkAeo, checkSystem, fixPrompt, fetchPatterns, ApiError } from './api.js';
-import { formatScan, formatAeo, formatSystem } from './format.js';
+import {
+  formatScan,
+  formatAeo,
+  formatSystem,
+  formatDesignMdLint,
+  formatDesignMdDiff,
+} from './format.js';
+import {
+  isLocalMode,
+  isLoopbackOrFile,
+  localAeo,
+  localCatalogue,
+  localFixPrompt,
+  localModeRequested,
+  localScan,
+  setLocalMode,
+} from './local.js';
 
 // Read our own version from package.json so the MCP handshake never drifts from
 // the published version. Falls back to '0.0.0' if the file can't be read (e.g.
@@ -33,6 +58,46 @@ function readVersion() {
   }
 }
 const VERSION = readVersion();
+
+// Canonical contract is schemas/scan-result.v1.json at the repo root. The
+// published bundle looks next to dist as well as next to src.
+function loadScanResultSchema() {
+  const start = dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    join(start, '../schema/scan-result.v1.json'),
+    join(start, '../../schema/scan-result.v1.json'),
+    join(start, '../../../schemas/scan-result.v1.json'),
+    join(start, '../../../../schemas/scan-result.v1.json'),
+    join(start, '../../../../../schemas/scan-result.v1.json'),
+  ];
+  for (const path of candidates) {
+    try {
+      return JSON.parse(readFileSync(path, 'utf8'));
+    } catch {
+      /* try the next location */
+    }
+  }
+  return undefined;
+}
+
+const SCAN_RESULT_SCHEMA = loadScanResultSchema();
+
+const TEXT_OUTPUT_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    text: { type: 'string' },
+  },
+  required: ['text'],
+};
+
+const PUBLIC_ICON = [
+  {
+    src: 'https://slop-detect.com/favicon.svg',
+    mimeType: 'image/svg+xml',
+    sizes: ['any'],
+  },
+];
 
 export const TOOLS = [
   {
@@ -64,8 +129,9 @@ export const TOOLS = [
         },
         preset: {
           type: 'string',
-          enum: ['full', 'strict', 'marketing', 'minimal'],
-          description: 'Optional: scoring preset (default: "full").',
+          enum: ['full', 'strict', 'marketing', 'minimal', 'editorial', 'devtool'],
+          description:
+            'Optional: scoring preset (default: "full"). Presets filter design patterns. Copy, AEO, and system scores stay unchanged.',
         },
         design_md_url: {
           type: 'string',
@@ -75,17 +141,18 @@ export const TOOLS = [
       },
       required: ['url'],
     },
+    icons: PUBLIC_ICON,
+    ...(SCAN_RESULT_SCHEMA ? { outputSchema: SCAN_RESULT_SCHEMA } : {}),
   },
   {
     name: 'check_aeo',
     title: 'Check AEO Crawler & Citation Readiness',
     description:
-      'Check whether AI engines (ChatGPT, Claude, Perplexity, Google AI ' +
-      'Overviews) can actually read and cite a page. Returns an AEO ' +
-      'conformance score 0-100 (HIGHER is better), a tier (AI-Ready / Partial ' +
-      '/ Invisible), and which checks failed — AI-crawler blocking, noindex, ' +
-      'robots.txt disallows, missing markdown twin / llms.txt. Complements ' +
-      'scan_page: a page can look human-made yet still be invisible to AI search.',
+      'Check whether a page can be fetched and read. Returns an AEO ' +
+      'conformance score 0-100 (HIGHER is better), a tier (Eligible / ' +
+      'Partially Eligible / Restricted), and which checks failed. The scanner ' +
+      'uses its own user agent and does not impersonate vendor crawlers. ' +
+      'Complements scan_page.',
     annotations: {
       title: 'Check AEO Crawler & Citation Readiness',
       readOnlyHint: true,
@@ -100,6 +167,8 @@ export const TOOLS = [
       },
       required: ['url'],
     },
+    icons: PUBLIC_ICON,
+    ...(SCAN_RESULT_SCHEMA ? { outputSchema: SCAN_RESULT_SCHEMA } : {}),
   },
   {
     name: 'check_design_system',
@@ -132,6 +201,8 @@ export const TOOLS = [
       },
       required: ['url'],
     },
+    icons: PUBLIC_ICON,
+    outputSchema: TEXT_OUTPUT_SCHEMA,
   },
   {
     name: 'fix_prompt',
@@ -161,16 +232,78 @@ export const TOOLS = [
         },
         preset: {
           type: 'string',
-          enum: ['full', 'strict', 'marketing', 'minimal'],
-          description: 'Optional: scoring preset (default: "full").',
+          enum: ['full', 'strict', 'marketing', 'minimal', 'editorial', 'devtool'],
+          description:
+            'Optional: scoring preset (default: "full"). Presets filter design patterns. Copy, AEO, and system scores stay unchanged.',
         },
         design_md_url: {
           type: 'string',
           description: 'Optional: URL to DESIGN.md or "auto" to include system drift remediation.',
         },
+        brief: {
+          type: 'boolean',
+          description:
+            'Optional. When true, return a short avoid list of at most 120 words. The default remains the long remediation prompt.',
+        },
       },
       required: ['url'],
     },
+    icons: PUBLIC_ICON,
+    outputSchema: TEXT_OUTPUT_SCHEMA,
+  },
+  {
+    name: 'lint_design_md',
+    title: 'Lint a DESIGN.md File',
+    description:
+      'Statically lint DESIGN.md text for broken token references, component contrast below 4.5:1, orphaned palette tokens, and a specVersion other than alpha. Local only: it does not fetch a page and does not change any score.',
+    annotations: {
+      title: 'Lint a DESIGN.md File',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        design_md: {
+          type: 'string',
+          description: 'The full DESIGN.md document, including YAML front matter.',
+        },
+      },
+      required: ['design_md'],
+    },
+    icons: PUBLIC_ICON,
+    outputSchema: TEXT_OUTPUT_SCHEMA,
+  },
+  {
+    name: 'diff_design_md',
+    title: 'Diff Two DESIGN.md Files',
+    description:
+      'Diff two DESIGN.md documents and report added, removed, and changed tokens. A removed or changed token is breaking. Local only: it does not fetch a page and does not rescore one.',
+    annotations: {
+      title: 'Diff Two DESIGN.md Files',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        base_design_md: {
+          type: 'string',
+          description: 'The base DESIGN.md text.',
+        },
+        head_design_md: {
+          type: 'string',
+          description: 'The head DESIGN.md text.',
+        },
+      },
+      required: ['base_design_md', 'head_design_md'],
+    },
+    icons: PUBLIC_ICON,
+    outputSchema: TEXT_OUTPUT_SCHEMA,
   },
 ];
 
@@ -186,6 +319,7 @@ export const PROMPTS = [
         required: true,
       },
     ],
+    icons: PUBLIC_ICON,
   },
   {
     name: 'deslop_and_verify',
@@ -198,6 +332,7 @@ export const PROMPTS = [
         required: true,
       },
     ],
+    icons: PUBLIC_ICON,
   },
 ];
 
@@ -234,6 +369,7 @@ export const RESOURCES = [
     description:
       'Live JSON catalogue of design patterns, copy patterns, AEO checks, and DESIGN.md system checks from slop-detect.com.',
     mimeType: 'application/json',
+    icons: PUBLIC_ICON,
   },
   {
     uri: 'slop://spec/design-md-template',
@@ -241,18 +377,38 @@ export const RESOURCES = [
     description:
       'Reference DESIGN.md file with YAML front-matter tokens (colors, typography, rounded, components) for the system compliance axis.',
     mimeType: 'text/markdown',
+    icons: PUBLIC_ICON,
+  },
+  {
+    uri: 'slop://spec/aeo',
+    name: 'AEO check catalogue',
+    description:
+      'AEO checks from the installed engine. Weight 0 checks stay in review. Pre-2022 false-positive rates are unmeasured.',
+    mimeType: 'application/json',
+    icons: PUBLIC_ICON,
   },
 ];
 
 // Wrap a tool body so any thrown error (network, ApiError, validation) becomes
 // MCP error content instead of crashing the process. A long-lived server must
 // never die on a single bad request.
-function asToolResult(text, isError = false) {
-  return { content: [{ type: 'text', text }], isError };
+function textResult(text, isError = false) {
+  return asToolResult(text, isError, { text });
+}
+
+function asToolResult(text, isError = false, structuredContent?) {
+  const result: {
+    content: Array<{ type: 'text'; text: string }>;
+    isError: boolean;
+    structuredContent?: unknown;
+  } = { content: [{ type: 'text', text }], isError };
+  if (structuredContent !== undefined) result.structuredContent = structuredContent;
+  return result;
 }
 
 function extractScanOptions(args: any) {
-  const opts: { axes?: string[]; preset?: string; designMd?: string | boolean } = {};
+  const opts: { axes?: string[]; preset?: string; designMd?: string | boolean; brief?: boolean } =
+    {};
   if (Array.isArray(args?.axes) && args.axes.length > 0) {
     opts.axes = args.axes;
   } else if (args?.copy === true) {
@@ -265,32 +421,102 @@ function extractScanOptions(args: any) {
     const d = args.design_md_url.trim();
     opts.designMd = d === 'auto' ? true : d;
   }
+  if (args?.brief === true) opts.brief = true;
   return opts;
 }
 
+function handleLocalDesignMd(name, args) {
+  if (name === 'lint_design_md') {
+    const text = args && typeof args.design_md === 'string' ? args.design_md : '';
+    if (!text.trim()) {
+      return textResult('Missing required argument "design_md" (the DESIGN.md text).', true);
+    }
+    return textResult(formatDesignMdLint(lintDesignMd(text)));
+  }
+  const base = args && typeof args.base_design_md === 'string' ? args.base_design_md : '';
+  const head = args && typeof args.head_design_md === 'string' ? args.head_design_md : '';
+  if (!base.trim() || !head.trim()) {
+    return textResult('Missing required arguments "base_design_md" and "head_design_md".', true);
+  }
+  return textResult(formatDesignMdDiff(diffDesignMd(base, head)));
+}
+
 export async function handleCall(name, args) {
+  if (name === 'lint_design_md' || name === 'diff_design_md') {
+    return handleLocalDesignMd(name, args);
+  }
   const url = args && typeof args.url === 'string' ? args.url.trim() : '';
   if (!url) {
     return asToolResult('Missing required argument "url" (a string).', true);
   }
 
+  if (!isLocalMode() && isLoopbackOrFile(url)) {
+    return asToolResult(
+      'This URL is on localhost or file://. The hosted API cannot scan it. ' +
+        'Restart the server with `slop-detect-mcp --local` (or SLOP_DETECT_LOCAL=1) so the scan stays on this machine.',
+      true
+    );
+  }
+
+  if (isLocalMode()) {
+    try {
+      return await handleLocalScan(name, url, args);
+    } catch (err) {
+      const message = err && err.message ? err.message : String(err);
+      return asToolResult(message, true);
+    }
+  }
+
   if (name === 'scan_page') {
-    const result = await scanPage(url, extractScanOptions(args));
-    return asToolResult(formatScan(result));
+    const result = stampScanResult(await scanPage(url, extractScanOptions(args)));
+    return asToolResult(formatScan(result), false, result);
   }
   if (name === 'check_aeo') {
-    const report = await checkAeo(url);
-    return asToolResult(formatAeo(report));
+    const report = stampScanResult(await checkAeo(url));
+    return asToolResult(formatAeo(report), false, report);
   }
   if (name === 'check_design_system') {
     const designMdUrl =
       args && typeof args.design_md_url === 'string' ? args.design_md_url.trim() : '';
     const result = await checkSystem(url, designMdUrl || undefined);
-    return asToolResult(formatSystem(result));
+    return textResult(formatSystem(result));
   }
   if (name === 'fix_prompt') {
+    if (args?.brief === true) {
+      const result = stampScanResult(await scanPage(url, extractScanOptions(args))) as {
+        blocked?: boolean;
+        error?: unknown;
+        score?: unknown;
+      };
+      if (!result || result.blocked || result.error || typeof result.score !== 'number') {
+        return textResult('Scan could not run. This is not a Clean score.', true);
+      }
+      return textResult(buildAvoidList(result));
+    }
     const prompt = await fixPrompt(url, extractScanOptions(args));
-    return asToolResult(prompt);
+    return textResult(prompt);
+  }
+  return asToolResult(`Unknown tool: ${name}`, true);
+}
+
+async function handleLocalScan(name, url, args) {
+  if (name === 'scan_page') {
+    const result = await localScan(url, extractScanOptions(args));
+    return asToolResult(formatScan(result), false, result);
+  }
+  if (name === 'check_aeo') {
+    const report = await localAeo(url);
+    return asToolResult(formatAeo(report), false, report);
+  }
+  if (name === 'check_design_system') {
+    const designMdUrl =
+      args && typeof args.design_md_url === 'string' ? args.design_md_url.trim() : '';
+    const result = await localScan(url, { designMd: designMdUrl || true });
+    return textResult(formatSystem(result));
+  }
+  if (name === 'fix_prompt') {
+    const prompt = await localFixPrompt(url, extractScanOptions(args));
+    return textResult(prompt);
   }
   return asToolResult(`Unknown tool: ${name}`, true);
 }
@@ -314,7 +540,11 @@ export function createServer() {
       const msg =
         err instanceof ApiError
           ? err.message
-          : `Could not reach slop-detect.com: ${err && err.message ? err.message : String(err)}`;
+          : isLocalMode()
+            ? err && err.message
+              ? err.message
+              : String(err)
+            : `Could not reach slop-detect.com: ${err && err.message ? err.message : String(err)}`;
       return asToolResult(msg, true);
     }
   });
@@ -358,40 +588,57 @@ export function createServer() {
   server.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: RESOURCES }));
 
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-    const { uri } = request.params;
-    if (uri === 'slop://spec/design-md-template') {
-      return {
-        contents: [
-          {
-            uri,
-            mimeType: 'text/markdown',
-            text: DESIGN_MD_TEMPLATE,
-          },
-        ],
-      };
-    }
-    if (uri === 'slop://spec/patterns') {
-      const catalogue = await fetchPatterns();
-      return {
-        contents: [
-          {
-            uri,
-            mimeType: 'application/json',
-            text: JSON.stringify(catalogue, null, 2),
-          },
-        ],
-      };
-    }
-    throw new Error(`Unknown resource URI: ${uri}`);
+    const loaded = await loadResource(request.params.uri);
+    return { contents: [loaded] };
   });
 
   return server;
 }
 
+export async function loadResource(uri: string) {
+  if (uri === 'slop://spec/design-md-template') {
+    return { uri, mimeType: 'text/markdown', text: DESIGN_MD_TEMPLATE };
+  }
+  if (uri === 'slop://spec/patterns') {
+    const catalogue = isLocalMode() ? localCatalogue() : await fetchPatterns();
+    return {
+      uri,
+      mimeType: 'application/json',
+      text: JSON.stringify(catalogue, null, 2),
+    };
+  }
+  if (uri === 'slop://spec/aeo') {
+    return {
+      uri,
+      mimeType: 'application/json',
+      text: JSON.stringify(
+        {
+          source: 'installed-engine',
+          definitionsVersion: DEFINITIONS_VERSION,
+          pre2022HeavyRate: null,
+          checks: AEO_CHECKS.map((check) => ({
+            id: check.id,
+            label: check.label,
+            weight: check.weight,
+            status: check.status,
+            likelihoodRatio: check.likelihoodRatio ?? null,
+            fpRatePre2022: check.fpRatePre2022 ?? null,
+          })),
+        },
+        null,
+        2
+      ),
+    };
+  }
+  throw new Error(`Unknown resource URI: ${uri}`);
+}
+
 export async function startServer() {
+  setLocalMode(localModeRequested());
   const server = createServer();
   const transport = new StdioServerTransport();
   await server.connect(transport);
   // stdout is reserved for the JSON-RPC stream, so status goes to stderr.
-  process.stderr.write('slop-detect-mcp: listening on stdio\n');
+  const where = isLocalMode() ? ' (local mode, no calls to slop-detect.com)' : '';
+  process.stderr.write(`slop-detect-mcp: listening on stdio${where}\n`);
 }

@@ -3,7 +3,10 @@ export {
   scanRemote,
   aeoRemote,
   loadDesignMd,
+  loadAxeSource,
+  runAxeOnPage,
   shouldIncludeSystem,
   buildSarifReport,
   type ScanOptions,
 } from './detector.js';
+export { exitCodeForScanResults, type ScanExitFlags } from './exit-code.js';

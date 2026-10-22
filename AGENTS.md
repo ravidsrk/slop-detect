@@ -28,7 +28,7 @@ curl -X POST https://slop-detect.com/api/scan \
   -H 'content-type: application/json' -d '{"url":"https://example.com"}'
 ```
 
-Or the MCP server (`npx -y slop-detect-mcp`): tools `scan_page`, `check_aeo`, `check_design_system`, `fix_prompt`.
+Or the MCP server (`npx -y slop-detect-mcp`): tools `scan_page`, `check_aeo`, `check_design_system`, `fix_prompt`. For `localhost` and `file://`, start it with `--local` so the scan stays on this machine and does not call the hosted API.
 
 - Read the pattern count from `GET /api/patterns` — **never hardcode it.**
 - OpenAPI spec: https://slop-detect.com/openapi.json
@@ -84,8 +84,8 @@ which exercises both runners end-to-end.
 
 ## Conventions
 
-- 27 design patterns + 9 copy patterns + 8 AEO checks. `DEFINITIONS_VERSION` is
-  exported from `@slop-detect/core` (currently `2026.10`). Count is served
+- 45 design patterns + 26 copy patterns + 16 AEO checks. `DEFINITIONS_VERSION` is
+  exported from `@slop-detect/core` (currently `2026.11`). Count is served
   dynamically from `GET /api/patterns` (derived from `PATTERNS.length`). Never
   hardcode it in UI/docs.
 - Tiers (design): Clean 0–9, Mild 10–27, Heavy 28+.

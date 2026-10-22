@@ -4,7 +4,7 @@ What producers (site owners, CI pipelines, downstream linters) should expect fro
 
 ## Design axis tiers
 
-Score = sum of triggered design-pattern weights (27 patterns, clamped 0–100).
+Score = sum of triggered design-pattern weights (45 patterns in the catalogue; weight 0 review and retired rules add nothing; clamped 0–100).
 
 ### Clean (0–9)
 
@@ -28,13 +28,13 @@ Score = sum of triggered design-pattern weights (27 patterns, clamped 0–100).
 
 ## Copy axis tiers
 
-Score = sum of triggered copy-pattern weights (9 patterns, clamped 0–100). Independent of design tiers.
+Score = sum of triggered copy-pattern weights (26 patterns in the catalogue; weight 0 review rules add nothing; clamped 0–100). Independent of design tiers.
 
 | Tier | Range | Producer expectation |
 |------|-------|----------------------|
-| Clean | 0–7 | Prose reads human-edited; low buzzword/dash density |
-| Mild | 8–19 | Noticeable LLM prose tells |
-| Heavy | 20+ | Copy reads generated; multiple density patterns firing |
+| Clean | 0–7 | Low buzzword and dash density |
+| Mild | 8–19 | Several copy tells present |
+| Heavy | 20+ | Multiple density patterns firing |
 
 When copy scanning is disabled (CLI default), only the design axis is reported.
 
@@ -48,15 +48,17 @@ AEO polarity is inverted: **higher is better**.
 
 | Tier | Ratio | Passing expectation |
 |------|-------|---------------------|
-| AI-Ready | ≥ 0.8 (80/100) | All required checks pass; at least one recommended check helps reach 80 |
-| Partial | ≥ 0.5 (50/100) | Reachable and mostly crawlable; missing markdown twin or llms.txt |
-| Invisible | < 0.5 | Blocked bots, noindex, unreachable, or robots.txt disallow |
+| Eligible | ≥ 0.8 (80/100) | Required checks pass on the applicable denominator |
+| Partially Eligible | ≥ 0.5 (50/100) | Reachable, with gaps in edge access, robots, snippets, or server text |
+| Restricted | < 0.5 | Unreachable, blocked at the edge, disallowed, or noindex |
 
-**Required fundamentals** (70 points): HTML reachable, GPTBot not blocked, robots.txt allows AI crawlers, page indexable.
+**Required fundamentals** (85 points when all apply): `html.reachable` 10, `edge.access` 20, `robots.searchAllowed` 20, `html.indexable` 12, `ai.previewControls` 8, `html.serverTextCoverage` 15.
 
-**Recommended bonuses** (30 points): markdown twin, Link alternate, `/llms.txt`, `Vary: Accept`.
+**Recommended bonuses** (15 points): markdown twin 6, Link alternate 3, `/llms.txt` 2, `Vary: Accept` 4.
 
-Passing all required checks alone yields 70/100 → **Partial**, not AI-Ready. Producers targeting citation in AI answers should aim for **AI-Ready** and publish machine-readable twins.
+Weight 0 checks (`ai.manipulation`, `agent.operability`, `agent.discovery`, `ai.usagePolicy`, `content.dates`, `jsonld.hygiene`) are reported and excluded from the denominator. Not-applicable and unknown checks are also excluded, so the score is `100 × earned / applicable`, not a fixed 100-point quiz. The scanner user agent is `SlopDetector-AEO/1.0 (+https://slop-detect.com/bot)`. It does not impersonate another crawler.
+
+Passing every required check yields 85/100 when those checks apply → **Eligible**. Publish machine-readable twins to pick up the recommended points.
 
 AEO is run separately via `--aeo` or the API; it does not affect slop tier or `--fail-on` unless integrated by the consumer.
 
@@ -113,4 +115,6 @@ JSON mode still exits 1 on gate failure; stderr carries the human gate message o
 
 ## Definitions version
 
-Scores are tagged with `definitionsVersion` (currently **2026.10**). When the catalogue changes, re-score pages to distinguish rule drift from site changes.
+Scores are tagged with `definitionsVersion` (currently **2026.11**). When the catalogue changes, re-score pages to distinguish rule drift from site changes. The published leaderboard and calibration notes remain the measured **2026.10** corpus until that re-score exists.
+
+The v1.0 gate is unmet: Heavy false-positive rate ≤2% (95% CI) on at least 1,520 held-out human controls. Do not treat a 2026.11 score as a calibrated v1.0 result. Likelihood ratios in the catalogue are null until measured.

@@ -449,16 +449,31 @@ test('/r/:id renders SystemAeoCards so Live AEO check and DESIGN.md drift work o
   expect(html).toMatch(/system · DESIGN\.md drift/);
 });
 
-test('GET /api/patterns exposes design, copy, aeo, system, and presets', async () => {
+test('GET /api/patterns exposes design, copy, aeo, system, craft, and presets', async () => {
   const { onRequestGet: patternsGet } = await import('../functions/api/patterns.ts');
+  const { PATTERNS, COPY_PATTERNS, AEO_CHECKS, SYSTEM_CHECKS, CRAFT_CHECKS } =
+    await import('@slop-detect/core');
   const res = await patternsGet();
   expect(res.status).toBe(200);
   const data = await res.json();
-  expect(data.count).toBe(27);
-  expect(data.copyCount).toBe(9);
-  expect(data.aeoCount).toBe(8);
-  expect(data.systemCount).toBe(5);
+  expect(data.count).toBe(PATTERNS.length);
+  expect(data.copyCount).toBe(COPY_PATTERNS.length);
+  expect(data.aeoCount).toBe(AEO_CHECKS.length);
+  expect(data.systemCount).toBe(SYSTEM_CHECKS.length);
+  expect(data.craftCount).toBe(CRAFT_CHECKS.length);
+  expect(data.patterns[0].status).toBeTruthy();
+  expect(data.patterns[0]).toHaveProperty('likelihoodRatio');
   expect(Array.isArray(data.presets)).toBe(true);
+});
+
+test('GET /bot publishes the scanner user agent', async () => {
+  const { onRequestGet } = await import('../functions/bot.tsx');
+  const { AEO_SCANNER_USER_AGENT } = await import('@slop-detect/core');
+  const res = await onRequestGet();
+  expect(res.status).toBe(200);
+  const html = await res.text();
+  expect(html).toContain(AEO_SCANNER_USER_AGENT);
+  expect(html).toContain('does not pretend to be Googlebot');
 });
 
 test('apps/web/public/DESIGN.md parses and scores 100/100 Aligned against slop-detect tokens', async () => {
@@ -482,11 +497,7 @@ test('apps/web/public/DESIGN.md parses and scores 100/100 Aligned against slop-d
       { tag: 'H1', color: '#181815' },
       { tag: 'H2', color: '#181815' },
     ],
-    radii: {
-      4: 12,
-      6: 10,
-      8: 8,
-    },
+    radii: [4, 6, 8],
   });
   expect(scored.score).toBe(100);
   expect(scored.tier).toBe('Aligned');

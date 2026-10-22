@@ -3,9 +3,19 @@
 // navigate, then evaluate the string returned by buildPageScript().
 
 import { PATTERNS } from './patterns.js';
+import { CRAFT_CHECKS } from './craft.js';
+import { extractMadeWith } from './calibration.js';
 import { createColorHelpers } from './color.js';
 import { createVisibilityHelpers } from './visibility.js';
-import { isSlopFont, isAccentSerif, SLOP_FONT_PREFIXES, ACCENT_SERIF_PREFIXES } from './fonts.js';
+import {
+  isSlopFont,
+  isAccentSerif,
+  resolveRenderedFont,
+  SLOP_FONT_PREFIXES,
+  PRIMARY_SLOP_FONT_PREFIXES,
+  SECONDARY_SLOP_FONT_PREFIXES,
+  ACCENT_SERIF_PREFIXES,
+} from './fonts.js';
 import { extractTextContext } from './text.js';
 import { extractSystemContext } from './system.js';
 
@@ -14,6 +24,8 @@ export interface PageScriptData {
   h1Text?: string;
   visibleCount?: number;
   signals?: Record<string, { triggered?: boolean; error?: string; [key: string]: unknown }>;
+  craftSignals?: Record<string, { triggered?: boolean; error?: string; [key: string]: unknown }>;
+  madeWith?: unknown;
   url?: string;
 }
 
@@ -123,6 +135,78 @@ export function esbuildNamePolyfills(serialized: string): string {
   return helpers.map((h) => `const ${h} = (fn) => fn;`).join('\n    ');
 }
 
+export const DESKTOP_SCAN_VIEWPORT = { width: 1280, height: 800 };
+export const MOBILE_REFLOW_VIEWPORT = { width: 390, height: 800 };
+
+export function buildMobileReflowScript(): string {
+  const check = CRAFT_CHECKS.find((c) => c.id === 'mobile_reflow_failure');
+  const extract = check
+    ? check.extract.toString()
+    : '() => ({ status: "unknown", triggered: false })';
+  const serialized = [
+    createColorHelpers.toString(),
+    createVisibilityHelpers.toString(),
+    extract,
+  ].join('\n');
+  const polyfills = esbuildNamePolyfills(serialized);
+  return `(() => {
+    ${polyfills}
+    ${createColorHelpers.toString()}
+    ${createVisibilityHelpers.toString()}
+    const colorHelpers = createColorHelpers();
+    const visHelpers = createVisibilityHelpers();
+    const visible = visHelpers.getVisible(document.body, 4000);
+    const ctx = { visible, parseColor: colorHelpers.parseColor };
+    try {
+      return (${extract})(ctx);
+    } catch (e) {
+      return { status: 'unknown', triggered: false, error: e && e.message ? e.message : 'mobile reflow failed' };
+    }
+  })()`;
+}
+
+export async function measureMobileReflowOnPage(page: any): Promise<any> {
+  const unknown = (error: string) => ({ status: 'unknown' as const, triggered: false, error });
+  const resize = async (width: number, height: number) => {
+    if (page && typeof page.setViewportSize === 'function') {
+      await page.setViewportSize({ width, height });
+      return;
+    }
+    if (page && typeof page.setViewport === 'function') {
+      await page.setViewport({ width, height });
+      return;
+    }
+    throw new Error('viewport resize is not available');
+  };
+  let measured: any = unknown('mobile reflow did not run');
+  try {
+    await resize(MOBILE_REFLOW_VIEWPORT.width, MOBILE_REFLOW_VIEWPORT.height);
+    if (!page || typeof page.evaluate !== 'function') {
+      measured = unknown('mobile reflow could not evaluate');
+    } else {
+      const result = await page.evaluate(buildMobileReflowScript());
+      if (!result || result.error || result.status === 'unknown') {
+        measured = {
+          status: 'unknown',
+          triggered: false,
+          error: result?.error || result?.reason || 'mobile reflow could not run',
+        };
+      } else {
+        measured = result;
+      }
+    }
+  } catch (e: any) {
+    measured = unknown(e?.message || 'mobile reflow could not run');
+  } finally {
+    try {
+      await resize(DESKTOP_SCAN_VIEWPORT.width, DESKTOP_SCAN_VIEWPORT.height);
+    } catch (e: any) {
+      measured = unknown(e?.message || 'desktop viewport could not be restored');
+    }
+  }
+  return measured;
+}
+
 export function buildPageScript(opts: BuildPageScriptOptions = {}): string {
   const patternList = Array.isArray(opts.patterns) ? opts.patterns : PATTERNS;
   const patternCalls = patternList
@@ -136,12 +220,24 @@ export function buildPageScript(opts: BuildPageScriptOptions = {}): string {
     )
     .join('\n');
 
+  const craftCalls = CRAFT_CHECKS.map(
+    (c) => `
+    try {
+      craftSignals[${JSON.stringify(c.id)}] = (${c.extract.toString()})(ctx);
+    } catch (e) {
+      craftSignals[${JSON.stringify(c.id)}] = { triggered: false, error: e.message };
+    }`
+  ).join('\n');
+
   const serialized = [
     patternCalls,
+    craftCalls,
     createColorHelpers.toString(),
     createVisibilityHelpers.toString(),
     isSlopFont.toString(),
     isAccentSerif.toString(),
+    resolveRenderedFont.toString(),
+    extractMadeWith.toString(),
     extractTextContext.toString(),
     opts.includeSystem ? extractSystemContext.toString() : '',
   ].join('\n');
@@ -156,7 +252,10 @@ export function buildPageScript(opts: BuildPageScriptOptions = {}): string {
     ${createVisibilityHelpers.toString()}
     ${isSlopFont.toString()}
     ${isAccentSerif.toString()}
+    ${resolveRenderedFont.toString()}
     const SLOP_FONT_PREFIXES = ${JSON.stringify(SLOP_FONT_PREFIXES)};
+    const PRIMARY_SLOP_FONT_PREFIXES = ${JSON.stringify(PRIMARY_SLOP_FONT_PREFIXES)};
+    const SECONDARY_SLOP_FONT_PREFIXES = ${JSON.stringify(SECONDARY_SLOP_FONT_PREFIXES)};
     const ACCENT_SERIF_PREFIXES = ${JSON.stringify(ACCENT_SERIF_PREFIXES)};
 
     const colorHelpers = createColorHelpers();
@@ -171,24 +270,37 @@ export function buildPageScript(opts: BuildPageScriptOptions = {}): string {
     const ctx = {
       visible, h1,
       parseColor: colorHelpers.parseColor,
+      parseColorRaw: colorHelpers.parseColorRaw,
       rgbToHsl: colorHelpers.rgbToHsl,
+      rgbToOklab: colorHelpers.rgbToOklab,
+      rgbToOklch: colorHelpers.rgbToOklch,
+      deltaEOklab: colorHelpers.deltaEOklab,
+      extractColorStrings: colorHelpers.extractColorStrings,
+      extractGradientStops: colorHelpers.extractGradientStops,
       isPurple: colorHelpers.isPurple,
       isDark: colorHelpers.isDark,
       isMidGrey: colorHelpers.isMidGrey,
+      isNeutral: colorHelpers.isNeutral,
       relativeLuminance: colorHelpers.relativeLuminance,
       contrastRatio: colorHelpers.contrastRatio,
+      apcaContrast: colorHelpers.apcaContrast,
       channelSpread: colorHelpers.channelSpread,
       effectiveBackground: colorHelpers.effectiveBackground,
-      isSlopFont, isAccentSerif,
-      SLOP_FONT_PREFIXES, ACCENT_SERIF_PREFIXES,
+      isSlopFont, isAccentSerif, resolveRenderedFont,
+      SLOP_FONT_PREFIXES, PRIMARY_SLOP_FONT_PREFIXES, SECONDARY_SLOP_FONT_PREFIXES, ACCENT_SERIF_PREFIXES,
       // inHero is consumed by the declarative rules engine for heroOnly specs.
-      // isVisible / inViewport / isNeutral were never consumed by any pattern,
-      // so they are omitted (the visible array is already pre-filtered).
       inHero: visHelpers.inHero
     };
 
     const signals = {};
     ${patternCalls}
+
+    const craftSignals = {};
+    ${craftCalls}
+
+    const extractMadeWith = ${extractMadeWith.toString()};
+    let madeWith = null;
+    try { madeWith = extractMadeWith(document); } catch (e) { madeWith = { error: e.message }; }
 
     // Copy axis: extract page text in-DOM (scored caller-side by scoreCopy).
     const extractTextContext = ${extractTextContext.toString()};
@@ -215,8 +327,10 @@ export function buildPageScript(opts: BuildPageScriptOptions = {}): string {
       h1Font: h1 ? getComputedStyle(h1).fontFamily : null,
       visibleCount: visible.length,
       signals,
+      craftSignals,
+      madeWith,
       textContext,
       systemContext
     };
-  })();`;
+  })();`.replace(/[ \t]+$/gm, '');
 }

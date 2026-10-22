@@ -4,9 +4,9 @@ Machine-readable reference for the slop-detect scoring model. Downstream tools (
 
 ## Versioning
 
-`spec_version` and `definitions_version` track `DEFINITIONS_VERSION` in `packages/core/src/index.ts`. Bump the spec when patterns are added, removed, or re-weighted so historical scores remain comparable.
+`spec_version` and `definitions_version` track `DEFINITIONS_VERSION` in `packages/core/src/definitions.ts`. Bump the spec when patterns are added, removed, or re-weighted so historical scores remain comparable.
 
-Current version: **2026.10**
+Current version: **2026.11**
 
 ## Axes
 
@@ -15,7 +15,8 @@ Current version: **2026.10**
 | Design | `patterns.ts` | Lower is better | Clean 0–9, Mild 10–27, Heavy 28+ |
 | Copy | `copyPatterns.ts` | Lower is better | Clean 0–7, Mild 8–19, Heavy 20+ |
 | System (`DESIGN.md`) | `system.ts` | Higher is better | Aligned ≥80%, Drifting 50–79%, Off-system &lt;50% |
-| AEO | `aeo.ts` | Higher is better | AI-Ready ≥80%, Partial ≥50%, Invisible &lt;50% |
+| AEO | `aeo.ts` | Higher is better | Eligible ≥80%, Partially Eligible ≥50%, Restricted &lt;50% |
+| Craft floor | `craft.ts` | Separate 0–100 floor | Never feeds design, copy, or Clean / Mild / Heavy |
 
 Design and copy slop scores sum triggered pattern weights (clamped 0–100). System and AEO scores measure compliance and agent-readiness (max 100, higher is better). Unified slop score (when copy is enabled) uses `combineAxes()` — see [copy-axis.md](./copy-axis.md).
 
@@ -23,10 +24,10 @@ Design and copy slop scores sum triggered pattern weights (clamped 0–100). Sys
 
 | File | Contents |
 |------|----------|
-| [patterns.md](./patterns.md) | 27 design-slop patterns (CSS/DOM tells) |
-| [copy-axis.md](./copy-axis.md) | 9 copy-slop patterns and multi-axis aggregation |
-| [system.md](./system.md) | 5 `DESIGN.md` system compliance checks and token tolerances |
-| [aeo.md](./aeo.md) | 8 AEO ladder checks, AI-bot registry, graded tiers |
+| [patterns.md](./patterns.md) | 45 design-slop patterns (CSS/DOM tells; weight 0 review rules add no points) |
+| [copy-axis.md](./copy-axis.md) | 26 copy-slop patterns and multi-axis aggregation |
+| [system.md](./system.md) | 9 `DESIGN.md` / DTCG system compliance checks and token tolerances |
+| [aeo.md](./aeo.md) | 16 AEO checks, honest scanner user agent, eligibility tiers |
 | [conformance.md](./conformance.md) | Producer expectations, AEO pass thresholds, CLI `--fail-on` |
 | [config.json](./config.json) | Machine-readable manifest |
 
