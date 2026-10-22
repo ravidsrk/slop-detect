@@ -587,4 +587,14 @@ describe('K-05 (#300): Pioneer HTML fixture regression suite (real page-script e
     const residue = copyResult.patterns.find((p) => p.id === 'chatbot_reply_residue');
     expect(residue.triggered).toBe(false);
   });
+
+  test('counts prose across an inline quote instead of per fragment', () => {
+    const html = `<!doctype html><html><body><main>
+      <div><span>Alpha beta gamma</span> <q>As an AI language model</q> <em>delta epsilon zeta eta</em></div>
+    </main></body></html>`;
+    const { raw, copyResult } = evaluatePioneerSnapshot(html);
+    expect(raw.textContext.proseWordCount).toBeGreaterThanOrEqual(8);
+    const residue = copyResult.patterns.find((p) => p.id === 'chatbot_reply_residue');
+    expect(residue.triggered).toBe(false);
+  });
 });

@@ -3793,7 +3793,7 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
     return { start, end: joinedLen };
   }
   function emitPiece(tag, rawTxt, el) {
-    if (!rawTxt) return;
+    if (!rawTxt) return 0;
     var wList = rawTxt.split(/\\s+/).filter(Boolean);
     var wc = wList.length;
     var flags = contextFlags(el);
@@ -3830,9 +3830,10 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
     if (tag === "p" && paragraphs.length < 200) {
       paragraphs.push(rawTxt.slice(0, 400));
     }
-    if ((PROSE_TAGS.test(tag) || tag === "div") && wc >= 8 && !flags.inChatDemo) {
+    if (PROSE_TAGS.test(tag) && wc >= 8 && !flags.inChatDemo) {
       proseWordCount += wc;
     }
+    return wc;
   }
   function walkNestedCandidates(node) {
     if (!node || node.nodeType !== 1) return;
@@ -3849,13 +3850,13 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
       if (kids[i] && kids[i].nodeType === 1) walkNestedCandidates(kids[i]);
     }
   }
-  function walk(node) {
-    if (!node || node.nodeType !== 1) return;
+  function walk(node, deferProse) {
+    if (!node || node.nodeType !== 1) return 0;
     if (isElementHidden(node)) {
       if ((node.textContent || "").trim()) hiddenBlocks++;
-      return;
+      return 0;
     }
-    if (SKIP_TAGS.test(node.tagName)) return;
+    if (SKIP_TAGS.test(node.tagName)) return 0;
     if (CANDIDATE.test(node.tagName)) {
       var rawTxt = extractCleanNodeText(node, true).replace(/[ \\t]+/g, " ").trim();
       emitPiece(node.tagName.toLowerCase(), rawTxt, node);
@@ -3863,8 +3864,9 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
       for (var n = 0; n < nested.length; n++) {
         if (nested[n] && nested[n].nodeType === 1) walkNestedCandidates(nested[n]);
       }
-      return;
+      return 0;
     }
+    var flowWords = 0;
     var buf = "";
     function consume(child) {
       if (!child) return;
@@ -3886,7 +3888,7 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
         var parentFlags = contextFlags(node);
         if (inlineFlags.inQuote !== parentFlags.inQuote || inlineFlags.inChatDemo !== parentFlags.inChatDemo) {
           flushBuf();
-          walk(child);
+          flowWords += walk(child, true);
           return;
         }
         var inlineKids = child.childNodes;
@@ -3899,10 +3901,14 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
     var kids = node.childNodes;
     for (var c = 0; c < kids.length; c++) consume(kids[c]);
     flushBuf();
+    if (!deferProse && flowWords >= 8 && !contextFlags(node).inChatDemo) {
+      proseWordCount += flowWords;
+    }
+    return flowWords;
     function flushBuf() {
       var piece = buf.replace(/[ \\t]+/g, " ").replace(/\\s*\\n\\s*/g, "\\n").trim();
       buf = "";
-      if (piece) emitPiece("div", piece, node);
+      if (piece) flowWords += emitPiece("div", piece, node);
     }
   }
   walk(root);
@@ -7770,7 +7776,7 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
     return { start, end: joinedLen };
   }
   function emitPiece(tag, rawTxt, el) {
-    if (!rawTxt) return;
+    if (!rawTxt) return 0;
     var wList = rawTxt.split(/\\s+/).filter(Boolean);
     var wc = wList.length;
     var flags = contextFlags(el);
@@ -7807,9 +7813,10 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
     if (tag === "p" && paragraphs.length < 200) {
       paragraphs.push(rawTxt.slice(0, 400));
     }
-    if ((PROSE_TAGS.test(tag) || tag === "div") && wc >= 8 && !flags.inChatDemo) {
+    if (PROSE_TAGS.test(tag) && wc >= 8 && !flags.inChatDemo) {
       proseWordCount += wc;
     }
+    return wc;
   }
   function walkNestedCandidates(node) {
     if (!node || node.nodeType !== 1) return;
@@ -7826,13 +7833,13 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
       if (kids[i] && kids[i].nodeType === 1) walkNestedCandidates(kids[i]);
     }
   }
-  function walk(node) {
-    if (!node || node.nodeType !== 1) return;
+  function walk(node, deferProse) {
+    if (!node || node.nodeType !== 1) return 0;
     if (isElementHidden(node)) {
       if ((node.textContent || "").trim()) hiddenBlocks++;
-      return;
+      return 0;
     }
-    if (SKIP_TAGS.test(node.tagName)) return;
+    if (SKIP_TAGS.test(node.tagName)) return 0;
     if (CANDIDATE.test(node.tagName)) {
       var rawTxt = extractCleanNodeText(node, true).replace(/[ \\t]+/g, " ").trim();
       emitPiece(node.tagName.toLowerCase(), rawTxt, node);
@@ -7840,8 +7847,9 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
       for (var n = 0; n < nested.length; n++) {
         if (nested[n] && nested[n].nodeType === 1) walkNestedCandidates(nested[n]);
       }
-      return;
+      return 0;
     }
+    var flowWords = 0;
     var buf = "";
     function consume(child) {
       if (!child) return;
@@ -7863,7 +7871,7 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
         var parentFlags = contextFlags(node);
         if (inlineFlags.inQuote !== parentFlags.inQuote || inlineFlags.inChatDemo !== parentFlags.inChatDemo) {
           flushBuf();
-          walk(child);
+          flowWords += walk(child, true);
           return;
         }
         var inlineKids = child.childNodes;
@@ -7876,10 +7884,14 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
     var kids = node.childNodes;
     for (var c = 0; c < kids.length; c++) consume(kids[c]);
     flushBuf();
+    if (!deferProse && flowWords >= 8 && !contextFlags(node).inChatDemo) {
+      proseWordCount += flowWords;
+    }
+    return flowWords;
     function flushBuf() {
       var piece = buf.replace(/[ \\t]+/g, " ").replace(/\\s*\\n\\s*/g, "\\n").trim();
       buf = "";
-      if (piece) emitPiece("div", piece, node);
+      if (piece) flowWords += emitPiece("div", piece, node);
     }
   }
   walk(root);

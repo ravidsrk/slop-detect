@@ -164,7 +164,7 @@ export function extractTextContext() {
   }
 
   function emitPiece(tag: string, rawTxt: string, el: any) {
-    if (!rawTxt) return;
+    if (!rawTxt) return 0;
     var wList = rawTxt.split(/\s+/).filter(Boolean);
     var wc = wList.length;
     var flags = contextFlags(el);
@@ -201,9 +201,12 @@ export function extractTextContext() {
     if (tag === 'p' && paragraphs.length < 200) {
       paragraphs.push(rawTxt.slice(0, 400));
     }
-    if ((PROSE_TAGS.test(tag) || tag === 'div') && wc >= 8 && !flags.inChatDemo) {
+    // Div prose is counted for the whole flow. A quote split must not reset
+    // the eight-word minimum on each fragment.
+    if (PROSE_TAGS.test(tag) && wc >= 8 && !flags.inChatDemo) {
       proseWordCount += wc;
     }
+    return wc;
   }
 
   function walkNestedCandidates(node: any) {
@@ -222,13 +225,13 @@ export function extractTextContext() {
     }
   }
 
-  function walk(node: any) {
-    if (!node || node.nodeType !== 1) return;
+  function walk(node: any, deferProse?: boolean): number {
+    if (!node || node.nodeType !== 1) return 0;
     if (isElementHidden(node)) {
       if ((node.textContent || '').trim()) hiddenBlocks++;
-      return;
+      return 0;
     }
-    if (SKIP_TAGS.test(node.tagName)) return;
+    if (SKIP_TAGS.test(node.tagName)) return 0;
     if (CANDIDATE.test(node.tagName)) {
       var rawTxt = extractCleanNodeText(node, true)
         .replace(/[ \t]+/g, ' ')
@@ -238,8 +241,9 @@ export function extractTextContext() {
       for (var n = 0; n < nested.length; n++) {
         if (nested[n] && nested[n].nodeType === 1) walkNestedCandidates(nested[n]);
       }
-      return;
+      return 0;
     }
+    var flowWords = 0;
     var buf = '';
     function consume(child: any) {
       if (!child) return;
@@ -265,7 +269,7 @@ export function extractTextContext() {
           inlineFlags.inChatDemo !== parentFlags.inChatDemo
         ) {
           flushBuf();
-          walk(child);
+          flowWords += walk(child, true);
           return;
         }
         var inlineKids = child.childNodes;
@@ -278,13 +282,17 @@ export function extractTextContext() {
     var kids = node.childNodes;
     for (var c = 0; c < kids.length; c++) consume(kids[c]);
     flushBuf();
+    if (!deferProse && flowWords >= 8 && !contextFlags(node).inChatDemo) {
+      proseWordCount += flowWords;
+    }
+    return flowWords;
     function flushBuf() {
       var piece = buf
         .replace(/[ \t]+/g, ' ')
         .replace(/\s*\n\s*/g, '\n')
         .trim();
       buf = '';
-      if (piece) emitPiece('div', piece, node);
+      if (piece) flowWords += emitPiece('div', piece, node);
     }
   }
 
