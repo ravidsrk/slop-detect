@@ -546,4 +546,25 @@ describe('K-05 (#300): Pioneer HTML fixture regression suite (real page-script e
     expect(residue.evidence.samples.join(' ')).not.toMatch(/cannot fulfill/i);
     expect(closers.triggered).toBe(false);
   });
+
+  test('keeps nested headings and inline prose in one block', () => {
+    const html = `<!doctype html><html><body><main>
+      <dl><dd><p>Emoji item lives in the nested paragraph.</p></dd></dl>
+      <figure><figcaption><h2>Nested heading</h2><p>Caption paragraph stays separate.</p></figcaption></figure>
+      <div><span>The ledger records each</span> <em>settlement before the next</em> <a href="/batch">batch window opens today</a></div>
+    </main></body></html>`;
+    const { raw } = evaluatePioneerSnapshot(html);
+    const ctx = raw.textContext;
+    expect(ctx.headings).toContain('Nested heading');
+    expect(ctx.paragraphs.some((p) => p.includes('Emoji item lives'))).toBe(true);
+    expect(ctx.paragraphs.some((p) => p.includes('Caption paragraph stays separate'))).toBe(true);
+    const joined = ctx.text;
+    expect(joined.split('Emoji item lives in the nested paragraph').length - 1).toBe(1);
+    expect(joined.split('Nested heading').length - 1).toBe(1);
+    expect(ctx.proseWordCount).toBeGreaterThanOrEqual(8);
+    const prose = ctx.blockSpans.filter((span) =>
+      ctx.text.slice(span.start, span.end).includes('ledger records each')
+    );
+    expect(prose).toHaveLength(1);
+  });
 });

@@ -88,9 +88,9 @@ export function extractTextContext() {
     var kids = node.childNodes;
     for (var i = 0; i < kids.length; i++) {
       var kid = kids[i];
-      // A list item or quote keeps its own words. Nested candidates are
-      // scored separately, so their text is not folded into the parent.
-      if (ownOnly && kid && kid.nodeType === 1 && /^(P|LI|BLOCKQUOTE)$/.test(kid.tagName)) {
+      // A candidate keeps its own words. Nested candidates are separate
+      // entries, so their text is not folded into the parent.
+      if (ownOnly && kid && kid.nodeType === 1 && CANDIDATE.test(kid.tagName)) {
         if (out && !/\s$/.test(out)) out += ' ';
         continue;
       }
@@ -133,6 +133,8 @@ export function extractTextContext() {
   var BLOCK_TEXT_LIMIT = 400;
   var SPAN_LIMIT = 2000;
   var CANDIDATE = /^(H1|H2|H3|H4|H5|H6|P|LI|DT|DD|BLOCKQUOTE|FIGCAPTION)$/;
+  var INLINE =
+    /^(A|ABBR|B|BDI|BDO|CITE|DATA|DFN|EM|I|MARK|Q|S|SMALL|SPAN|STRONG|SUB|SUP|TIME|U|WBR|FONT|LABEL)$/i;
 
   function contextFlags(el: any) {
     var rect = el.getBoundingClientRect ? el.getBoundingClientRect() : { top: 0 };
@@ -205,8 +207,11 @@ export function extractTextContext() {
   }
 
   function walkNestedCandidates(node: any) {
-    if (!node || node.nodeType !== 1 || isElementHidden(node)) return;
-    if (SKIP_TAGS.test(node.tagName)) return;
+    if (!node || node.nodeType !== 1) return;
+    if (isElementHidden(node) || SKIP_TAGS.test(node.tagName)) {
+      if ((node.textContent || '').trim()) hiddenBlocks++;
+      return;
+    }
     if (CANDIDATE.test(node.tagName)) {
       walk(node);
       return;
@@ -225,33 +230,42 @@ export function extractTextContext() {
     }
     if (SKIP_TAGS.test(node.tagName)) return;
     if (CANDIDATE.test(node.tagName)) {
-      var ownOnly = node.tagName === 'LI' || node.tagName === 'BLOCKQUOTE';
-      var rawTxt = extractCleanNodeText(node, ownOnly)
+      var rawTxt = extractCleanNodeText(node, true)
         .replace(/[ \t]+/g, ' ')
         .trim();
       emitPiece(node.tagName.toLowerCase(), rawTxt, node);
-      if (!ownOnly) return;
       var nested = node.childNodes;
       for (var n = 0; n < nested.length; n++) {
-        var kid = nested[n];
-        if (!kid || kid.nodeType !== 1) continue;
-        if (/^(P|LI|BLOCKQUOTE)$/.test(kid.tagName)) walk(kid);
-        else walkNestedCandidates(kid);
+        if (nested[n] && nested[n].nodeType === 1) walkNestedCandidates(nested[n]);
       }
       return;
     }
     var buf = '';
-    var kids = node.childNodes;
-    for (var c = 0; c < kids.length; c++) {
-      var child = kids[c];
-      if (!child) continue;
+    function consume(child: any) {
+      if (!child) return;
       if (child.nodeType === 3) {
         if (child.nodeValue) buf += child.nodeValue;
-      } else if (child.nodeType === 1) {
-        flushBuf();
-        walk(child);
+        return;
       }
+      if (child.nodeType !== 1) return;
+      if (child.tagName === 'BR') {
+        if (buf && !/\s$/.test(buf)) buf += ' ';
+        return;
+      }
+      if (isElementHidden(child) || SKIP_TAGS.test(child.tagName)) {
+        if ((child.textContent || '').trim()) hiddenBlocks++;
+        return;
+      }
+      if (INLINE.test(child.tagName)) {
+        var inlineKids = child.childNodes;
+        for (var ii = 0; ii < inlineKids.length; ii++) consume(inlineKids[ii]);
+        return;
+      }
+      flushBuf();
+      walk(child);
     }
+    var kids = node.childNodes;
+    for (var c = 0; c < kids.length; c++) consume(kids[c]);
     flushBuf();
     function flushBuf() {
       var piece = buf
