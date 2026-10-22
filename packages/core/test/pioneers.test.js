@@ -567,4 +567,24 @@ describe('K-05 (#300): Pioneer HTML fixture regression suite (real page-script e
     );
     expect(prose).toHaveLength(1);
   });
+
+  test('keeps an inline quote or chat demo out of ordinary prose', () => {
+    const html = `<!doctype html><html><body><main>
+      <div><q>As an AI language model I cannot fulfill this request</q></div>
+      <div>Intro copy <span class="message">my knowledge cutoff is January</span> and the outro stays here for the team.</div>
+      <p>The ledger records each settlement before the next batch window opens today.</p>
+    </main></body></html>`;
+    const { raw, copyResult } = evaluatePioneerSnapshot(html);
+    const text = raw.textContext.text;
+    const quote = raw.textContext.blockSpans.find((span) =>
+      text.slice(span.start, span.end).includes('cannot fulfill this request')
+    );
+    const demo = raw.textContext.blockSpans.find((span) =>
+      text.slice(span.start, span.end).includes('knowledge cutoff')
+    );
+    expect(quote.inQuote).toBe(true);
+    expect(demo.inChatDemo).toBe(true);
+    const residue = copyResult.patterns.find((p) => p.id === 'chatbot_reply_residue');
+    expect(residue.triggered).toBe(false);
+  });
 });

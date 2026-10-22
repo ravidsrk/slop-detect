@@ -257,6 +257,17 @@ export function extractTextContext() {
         return;
       }
       if (INLINE.test(child.tagName)) {
+        var inlineFlags = contextFlags(child);
+        var parentFlags = contextFlags(node);
+        // A quote or chat demo inside ordinary prose keeps its own flags.
+        if (
+          inlineFlags.inQuote !== parentFlags.inQuote ||
+          inlineFlags.inChatDemo !== parentFlags.inChatDemo
+        ) {
+          flushBuf();
+          walk(child);
+          return;
+        }
         var inlineKids = child.childNodes;
         for (var ii = 0; ii < inlineKids.length; ii++) consume(inlineKids[ii]);
         return;
