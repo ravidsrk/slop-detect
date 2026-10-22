@@ -108,7 +108,7 @@ describe('K-06: product copy never claims a page or its author is AI-made', () =
       join(ROOT, 'packages/core/src/fixes.ts'),
       join(ROOT, 'packages/core/src/patterns.ts'),
       join(ROOT, 'packages/core/src/fonts.ts'),
-      ...walkFiles(join(ROOT, 'apps/web/public'), /\.(html|md|txt)$/),
+      ...walkFiles(join(ROOT, 'apps/web/public'), /\.(html|md|txt|json)$/),
       ...walkFiles(join(ROOT, 'apps/web/functions')),
       ...walkFiles(join(ROOT, 'skills')),
       ...walkFiles(join(ROOT, 'packages/mcp/src')),

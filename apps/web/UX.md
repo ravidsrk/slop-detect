@@ -7,8 +7,8 @@ flows we build.
 
 ## Personas
 
-- **The Scanner** — pastes a URL to see how AI-generated their (or a competitor's)
-  page looks. Wants a fast, memorable verdict.
+- **The Scanner** — pastes a URL to see how many default-template patterns their
+  (or a competitor's) page matches. Wants a fast, memorable verdict.
 - **The Sharer** — got a spicy result, wants to post it ("my site is an A, yours
   is an F"). Needs a screenshot-friendly card + one-click share.
 - **The Embedder** — proud of a Clean grade, wants a live badge in their README /

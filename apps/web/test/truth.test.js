@@ -94,6 +94,29 @@ test('pattern-count copy matches the live engine catalogue dynamically', async (
   // index.html must not hardcode "(9 tells)" or "10/27".
   expect(landing).not.toContain('(9 tells)');
   expect(landing).not.toMatch(/\b10\/27\b/);
+
+  // Served JSON must not pin the retired 27/9/8 catalogue. Counts come from the engine.
+  const staleCatalogue = /\b27-pattern\b|\b9-pattern\b|\b8-check\b|\b10\/27\b|\(9 tells\)/;
+  const publicJson = [];
+  const walkJson = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const child = path.join(dir, entry.name);
+      if (entry.isDirectory()) walkJson(child);
+      else if (entry.name.endsWith('.json')) publicJson.push(child);
+    }
+  };
+  walkJson(path.join(WEB, 'public'));
+  for (const file of publicJson) {
+    const rel = path.relative(ROOT, file);
+    expect(fs.readFileSync(file, 'utf8'), `${rel} pins a stale catalogue count`).not.toMatch(
+      staleCatalogue
+    );
+  }
+  const docsSrc = fs.readFileSync(path.join(WEB, 'functions', 'docs.tsx'), 'utf8');
+  expect(docsSrc, 'docs.tsx must take the AEO count from the engine').not.toMatch(
+    /score the 8-check AEO axis/
+  );
+  expect(docsSrc).toMatch(/N_AEO \+ '-check AEO axis'/);
 });
 
 test('docs do not tell users to install @slop-detect/core from npm and only name registered check/pattern IDs', () => {
