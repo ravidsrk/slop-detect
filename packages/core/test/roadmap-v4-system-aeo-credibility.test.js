@@ -19,6 +19,7 @@ import {
   parseDesignMd,
   parseDtcgTokens,
   extractDtcgTokens,
+  flattenDesignTokens,
   scoreSystemCompliance,
   lintDesignMd,
   diffDesignMd,
@@ -133,9 +134,14 @@ components:
       score: 16,
       tier: 'Mild',
       patterns: [
-        { id: 'purple_accent', weight: 4, triggered: true, evidence: {} },
+        {
+          id: 'purple_accent',
+          weight: 4,
+          triggered: true,
+          evidence: { samples: [{ bg: 'oklch(0.585 0.233 277.1)' }] },
+        },
         { id: 'slop_fonts', weight: 8, triggered: true, evidence: { heroFam: 'Inter' } },
-        { id: 'perma_dark_mode', weight: 4, triggered: true, evidence: {} },
+        { id: 'perma_dark_mode', weight: 4, triggered: true, evidence: { surface: '#0A0A0B' } },
       ],
     };
     const waived = applyDesignSystemWaivers(rawScan, parsed);
@@ -533,11 +539,134 @@ describe('#298 K-03, #299 K-04, #306 K-11, #213 K-01, #333, #315 W-09: Credibili
     );
     expect(typeof tau.threshold).toBe('number');
     expect(clopperPearson95(0, 100)[0]).toBe(0);
+    expect(clopperPearson95(0, 1)[1]).toBe(0.975);
+    expect(clopperPearson95(1, 1)).toEqual([0.025, 1]);
 
     // #333: with no measured lift supplied, co-occurrence confidence stays 'unknown'
     const conf = computeCoOccurrenceConfidence([
       { id: 'gradient_text', triggered: true, weight: 6, likelihoodRatio: null },
     ]);
     expect(conf.status).toBe('unknown');
+  });
+});
+
+describe('review fixes for robots, snippets, type tokens, and markdown twins', () => {
+  test('an em line-height stays a ratio of the element font size', () => {
+    const parsed = parseDesignMd(`---
+name: Type
+typography:
+  h1:
+    fontFamily: Georgia
+    fontSize: 24px
+    lineHeight: 1.5em
+  body:
+    fontFamily: Georgia
+    fontSize: 24px
+    lineHeight: 1.5rem
+---
+`);
+    const flat = flattenDesignTokens(parsed);
+    const h1 = flat.typographyStyles.find((style) => style.name === 'h1');
+    const body = flat.typographyStyles.find((style) => style.name === 'body');
+    expect(h1.lineHeight).toBe(1.5);
+    expect(body.lineHeight).toBe(1);
+  });
+
+  test('composite aliases resolve and an extended group keeps the base type', () => {
+    const parsed = parseDtcgTokens({
+      font: {
+        family: { $type: 'fontFamily', $value: 'Georgia' },
+        size: { $type: 'dimension', $value: { value: 24, unit: 'px' } },
+      },
+      heading: {
+        $type: 'typography',
+        $value: {
+          fontFamily: '{font.family}',
+          fontSize: '{font.size}',
+          fontWeight: 600,
+          lineHeight: 1.2,
+        },
+      },
+      palette: {
+        $type: 'color',
+        ink: { $value: { colorSpace: 'srgb', components: [0, 0, 0] } },
+      },
+      brand: {
+        $extends: 'palette',
+        accent: { $value: { colorSpace: 'srgb', components: [1, 0, 0] } },
+      },
+    });
+    expect(parsed.errors).toEqual([]);
+    expect(parsed.typography.heading.fontFamily).toBe('Georgia');
+    expect(parsed.typography.heading.fontSize).toBe('24px');
+    expect(parsed.colors.brand_accent).toMatch(/255,\s*0,\s*0/);
+    expect(parsed.colors.brand_ink).toMatch(/0,\s*0,\s*0/);
+  });
+
+  test('robots wildcards match in linear time and honor a trailing anchor', () => {
+    const star = '*'.repeat(40);
+    const noisy = `User-agent: *\nDisallow: /${star}\n`;
+    const started = Date.now();
+    evaluateRobotsTxt(noisy, `/${'a/'.repeat(80)}file`);
+    expect(Date.now() - started).toBeLessThan(200);
+
+    expect(
+      evaluateRobotsTxt('User-agent: *\nDisallow: /private\n', '/private/docs').searchAllowed
+    ).toBe(false);
+    expect(
+      evaluateRobotsTxt('User-agent: *\nDisallow: /private$\n', '/private/docs').searchAllowed
+    ).toBe(true);
+    expect(
+      evaluateRobotsTxt('User-agent: *\nDisallow: /*.php$\n', '/a.php.bak.php').searchAllowed
+    ).toBe(false);
+    expect(
+      evaluateRobotsTxt('User-agent: *\nDisallow: /*.php$\n', '/a.php.txt').searchAllowed
+    ).toBe(true);
+  });
+
+  test('the most restrictive max-snippet wins, including a later unlimited value', () => {
+    const restricted = parsePreviewDirectives(
+      new Headers(),
+      '<meta name="googlebot" content="max-snippet:120, max-snippet:0">'
+    );
+    expect(restricted.engines.google.maxSnippet).toBe(0);
+    expect(restricted.engines.google.status).toBe('fail');
+
+    const unlimitedAfter = parsePreviewDirectives(
+      new Headers(),
+      '<meta name="googlebot" content="max-snippet:40, max-snippet:-1">'
+    );
+    expect(unlimitedAfter.engines.google.maxSnippet).toBe(40);
+    expect(unlimitedAfter.engines.google.status).toBe('warn');
+  });
+
+  test('a valid markdown twin replaces an earlier HTML 200', async () => {
+    const markdown =
+      '# Docs\n\nA real markdown twin with two paragraphs of words.\n\nMore words.\n';
+    const fetchImpl = async (url) => {
+      const path = new URL(url).pathname;
+      if (path === '/') {
+        return new Response(
+          '<!doctype html><html><head><link rel="alternate" type="text/markdown" href="/alt.html"></head><body><h1>Docs</h1><p>Server text for the page that is long enough to read.</p></body></html>',
+          { status: 200, headers: { 'content-type': 'text/html' } }
+        );
+      }
+      if (path === '/alt.html') {
+        return new Response('<!doctype html><html><body><h1>Not markdown</h1></body></html>', {
+          status: 200,
+          headers: { 'content-type': 'text/html' },
+        });
+      }
+      if (path === '/index.md') {
+        return new Response(markdown, {
+          status: 200,
+          headers: { 'content-type': 'text/markdown; charset=utf-8' },
+        });
+      }
+      return new Response('missing', { status: 404 });
+    };
+    const res = await runAeoChecks('https://twin.example/', { fetchImpl });
+    expect(res.checks.find((check) => check.id === 'md.twin').status).toBe('pass');
+    expect(res.checks.find((check) => check.id === 'html.linkAlternate').status).toBe('fail');
   });
 });

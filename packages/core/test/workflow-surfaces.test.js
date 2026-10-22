@@ -8,6 +8,7 @@ import {
   dedupeTemplateFindings,
   diffScanFindings,
   discoverSitePages,
+  readFetchedText,
   evaluateRobotsTxt,
   formatAgentReport,
   formatDefaultReport,
@@ -76,6 +77,56 @@ describe('site sample and copy aggregate', () => {
     expect(plan.urls).toContain('https://example.com/docs');
     expect(plan.urls).toContain('https://example.com/pricing');
     expect(plan.urls.some((url) => url.includes('evil.test'))).toBe(false);
+  });
+
+  test('a redirect keeps the final origin and a rejected sitemap body does not throw', async () => {
+    const fetchImpl = async (url) => {
+      const href = String(url);
+      if (href.endsWith('/sitemap.xml')) {
+        return {
+          ok: true,
+          text: async () => {
+            throw new Error('sitemap body failed');
+          },
+        };
+      }
+      if (href === 'https://example.com/start') {
+        return {
+          ok: true,
+          url: 'https://www.example.com/start',
+          text: async () => '<a href="/pricing">Pricing</a>',
+        };
+      }
+      return { ok: true, text: async () => '' };
+    };
+    const plan = await discoverSitePages('https://example.com/start', fetchImpl, { max: 5 });
+    expect(plan.urls[0]).toBe('https://www.example.com/start');
+    expect(plan.urls).toContain('https://www.example.com/pricing');
+    expect(plan.urls.some((url) => url.startsWith('https://example.com/'))).toBe(false);
+  });
+
+  test('readFetchedText stops at 200_000 characters and cancels the rest', async () => {
+    const chunk = new TextEncoder().encode('x'.repeat(50_000));
+    let reads = 0;
+    let cancelled = false;
+    const text = await readFetchedText({
+      ok: true,
+      body: {
+        getReader: () => ({
+          read: async () => {
+            reads += 1;
+            if (reads > 8) return { done: true };
+            return { done: false, value: chunk };
+          },
+          cancel: async () => {
+            cancelled = true;
+          },
+        }),
+      },
+    });
+    expect(text.length).toBe(200_000);
+    expect(reads).toBe(4);
+    expect(cancelled).toBe(true);
   });
 
   test('eligibility needs 50 words and a structural element', () => {

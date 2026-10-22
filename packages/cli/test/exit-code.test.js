@@ -33,3 +33,14 @@ test('an unscannable page wins over a gated finding', () => {
   const heavy = { url: 'https://one.example', score: 40, tier: 'Heavy' };
   expect(exitCodeForScanResults([heavy, blocked], { failOn: 'Heavy' })).toBe(2);
 });
+
+test('a failed earlier run exits 2 when the last attempt scored', () => {
+  const last = {
+    url: 'https://example.com',
+    score: 4,
+    tier: 'Clean',
+    runSummary: { ok: false, message: 'Scan could not run. This is not a Clean score.' },
+  };
+  expect(exitCodeForScanResults(last)).toBe(2);
+  expect(exitCodeForScanResults(last, { failOn: 'Heavy' })).toBe(2);
+});

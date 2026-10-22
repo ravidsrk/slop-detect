@@ -7,6 +7,7 @@
 // 2. W3C Design Tokens Community Group (DTCG) Format Module 2025.10 (`tokens.json`).
 
 import { parseColor, deltaEOklab, contrastRatio, isPurple, isDark } from './color.js';
+import { scorePatterns } from './design-score.js';
 
 export const DESIGN_MD_SPEC_VERSION = 'alpha';
 
@@ -168,7 +169,13 @@ export function parseLineHeightRatio(val: unknown, fontSizePx: number | null): n
     const pct = parseFloat(s);
     return Number.isFinite(pct) ? pct / 100 : null;
   }
-  if (s.endsWith('px') || s.endsWith('rem') || s.endsWith('em')) {
+  // `em` is already a ratio of this element's font size. Treating it as
+  // 16px and dividing by fontSizePx turns 1.5em on a 24px style into 1.
+  if (s.endsWith('em') && !s.endsWith('rem')) {
+    const em = parseFloat(s);
+    return Number.isFinite(em) ? em : null;
+  }
+  if (s.endsWith('px') || s.endsWith('rem')) {
     const px = parseLengthPx(s);
     if (px !== null && fontSizePx && fontSizePx > 0) return px / fontSizePx;
     return null;
@@ -1392,24 +1399,66 @@ function resolveRefsForDiff(tree: Record<string, any>) {
   return tree;
 }
 
+const DECLARED_COLOR_MATCH_DE = 0.05;
+
+function isCreamSurface(color: any): boolean {
+  if (!color) return false;
+  return color.r >= 235 && color.g >= 230 && color.b >= 215 && color.r - color.b >= 6;
+}
+
+function observedColorStrings(evidence: any): string[] {
+  const out: string[] = [];
+  const push = (value: unknown) => {
+    if (typeof value === 'string' && value.trim()) out.push(value.trim());
+  };
+  if (!evidence || typeof evidence !== 'object') return out;
+  push(evidence.surface);
+  push(evidence.bodyBg);
+  push(evidence.background);
+  push(evidence.bg);
+  push(evidence.hex);
+  push(evidence.color);
+  push(evidence.accent);
+  if (Array.isArray(evidence.samples)) {
+    for (const sample of evidence.samples) {
+      if (typeof sample === 'string') push(sample);
+      else if (sample && typeof sample === 'object') {
+        push(sample.bg);
+        push(sample.color);
+        push(sample.surface);
+        push(sample.background);
+      }
+    }
+  }
+  return out;
+}
+
+// A declared token waives a color rule only when that token is the color the
+// page actually used. A dark text token does not waive an undeclared dark page,
+// and a different purple does not waive the CTA.
+function matchingDeclaredColor(
+  evidence: any,
+  tokens: string[],
+  accepts: (color: any) => boolean
+): string | null {
+  const observed = observedColorStrings(evidence)
+    .map((value) => parseColor(value))
+    .filter(Boolean);
+  if (observed.length === 0) return null;
+  for (const token of tokens) {
+    const parsed = parseColor(token);
+    if (!parsed || !accepts(parsed)) continue;
+    if (observed.some((seen) => deltaEOklab(seen, parsed) <= DECLARED_COLOR_MATCH_DE)) {
+      return token;
+    }
+  }
+  return null;
+}
+
 // ── S-03 (#282): Token-scoped design-slop waivers when DESIGN.md supplied ────
 export function applyDesignSystemWaivers(scanResult: Record<string, any>, parsedDesignMd: any) {
   if (!scanResult || !parsedDesignMd) return scanResult;
   const tokens = flattenDesignTokens(parsedDesignMd);
-
-  const hasPurpleToken = tokens.colors.some((c) => {
-    const parsed = parseColor(c);
-    return parsed ? isPurple(parsed) : false;
-  });
-  const hasDarkSurfaceToken = tokens.colors.some((c) => {
-    const parsed = parseColor(c);
-    return parsed ? isDark(parsed) : false;
-  });
-  const hasCreamSurfaceToken = tokens.colors.some((c) => {
-    const parsed = parseColor(c);
-    if (!parsed) return false;
-    return parsed.r >= 235 && parsed.g >= 230 && parsed.b >= 215 && parsed.r - parsed.b >= 6;
-  });
   const hasRadiiScale = tokens.radii.length > 0;
 
   const waivedPatterns: Array<{
@@ -1421,18 +1470,17 @@ export function applyDesignSystemWaivers(scanResult: Record<string, any>, parsed
 
   const updatedPatterns = (scanResult.patterns || []).map((p: any) => {
     if (!p.triggered) return p;
-    if (p.id === 'purple_accent' && hasPurpleToken) {
-      const tok = tokens.colors.find((c) => {
-        const pc = parseColor(c);
-        return pc ? isPurple(pc) : false;
-      })!;
-      waivedPatterns.push({
-        id: p.id,
-        reason: `Primary purple accent (${tok}) is explicitly declared in DESIGN.md`,
-        declaredToken: tok,
-        originalWeight: p.weight,
-      });
-      return { ...p, waived: true, status: 'review' };
+    if (p.id === 'purple_accent') {
+      const tok = matchingDeclaredColor(p.evidence, tokens.colors, isPurple);
+      if (tok) {
+        waivedPatterns.push({
+          id: p.id,
+          reason: `Primary purple accent (${tok}) is explicitly declared in DESIGN.md`,
+          declaredToken: tok,
+          originalWeight: p.weight,
+        });
+        return { ...p, waived: true, status: 'review' };
+      }
     }
     if (
       (p.id === 'slop_fonts' || p.id === 'centered_hero' || p.id === 'display_mono_heading') &&
@@ -1450,31 +1498,29 @@ export function applyDesignSystemWaivers(scanResult: Record<string, any>, parsed
         return { ...p, waived: true, status: 'review' };
       }
     }
-    if (p.id === 'perma_dark_mode' && hasDarkSurfaceToken) {
-      const tok = tokens.colors.find((c) => {
-        const pc = parseColor(c);
-        return pc ? isDark(pc) : false;
-      })!;
-      waivedPatterns.push({
-        id: p.id,
-        reason: `Dark surface token (${tok}) is explicitly declared in DESIGN.md`,
-        declaredToken: tok,
-        originalWeight: p.weight,
-      });
-      return { ...p, waived: true, status: 'review' };
+    if (p.id === 'perma_dark_mode') {
+      const tok = matchingDeclaredColor(p.evidence, tokens.colors, isDark);
+      if (tok) {
+        waivedPatterns.push({
+          id: p.id,
+          reason: `Dark surface token (${tok}) is explicitly declared in DESIGN.md`,
+          declaredToken: tok,
+          originalWeight: p.weight,
+        });
+        return { ...p, waived: true, status: 'review' };
+      }
     }
-    if ((p.id === 'cream_default_bg' || p.id === 'editorial_cream_kit') && hasCreamSurfaceToken) {
-      const tok = tokens.colors.find((c) => {
-        const pc = parseColor(c);
-        return pc ? pc.r >= 235 && pc.g >= 230 && pc.b >= 215 && pc.r - pc.b >= 6 : false;
-      })!;
-      waivedPatterns.push({
-        id: p.id,
-        reason: `Warm cream surface (${tok}) is explicitly declared in DESIGN.md`,
-        declaredToken: tok,
-        originalWeight: p.weight,
-      });
-      return { ...p, waived: true, status: 'review' };
+    if (p.id === 'cream_default_bg' || p.id === 'editorial_cream_kit') {
+      const tok = matchingDeclaredColor(p.evidence, tokens.colors, isCreamSurface);
+      if (tok) {
+        waivedPatterns.push({
+          id: p.id,
+          reason: `Warm cream surface (${tok}) is explicitly declared in DESIGN.md`,
+          declaredToken: tok,
+          originalWeight: p.weight,
+        });
+        return { ...p, waived: true, status: 'review' };
+      }
     }
     if (p.id === 'uniform_radius_shadow' && hasRadiiScale) {
       waivedPatterns.push({
@@ -1490,9 +1536,26 @@ export function applyDesignSystemWaivers(scanResult: Record<string, any>, parsed
 
   const rawScore = scanResult.score ?? 0;
   const rawTier = scanResult.tier ?? 'Clean';
-  const waivedPoints = waivedPatterns.reduce((s, w) => s + w.originalWeight, 0);
-  const waivedScore = Math.max(0, rawScore - waivedPoints);
-  const waivedTier = waivedScore >= 28 ? 'Heavy' : waivedScore >= 10 ? 'Mild' : 'Clean';
+  // Discounts such as the font cap already changed the raw score. Subtracting
+  // each waived rule's original weight counts those points twice. Rescore with
+  // the waived rules excluded so the remaining rules keep their real contribution.
+  const waivedIds = new Set(waivedPatterns.map((w) => w.id));
+  const rescored =
+    waivedIds.size > 0
+      ? scorePatterns(
+          (scanResult.patterns || []).map((p: any) =>
+            waivedIds.has(p.id) ? { ...p, triggered: false } : p
+          )
+        )
+      : null;
+  const waivedScore = rescored ? rescored.score : rawScore;
+  const waivedTier = rescored
+    ? rescored.tier
+    : waivedScore >= 28
+      ? 'Heavy'
+      : waivedScore >= 10
+        ? 'Mild'
+        : 'Clean';
 
   return {
     ...scanResult,
@@ -1624,13 +1687,18 @@ export function parseDtcgTokens(
     return cur;
   };
 
-  const applyGroupExtends = (node: any) => {
-    if (!node || typeof node !== 'object') return;
+  const applyGroupExtends = (node: any, seen = new Set<any>()) => {
+    if (!node || typeof node !== 'object' || seen.has(node)) return;
+    seen.add(node);
     if (typeof node.$extends === 'string') {
       const baseGroup = resolveNodeByPath(node.$extends);
       if (baseGroup && typeof baseGroup === 'object') {
+        applyGroupExtends(baseGroup, seen);
         for (const [k, v] of Object.entries(baseGroup)) {
-          if (k.startsWith('$')) continue;
+          if (k.startsWith('$')) {
+            if (k === '$type' && node.$type == null) node.$type = v;
+            continue;
+          }
           if (!(k in node)) node[k] = JSON.parse(JSON.stringify(v));
         }
       } else {
@@ -1642,7 +1710,7 @@ export function parseDtcgTokens(
       }
     }
     for (const [k, v] of Object.entries(node)) {
-      if (!k.startsWith('$') && v && typeof v === 'object') applyGroupExtends(v);
+      if (!k.startsWith('$') && v && typeof v === 'object') applyGroupExtends(v, seen);
     }
   };
   applyGroupExtends(raw);
@@ -1734,6 +1802,32 @@ export function parseDtcgTokens(
     return entry.value;
   };
 
+  const resolveNested = (value: any, visited: Set<string>): any => {
+    if (typeof value === 'string') {
+      const alias = value.trim().match(/^\{([^{}]+)\}$/);
+      if (!alias) return value;
+      const targetPath = alias[1];
+      if (!flatTokens.has(targetPath)) {
+        errors.push({
+          code: 'broken-ref',
+          path: targetPath,
+          message: `Unresolved token alias "${targetPath}".`,
+        });
+        return undefined;
+      }
+      return resolveTokenValue(targetPath, new Set(visited));
+    }
+    if (Array.isArray(value)) return value.map((item) => resolveNested(item, visited));
+    if (value && typeof value === 'object') {
+      const out: Record<string, any> = {};
+      for (const [key, child] of Object.entries(value)) {
+        out[key] = resolveNested(child, visited);
+      }
+      return out;
+    }
+    return value;
+  };
+
   const colors: Record<string, string> = {};
   const typography: Record<string, any> = {};
   const rounded: Record<string, string> = {};
@@ -1742,7 +1836,10 @@ export function parseDtcgTokens(
   const components: Record<string, any> = {};
 
   for (const [path, entry] of flatTokens.entries()) {
-    const resolved = resolveTokenValue(path);
+    let resolved = resolveTokenValue(path);
+    if (resolved && typeof resolved === 'object') {
+      resolved = resolveNested(resolved, new Set([path]));
+    }
     if (resolved === undefined) continue;
     const t = entry.type;
     const shortKey = path.replace(/\./g, '_');

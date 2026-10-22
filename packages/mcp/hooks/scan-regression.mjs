@@ -33,7 +33,8 @@ try {
   process.exit(2);
 }
 
-const { regressionAgainstBaseline, triggeredPatterns } = await import('@slop-detect/core');
+const { importCore } = await import('./import-core.mjs');
+const { regressionAgainstBaseline, triggeredPatterns } = await importCore();
 if (!result || result.blocked || result.error || typeof result.score !== 'number') {
   process.stderr.write('Scan could not run. This is not a Clean score.\n');
   process.exit(2);
@@ -66,6 +67,7 @@ if (decision.establish) {
       2
     )}\n`
   );
+  if (!decision.silent && decision.text) process.stdout.write(`${decision.text}\n`);
   process.exit(0);
 }
 if (decision.silent) process.exit(0);

@@ -759,7 +759,7 @@ export function buildFixPrompt(result) {
   const designPatterns = result.patterns || [];
   const copyPatterns = (result.axes && result.axes.copy && result.axes.copy.patterns) || [];
   const allPatterns = [...designPatterns, ...copyPatterns];
-  const triggered = allPatterns.filter((p) => p.triggered);
+  const triggered = allPatterns.filter((p) => p.triggered && !p.waived);
   const passing = allPatterns.filter((p) => !p.triggered);
   const totalCount = allPatterns.length;
 

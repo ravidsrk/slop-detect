@@ -31,7 +31,8 @@ globalThis.fetch = async (input, init) => {
 };
 
 const { scanUrl } = await import('slop-detect');
-const { stampScanResult } = await import('@slop-detect/core');
+const { importCore } = await import('./import-core.mjs');
+const { stampScanResult } = await importCore();
 
 let result;
 try {

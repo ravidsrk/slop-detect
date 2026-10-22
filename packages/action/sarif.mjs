@@ -66,7 +66,7 @@ export function buildActionSarif(results = []) {
             properties: { axis: pattern.axis || 'design', weight: pattern.weight },
           });
         }
-        if (!pattern.triggered) continue;
+        if (!pattern.triggered || pattern.waived) continue;
         const selector =
           pattern?.evidence?.selector ||
           pattern?.evidence?.domPath ||

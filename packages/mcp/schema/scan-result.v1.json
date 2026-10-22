@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://slop-detect.com/schemas/scan-result.v1.json",
+  "title": "slop-detect scan result v1",
+  "description": "Versioned document for a design/copy/craft scan, an unscannable page, or an AEO report. schemaVersion 1. A breaking change renames this file to scan-result.v2.json. This schema is not a v1.0 product release.",
+  "oneOf": [
+    { "$ref": "#/$defs/document" },
+    {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/document" }
+    }
+  ],
+  "$defs": {
+    "document": {
+      "oneOf": [
+        { "$ref": "#/$defs/scoredScan" },
+        { "$ref": "#/$defs/unscannable" },
+        { "$ref": "#/$defs/aeoReport" }
+      ]
+    },
+    "scoredScan": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["schemaVersion", "definitionsVersion", "url", "score", "tier", "patterns"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "definitionsVersion": { "type": "string" },
+        "url": { "type": "string" },
+        "finalUrl": { "type": "string" },
+        "score": { "type": "number" },
+        "tier": { "enum": ["Clean", "Mild", "Heavy"] },
+        "grade": { "type": "string" },
+        "verdict": { "type": "string" },
+        "patternsFlagged": { "type": "number" },
+        "patternsScored": { "type": "number" },
+        "patternsTotal": { "type": "number" },
+        "patterns": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/pattern" }
+        },
+        "evidence": { "type": "array" },
+        "waivedPatterns": {
+          "type": "array",
+          "items": { "type": "object", "additionalProperties": true }
+        },
+        "madeWith": {
+          "description": "Builder markers read from the page. They do not change the score.",
+          "anyOf": [
+            {
+              "type": "array",
+              "items": { "type": "object", "additionalProperties": true }
+            },
+            { "type": "object", "additionalProperties": true },
+            { "type": "null" }
+          ]
+        },
+        "confidence": {
+          "description": "Co-occurrence summary for the design score. Not a calibrated likelihood ratio.",
+          "anyOf": [{ "type": "object", "additionalProperties": true }, { "type": "null" }]
+        },
+        "axes": { "$ref": "#/$defs/axes" },
+        "craft": { "type": "object", "additionalProperties": true },
+        "system": { "type": "object", "additionalProperties": true },
+        "aeo": { "type": "object", "additionalProperties": true },
+        "a11y": {
+          "description": "Optional axe-core report. It never changes a score.",
+          "type": "object",
+          "additionalProperties": true
+        },
+        "environment": { "$ref": "#/$defs/environment" },
+        "unifiedScore": { "type": "number" },
+        "unifiedTier": { "enum": ["Clean", "Mild", "Heavy"] },
+        "rawScore": { "type": "number" }
+      }
+    },
+    "unscannable": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["schemaVersion"],
+      "anyOf": [{ "required": ["blocked"] }, { "required": ["error"] }, { "required": ["code"] }],
+      "not": {
+        "required": ["score"],
+        "properties": { "score": { "type": "number" } }
+      },
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "url": { "type": "string" },
+        "blocked": { "type": "boolean" },
+        "error": { "type": "string" },
+        "code": { "type": "string" },
+        "hint": { "type": "string" },
+        "score": { "type": "null" },
+        "tier": { "type": "null" },
+        "definitionsVersion": { "type": "string" },
+        "environment": { "$ref": "#/$defs/environment" }
+      }
+    },
+    "aeoReport": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["schemaVersion", "axis", "url", "score", "tier", "checks"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "axis": { "const": "aeo" },
+        "url": { "type": "string" },
+        "score": { "type": "number" },
+        "tier": { "enum": ["Eligible", "Partially Eligible", "Restricted"] },
+        "checks": {
+          "type": "array",
+          "items": { "type": "object", "additionalProperties": true }
+        },
+        "definitionsVersion": { "type": "string" }
+      }
+    },
+    "pattern": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "status", "triggered"],
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "enum": ["fail", "review", "unknown", "pass"] },
+        "triggered": { "type": "boolean" },
+        "weight": { "type": "number" },
+        "waived": { "type": "boolean" },
+        "tier": { "type": "string" },
+        "confidence": {},
+        "locations": {
+          "description": "DOM locations for this finding. Omitted until the runner has one.",
+          "type": "array",
+          "items": { "type": "object", "additionalProperties": true }
+        },
+        "evidence": {}
+      }
+    },
+    "axes": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "design": { "type": "object", "additionalProperties": true },
+        "copy": { "type": "object", "additionalProperties": true },
+        "craft": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "chromium": { "type": "string" },
+        "userAgent": { "type": "string" },
+        "viewport": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "width": { "type": "number" },
+            "height": { "type": "number" }
+          }
+        }
+      }
+    }
+  }
+}

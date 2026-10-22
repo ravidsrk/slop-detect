@@ -17,6 +17,7 @@ import {
   scoreSystemCompliance,
   scoreCopy,
   scoreCraft,
+  measureMobileReflowOnPage,
   combineAxes,
   applyDeclaredDesignWaivers,
   SCAN_PAGE_WAIT,
@@ -271,6 +272,10 @@ export async function onRequestPost({ request, env, waitUntil }) {
         },
         422
       );
+    }
+
+    if (normalizeAxes(body?.axes).includes('craft') && data.craftSignals) {
+      data.craftSignals.mobile_reflow_failure = await measureMobileReflowOnPage(page);
     }
 
     let screenshot = null;

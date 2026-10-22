@@ -172,6 +172,40 @@ function commandAlreadyPresent(existing: string, planned: string): boolean {
   return existing.includes(HOOK_COMMAND) && planned.includes(HOOK_COMMAND);
 }
 
+function hookCommandOf(entry: any): string | null {
+  if (!entry || typeof entry !== 'object') return null;
+  if (typeof entry.command === 'string') return entry.command;
+  if (Array.isArray(entry.hooks)) {
+    for (const inner of entry.hooks) {
+      if (inner && typeof inner.command === 'string') return inner.command;
+    }
+  }
+  return null;
+}
+
+function mergeHookLists(existing: any, planned: any): any[] {
+  const base = Array.isArray(existing) ? existing.slice() : [];
+  if (!Array.isArray(planned)) return base;
+  for (const item of planned) {
+    const command = hookCommandOf(item);
+    if (command && JSON.stringify(base).includes(command)) continue;
+    base.push(item);
+  }
+  return base;
+}
+
+// Keep every event the project already configured. Append the planned command
+// on that event when it is not already there.
+function mergeHooks(existing: any, planned: any): any {
+  const out: Record<string, any> =
+    existing && typeof existing === 'object' && !Array.isArray(existing) ? { ...existing } : {};
+  if (!planned || typeof planned !== 'object') return out;
+  for (const [event, plannedList] of Object.entries(planned)) {
+    out[event] = mergeHookLists(out[event], plannedList);
+  }
+  return out;
+}
+
 export function applyInitPlan(
   dir: string,
   files: Array<{ path: string; contents: string }>
@@ -205,9 +239,8 @@ export function applyInitPlan(
             merged.mcpServers['slop-detect'] = right.mcpServers['slop-detect'];
           }
         }
-        if (right.hooks && !JSON.stringify(left.hooks || {}).includes(HOOK_COMMAND)) {
-          merged.hooks = left.hooks || right.hooks;
-          if (!JSON.stringify(merged.hooks).includes(HOOK_COMMAND)) merged.hooks = right.hooks;
+        if (right.hooks) {
+          merged.hooks = mergeHooks(left.hooks, right.hooks);
         }
         const next = `${JSON.stringify(merged, null, 2)}\n`;
         if (next === existing) result.unchanged.push(file.path);

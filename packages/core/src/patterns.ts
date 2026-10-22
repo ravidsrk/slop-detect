@@ -920,8 +920,12 @@ export const PATTERNS = [
       }
       const ratio = total ? greys / total : 0;
       const triggered = dark && (ratio >= 0.3 || total >= 5);
+      const surface = bodyBg
+        ? `rgb(${Math.round(bodyBg.r)}, ${Math.round(bodyBg.g)}, ${Math.round(bodyBg.b)})`
+        : null;
       return {
         bodyDark: true,
+        surface,
         greyParas: greys,
         totalParas: total,
         ratio: +ratio.toFixed(2),

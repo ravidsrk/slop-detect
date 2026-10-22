@@ -64,6 +64,8 @@ const VERSION = readVersion();
 function loadScanResultSchema() {
   const start = dirname(fileURLToPath(import.meta.url));
   const candidates = [
+    join(start, '../schema/scan-result.v1.json'),
+    join(start, '../../schema/scan-result.v1.json'),
     join(start, '../../../schemas/scan-result.v1.json'),
     join(start, '../../../../schemas/scan-result.v1.json'),
     join(start, '../../../../../schemas/scan-result.v1.json'),

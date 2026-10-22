@@ -4,16 +4,32 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>One radius and one shadow</title>
-  
+
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: Georgia, 'Times New Roman', serif; background: #ffffff; color: #1a1a1a; padding: 32px; }
     .box { border-radius: 16px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08); background: #f7f7f7; margin: 8px; } .chip { width: 80px; height: 32px; } .card { width: 220px; height: 140px; } .modal { width: 480px; height: 200px; }
+
+    .scan-floor { font-family: Georgia, "Times New Roman", serif; font-size: 16px; line-height: 1.5; color: #1a1a1a; background: transparent; margin-top: 24px; }
+    .scan-floor a { color: #1a1a1a; text-decoration: underline; margin-right: 16px; font-size: 16px; }
+    .scan-floor p { margin: 12px 0; max-width: 62ch; }
   </style>
 </head>
 <body>
 <div class="box chip">A</div><div class="box chip">B</div><div class="box chip">C</div>
 <div class="box card">Card one</div><div class="box card">Card two</div><div class="box card">Card three</div>
 <div class="box modal">Wide panel one</div><div class="box modal">Wide panel two</div>
+
+<!-- scan-floor: visible chrome so a focused fixture is not an empty page -->
+<nav class="scan-floor">
+  <a href="#about">About the mill</a>
+  <a href="#orders">Standing orders</a>
+  <a href="#desk">Call the desk</a>
+</nav>
+<section class="scan-floor">
+  <p>Orders are packed on weekdays and leave from the same warehouse that mills the flour.</p>
+  <p>Account notes stay in writing so a change made after noon waits until the next route.</p>
+</section>
+<footer class="scan-floor"><p>417 Front Street, Portland. The desk answers before noon.</p></footer>
 </body>
 </html>

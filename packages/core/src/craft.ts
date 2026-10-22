@@ -517,6 +517,16 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
     extract: (ctx) => {
       const { visible, parseColor } = ctx;
       const vw = window.innerWidth || 1280;
+      // Both runners measure design at 1280×800. A pass at that width is not a
+      // phone layout. The runner repeats this check at a narrow viewport.
+      if (vw > 480) {
+        return {
+          status: 'unknown',
+          triggered: false,
+          reason: 'mobile reflow was not measured at a phone width',
+          viewportWidth: vw,
+        };
+      }
       const sw = document.documentElement ? document.documentElement.scrollWidth : vw;
       const bodyBg = parseColor(getComputedStyle(document.body).backgroundColor) || {
         r: 255,
@@ -663,10 +673,9 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
         return { triggered: false, probedCount: 0, missingFirst5: 0, missingRatio: 0 };
       }
 
-      // Check stylesheet rules for explicit outline: none / 0 without focus replacement.
-      // A :focus::after / :focus::before ring applies only to elements that match
-      // that rule's selector. One card rule must not clear every control on the page.
-      let globalOutlineSuppressed = false;
+      // A :focus rule that removes the outline applies only to controls that
+      // match that selector. Their focused style decides whether a ring remains.
+      const suppressingSelectors: string[] = [];
       const pseudoFocusRingSelectors: string[] = [];
       try {
         for (const sheet of Array.from(document.styleSheets)) {
@@ -691,7 +700,7 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
               /outline\s*:\s*(?:none|0(?:px)?)\b/i.test(cssText) &&
               !/box-shadow|border-color|ring/i.test(cssText)
             ) {
-              globalOutlineSuppressed = true;
+              suppressingSelectors.push(sel);
             }
           }
         }
@@ -721,7 +730,6 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
       let missingFirst5 = 0;
       let missingCount = 0;
       focusables.forEach((el: any, idx: number) => {
-        const cs = getComputedStyle(el);
         let hasPseudoRing =
           el.getAttribute?.('data-pseudo-focus-ring') === 'true' ||
           pseudoFocusRingSelectors.some((sel) => matchesPseudoFocusSelector(el, sel));
@@ -759,11 +767,42 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
           !/\bfocus(?:-visible)?:ring\b|\bfocus(?:-visible)?:border\b|\bfocus(?:-visible)?:after:ring\b/.test(
             String(el.className || '')
           );
+        const matchesSuppressor = suppressingSelectors.some((sel) =>
+          matchesPseudoFocusSelector(el, sel)
+        );
+        let focusedCs: any = null;
+        if (matchesSuppressor && typeof el.focus === 'function') {
+          const previous = document.activeElement;
+          try {
+            el.focus();
+            focusedCs = getComputedStyle(el);
+          } catch {
+            focusedCs = null;
+          }
+          try {
+            if (previous && previous !== el && typeof (previous as any).focus === 'function') {
+              (previous as any).focus();
+            } else if (typeof el.blur === 'function') {
+              el.blur();
+            }
+          } catch {
+            // The previous control may not accept focus.
+          }
+        }
+        const focusedHasRing = Boolean(
+          focusedCs &&
+          ((focusedCs.boxShadow && focusedCs.boxShadow !== 'none') ||
+            (focusedCs.outlineStyle &&
+              focusedCs.outlineStyle !== 'none' &&
+              parseFloat(focusedCs.outlineWidth || '0') > 0))
+        );
+        const suppressionMissing = matchesSuppressor && focusedCs && !focusedHasRing;
         const noIndicator =
           !hasPseudoRing &&
+          !focusedHasRing &&
           ((inlineOutlineNone && !inlineHasReplacement) ||
             classSuppressesFocus ||
-            (globalOutlineSuppressed && cs.outlineStyle === 'none'));
+            suppressionMissing);
         if (noIndicator) {
           missingCount++;
           if (idx < 5) missingFirst5++;
@@ -824,6 +863,11 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
         if (cs.display === 'none') continue;
         const rect = el.getBoundingClientRect();
         if (rect.width <= 0 || rect.height <= 0) continue;
+        // Scroll-reveal sections sit below the fold at opacity 0 until they
+        // enter the viewport. Leave that unvisited content unmeasured.
+        const vh = window.innerHeight || 800;
+        const viewW = window.innerWidth || 1280;
+        if (rect.bottom <= 0 || rect.top >= vh || rect.right <= 0 || rect.left >= viewW) continue;
         const op = parseFloat(cs.opacity || '1');
         if (op <= 0.01 || cs.visibility === 'hidden') {
           stuck.push(direct.trim().slice(0, 60));

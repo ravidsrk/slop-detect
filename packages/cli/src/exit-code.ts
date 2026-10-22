@@ -14,7 +14,11 @@ export interface ScanExitFlags {
 
 export function exitCodeForScanResults(results: any[] | any, flags: ScanExitFlags = {}): 0 | 1 | 2 {
   const list = Array.isArray(results) ? results : [results];
-  if (list.length === 0 || list.some((r) => !r || r.error || r.blocked)) return 2;
+  if (
+    list.length === 0 ||
+    list.some((r) => !r || r.error || r.blocked || r.runSummary?.ok === false)
+  )
+    return 2;
 
   let exitCode: 0 | 1 = 0;
   if (flags.failOn) {

@@ -1555,8 +1555,10 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
       }
       const ratio = total ? greys / total : 0;
       const triggered = dark && (ratio >= 0.3 || total >= 5);
+      const surface = bodyBg ? \`rgb(\${Math.round(bodyBg.r)}, \${Math.round(bodyBg.g)}, \${Math.round(bodyBg.b)})\` : null;
       return {
         bodyDark: true,
+        surface,
         greyParas: greys,
         totalParas: total,
         ratio: +ratio.toFixed(2),
@@ -2972,6 +2974,14 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
       craftSignals["mobile_reflow_failure"] = ((ctx) => {
       const { visible, parseColor: parseColor2 } = ctx;
       const vw = window.innerWidth || 1280;
+      if (vw > 480) {
+        return {
+          status: "unknown",
+          triggered: false,
+          reason: "mobile reflow was not measured at a phone width",
+          viewportWidth: vw
+        };
+      }
       const sw = document.documentElement ? document.documentElement.scrollWidth : vw;
       const bodyBg = parseColor2(getComputedStyle(document.body).backgroundColor) || {
         r: 255,
@@ -3087,7 +3097,7 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
       if (focusables.length === 0) {
         return { triggered: false, probedCount: 0, missingFirst5: 0, missingRatio: 0 };
       }
-      let globalOutlineSuppressed = false;
+      const suppressingSelectors = [];
       const pseudoFocusRingSelectors = [];
       try {
         for (const sheet of Array.from(document.styleSheets)) {
@@ -3105,7 +3115,7 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
               pseudoFocusRingSelectors.push(sel);
             }
             if (/:focus/.test(sel) && /outline\\s*:\\s*(?:none|0(?:px)?)\\b/i.test(cssText) && !/box-shadow|border-color|ring/i.test(cssText)) {
-              globalOutlineSuppressed = true;
+              suppressingSelectors.push(sel);
             }
           }
         }
@@ -3126,7 +3136,6 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
       let missingFirst5 = 0;
       let missingCount = 0;
       focusables.forEach((el, idx) => {
-        const cs = getComputedStyle(el);
         let hasPseudoRing = el.getAttribute?.("data-pseudo-focus-ring") === "true" || pseudoFocusRingSelectors.some((sel) => matchesPseudoFocusSelector(el, sel));
         if (!hasPseudoRing) {
           try {
@@ -3145,7 +3154,32 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
         const classSuppressesFocus = /\\bfocus:outline-none\\b/.test(String(el.className || "")) && !/\\bfocus(?:-visible)?:ring\\b|\\bfocus(?:-visible)?:border\\b|\\bfocus(?:-visible)?:after:ring\\b/.test(
           String(el.className || "")
         );
-        const noIndicator = !hasPseudoRing && (inlineOutlineNone && !inlineHasReplacement || classSuppressesFocus || globalOutlineSuppressed && cs.outlineStyle === "none");
+        const matchesSuppressor = suppressingSelectors.some(
+          (sel) => matchesPseudoFocusSelector(el, sel)
+        );
+        let focusedCs = null;
+        if (matchesSuppressor && typeof el.focus === "function") {
+          const previous = document.activeElement;
+          try {
+            el.focus();
+            focusedCs = getComputedStyle(el);
+          } catch {
+            focusedCs = null;
+          }
+          try {
+            if (previous && previous !== el && typeof previous.focus === "function") {
+              previous.focus();
+            } else if (typeof el.blur === "function") {
+              el.blur();
+            }
+          } catch {
+          }
+        }
+        const focusedHasRing = Boolean(
+          focusedCs && (focusedCs.boxShadow && focusedCs.boxShadow !== "none" || focusedCs.outlineStyle && focusedCs.outlineStyle !== "none" && parseFloat(focusedCs.outlineWidth || "0") > 0)
+        );
+        const suppressionMissing = matchesSuppressor && focusedCs && !focusedHasRing;
+        const noIndicator = !hasPseudoRing && !focusedHasRing && (inlineOutlineNone && !inlineHasReplacement || classSuppressesFocus || suppressionMissing);
         if (noIndicator) {
           missingCount++;
           if (idx < 5) missingFirst5++;
@@ -3192,6 +3226,9 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
         if (cs.display === "none") continue;
         const rect = el.getBoundingClientRect();
         if (rect.width <= 0 || rect.height <= 0) continue;
+        const vh = window.innerHeight || 800;
+        const viewW = window.innerWidth || 1280;
+        if (rect.bottom <= 0 || rect.top >= vh || rect.right <= 0 || rect.left >= viewW) continue;
         const op = parseFloat(cs.opacity || "1");
         if (op <= 0.01 || cs.visibility === "hidden") {
           stuck.push(direct.trim().slice(0, 60));
@@ -3659,6 +3696,7 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
     };
   }
   var SKIP_TAGS = /^(NAV|FOOTER|HEADER|SCRIPT|STYLE|NOSCRIPT|SVG|CODE|PRE|KBD|SAMP|TEXTAREA|TEMPLATE)$/i;
+  var BLOCK_TAGS = /^(P|H1|H2|H3|H4|H5|H6|LI|DT|DD|BLOCKQUOTE|FIGCAPTION)$/i;
   var PROSE_TAGS = /^(P|LI|BLOCKQUOTE|DD)$/i;
   var hiddenBlocks = 0;
   function isElementHidden(el2) {
@@ -3682,7 +3720,7 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
     }
     return false;
   }
-  function extractCleanNodeText(node) {
+  function extractCleanNodeText(node, ownOnly2) {
     if (!node) return "";
     if (node.nodeType === 3) {
       return (node.nodeValue || "").replace(/\\u00AD/g, "");
@@ -3705,7 +3743,15 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
     var out = "";
     var kids = node.childNodes;
     for (var i2 = 0; i2 < kids.length; i2++) {
-      out += extractCleanNodeText(kids[i2]);
+      var kid = kids[i2];
+      if (ownOnly2 && kid && kid.nodeType === 1 && /^(P|LI|BLOCKQUOTE)$/.test(kid.tagName)) {
+        if (out && !/\\s$/.test(out)) out += " ";
+        continue;
+      }
+      if (kid && kid.nodeType === 1 && (kid.tagName === "BR" || BLOCK_TAGS.test(kid.tagName))) {
+        if (out && !/\\s$/.test(out)) out += " ";
+      }
+      out += extractCleanNodeText(kid, ownOnly2);
     }
     return out;
   }
@@ -3714,18 +3760,21 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
   var headings = [];
   var paragraphs = [];
   var proseWordCount = 0;
+  var coveredEls = [];
+  var textParts = [];
+  var BLOCK_LIMIT = 200;
+  var BLOCK_TEXT_LIMIT = 400;
   var candidates = root.querySelectorAll(
     "h1, h2, h3, h4, h5, h6, p, li, dt, dd, blockquote, figcaption"
   );
   for (var i = 0; i < candidates.length; i++) {
     var el = candidates[i];
-    var nestedBlock = el.querySelector && el.querySelector("p, li, blockquote");
-    if (nestedBlock && (el.tagName === "LI" || el.tagName === "BLOCKQUOTE")) continue;
     if (isElementHidden(el)) {
       if ((el.textContent || "").trim()) hiddenBlocks++;
       continue;
     }
-    var rawTxt = extractCleanNodeText(el).replace(/[ \\t]+/g, " ").trim();
+    var ownOnly = el.tagName === "LI" || el.tagName === "BLOCKQUOTE";
+    var rawTxt = extractCleanNodeText(el, ownOnly).replace(/[ \\t]+/g, " ").trim();
     if (!rawTxt) continue;
     var wList = rawTxt.split(/\\s+/).filter(Boolean);
     var wc = wList.length;
@@ -3739,16 +3788,21 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
     var inChatDemo = Boolean(anc);
     var tag = el.tagName.toLowerCase();
     var nodeId = tag + ":" + Math.round(rect.top || 0) + ":" + rawTxt.slice(0, 20);
-    blocks.push({
-      tag,
-      text: rawTxt,
-      wordCount: wc,
-      inHero,
-      inFooter,
-      inQuote,
-      inChatDemo,
-      nodeId
-    });
+    coveredEls.push(el);
+    textParts.push(rawTxt);
+    if (blocks.length < BLOCK_LIMIT) {
+      var stored = rawTxt.slice(0, BLOCK_TEXT_LIMIT);
+      blocks.push({
+        tag,
+        text: stored,
+        wordCount: stored.split(/\\s+/).filter(Boolean).length,
+        inHero,
+        inFooter,
+        inQuote,
+        inChatDemo,
+        nodeId
+      });
+    }
     if (/^(h1|h2|h3|h4|li|dt)$/.test(tag) && headings.length < 200) {
       headings.push(rawTxt.slice(0, 200));
     }
@@ -3759,9 +3813,52 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
       proseWordCount += wc;
     }
   }
-  var text = blocks.map(function(b) {
-    return b.text;
-  }).join("\\n\\n");
+  function isCoveredNode(node) {
+    var cur = node && node.nodeType === 1 ? node : node && node.parentElement;
+    while (cur && cur !== root.parentElement) {
+      for (var ci = 0; ci < coveredEls.length; ci++) {
+        if (coveredEls[ci] === cur) return true;
+      }
+      cur = cur.parentElement;
+    }
+    return false;
+  }
+  function collectUncovered(node, parts) {
+    if (!node || node.nodeType !== 1 || isElementHidden(node)) return;
+    var kids = node.childNodes;
+    for (var ui = 0; ui < kids.length; ui++) {
+      var child = kids[ui];
+      if (child.nodeType === 3) {
+        if (!isCoveredNode(child) && child.nodeValue) parts.push(child.nodeValue);
+      } else if (child.nodeType === 1) {
+        if (SKIP_TAGS.test(child.tagName) || isCoveredNode(child)) continue;
+        collectUncovered(child, parts);
+      }
+    }
+  }
+  var uncoveredParts = [];
+  collectUncovered(root, uncoveredParts);
+  var uncovered = uncoveredParts.join(" ").replace(/[ \\t]+/g, " ").replace(/\\s*\\n\\s*/g, "\\n").trim();
+  if (uncovered) {
+    var uncoveredWords = uncovered.split(/\\s+/).filter(Boolean);
+    textParts.push(uncovered);
+    if (blocks.length < BLOCK_LIMIT) {
+      var uncoveredStored = uncovered.slice(0, BLOCK_TEXT_LIMIT);
+      blocks.push({
+        tag: "div",
+        text: uncoveredStored,
+        wordCount: uncoveredStored.split(/\\s+/).filter(Boolean).length,
+        inHero: false,
+        inFooter: false,
+        inQuote: false,
+        inChatDemo: false,
+        nodeId: "div:uncovered:" + uncovered.slice(0, 20)
+      });
+    }
+    if (paragraphs.length < 200) paragraphs.push(uncovered.slice(0, 400));
+    if (uncoveredWords.length >= 8) proseWordCount += uncoveredWords.length;
+  }
+  var text = textParts.join("\\n\\n");
   if (!text && !isElementHidden(root)) {
     text = extractCleanNodeText(root).trim();
   }
@@ -5386,8 +5483,10 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
       }
       const ratio = total ? greys / total : 0;
       const triggered = dark && (ratio >= 0.3 || total >= 5);
+      const surface = bodyBg ? \`rgb(\${Math.round(bodyBg.r)}, \${Math.round(bodyBg.g)}, \${Math.round(bodyBg.b)})\` : null;
       return {
         bodyDark: true,
+        surface,
         greyParas: greys,
         totalParas: total,
         ratio: +ratio.toFixed(2),
@@ -6803,6 +6902,14 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
       craftSignals["mobile_reflow_failure"] = ((ctx) => {
       const { visible, parseColor: parseColor2 } = ctx;
       const vw = window.innerWidth || 1280;
+      if (vw > 480) {
+        return {
+          status: "unknown",
+          triggered: false,
+          reason: "mobile reflow was not measured at a phone width",
+          viewportWidth: vw
+        };
+      }
       const sw = document.documentElement ? document.documentElement.scrollWidth : vw;
       const bodyBg = parseColor2(getComputedStyle(document.body).backgroundColor) || {
         r: 255,
@@ -6918,7 +7025,7 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
       if (focusables.length === 0) {
         return { triggered: false, probedCount: 0, missingFirst5: 0, missingRatio: 0 };
       }
-      let globalOutlineSuppressed = false;
+      const suppressingSelectors = [];
       const pseudoFocusRingSelectors = [];
       try {
         for (const sheet of Array.from(document.styleSheets)) {
@@ -6936,7 +7043,7 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
               pseudoFocusRingSelectors.push(sel);
             }
             if (/:focus/.test(sel) && /outline\\s*:\\s*(?:none|0(?:px)?)\\b/i.test(cssText) && !/box-shadow|border-color|ring/i.test(cssText)) {
-              globalOutlineSuppressed = true;
+              suppressingSelectors.push(sel);
             }
           }
         }
@@ -6957,7 +7064,6 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
       let missingFirst5 = 0;
       let missingCount = 0;
       focusables.forEach((el, idx) => {
-        const cs = getComputedStyle(el);
         let hasPseudoRing = el.getAttribute?.("data-pseudo-focus-ring") === "true" || pseudoFocusRingSelectors.some((sel) => matchesPseudoFocusSelector(el, sel));
         if (!hasPseudoRing) {
           try {
@@ -6976,7 +7082,32 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
         const classSuppressesFocus = /\\bfocus:outline-none\\b/.test(String(el.className || "")) && !/\\bfocus(?:-visible)?:ring\\b|\\bfocus(?:-visible)?:border\\b|\\bfocus(?:-visible)?:after:ring\\b/.test(
           String(el.className || "")
         );
-        const noIndicator = !hasPseudoRing && (inlineOutlineNone && !inlineHasReplacement || classSuppressesFocus || globalOutlineSuppressed && cs.outlineStyle === "none");
+        const matchesSuppressor = suppressingSelectors.some(
+          (sel) => matchesPseudoFocusSelector(el, sel)
+        );
+        let focusedCs = null;
+        if (matchesSuppressor && typeof el.focus === "function") {
+          const previous = document.activeElement;
+          try {
+            el.focus();
+            focusedCs = getComputedStyle(el);
+          } catch {
+            focusedCs = null;
+          }
+          try {
+            if (previous && previous !== el && typeof previous.focus === "function") {
+              previous.focus();
+            } else if (typeof el.blur === "function") {
+              el.blur();
+            }
+          } catch {
+          }
+        }
+        const focusedHasRing = Boolean(
+          focusedCs && (focusedCs.boxShadow && focusedCs.boxShadow !== "none" || focusedCs.outlineStyle && focusedCs.outlineStyle !== "none" && parseFloat(focusedCs.outlineWidth || "0") > 0)
+        );
+        const suppressionMissing = matchesSuppressor && focusedCs && !focusedHasRing;
+        const noIndicator = !hasPseudoRing && !focusedHasRing && (inlineOutlineNone && !inlineHasReplacement || classSuppressesFocus || suppressionMissing);
         if (noIndicator) {
           missingCount++;
           if (idx < 5) missingFirst5++;
@@ -7023,6 +7154,9 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
         if (cs.display === "none") continue;
         const rect = el.getBoundingClientRect();
         if (rect.width <= 0 || rect.height <= 0) continue;
+        const vh = window.innerHeight || 800;
+        const viewW = window.innerWidth || 1280;
+        if (rect.bottom <= 0 || rect.top >= vh || rect.right <= 0 || rect.left >= viewW) continue;
         const op = parseFloat(cs.opacity || "1");
         if (op <= 0.01 || cs.visibility === "hidden") {
           stuck.push(direct.trim().slice(0, 60));
@@ -7490,6 +7624,7 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
     };
   }
   var SKIP_TAGS = /^(NAV|FOOTER|HEADER|SCRIPT|STYLE|NOSCRIPT|SVG|CODE|PRE|KBD|SAMP|TEXTAREA|TEMPLATE)$/i;
+  var BLOCK_TAGS = /^(P|H1|H2|H3|H4|H5|H6|LI|DT|DD|BLOCKQUOTE|FIGCAPTION)$/i;
   var PROSE_TAGS = /^(P|LI|BLOCKQUOTE|DD)$/i;
   var hiddenBlocks = 0;
   function isElementHidden(el2) {
@@ -7513,7 +7648,7 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
     }
     return false;
   }
-  function extractCleanNodeText(node) {
+  function extractCleanNodeText(node, ownOnly2) {
     if (!node) return "";
     if (node.nodeType === 3) {
       return (node.nodeValue || "").replace(/\\u00AD/g, "");
@@ -7536,7 +7671,15 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
     var out = "";
     var kids = node.childNodes;
     for (var i2 = 0; i2 < kids.length; i2++) {
-      out += extractCleanNodeText(kids[i2]);
+      var kid = kids[i2];
+      if (ownOnly2 && kid && kid.nodeType === 1 && /^(P|LI|BLOCKQUOTE)$/.test(kid.tagName)) {
+        if (out && !/\\s$/.test(out)) out += " ";
+        continue;
+      }
+      if (kid && kid.nodeType === 1 && (kid.tagName === "BR" || BLOCK_TAGS.test(kid.tagName))) {
+        if (out && !/\\s$/.test(out)) out += " ";
+      }
+      out += extractCleanNodeText(kid, ownOnly2);
     }
     return out;
   }
@@ -7545,18 +7688,21 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
   var headings = [];
   var paragraphs = [];
   var proseWordCount = 0;
+  var coveredEls = [];
+  var textParts = [];
+  var BLOCK_LIMIT = 200;
+  var BLOCK_TEXT_LIMIT = 400;
   var candidates = root.querySelectorAll(
     "h1, h2, h3, h4, h5, h6, p, li, dt, dd, blockquote, figcaption"
   );
   for (var i = 0; i < candidates.length; i++) {
     var el = candidates[i];
-    var nestedBlock = el.querySelector && el.querySelector("p, li, blockquote");
-    if (nestedBlock && (el.tagName === "LI" || el.tagName === "BLOCKQUOTE")) continue;
     if (isElementHidden(el)) {
       if ((el.textContent || "").trim()) hiddenBlocks++;
       continue;
     }
-    var rawTxt = extractCleanNodeText(el).replace(/[ \\t]+/g, " ").trim();
+    var ownOnly = el.tagName === "LI" || el.tagName === "BLOCKQUOTE";
+    var rawTxt = extractCleanNodeText(el, ownOnly).replace(/[ \\t]+/g, " ").trim();
     if (!rawTxt) continue;
     var wList = rawTxt.split(/\\s+/).filter(Boolean);
     var wc = wList.length;
@@ -7570,16 +7716,21 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
     var inChatDemo = Boolean(anc);
     var tag = el.tagName.toLowerCase();
     var nodeId = tag + ":" + Math.round(rect.top || 0) + ":" + rawTxt.slice(0, 20);
-    blocks.push({
-      tag,
-      text: rawTxt,
-      wordCount: wc,
-      inHero,
-      inFooter,
-      inQuote,
-      inChatDemo,
-      nodeId
-    });
+    coveredEls.push(el);
+    textParts.push(rawTxt);
+    if (blocks.length < BLOCK_LIMIT) {
+      var stored = rawTxt.slice(0, BLOCK_TEXT_LIMIT);
+      blocks.push({
+        tag,
+        text: stored,
+        wordCount: stored.split(/\\s+/).filter(Boolean).length,
+        inHero,
+        inFooter,
+        inQuote,
+        inChatDemo,
+        nodeId
+      });
+    }
     if (/^(h1|h2|h3|h4|li|dt)$/.test(tag) && headings.length < 200) {
       headings.push(rawTxt.slice(0, 200));
     }
@@ -7590,9 +7741,52 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
       proseWordCount += wc;
     }
   }
-  var text = blocks.map(function(b) {
-    return b.text;
-  }).join("\\n\\n");
+  function isCoveredNode(node) {
+    var cur = node && node.nodeType === 1 ? node : node && node.parentElement;
+    while (cur && cur !== root.parentElement) {
+      for (var ci = 0; ci < coveredEls.length; ci++) {
+        if (coveredEls[ci] === cur) return true;
+      }
+      cur = cur.parentElement;
+    }
+    return false;
+  }
+  function collectUncovered(node, parts) {
+    if (!node || node.nodeType !== 1 || isElementHidden(node)) return;
+    var kids = node.childNodes;
+    for (var ui = 0; ui < kids.length; ui++) {
+      var child = kids[ui];
+      if (child.nodeType === 3) {
+        if (!isCoveredNode(child) && child.nodeValue) parts.push(child.nodeValue);
+      } else if (child.nodeType === 1) {
+        if (SKIP_TAGS.test(child.tagName) || isCoveredNode(child)) continue;
+        collectUncovered(child, parts);
+      }
+    }
+  }
+  var uncoveredParts = [];
+  collectUncovered(root, uncoveredParts);
+  var uncovered = uncoveredParts.join(" ").replace(/[ \\t]+/g, " ").replace(/\\s*\\n\\s*/g, "\\n").trim();
+  if (uncovered) {
+    var uncoveredWords = uncovered.split(/\\s+/).filter(Boolean);
+    textParts.push(uncovered);
+    if (blocks.length < BLOCK_LIMIT) {
+      var uncoveredStored = uncovered.slice(0, BLOCK_TEXT_LIMIT);
+      blocks.push({
+        tag: "div",
+        text: uncoveredStored,
+        wordCount: uncoveredStored.split(/\\s+/).filter(Boolean).length,
+        inHero: false,
+        inFooter: false,
+        inQuote: false,
+        inChatDemo: false,
+        nodeId: "div:uncovered:" + uncovered.slice(0, 20)
+      });
+    }
+    if (paragraphs.length < 200) paragraphs.push(uncovered.slice(0, 400));
+    if (uncoveredWords.length >= 8) proseWordCount += uncoveredWords.length;
+  }
+  var text = textParts.join("\\n\\n");
   if (!text && !isElementHidden(root)) {
     text = extractCleanNodeText(root).trim();
   }

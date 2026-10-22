@@ -545,8 +545,14 @@ if (flags.compareTo && flags.compareCurrent) {
 
 if (flags.format && urls.length === 1 && pathExists(urls[0])) {
   try {
-    console.log(formatScanDocument(readJsonFile(urls[0]), flags.format));
-    process.exit(0);
+    const doc = readJsonFile(urls[0]);
+    console.log(formatScanDocument(doc, flags.format));
+    process.exit(
+      exitCodeForScanResults(doc, {
+        failOn: flags.failOn,
+        failUnderScore: flags.failUnderScore,
+      })
+    );
   } catch (e) {
     console.error(e.message || String(e));
     process.exit(2);

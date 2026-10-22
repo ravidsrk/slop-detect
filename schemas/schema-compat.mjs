@@ -17,6 +17,20 @@ function typesOf(schema) {
   return Array.isArray(schema.type) ? schema.type.slice() : [schema.type];
 }
 
+function compareSchemaList(previous, next, path, label) {
+  if (previous == null && next == null) return [];
+  if (previous == null && Array.isArray(next)) return [`${path}: ${label} added`];
+  if (!Array.isArray(previous)) return [];
+  if (!Array.isArray(next)) return [`${path}: ${label} removed`];
+  const breaks = [];
+  if (next.length < previous.length) breaks.push(`${path}: ${label} shrank`);
+  const count = Math.min(previous.length, next.length);
+  for (let i = 0; i < count; i++) {
+    breaks.push(...breakingSchemaChanges(previous[i], next[i], `${path}.${label}[${i}]`));
+  }
+  return breaks;
+}
+
 export function breakingSchemaChanges(previous, next, path = '$') {
   const breaks = [];
   if (!previous || !next || typeof previous !== 'object' || typeof next !== 'object') {
@@ -80,8 +94,23 @@ export function breakingSchemaChanges(previous, next, path = '$') {
     breaks.push(`${path}: properties removed`);
   }
 
-  if (Array.isArray(previous.oneOf) && Array.isArray(next.oneOf)) {
-    if (next.oneOf.length < previous.oneOf.length) breaks.push(`${path}: oneOf shrank`);
+  breaks.push(...compareSchemaList(previous.oneOf, next.oneOf, path, 'oneOf'));
+  breaks.push(...compareSchemaList(previous.anyOf, next.anyOf, path, 'anyOf'));
+  if (previous.items) {
+    if (!next.items) {
+      breaks.push(`${path}: items removed`);
+    } else if (Array.isArray(previous.items) || Array.isArray(next.items)) {
+      breaks.push(
+        ...compareSchemaList(
+          Array.isArray(previous.items) ? previous.items : [previous.items],
+          Array.isArray(next.items) ? next.items : [next.items],
+          path,
+          'items'
+        )
+      );
+    } else {
+      breaks.push(...breakingSchemaChanges(previous.items, next.items, `${path}.items`));
+    }
   }
 
   const prevDefs = previous.$defs || {};

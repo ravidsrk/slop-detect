@@ -135,6 +135,78 @@ export function esbuildNamePolyfills(serialized: string): string {
   return helpers.map((h) => `const ${h} = (fn) => fn;`).join('\n    ');
 }
 
+export const DESKTOP_SCAN_VIEWPORT = { width: 1280, height: 800 };
+export const MOBILE_REFLOW_VIEWPORT = { width: 390, height: 800 };
+
+export function buildMobileReflowScript(): string {
+  const check = CRAFT_CHECKS.find((c) => c.id === 'mobile_reflow_failure');
+  const extract = check
+    ? check.extract.toString()
+    : '() => ({ status: "unknown", triggered: false })';
+  const serialized = [
+    createColorHelpers.toString(),
+    createVisibilityHelpers.toString(),
+    extract,
+  ].join('\n');
+  const polyfills = esbuildNamePolyfills(serialized);
+  return `(() => {
+    ${polyfills}
+    ${createColorHelpers.toString()}
+    ${createVisibilityHelpers.toString()}
+    const colorHelpers = createColorHelpers();
+    const visHelpers = createVisibilityHelpers();
+    const visible = visHelpers.getVisible(document.body, 4000);
+    const ctx = { visible, parseColor: colorHelpers.parseColor };
+    try {
+      return (${extract})(ctx);
+    } catch (e) {
+      return { status: 'unknown', triggered: false, error: e && e.message ? e.message : 'mobile reflow failed' };
+    }
+  })()`;
+}
+
+export async function measureMobileReflowOnPage(page: any): Promise<any> {
+  const unknown = (error: string) => ({ status: 'unknown' as const, triggered: false, error });
+  const resize = async (width: number, height: number) => {
+    if (page && typeof page.setViewportSize === 'function') {
+      await page.setViewportSize({ width, height });
+      return;
+    }
+    if (page && typeof page.setViewport === 'function') {
+      await page.setViewport({ width, height });
+      return;
+    }
+    throw new Error('viewport resize is not available');
+  };
+  let measured: any = unknown('mobile reflow did not run');
+  try {
+    await resize(MOBILE_REFLOW_VIEWPORT.width, MOBILE_REFLOW_VIEWPORT.height);
+    if (!page || typeof page.evaluate !== 'function') {
+      measured = unknown('mobile reflow could not evaluate');
+    } else {
+      const result = await page.evaluate(buildMobileReflowScript());
+      if (!result || result.error || result.status === 'unknown') {
+        measured = {
+          status: 'unknown',
+          triggered: false,
+          error: result?.error || result?.reason || 'mobile reflow could not run',
+        };
+      } else {
+        measured = result;
+      }
+    }
+  } catch (e: any) {
+    measured = unknown(e?.message || 'mobile reflow could not run');
+  } finally {
+    try {
+      await resize(DESKTOP_SCAN_VIEWPORT.width, DESKTOP_SCAN_VIEWPORT.height);
+    } catch (e: any) {
+      measured = unknown(e?.message || 'desktop viewport could not be restored');
+    }
+  }
+  return measured;
+}
+
 export function buildPageScript(opts: BuildPageScriptOptions = {}): string {
   const patternList = Array.isArray(opts.patterns) ? opts.patterns : PATTERNS;
   const patternCalls = patternList

@@ -27,7 +27,7 @@ test('declared tokens waive matching design patterns and keep the raw score', ()
       weight: 4,
       triggered: true,
       status: 'fail',
-      evidence: {},
+      evidence: { samples: [{ bg: 'oklch(0.585 0.233 277.1)' }] },
     },
     {
       id: 'slop_fonts',

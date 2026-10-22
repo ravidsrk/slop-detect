@@ -4,11 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Below-fold fade</title>
-  
+
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: Georgia, 'Times New Roman', serif; background: #ffffff; color: #1a1a1a; padding: 32px; }
     .spacer { height: 100vh; } .fade { opacity: 0; transform: translateY(16px); } section { min-height: 48px; }
+
+    .scan-floor { font-family: Georgia, "Times New Roman", serif; font-size: 16px; line-height: 1.5; color: #1a1a1a; background: transparent; margin-top: 24px; }
+    .scan-floor a { color: #1a1a1a; text-decoration: underline; margin-right: 16px; font-size: 16px; }
+    .scan-floor p { margin: 12px 0; max-width: 62ch; }
   </style>
 </head>
 <body>
@@ -18,5 +22,17 @@
   <section><p class="fade">Three</p><p class="fade">Four</p></section>
   <section><p class="fade">Five</p><p class="fade">Six</p></section>
 </main>
+
+<!-- scan-floor: visible chrome so a focused fixture is not an empty page -->
+<nav class="scan-floor">
+  <a href="#about">About the mill</a>
+  <a href="#orders">Standing orders</a>
+  <a href="#desk">Call the desk</a>
+</nav>
+<section class="scan-floor">
+  <p>Orders are packed on weekdays and leave from the same warehouse that mills the flour.</p>
+  <p>Account notes stay in writing so a change made after noon waits until the next route.</p>
+</section>
+<footer class="scan-floor"><p>417 Front Street, Portland. The desk answers before noon.</p></footer>
 </body>
 </html>

@@ -86,6 +86,7 @@ test('a definitions change on the session baseline is a rescore', () => {
       patterns: [{ id: 'purple_accent', triggered: true }],
     }
   );
+  expect(decision.establish).toBe(true);
   expect(decision.worse).toBe(false);
   expect(decision.silent).toBe(false);
   expect(decision.text).toMatch(/rescore, not a regression/);

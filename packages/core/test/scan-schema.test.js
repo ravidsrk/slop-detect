@@ -142,3 +142,33 @@ test('an incompatible schema edit fails while the major stays 1', () => {
   narrowed.$id = 'https://slop-detect.com/schemas/scan-result.v2.json';
   expect(() => assertCompatibleSchemaChange(schema, narrowed)).not.toThrow();
 });
+
+test('narrowing a nested anyOf is a break while the major stays 1', () => {
+  const previous = {
+    $id: 'https://slop-detect.com/schemas/scan-result.v1.json',
+    properties: {
+      status: { anyOf: [{ enum: ['pass', 'fail', 'unknown'] }, { type: 'null' }] },
+    },
+  };
+  const next = {
+    $id: 'https://slop-detect.com/schemas/scan-result.v1.json',
+    properties: {
+      status: { anyOf: [{ enum: ['pass', 'fail'] }, { type: 'null' }] },
+    },
+  };
+  expect(() => assertCompatibleSchemaChange(previous, next)).toThrow(/enum lost/);
+
+  const added = {
+    $id: 'https://slop-detect.com/schemas/scan-result.v1.json',
+    anyOf: [{ type: 'object' }],
+  };
+  expect(breakingSchemaChanges({ type: 'object' }, added).join('\n')).toMatch(/anyOf added/);
+});
+
+test('the MCP package schema matches schemas/scan-result.v1.json', () => {
+  const packaged = readFileSync(
+    new URL('../../../packages/mcp/schema/scan-result.v1.json', import.meta.url),
+    'utf8'
+  );
+  expect(JSON.parse(packaged)).toEqual(schema);
+});

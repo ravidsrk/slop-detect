@@ -666,12 +666,33 @@ function robotsPatternMatches(pattern: string, targetPath: string): boolean {
   const normPath = normalizeRobotsPath(targetPath || '/');
   const anchoredEnd = normPat.endsWith('$');
   const raw = anchoredEnd ? normPat.slice(0, -1) : normPat;
-  const escaped = raw
-    .split('*')
-    .map((seg) => seg.replace(/[.+?^${}()|[\]\\]/g, '\\$&'))
-    .join('.*');
-  const re = new RegExp(`^${escaped}${anchoredEnd ? '$' : ''}`);
-  return re.test(normPath);
+  if (raw === '') return anchoredEnd ? normPath === '' : true;
+  // RFC 9309: `*` is any sequence and a trailing `$` anchors the end.
+  // Walk the segments in order. A regex `.*` join backtracks on long paths.
+  // An anchored final segment must sit at the end, so `/*.php$` still matches
+  // `/a.php.bak.php` without trying every split.
+  const segments = raw.split('*');
+  const last = segments.length - 1;
+  let from = 0;
+  for (let i = 0; i <= last; i++) {
+    const seg = segments[i];
+    if (!seg) continue;
+    if (i === 0) {
+      if (!normPath.startsWith(seg)) return false;
+      from = seg.length;
+      continue;
+    }
+    if (anchoredEnd && i === last) {
+      if (!normPath.endsWith(seg) || normPath.length - seg.length < from) return false;
+      from = normPath.length;
+      continue;
+    }
+    const idx = normPath.indexOf(seg, from);
+    if (idx < 0) return false;
+    from = idx + seg.length;
+  }
+  if (anchoredEnd && !raw.endsWith('*') && from !== normPath.length) return false;
+  return true;
 }
 
 export function parseRobotsTxt(robotsTxt: string): ParsedRobotsTxt {
@@ -993,23 +1014,30 @@ export function parsePreviewDirectives(
     }
   };
 
-  // Parse X-Robots-Tag header (supports "googlebot: nosnippet" or unscoped "nosnippet, max-snippet:40")
+  // Parse X-Robots-Tag. A combined value such as "googlebot: index, bingbot: noindex"
+  // is one header with a scope per bot. Tokens before the first bot prefix stay global.
   const xRobots = getHeader('x-robots-tag');
   if (xRobots) {
-    const botPrefixMatch = xRobots.match(/^\s*(googlebot|bingbot|applebot|robots)\s*:\s*(.+)$/i);
-    if (botPrefixMatch) {
-      const bot = botPrefixMatch[1].toLowerCase();
-      const scope =
-        bot === 'googlebot'
-          ? 'google'
-          : bot === 'bingbot'
-            ? 'bing'
-            : bot === 'applebot'
-              ? 'apple'
-              : 'all';
-      addTokens(scope, botPrefixMatch[2]);
-    } else {
-      addTokens('all', xRobots);
+    let scope: 'all' | 'google' | 'bing' | 'apple' = 'all';
+    for (const part of String(xRobots).split(',')) {
+      const trimmed = part.trim();
+      if (!trimmed) continue;
+      const botPrefix = trimmed.match(/^(googlebot|bingbot|applebot|robots)\s*:\s*(.*)$/i);
+      if (botPrefix) {
+        const bot = botPrefix[1].toLowerCase();
+        scope =
+          bot === 'googlebot'
+            ? 'google'
+            : bot === 'bingbot'
+              ? 'bing'
+              : bot === 'applebot'
+                ? 'apple'
+                : 'all';
+        const rest = botPrefix[2].trim();
+        if (rest) rawScopes[scope].push(rest.toLowerCase());
+      } else {
+        rawScopes[scope].push(trimmed.toLowerCase());
+      }
     }
   }
 
@@ -1033,7 +1061,15 @@ export function parsePreviewDirectives(
     let maxSnippet: number | null = null;
     for (const tok of combined) {
       const m = tok.match(/^max-snippet\s*:\s*(-?\d+)$/);
-      if (m) maxSnippet = parseInt(m[1], 10);
+      if (!m) continue;
+      const n = parseInt(m[1], 10);
+      if (!Number.isFinite(n)) continue;
+      // -1 means unlimited. It must not erase an earlier restriction.
+      if (n < 0) {
+        if (maxSnippet === null) maxSnippet = n;
+        continue;
+      }
+      if (maxSnippet === null || maxSnippet < 0 || n < maxSnippet) maxSnippet = n;
     }
     const hasHardBlock =
       combined.includes('nosnippet') ||
@@ -1698,15 +1734,30 @@ export async function runAeoChecks(
           )
         );
       }
-    } else {
-      const covStatus = noJsWords >= 15 || !hasCsrShell ? 'pass' : 'fail';
+    } else if (noJsWords >= 15) {
       checks.push(
         makeCheckResult(
           pickCheck('html.serverTextCoverage'),
-          covStatus,
-          covStatus === 'pass'
-            ? `server HTML contains ${noJsWords} words of readable text`
-            : 'server HTML is an empty client-side CSR shell (< 15 words without JS)',
+          'pass',
+          `server HTML contains ${noJsWords} words of readable text`,
+          { noJsWords, hasCsrShell }
+        )
+      );
+    } else if (hasCsrShell) {
+      checks.push(
+        makeCheckResult(
+          pickCheck('html.serverTextCoverage'),
+          'fail',
+          'server HTML is an empty client-side CSR shell (< 15 words without JS)',
+          { noJsWords, hasCsrShell }
+        )
+      );
+    } else {
+      checks.push(
+        makeCheckResult(
+          pickCheck('html.serverTextCoverage'),
+          'unknown',
+          'server HTML has no readable text and no rendered comparison',
           { noJsWords, hasCsrShell }
         )
       );
@@ -1738,20 +1789,30 @@ export async function runAeoChecks(
     }
   }
 
+  let advertisedUrl: string | null = null;
+  let advertisedUrlError: string | null = null;
+  if (advertisedHref) {
+    try {
+      advertisedUrl = new URL(advertisedHref, url).toString();
+    } catch {
+      advertisedUrlError = 'invalid alternate URL';
+    }
+  }
+
   let mdRes: Response | null = null;
   let mdBody = '';
   let negotiatedMarkdown = false;
   let negotiatedRes: Response | null = null;
+  let advertisedRes: Response | null = null;
+  let advertisedBody = '';
 
-  // Probe canonical URL for content negotiation (Accept: text/markdown) and static twin URLs
+  // Probe canonical URL for content negotiation (Accept: text/markdown) and static twin URLs.
+  // A malformed alternate URL is recorded and skipped so the rest of the report still runs.
   const canonicalUrlStr = url.toString();
-  const probeUrls = [
-    canonicalUrlStr,
-    ...(advertisedHref ? [new URL(advertisedHref, url).toString()] : []),
-    mdUrl,
-  ];
+  const probeUrls = [canonicalUrlStr, ...(advertisedUrl ? [advertisedUrl] : []), mdUrl];
   for (const candidateUrl of [...new Set(probeUrls)]) {
     const isCanonicalNegotiation = candidateUrl === canonicalUrlStr;
+    const isAdvertised = Boolean(advertisedUrl && candidateUrl === advertisedUrl);
     try {
       const r = await fetchWithTimeout(
         candidateUrl,
@@ -1765,17 +1826,30 @@ export async function runAeoChecks(
         fetchImpl,
         isUrlAllowed
       );
+      if (isAdvertised) advertisedRes = r;
       if (r.ok) {
         const b = await readBodyCapped(r, MAX_HTML_BYTES, false);
+        if (isAdvertised) advertisedBody = b;
         const ct = (r.headers.get('content-type') || '').toLowerCase();
-        if (ct.startsWith('text/markdown') || ct.startsWith('text/x-markdown')) {
+        const markdownType = ct.startsWith('text/markdown') || ct.startsWith('text/x-markdown');
+        const storedCt = ((mdRes && mdRes.headers.get('content-type')) || '').toLowerCase();
+        const haveValidTwin = Boolean(
+          mdRes &&
+          mdRes.ok &&
+          mdBody &&
+          (storedCt.startsWith('text/markdown') || storedCt.startsWith('text/x-markdown')) &&
+          validateMarkdownTwin(mdBody, storedCt).valid
+        );
+        if (markdownType) {
           const check = validateMarkdownTwin(b, ct);
           if (check.valid && b.trim() !== htmlBody.trim()) {
             if (isCanonicalNegotiation) {
               negotiatedMarkdown = true;
               negotiatedRes = r;
             }
-            if (!mdRes || !mdRes.ok) {
+            // An earlier HTTP 200 HTML body is not a twin. Keep looking
+            // until a valid markdown response is stored.
+            if (!haveValidTwin) {
               mdRes = r;
               mdBody = b;
             }
@@ -1818,17 +1892,41 @@ export async function runAeoChecks(
   );
 
   if (htmlOk) {
-    const linkOk = Boolean(advertisedHref && twinCheck.valid);
+    const advCt = (
+      (advertisedRes && advertisedRes.headers.get('content-type')) ||
+      ''
+    ).toLowerCase();
+    const advertisedCheck =
+      advertisedUrlError || !advertisedHref
+        ? { valid: false, strippedLength: 0, reason: advertisedUrlError || 'missing' }
+        : advertisedRes &&
+            advertisedRes.ok &&
+            (advCt.startsWith('text/markdown') || advCt.startsWith('text/x-markdown'))
+          ? validateMarkdownTwin(advertisedBody, advCt)
+          : advertisedRes && advertisedRes.ok && advCt.includes('text/html')
+            ? { valid: false, strippedLength: 0, reason: 'html_content_type' }
+            : {
+                valid: false,
+                strippedLength: 0,
+                reason: advertisedRes ? `http_${advertisedRes.status}` : 'missing',
+              };
+    const linkOk = Boolean(advertisedHref && !advertisedUrlError && advertisedCheck.valid);
     checks.push(
       makeCheckResult(
         pickCheck('html.linkAlternate'),
         linkOk ? 'pass' : 'fail',
-        linkOk
-          ? `Link rel=alternate type=text/markdown points to valid twin (${advertisedHref})`
-          : advertisedHref
-            ? `Link rel=alternate points to ${advertisedHref} but twin validation failed`
-            : 'no markdown alternate advertised',
-        { href: advertisedHref, twinValid: twinCheck.valid }
+        advertisedUrlError
+          ? `Link rel=alternate is not a valid URL (${advertisedHref})`
+          : linkOk
+            ? `Link rel=alternate type=text/markdown points to valid twin (${advertisedHref})`
+            : advertisedHref
+              ? `Link rel=alternate points to ${advertisedHref} but twin validation failed`
+              : 'no markdown alternate advertised',
+        {
+          href: advertisedHref,
+          twinValid: advertisedCheck.valid,
+          invalidUrl: Boolean(advertisedUrlError),
+        }
       )
     );
   } else {
@@ -2029,10 +2127,12 @@ export async function runAeoChecks(
   const applicable = checks.filter(
     (c) => c.weight > 0 && c.status !== 'na' && c.status !== 'unknown' && c.status !== 'info'
   );
-  const earnedWeight = applicable.reduce(
-    (s, c) => s + (c.status === 'pass' ? c.weight : c.status === 'warn' ? c.weight * 0.5 : 0),
-    0
-  );
+  const earnedWeight = applicable.reduce((s, c) => {
+    if (c.id === 'ai.previewControls' && typeof c.detail?.earnedWeight === 'number') {
+      return s + c.detail.earnedWeight;
+    }
+    return s + (c.status === 'pass' ? c.weight : c.status === 'warn' ? c.weight * 0.5 : 0);
+  }, 0);
   const applicableWeight = applicable.reduce((s, c) => s + c.weight, 0);
   const ratio = applicableWeight > 0 ? earnedWeight / applicableWeight : 0;
   const score = applicableWeight > 0 ? Math.round(ratio * 100) : 0;

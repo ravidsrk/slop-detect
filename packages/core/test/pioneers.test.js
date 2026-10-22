@@ -486,4 +486,24 @@ describe('K-05 (#300): Pioneer HTML fixture regression suite (real page-script e
     expect(res.designResult.tier).toBe('Heavy');
     expect(res.designResult.score).toBeGreaterThanOrEqual(28);
   });
+
+  test('keeps an outer list item, separates a line break, and caps the blocks array', () => {
+    const paragraphs = Array.from(
+      { length: 220 },
+      (_, i) => `<p>Paragraph ${i} stays in the page text.</p>`
+    ).join('');
+    const html = `<!doctype html><html><body><main>
+      <ul><li>Leverage the outer item<ul><li>nested only</li></ul></li></ul>
+      <p>seamless<br>workflows</p>
+      ${paragraphs}
+    </main></body></html>`;
+    const { raw } = evaluatePioneerSnapshot(html);
+    const text = raw.textContext.text;
+    expect(text).toContain('Leverage the outer item');
+    expect(text).toContain('nested only');
+    expect(text).toContain('seamless workflows');
+    expect(text).toContain('Paragraph 219');
+    expect(raw.textContext.blocks.length).toBeLessThanOrEqual(200);
+    expect(raw.textContext.blocks.every((block) => block.text.length <= 400)).toBe(true);
+  });
 });

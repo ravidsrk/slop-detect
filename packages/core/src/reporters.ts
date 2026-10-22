@@ -306,7 +306,7 @@ export function buildSarifReport(results: any[] = []) {
             weight: pattern.weight,
           }
         );
-        if (!pattern.triggered) continue;
+        if (!pattern.triggered || pattern.waived) continue;
         sarifResults.push(
           sarifResult(
             pattern.id,

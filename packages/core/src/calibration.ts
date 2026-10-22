@@ -202,18 +202,99 @@ export function computeLikelihoodRatio(
   };
 }
 
-// Exact Clopper-Pearson 95% confidence interval for binomial proportion k/n.
+// Lanczos log-gamma. Used only to invert the regularized incomplete beta.
+function logGamma(z: number): number {
+  const p = [
+    676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059,
+    12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7,
+  ];
+  if (z < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * z)) - logGamma(1 - z);
+  z -= 1;
+  let x = 0.99999999999980993;
+  for (let i = 0; i < p.length; i++) x += p[i] / (z + i + 1);
+  const t = z + p.length - 0.5;
+  return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
+}
+
+// Continued fraction for the incomplete beta (Numerical Recipes betacf).
+function betacf(a: number, b: number, x: number): number {
+  const maxIter = 200;
+  const eps = 3e-14;
+  const fpmin = 1e-300;
+  const qab = a + b;
+  const qap = a + 1;
+  const qam = a - 1;
+  let c = 1;
+  let d = 1 - (qab * x) / qap;
+  if (Math.abs(d) < fpmin) d = fpmin;
+  d = 1 / d;
+  let h = d;
+  for (let m = 1; m <= maxIter; m++) {
+    const m2 = 2 * m;
+    let aa = (m * (b - m) * x) / ((qam + m2) * (a + m2));
+    d = 1 + aa * d;
+    if (Math.abs(d) < fpmin) d = fpmin;
+    c = 1 + aa / c;
+    if (Math.abs(c) < fpmin) c = fpmin;
+    d = 1 / d;
+    h *= d * c;
+    aa = (-(a + m) * (qab + m) * x) / ((a + m2) * (qap + m2));
+    d = 1 + aa * d;
+    if (Math.abs(d) < fpmin) d = fpmin;
+    c = 1 + aa / c;
+    if (Math.abs(c) < fpmin) c = fpmin;
+    d = 1 / d;
+    const del = d * c;
+    h *= del;
+    if (Math.abs(del - 1) < eps) break;
+  }
+  return h;
+}
+
+function regularizedBeta(x: number, a: number, b: number): number {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  if (a === 1) return 1 - Math.pow(1 - x, b);
+  if (b === 1) return Math.pow(x, a);
+  const lnBeta = logGamma(a) + logGamma(b) - logGamma(a + b);
+  const front = Math.exp(a * Math.log(x) + b * Math.log(1 - x) - lnBeta);
+  if (x < (a + 1) / (a + b + 2)) return (front * betacf(a, b, x)) / a;
+  return 1 - (front * betacf(b, a, 1 - x)) / b;
+}
+
+function betaInv(p: number, a: number, b: number): number {
+  if (p <= 0) return 0;
+  if (p >= 1) return 1;
+  if (a === 1) return 1 - Math.pow(1 - p, 1 / b);
+  if (b === 1) return Math.pow(p, 1 / a);
+  let lo = 0;
+  let hi = 1;
+  let x = a / (a + b);
+  const lnBeta = logGamma(a) + logGamma(b) - logGamma(a + b);
+  for (let i = 0; i < 80; i++) {
+    const y = regularizedBeta(x, a, b);
+    if (Math.abs(y - p) < 1e-12) return x;
+    if (y < p) lo = x;
+    else hi = x;
+    const dens =
+      x > 0 && x < 1 ? Math.exp((a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x) - lnBeta) : 0;
+    let next = dens > 1e-8 && Number.isFinite(dens) ? x - (y - p) / dens : (lo + hi) / 2;
+    if (!Number.isFinite(next) || next <= lo || next >= hi) next = (lo + hi) / 2;
+    x = next;
+  }
+  return x;
+}
+
+// Two-sided Clopper-Pearson 95% interval for a binomial proportion k/n.
+// Lower is 0 when k is 0. Upper is 1 when k is n. Otherwise the bounds are
+// BetaInv(α/2; k, n-k+1) and BetaInv(1-α/2; k+1, n-k).
 export function clopperPearson95(k: number, n: number): [number, number] {
-  if (n <= 0) return [0, 1];
-  // Normal + Wilson-score refined approximation accurate across small/medium n without external stats libs
-  const z = 1.95996;
-  const phat = k / n;
-  const denom = 1 + (z * z) / n;
-  const center = (phat + (z * z) / (2 * n)) / denom;
-  const half = (z * Math.sqrt((phat * (1 - phat)) / n + (z * z) / (4 * n * n))) / denom;
-  const low = k === 0 ? 0 : Math.max(0, Math.round((center - half) * 10000) / 10000);
-  const high = k === n ? 1 : Math.min(1, Math.round((center + half) * 10000) / 10000);
-  return [low, high];
+  if (!Number.isFinite(n) || n <= 0 || !Number.isFinite(k)) return [0, 1];
+  const kk = Math.min(n, Math.max(0, k));
+  const round4 = (value: number) => Math.round(value * 10000) / 10000;
+  const low = kk <= 0 ? 0 : round4(betaInv(0.025, kk, n - kk + 1));
+  const high = kk >= n ? 1 : round4(betaInv(0.975, kk + 1, n - kk));
+  return [Math.max(0, Math.min(1, low)), Math.max(0, Math.min(1, high))];
 }
 
 // K-01 (#213): Human-only order-statistic threshold tau = S_(ceil((1 - alpha) * n))

@@ -16,6 +16,7 @@ import {
   scoreSystemCompliance,
   scoreCopy,
   scoreCraft,
+  measureMobileReflowOnPage,
   combineAxes,
   applyDeclaredDesignWaivers,
   formatAxeReport,
@@ -360,6 +361,7 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
         axes.copy = scoreCopy(data.textContext || {});
       }
       if (reqAxes.includes('craft') && data.craftSignals) {
+        data.craftSignals.mobile_reflow_failure = await measureMobileReflowOnPage(page);
         axes.craft = scoreCraft(
           data.craftSignals,
           opts.a11y ? { enableAxe: true, axeResults } : {}

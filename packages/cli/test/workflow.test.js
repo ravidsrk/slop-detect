@@ -110,6 +110,36 @@ test('--format agent, github, and junit read a saved scan', () => {
   expect(bad.status).toBe(2);
 });
 
+test('--format on a saved file uses the scan exit gate', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'slop-format-exit-'));
+  const blockedFile = join(dir, 'blocked.json');
+  writeFileSync(
+    blockedFile,
+    JSON.stringify({
+      url: 'https://example.com/',
+      blocked: true,
+      error: 'Scan could not run. This is not a Clean score.',
+      score: null,
+      tier: null,
+    })
+  );
+  expect(run(['--format', 'json', blockedFile]).status).toBe(2);
+
+  const heavyFile = join(dir, 'heavy.json');
+  writeFileSync(
+    heavyFile,
+    JSON.stringify({
+      url: 'https://example.com/',
+      score: 42,
+      tier: 'Heavy',
+      patterns: [],
+    })
+  );
+  expect(run(['--format', 'json', heavyFile]).status).toBe(0);
+  expect(run(['--format', 'json', heavyFile, '--fail-on', 'heavy']).status).toBe(1);
+  expect(run(['--format', 'json', heavyFile, '--fail-under', '10']).status).toBe(1);
+});
+
 test('--emit-aeo-fixes writes the four starter files', () => {
   const dir = mkdtempSync(join(tmpdir(), 'slop-aeo-'));
   const r = run([

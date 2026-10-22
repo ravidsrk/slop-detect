@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Northwind — project tracking</title>
   <style>
+    @font-face { font-family: Inter; src: url(inter-latin-400-normal.woff2) format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+
     /* Linear repro (T-17): full-width LEFT-aligned hero in Inter. The old
        geometric fallback called any full-width H1 "centered" by bbox math.
        centered_hero must NOT fire here. The 200px main padding ALSO pins the

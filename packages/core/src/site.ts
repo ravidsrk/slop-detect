@@ -119,13 +119,44 @@ export function urlsFromHtmlLinks(html: string, pageUrl: string): string[] {
   return out;
 }
 
-async function readFetchedText(res: {
+const FETCH_TEXT_LIMIT = 200_000;
+
+type FetchedBody = {
   ok?: boolean;
-  text: () => Promise<string>;
-}): Promise<string> {
+  url?: string;
+  text?: () => Promise<string>;
+  body?: {
+    getReader?: () => {
+      read: () => Promise<{ done?: boolean; value?: Uint8Array }>;
+      cancel: () => Promise<void> | void;
+    };
+  } | null;
+};
+
+export async function readFetchedText(res: FetchedBody | null | undefined): Promise<string> {
   if (!res || res.ok === false) return '';
-  const text = await res.text();
-  return String(text || '').slice(0, 200_000);
+  const reader = res.body?.getReader?.();
+  if (!reader) {
+    const text = res.text ? await res.text() : '';
+    return String(text || '').slice(0, FETCH_TEXT_LIMIT);
+  }
+  const decoder = new TextDecoder();
+  let out = '';
+  try {
+    while (out.length < FETCH_TEXT_LIMIT) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) out += decoder.decode(value, { stream: true });
+    }
+    out += decoder.decode();
+  } finally {
+    try {
+      await reader.cancel();
+    } catch {
+      /* the remainder is already closed */
+    }
+  }
+  return out.slice(0, FETCH_TEXT_LIMIT);
 }
 
 export async function discoverSitePages(
@@ -145,24 +176,27 @@ export async function discoverSitePages(
         redirect: 'follow',
         headers: { accept: 'text/html,application/xml,text/xml,text/plain,*/*' },
       });
-      return readFetchedText(res);
+      const text = await readFetchedText(res);
+      const finalUrl = res && typeof res.url === 'string' && res.url ? res.url : url;
+      return { text, finalUrl };
     } catch {
-      return '';
+      return { text: '', finalUrl: url };
     }
   };
 
-  const rootXml = await fetchText(new URL('/sitemap.xml', origin).toString());
-  const locs = urlsFromSitemap(rootXml);
+  const root = await fetchText(new URL('/sitemap.xml', origin).toString());
+  const locs = urlsFromSitemap(root.text);
   sitemapUrls.push(...locs.filter((url) => !/\.xml($|\?)/i.test(url)));
   const nested = locs.filter((url) => /\.xml($|\?)/i.test(url)).slice(0, 2);
   for (const child of nested) {
     const inner = await fetchText(child);
-    sitemapUrls.push(...urlsFromSitemap(inner).filter((url) => !/\.xml($|\?)/i.test(url)));
+    sitemapUrls.push(...urlsFromSitemap(inner.text).filter((url) => !/\.xml($|\?)/i.test(url)));
   }
 
-  const seedHtml = await fetchText(seed);
-  const links = seedHtml ? urlsFromHtmlLinks(seedHtml, seed) : [];
-  return selectSiteSample(seed, { sitemapUrls, linkUrls: links, max });
+  const seedPage = await fetchText(seed);
+  const base = seedPage.finalUrl || seed;
+  const links = seedPage.text ? urlsFromHtmlLinks(seedPage.text, base) : [];
+  return selectSiteSample(base, { sitemapUrls, linkUrls: links, max });
 }
 
 export function stripHtml(value: string): string {
@@ -187,6 +221,39 @@ export interface HtmlCopyPage {
   headings: string[];
   paragraphs: string[];
   lang?: string;
+  links: Array<{ href: string; text?: string }>;
+  attributes: Array<{ tag: string; attr: string; value: string }>;
+}
+
+function extractHtmlLinks(html: string): Array<{ href: string; text?: string }> {
+  const links: Array<{ href: string; text?: string }> = [];
+  const re = /<a\b[^>]*\bhref\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  for (const match of html.matchAll(re)) {
+    if (links.length >= 300) break;
+    const href = match[1].trim();
+    if (!href) continue;
+    links.push({ href, text: stripHtml(match[2]).slice(0, 100) });
+  }
+  return links;
+}
+
+function extractHtmlAttributes(html: string): Array<{ tag: string; attr: string; value: string }> {
+  const attributes: Array<{ tag: string; attr: string; value: string }> = [];
+  const tagRe = /<([a-zA-Z][\w:-]*)\b([^>]*)>/g;
+  for (const match of html.matchAll(tagRe)) {
+    if (attributes.length >= 300) break;
+    const tag = match[1].toLowerCase();
+    const attrRe = /([^\s"'=<>`]+)\s*=\s*["']([^"']*)["']/g;
+    for (const attr of match[2].matchAll(attrRe)) {
+      if (attributes.length >= 300) break;
+      const name = attr[1];
+      const value = attr[2];
+      if (!/^(?:href|src|srcset|data-[a-z0-9_-]+)$/i.test(name)) continue;
+      if (value.length < 4 || value.length > 500) continue;
+      attributes.push({ tag, attr: name.toLowerCase(), value });
+    }
+  }
+  return attributes;
 }
 
 export function htmlToCopyInput(html: string, url = 'page'): HtmlCopyPage {
@@ -207,6 +274,8 @@ export function htmlToCopyInput(html: string, url = 'page'): HtmlCopyPage {
     headings: headings.filter(Boolean),
     paragraphs: paragraphs.filter(Boolean),
     lang: langMatch ? langMatch[1] : undefined,
+    links: extractHtmlLinks(withoutCode),
+    attributes: extractHtmlAttributes(withoutCode),
   };
 }
 

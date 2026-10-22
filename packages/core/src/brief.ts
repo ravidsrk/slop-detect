@@ -24,7 +24,7 @@ export function triggeredPatterns(result: any): any[] {
   const seen = new Set<string>();
   const out: any[] = [];
   for (const pattern of [...design, ...copy]) {
-    if (!pattern?.triggered || !pattern.id || seen.has(pattern.id)) continue;
+    if (!pattern?.triggered || pattern.waived || !pattern.id || seen.has(pattern.id)) continue;
     seen.add(pattern.id);
     out.push(pattern);
   }
@@ -215,24 +215,24 @@ export function regressionAgainstBaseline(
   baseline: { score?: number; patterns?: string[]; definitionsVersion?: string } | null | undefined,
   current: any
 ): { establish: boolean; silent: boolean; worse: boolean; text: string } {
-  if (
-    baseline?.definitionsVersion &&
-    current?.definitionsVersion &&
-    baseline.definitionsVersion !== current.definitionsVersion
-  ) {
-    return {
-      establish: false,
-      silent: false,
-      worse: false,
-      text: `Definitions ${baseline.definitionsVersion} → ${current.definitionsVersion}. This is a rescore, not a regression.`,
-    };
-  }
   if (scanCouldNotScore(current)) {
     return {
       establish: false,
       silent: false,
       worse: true,
       text: 'Scan could not run. This is not a Clean score.',
+    };
+  }
+  if (
+    baseline?.definitionsVersion &&
+    current?.definitionsVersion &&
+    baseline.definitionsVersion !== current.definitionsVersion
+  ) {
+    return {
+      establish: true,
+      silent: false,
+      worse: false,
+      text: `Definitions ${baseline.definitionsVersion} → ${current.definitionsVersion}. This is a rescore, not a regression.`,
     };
   }
   const patterns = triggeredPatterns(current).map((pattern) => String(pattern.id));

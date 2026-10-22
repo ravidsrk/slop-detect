@@ -139,6 +139,31 @@ describe('#227 FIX-07 & #238 FIX-19: Cross-pattern post-pass deduplication', () 
     );
   });
 
+  test('a centered Inter hero keeps the capped 8 points', () => {
+    const capped = scorePatterns([
+      {
+        id: 'slop_fonts',
+        weight: 8,
+        triggered: true,
+        evidence: { heroFam: 'Inter', interOrGeistOnly: true },
+      },
+      { id: 'centered_hero', weight: 4, triggered: true, evidence: { centered: true } },
+    ]);
+    expect(capped.score).toBe(8);
+    expect(capped.adjustments.some((a) => a.ruleId === 'slop_fonts_co_signal')).toBe(false);
+    expect(capped.adjustments.some((a) => a.ruleId === 'slop_fonts_centered_hero_cap')).toBe(true);
+
+    const alone = scorePatterns([
+      {
+        id: 'slop_fonts',
+        weight: 8,
+        triggered: true,
+        evidence: { heroFam: 'Inter', interOrGeistOnly: true },
+      },
+    ]);
+    expect(alone.score).toBe(0);
+  });
+
   test('FIX-19 (#238): numbered_steps matches "SEC 0.1/0.2/0.3", Cloudflare-style SEC pair counts weight once and lists both labels & shared nodeIds, disjoint and single-incidental-node pairs keep both weights', () => {
     const overlapRule = POST_PASS_RULES.find((r) => r.id === 'overlapping_evidence_dedup');
     expect(overlapRule.description).toMatch(/>=\s*2/);

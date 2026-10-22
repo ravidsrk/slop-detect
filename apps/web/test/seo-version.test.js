@@ -18,7 +18,7 @@ const patternsMd = read('../public/api/patterns.md');
 
 // The single sources of truth.
 const pkg = JSON.parse(read('../../../package.json'));
-const coreSrc = read('../../../packages/core/src/index.ts');
+const coreSrc = read('../../../packages/core/src/definitions.ts');
 const DEFINITIONS_VERSION = coreSrc.match(/DEFINITIONS_VERSION\s*=\s*'([^']+)'/)?.[1];
 
 // ── discovery: the sitemap lists the new routes (floor "discovery gap") ───────

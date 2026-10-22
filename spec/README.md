@@ -4,7 +4,7 @@ Machine-readable reference for the slop-detect scoring model. Downstream tools (
 
 ## Versioning
 
-`spec_version` and `definitions_version` track `DEFINITIONS_VERSION` in `packages/core/src/index.ts`. Bump the spec when patterns are added, removed, or re-weighted so historical scores remain comparable.
+`spec_version` and `definitions_version` track `DEFINITIONS_VERSION` in `packages/core/src/definitions.ts`. Bump the spec when patterns are added, removed, or re-weighted so historical scores remain comparable.
 
 Current version: **2026.11**
 
