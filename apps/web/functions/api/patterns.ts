@@ -12,6 +12,7 @@ import {
   SYSTEM_CHECKS,
   CRAFT_CHECKS,
   PRESETS,
+  presetProfiles,
   DEFINITIONS_VERSION,
 } from '@slop-detect/core';
 
@@ -67,6 +68,7 @@ export async function onRequestGet() {
       craftCount: craftChecks.length,
       craftChecks,
       presets: Object.keys(PRESETS),
+      presetProfiles: presetProfiles(),
     }),
     {
       headers: {

@@ -73,6 +73,12 @@ export function buildAeoFixFiles(opts: AeoFixOptions = {}): Record<string, strin
     description:
       'Starter agent discovery record. Fill this in before publishing. It is not a completed agent card.',
     endpoints: [] as string[],
+    entries: [
+      {
+        url: `${origin}/llms.txt`,
+        type: 'text/plain',
+      },
+    ],
   };
 
   const linkHeaders = [

@@ -1,0 +1,7179 @@
+{
+  "url": "https://slop-detect.com/",
+  "finalUrl": "https://slop-detect.com/",
+  "title": "Slop Detector: score any landing page against the AI-design fingerprint",
+  "h1": "Does your landing page look generated?",
+  "h1Font": "Newsreader, Georgia, \"Times New Roman\", serif",
+  "preset": "full",
+  "calibration": "uncalibrated-beta",
+  "evidence": [
+    {
+      "id": "slop_fonts_2026",
+      "label": "Expanded 2026 default font stack (Syne / Fraunces / Outfit / Sora / Playfair / Lora / JetBrains Mono)",
+      "status": "review",
+      "weight": 0,
+      "scoreDelta": 0,
+      "evidenceGrade": "practitioner",
+      "fpRatePre2022": null,
+      "detail": {
+        "matchCount": 260,
+        "total": 480,
+        "ratio": 0.542,
+        "heroFam": "Newsreader, Georgia, \"Times New Roman\", serif",
+        "resolvedHeroFam": "newsreader",
+        "heroMatches": false,
+        "triggered": true,
+        "locations": [
+          {
+            "selector": "h1.display-hero",
+            "rect": {
+              "x": 360,
+              "y": 173,
+              "width": 560,
+              "height": 127
+            }
+          },
+          {
+            "selector": "nav.nav",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1280,
+              "height": 62
+            }
+          },
+          {
+            "selector": "div.nav-inner",
+            "rect": {
+              "x": 80,
+              "y": 0,
+              "width": 1120,
+              "height": 61
+            }
+          },
+          {
+            "selector": "a.logo",
+            "rect": {
+              "x": 112,
+              "y": 18,
+              "width": 127,
+              "height": 24
+            }
+          },
+          {
+            "selector": "span.logo-mark",
+            "rect": {
+              "x": 112,
+              "y": 19,
+              "width": 22,
+              "height": 22
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hero_accent_word",
+      "label": "Single inline accent span/italic/color word inside H1",
+      "status": "review",
+      "weight": 0,
+      "scoreDelta": 0,
+      "evidenceGrade": "practitioner",
+      "fpRatePre2022": null,
+      "detail": {
+        "h1Text": "Does your landing page look generated?",
+        "accentText": "generated?",
+        "differedBy": [
+          "fontStyle",
+          "color"
+        ],
+        "triggered": true,
+        "locations": [
+          {
+            "selector": "h1.display-hero",
+            "rect": {
+              "x": 360,
+              "y": 173,
+              "width": 560,
+              "height": 127
+            }
+          },
+          {
+            "selector": "h1.display-hero",
+            "rect": {
+              "x": 360,
+              "y": 173,
+              "width": 560,
+              "height": 127
+            }
+          },
+          {
+            "selector": "h2.h2-section",
+            "rect": {
+              "x": 112,
+              "y": 1421,
+              "width": 440,
+              "height": 39
+            }
+          },
+          {
+            "selector": "h3.lb-col-h",
+            "rect": {
+              "x": 112,
+              "y": 1592,
+              "width": 336,
+              "height": 28
+            }
+          },
+          {
+            "selector": "h3.lb-col-h",
+            "rect": {
+              "x": 472,
+              "y": 1592,
+              "width": 336,
+              "height": 28
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "editorial_cream_kit",
+      "label": "Warm-editorial cream + serif + terracotta/brass or broadsheet hairline kit",
+      "status": "review",
+      "weight": 0,
+      "scoreDelta": 0,
+      "evidenceGrade": "practitioner",
+      "fpRatePre2022": null,
+      "detail": {
+        "creamBranch": true,
+        "broadsheetBranch": false,
+        "hasSerifH1": true,
+        "hairlineRules": 99,
+        "trackedLabels": 0,
+        "triggered": true,
+        "locations": [
+          {
+            "selector": "nav.nav",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1280,
+              "height": 62
+            }
+          },
+          {
+            "selector": "div.nav-inner",
+            "rect": {
+              "x": 80,
+              "y": 0,
+              "width": 1120,
+              "height": 61
+            }
+          },
+          {
+            "selector": "a.logo",
+            "rect": {
+              "x": 112,
+              "y": 18,
+              "width": 127,
+              "height": 24
+            }
+          },
+          {
+            "selector": "span.logo-mark",
+            "rect": {
+              "x": 112,
+              "y": 19,
+              "width": 22,
+              "height": 22
+            }
+          },
+          {
+            "selector": "svg",
+            "rect": {
+              "x": 112,
+              "y": 19,
+              "width": 22,
+              "height": 22
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "uniform_card_hover",
+      "label": "Identical transform/box-shadow hover transition tuple across ≥4 cards",
+      "status": "review",
+      "weight": 0,
+      "scoreDelta": 0,
+      "evidenceGrade": "practitioner",
+      "fpRatePre2022": null,
+      "detail": {
+        "maxCount": 4,
+        "dominantTuple": "opacity, transform|0.45s, 0.45s|cubic-bezier(0.2, 0.7, 0.2, 1), cubic-bezier(0.2, 0.7, 0.2, 1)",
+        "triggered": true,
+        "locations": [
+          {
+            "selector": "nav.nav",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1280,
+              "height": 62
+            }
+          },
+          {
+            "selector": "div.nav-inner",
+            "rect": {
+              "x": 80,
+              "y": 0,
+              "width": 1120,
+              "height": 61
+            }
+          },
+          {
+            "selector": "a.logo",
+            "rect": {
+              "x": 112,
+              "y": 18,
+              "width": 127,
+              "height": 24
+            }
+          },
+          {
+            "selector": "span.logo-mark",
+            "rect": {
+              "x": 112,
+              "y": 19,
+              "width": 22,
+              "height": 22
+            }
+          },
+          {
+            "selector": "svg",
+            "rect": {
+              "x": 112,
+              "y": 19,
+              "width": 22,
+              "height": 22
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "section_template_repetition",
+      "label": "Repeated top-level section structural template signature (≥3 identical sections)",
+      "status": "review",
+      "weight": 0,
+      "scoreDelta": 0,
+      "evidenceGrade": "hypothesis",
+      "fpRatePre2022": null,
+      "detail": {
+        "sectionCount": 8,
+        "repeatedShare": 0.5,
+        "maxSignatureCount": 4,
+        "paddingCV": 0.517,
+        "referenceMedians": {
+          "gridAdherence": 0.62,
+          "distinctTypeSizes": 8,
+          "maxRadiusPx": 50
+        },
+        "triggered": true,
+        "locations": [
+          {
+            "selector": "nav.nav",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1280,
+              "height": 62
+            }
+          },
+          {
+            "selector": "div.nav-inner",
+            "rect": {
+              "x": 80,
+              "y": 0,
+              "width": 1120,
+              "height": 61
+            }
+          },
+          {
+            "selector": "a.logo",
+            "rect": {
+              "x": 112,
+              "y": 18,
+              "width": 127,
+              "height": 24
+            }
+          },
+          {
+            "selector": "span.logo-mark",
+            "rect": {
+              "x": 112,
+              "y": 19,
+              "width": 22,
+              "height": 22
+            }
+          },
+          {
+            "selector": "svg",
+            "rect": {
+              "x": 112,
+              "y": 19,
+              "width": 22,
+              "height": 22
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "score": 0,
+  "tier": "Clean",
+  "grade": "A+",
+  "verdict": "Restrained palette and typography. Default-template patterns are absent.",
+  "patternsFlagged": 5,
+  "patternsScored": 0,
+  "patternsTotal": 45,
+  "unknownCount": 0,
+  "reviewCount": 5,
+  "coverage": 1,
+  "adjustments": [],
+  "confidence": {
+    "status": "unknown",
+    "strongTells": [],
+    "discountedPairs": [],
+    "clippedLogLrSum": null,
+    "basis": "no measured lift supplied (K-01 pending)"
+  },
+  "typicality": null,
+  "definitionsVersion": "2026.11",
+  "patterns": [
+    {
+      "id": "slop_fonts",
+      "label": "AI-default font stack (Inter / Geist / Space Grotesk / Instrument Serif)",
+      "short": "Slop fonts",
+      "category": "fonts",
+      "weight": 8,
+      "status": "pass",
+      "ruleStatus": "decaying",
+      "evidenceGrade": "practitioner",
+      "era": "2024-gpt4",
+      "modelFamilies": [
+        "v0",
+        "cursor",
+        "lovable",
+        "bolt"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "slopCount": 0,
+        "primaryCount": 0,
+        "secondaryCount": 0,
+        "total": 480,
+        "ratio": 0,
+        "heroIsSlop": false,
+        "heroFam": "Newsreader, Georgia, \"Times New Roman\", serif",
+        "resolvedHeroFam": "newsreader",
+        "secondaryOnly": false,
+        "interOrGeistOnly": false,
+        "interLifecycleStatus": "decaying",
+        "accentSerifItalicCount": 0,
+        "triggered": false
+      }
+    },
+    {
+      "id": "slop_fonts_2026",
+      "label": "Expanded 2026 default font stack (Syne / Fraunces / Outfit / Sora / Playfair / Lora / JetBrains Mono)",
+      "short": "2026 slop fonts",
+      "category": "fonts",
+      "weight": 0,
+      "status": "review",
+      "ruleStatus": "review",
+      "evidenceGrade": "practitioner",
+      "era": "2025-v0",
+      "modelFamilies": [
+        "v0",
+        "cursor",
+        "lovable",
+        "bolt",
+        "claude"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": true,
+      "locations": [
+        {
+          "selector": "h1.display-hero",
+          "rect": {
+            "x": 360,
+            "y": 173,
+            "width": 560,
+            "height": 127
+          }
+        },
+        {
+          "selector": "nav.nav",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 1280,
+            "height": 62
+          }
+        },
+        {
+          "selector": "div.nav-inner",
+          "rect": {
+            "x": 80,
+            "y": 0,
+            "width": 1120,
+            "height": 61
+          }
+        },
+        {
+          "selector": "a.logo",
+          "rect": {
+            "x": 112,
+            "y": 18,
+            "width": 127,
+            "height": 24
+          }
+        },
+        {
+          "selector": "span.logo-mark",
+          "rect": {
+            "x": 112,
+            "y": 19,
+            "width": 22,
+            "height": 22
+          }
+        }
+      ],
+      "evidence": {
+        "matchCount": 260,
+        "total": 480,
+        "ratio": 0.542,
+        "heroFam": "Newsreader, Georgia, \"Times New Roman\", serif",
+        "resolvedHeroFam": "newsreader",
+        "heroMatches": false,
+        "triggered": true,
+        "locations": [
+          {
+            "selector": "h1.display-hero",
+            "rect": {
+              "x": 360,
+              "y": 173,
+              "width": 560,
+              "height": 127
+            }
+          },
+          {
+            "selector": "nav.nav",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1280,
+              "height": 62
+            }
+          },
+          {
+            "selector": "div.nav-inner",
+            "rect": {
+              "x": 80,
+              "y": 0,
+              "width": 1120,
+              "height": 61
+            }
+          },
+          {
+            "selector": "a.logo",
+            "rect": {
+              "x": 112,
+              "y": 18,
+              "width": 127,
+              "height": 24
+            }
+          },
+          {
+            "selector": "span.logo-mark",
+            "rect": {
+              "x": 112,
+              "y": 19,
+              "width": 22,
+              "height": 22
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "purple_accent",
+      "label": "VibeCode Purple — filled indigo/violet CTAs",
+      "short": "Vibe purple",
+      "category": "colors",
+      "weight": 4,
+      "status": "pass",
+      "ruleStatus": "decaying",
+      "evidenceGrade": "practitioner",
+      "era": "2024-gpt4",
+      "modelFamilies": [
+        "v0",
+        "cursor",
+        "bolt",
+        "lovable"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "purpleEls": 0,
+        "filledCtas": 0,
+        "samples": [],
+        "triggered": false
+      }
+    },
+    {
+      "id": "gradient_text",
+      "label": "Hero gradient text (background-clip:text)",
+      "short": "Gradient text",
+      "category": "colors",
+      "weight": 6,
+      "status": "pass",
+      "ruleStatus": "active",
+      "evidenceGrade": "practitioner",
+      "era": "2024-gpt4",
+      "modelFamilies": [
+        "v0",
+        "cursor",
+        "bolt",
+        "lovable"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "count": 0,
+        "heroHasGradient": false,
+        "triggered": false
+      }
+    },
+    {
+      "id": "gradient_backgrounds",
+      "label": "Gradient-heavy backgrounds (≥15% viewport across ≥2 sections)",
+      "short": "Gradient bgs",
+      "category": "colors",
+      "weight": 4,
+      "status": "pass",
+      "ruleStatus": "active",
+      "evidenceGrade": "practitioner",
+      "era": "2024-gpt4",
+      "modelFamilies": [
+        "v0",
+        "bolt",
+        "lovable"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "gradientAreaRatio": 0,
+        "sections": 0,
+        "elements": 0,
+        "bgElements": 0,
+        "conic": 0,
+        "samples": [],
+        "triggered": false
+      }
+    },
+    {
+      "id": "accent_stripe",
+      "label": "Colored top/left card borders (the AI em-dash)",
+      "short": "Accent stripe",
+      "category": "layout",
+      "weight": 6,
+      "status": "pass",
+      "ruleStatus": "active",
+      "evidenceGrade": "practitioner",
+      "era": "2025-v0",
+      "modelFamilies": [
+        "claude",
+        "v0",
+        "cursor"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "stripeCards": 0,
+        "sides": [],
+        "triggered": false
+      }
+    },
+    {
+      "id": "accent_stripe_2026",
+      "label": "Broadened 2px or bottom colored card borders (D-07)",
+      "short": "Accent stripe 2026",
+      "category": "layout",
+      "weight": 0,
+      "status": "pass",
+      "ruleStatus": "review",
+      "evidenceGrade": "practitioner",
+      "era": "2025-v0",
+      "modelFamilies": [
+        "claude",
+        "v0",
+        "cursor"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "stripeCards": 0,
+        "sides": [],
+        "triggered": false
+      }
+    },
+    {
+      "id": "glassmorphism",
+      "label": "Glassmorphism (backdrop-filter blur on translucent layers)",
+      "short": "Glass",
+      "category": "css",
+      "weight": 4,
+      "status": "pass",
+      "ruleStatus": "active",
+      "evidenceGrade": "practitioner",
+      "era": "2024-gpt4",
+      "modelFamilies": [
+        "bolt",
+        "v0",
+        "lovable"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "glassCount": 0,
+        "triggered": false
+      }
+    },
+    {
+      "id": "colored_glows",
+      "label": "Big colored box-shadow glows (purple/blue/pink)",
+      "short": "Colored glows",
+      "category": "css",
+      "weight": 4,
+      "status": "pass",
+      "ruleStatus": "active",
+      "evidenceGrade": "practitioner",
+      "era": "2024-gpt4",
+      "modelFamilies": [
+        "v0",
+        "bolt",
+        "lovable"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "glowCount": 0,
+        "triggered": false
+      }
+    },
+    {
+      "id": "centered_hero",
+      "label": "Centered hero in generic sans (Inter-style)",
+      "short": "Centered hero",
+      "category": "layout",
+      "weight": 4,
+      "status": "pass",
+      "ruleStatus": "active",
+      "evidenceGrade": "practitioner",
+      "era": "2024-gpt4",
+      "modelFamilies": [
+        "v0",
+        "cursor",
+        "lovable",
+        "bolt"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "triggered": false,
+        "fontSize": 58.88,
+        "centered": true,
+        "slopFont": false,
+        "family": "Newsreader, Georgia, \"Times New Roman\", serif"
+      }
+    },
+    {
+      "id": "hero_eyebrow_pill",
+      "label": "Eyebrow pill above hero (\"Now in beta\" / \"New\")",
+      "short": "Eyebrow pill",
+      "category": "layout",
+      "weight": 5,
+      "status": "pass",
+      "ruleStatus": "active",
+      "evidenceGrade": "practitioner",
+      "era": "2024-gpt4",
+      "modelFamilies": [
+        "v0",
+        "lovable",
+        "bolt"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "triggered": false
+      }
+    },
+    {
+      "id": "all_caps_labels",
+      "label": "All-caps section labels (retired — replaced by eyebrow_label)",
+      "short": "All-caps (retired)",
+      "category": "fonts",
+      "weight": 0,
+      "status": "pass",
+      "ruleStatus": "retired",
+      "evidenceGrade": "practitioner",
+      "era": "2024-gpt4",
+      "modelFamilies": [
+        "v0",
+        "cursor"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "count": 0,
+        "samples": [],
+        "retired": true,
+        "replacedBy": "eyebrow_label",
+        "triggered": false
+      }
+    },
+    {
+      "id": "eyebrow_label",
+      "label": "Tracked or uppercase eyebrow labels above ≥60% of section headings",
+      "short": "Eyebrow labels",
+      "category": "fonts",
+      "weight": 0,
+      "status": "pass",
+      "ruleStatus": "review",
+      "evidenceGrade": "practitioner",
+      "era": "2025-v0",
+      "modelFamilies": [
+        "v0",
+        "cursor",
+        "claude",
+        "lovable"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "eyebrowCount": 0,
+        "headingCount": 10,
+        "ratio": 0,
+        "samples": [],
+        "nodeIds": [],
+        "triggered": false
+      }
+    },
+    {
+      "id": "perma_dark_mode",
+      "label": "Perma dark mode + medium-grey body text",
+      "short": "Perma dark",
+      "category": "colors",
+      "weight": 4,
+      "status": "pass",
+      "ruleStatus": "active",
+      "evidenceGrade": "practitioner",
+      "era": "2024-gpt4",
+      "modelFamilies": [
+        "v0",
+        "bolt",
+        "cursor"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "triggered": false,
+        "bodyDark": false
+      }
+    },
+    {
+      "id": "icon_card_grid",
+      "label": "Identical feature cards with icon on top",
+      "short": "Icon cards",
+      "category": "layout",
+      "weight": 4,
+      "status": "pass",
+      "ruleStatus": "active",
+      "evidenceGrade": "practitioner",
+      "era": "2024-gpt4",
+      "modelFamilies": [
+        "v0",
+        "lovable",
+        "bolt",
+        "cursor"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "maxGroupSize": 0,
+        "boxedTiles": 0,
+        "triggered": false
+      }
+    },
+    {
+      "id": "numbered_steps",
+      "label": "Numbered \"1 · 2 · 3\" step sequences",
+      "short": "Numbered steps",
+      "category": "layout",
+      "weight": 3,
+      "status": "pass",
+      "ruleStatus": "active",
+      "evidenceGrade": "practitioner",
+      "era": "2024-gpt4",
+      "modelFamilies": [
+        "v0",
+        "claude",
+        "lovable"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "bestRun": 0,
+        "nodeIds": [],
+        "triggered": false
+      }
+    },
+    {
+      "id": "stat_banner",
+      "label": "Big-number stat banner (\"10k+\", \"99.9%\", \"$2M+\")",
+      "short": "Stat banner",
+      "category": "layout",
+      "weight": 3,
+      "status": "pass",
+      "ruleStatus": "active",
+      "evidenceGrade": "practitioner",
+      "era": "2024-gpt4",
+      "modelFamilies": [
+        "v0",
+        "lovable",
+        "bolt"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "clusterSize": 1,
+        "triggered": false
+      }
+    },
+    {
+      "id": "faq_accordion",
+      "label": "FAQ accordion in the lower half",
+      "short": "FAQ",
+      "category": "layout",
+      "weight": 2,
+      "status": "pass",
+      "ruleStatus": "active",
+      "evidenceGrade": "practitioner",
+      "era": "2024-gpt4",
+      "modelFamilies": [
+        "v0",
+        "lovable",
+        "bolt"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "detailsCount": 0,
+        "hasFaqHeading": false,
+        "triggered": false
+      }
+    },
+    {
+      "id": "gradient_letter_avatars",
+      "label": "Gradient-letter avatars (testimonial slop)",
+      "short": "Letter avatars",
+      "category": "images",
+      "weight": 5,
+      "status": "pass",
+      "ruleStatus": "active",
+      "evidenceGrade": "practitioner",
+      "era": "2024-gpt4",
+      "modelFamilies": [
+        "v0",
+        "lovable",
+        "bolt"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "count": 0,
+        "samples": [],
+        "triggered": false
+      }
+    },
+    {
+      "id": "bento_grid",
+      "label": "Bento-grid wall — mixed-span rounded card grid",
+      "short": "Bento grid",
+      "category": "layout",
+      "weight": 4,
+      "status": "pass",
+      "ruleStatus": "active",
+      "evidenceGrade": "practitioner",
+      "era": "2025-v0",
+      "modelFamilies": [
+        "v0",
+        "lovable",
+        "bolt",
+        "cursor"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "children": 0,
+        "spanVariety": 0,
+        "rounded": 0,
+        "triggered": false
+      }
+    },
+    {
+      "id": "aurora_mesh_gradient",
+      "label": "Aurora / mesh gradient blobs (blurred glowing backdrop)",
+      "short": "Aurora blobs",
+      "category": "css",
+      "weight": 5,
+      "status": "pass",
+      "ruleStatus": "active",
+      "evidenceGrade": "practitioner",
+      "era": "2025-v0",
+      "modelFamilies": [
+        "v0",
+        "lovable",
+        "bolt"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "blobs": 0,
+        "samples": [],
+        "triggered": false
+      }
+    },
+    {
+      "id": "ai_sparkle_badges",
+      "label": "AI-sparkle badges (✨ / Sparkles \"magic\" tells)",
+      "short": "AI sparkles",
+      "category": "images",
+      "weight": 3,
+      "status": "pass",
+      "ruleStatus": "active",
+      "evidenceGrade": "practitioner",
+      "era": "2025-v0",
+      "modelFamilies": [
+        "v0",
+        "lovable",
+        "bolt",
+        "cursor"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "emojiHits": 0,
+        "svgHits": 0,
+        "samples": [],
+        "triggered": false
+      }
+    },
+    {
+      "id": "cream_default_bg",
+      "label": "Cream / beige default page background",
+      "short": "Cream bg",
+      "category": "colors",
+      "weight": 7,
+      "status": "pass",
+      "ruleStatus": "active",
+      "evidenceGrade": "practitioner",
+      "era": "2026-opus4.6",
+      "modelFamilies": [
+        "claude",
+        "v0",
+        "cursor"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "surface": "#f4f5f2",
+        "triggered": false
+      }
+    },
+    {
+      "id": "low_contrast_text",
+      "label": "Washed-out grey body text (below WCAG AA contrast floor)",
+      "short": "Low contrast",
+      "category": "colors",
+      "weight": 7,
+      "status": "pass",
+      "ruleStatus": "active",
+      "evidenceGrade": "standard",
+      "era": "2025-v0",
+      "modelFamilies": [
+        "v0",
+        "cursor",
+        "bolt",
+        "lovable"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "fails": 0,
+        "checked": 44,
+        "ratioFail": 0,
+        "samples": [],
+        "apcaNote": "APCA, a candidate method; the WCAG 3 draft leaves the contrast measure undetermined",
+        "triggered": false
+      }
+    },
+    {
+      "id": "crushed_tracking",
+      "label": "Crushed letter-spacing on display type",
+      "short": "Crushed tracking",
+      "category": "fonts",
+      "weight": 5,
+      "status": "pass",
+      "ruleStatus": "active",
+      "evidenceGrade": "practitioner",
+      "era": "2025-v0",
+      "modelFamilies": [
+        "v0",
+        "claude",
+        "cursor"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "count": 0,
+        "samples": [],
+        "triggered": false
+      }
+    },
+    {
+      "id": "oversized_hero_h1",
+      "label": "Oversized hero headline (long sentence at display size)",
+      "short": "Oversized H1",
+      "category": "fonts",
+      "weight": 4,
+      "status": "pass",
+      "ruleStatus": "active",
+      "evidenceGrade": "practitioner",
+      "era": "2025-v0",
+      "modelFamilies": [
+        "v0",
+        "claude",
+        "lovable"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "fontSize": 59,
+        "chars": 38,
+        "text": "Does your landing page look generated?",
+        "triggered": false
+      }
+    },
+    {
+      "id": "nested_cards",
+      "label": "Cards nested inside cards",
+      "short": "Nested cards",
+      "category": "layout",
+      "weight": 4,
+      "status": "pass",
+      "ruleStatus": "active",
+      "evidenceGrade": "practitioner",
+      "era": "2025-v0",
+      "modelFamilies": [
+        "v0",
+        "lovable",
+        "bolt"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "nested": 0,
+        "samples": [],
+        "triggered": false
+      }
+    },
+    {
+      "id": "flat_type_hierarchy",
+      "label": "Flat type hierarchy (sizes too close together)",
+      "short": "Flat hierarchy",
+      "category": "fonts",
+      "weight": 3,
+      "status": "pass",
+      "ruleStatus": "active",
+      "evidenceGrade": "practitioner",
+      "era": "2025-v0",
+      "modelFamilies": [
+        "v0",
+        "bolt"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "distinct": 14,
+        "ratio": 4.92,
+        "min": 12,
+        "max": 59,
+        "triggered": false
+      }
+    },
+    {
+      "id": "scaffold_defaults_unedited",
+      "label": "Unfinished page — scaffold defaults left unedited",
+      "short": "Scaffold defaults",
+      "category": "layout",
+      "weight": 0,
+      "status": "pass",
+      "ruleStatus": "review",
+      "evidenceGrade": "practitioner",
+      "era": "2025-v0",
+      "modelFamilies": [
+        "lovable",
+        "nextjs-scaffold"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "hits": [],
+        "triggered": false
+      }
+    },
+    {
+      "id": "hero_accent_word",
+      "label": "Single inline accent span/italic/color word inside H1",
+      "short": "Hero accent word",
+      "category": "fonts",
+      "weight": 0,
+      "status": "review",
+      "ruleStatus": "review",
+      "evidenceGrade": "practitioner",
+      "era": "2026-opus4.6",
+      "modelFamilies": [
+        "claude",
+        "v0",
+        "cursor"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": true,
+      "locations": [
+        {
+          "selector": "h1.display-hero",
+          "rect": {
+            "x": 360,
+            "y": 173,
+            "width": 560,
+            "height": 127
+          }
+        },
+        {
+          "selector": "h1.display-hero",
+          "rect": {
+            "x": 360,
+            "y": 173,
+            "width": 560,
+            "height": 127
+          }
+        },
+        {
+          "selector": "h2.h2-section",
+          "rect": {
+            "x": 112,
+            "y": 1421,
+            "width": 440,
+            "height": 39
+          }
+        },
+        {
+          "selector": "h3.lb-col-h",
+          "rect": {
+            "x": 112,
+            "y": 1592,
+            "width": 336,
+            "height": 28
+          }
+        },
+        {
+          "selector": "h3.lb-col-h",
+          "rect": {
+            "x": 472,
+            "y": 1592,
+            "width": 336,
+            "height": 28
+          }
+        }
+      ],
+      "evidence": {
+        "h1Text": "Does your landing page look generated?",
+        "accentText": "generated?",
+        "differedBy": [
+          "fontStyle",
+          "color"
+        ],
+        "triggered": true,
+        "locations": [
+          {
+            "selector": "h1.display-hero",
+            "rect": {
+              "x": 360,
+              "y": 173,
+              "width": 560,
+              "height": 127
+            }
+          },
+          {
+            "selector": "h1.display-hero",
+            "rect": {
+              "x": 360,
+              "y": 173,
+              "width": 560,
+              "height": 127
+            }
+          },
+          {
+            "selector": "h2.h2-section",
+            "rect": {
+              "x": 112,
+              "y": 1421,
+              "width": 440,
+              "height": 39
+            }
+          },
+          {
+            "selector": "h3.lb-col-h",
+            "rect": {
+              "x": 112,
+              "y": 1592,
+              "width": 336,
+              "height": 28
+            }
+          },
+          {
+            "selector": "h3.lb-col-h",
+            "rect": {
+              "x": 472,
+              "y": 1592,
+              "width": 336,
+              "height": 28
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "template_chrome_2026",
+      "label": "2026 template micro-chrome bundle (≥3 of 6 sub-signals)",
+      "short": "2026 chrome",
+      "category": "layout",
+      "weight": 0,
+      "status": "pass",
+      "ruleStatus": "review",
+      "evidenceGrade": "practitioner",
+      "era": "2026-opus4.6",
+      "modelFamilies": [
+        "claude",
+        "v0",
+        "cursor"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "hits": 2,
+        "subSignals": {
+          "middle_dot_meta": true,
+          "arrow_ctas": false,
+          "small_mono_labels": true,
+          "word_emdash_fragment": false,
+          "tracked_eyebrows": false,
+          "double_slash_chrome": false
+        },
+        "pillButtons": false,
+        "triggered": false
+      }
+    },
+    {
+      "id": "uniform_radius_shadow",
+      "label": "Single border-radius (≥12px) and identical neutral shadow across ≥3 size classes",
+      "short": "Uniform radius/shadow",
+      "category": "css",
+      "weight": 0,
+      "status": "pass",
+      "ruleStatus": "review",
+      "evidenceGrade": "hypothesis",
+      "era": "2025-v0",
+      "modelFamilies": [
+        "v0",
+        "lovable",
+        "bolt"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "totalComponents": 55,
+        "dominantRadius": 3,
+        "radiusShare": 0.582,
+        "dominantSizeClasses": 2,
+        "shadowShare": 0,
+        "triggered": false
+      }
+    },
+    {
+      "id": "editorial_cream_kit",
+      "label": "Warm-editorial cream + serif + terracotta/brass or broadsheet hairline kit",
+      "short": "Editorial kit",
+      "category": "colors",
+      "weight": 0,
+      "status": "review",
+      "ruleStatus": "review",
+      "evidenceGrade": "practitioner",
+      "era": "2026-opus4.6",
+      "modelFamilies": [
+        "claude"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": true,
+      "locations": [
+        {
+          "selector": "nav.nav",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 1280,
+            "height": 62
+          }
+        },
+        {
+          "selector": "div.nav-inner",
+          "rect": {
+            "x": 80,
+            "y": 0,
+            "width": 1120,
+            "height": 61
+          }
+        },
+        {
+          "selector": "a.logo",
+          "rect": {
+            "x": 112,
+            "y": 18,
+            "width": 127,
+            "height": 24
+          }
+        },
+        {
+          "selector": "span.logo-mark",
+          "rect": {
+            "x": 112,
+            "y": 19,
+            "width": 22,
+            "height": 22
+          }
+        },
+        {
+          "selector": "svg",
+          "rect": {
+            "x": 112,
+            "y": 19,
+            "width": 22,
+            "height": 22
+          }
+        }
+      ],
+      "evidence": {
+        "creamBranch": true,
+        "broadsheetBranch": false,
+        "hasSerifH1": true,
+        "hairlineRules": 99,
+        "trackedLabels": 0,
+        "triggered": true,
+        "locations": [
+          {
+            "selector": "nav.nav",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1280,
+              "height": 62
+            }
+          },
+          {
+            "selector": "div.nav-inner",
+            "rect": {
+              "x": 80,
+              "y": 0,
+              "width": 1120,
+              "height": 61
+            }
+          },
+          {
+            "selector": "a.logo",
+            "rect": {
+              "x": 112,
+              "y": 18,
+              "width": 127,
+              "height": 24
+            }
+          },
+          {
+            "selector": "span.logo-mark",
+            "rect": {
+              "x": 112,
+              "y": 19,
+              "width": 22,
+              "height": 22
+            }
+          },
+          {
+            "selector": "svg",
+            "rect": {
+              "x": 112,
+              "y": 19,
+              "width": 22,
+              "height": 22
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "template_page_order",
+      "label": "Canonical 8-section landing-page sequence order",
+      "short": "Page order",
+      "category": "layout",
+      "weight": 0,
+      "status": "pass",
+      "ruleStatus": "review",
+      "evidenceGrade": "practitioner",
+      "era": "2025-v0",
+      "modelFamilies": [
+        "v0",
+        "lovable",
+        "bolt",
+        "cursor"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "roles": [
+          "hero",
+          "features",
+          "cta_footer"
+        ],
+        "canonical": [
+          "hero",
+          "logo_bar",
+          "features",
+          "testimonials",
+          "stats",
+          "pricing",
+          "faq",
+          "cta_footer"
+        ],
+        "editDistance": 5,
+        "normalizedDistance": 0.625,
+        "triggered": false
+      }
+    },
+    {
+      "id": "pulsing_status_badge",
+      "label": "Infinite pulsing \"Live / Active / Beta\" status dot on marketing copy",
+      "short": "Pulsing badge",
+      "category": "css",
+      "weight": 0,
+      "status": "pass",
+      "ruleStatus": "review",
+      "evidenceGrade": "practitioner",
+      "era": "2025-v0",
+      "modelFamilies": [
+        "v0",
+        "lovable",
+        "bolt"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "count": 0,
+        "samples": [],
+        "triggered": false
+      }
+    },
+    {
+      "id": "display_mono_heading",
+      "label": "Monospace H1/H2 heading at display size (≥24px) outside devtool context",
+      "short": "Mono heading",
+      "category": "fonts",
+      "weight": 0,
+      "status": "pass",
+      "ruleStatus": "review",
+      "evidenceGrade": "practitioner",
+      "era": "2026-opus4.6",
+      "modelFamilies": [
+        "claude",
+        "cursor"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "hits": [],
+        "triggered": false
+      }
+    },
+    {
+      "id": "chip_rainbow",
+      "label": "Multi-hue badge/pill/tag rainbow (≥6 chips across ≥4 hues separated by >30°)",
+      "short": "Chip rainbow",
+      "category": "colors",
+      "weight": 0,
+      "status": "pass",
+      "ruleStatus": "review",
+      "evidenceGrade": "practitioner",
+      "era": "2025-v0",
+      "modelFamilies": [
+        "v0",
+        "lovable",
+        "bolt"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "chipCount": 0,
+        "distinctHueCount": 0,
+        "distinctHues": [],
+        "triggered": false
+      }
+    },
+    {
+      "id": "fake_macos_terminal",
+      "label": "Decorative macOS traffic-light window chrome above a code/text block",
+      "short": "Fake terminal",
+      "category": "layout",
+      "weight": 0,
+      "status": "pass",
+      "ruleStatus": "review",
+      "evidenceGrade": "practitioner",
+      "era": "2025-v0",
+      "modelFamilies": [
+        "v0",
+        "bolt",
+        "lovable",
+        "cursor"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "count": 0,
+        "triggered": false
+      }
+    },
+    {
+      "id": "fake_logo_bar",
+      "label": "Placeholder or duplicate-asset logo bar (\"Trusted by\" generic SVG/text row)",
+      "short": "Fake logo bar",
+      "category": "images",
+      "weight": 0,
+      "status": "pass",
+      "ruleStatus": "review",
+      "evidenceGrade": "practitioner",
+      "era": "2025-v0",
+      "modelFamilies": [
+        "v0",
+        "lovable",
+        "bolt"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "placeholderLogos": 1,
+        "duplicateLogoRows": 0,
+        "nodeIds": [],
+        "triggered": false
+      }
+    },
+    {
+      "id": "infinite_marquee_ticker",
+      "label": "Infinite linear horizontal marquee ticker with duplicated child sequence",
+      "short": "Marquee ticker",
+      "category": "css",
+      "weight": 0,
+      "status": "pass",
+      "ruleStatus": "review",
+      "evidenceGrade": "practitioner",
+      "era": "2025-v0",
+      "modelFamilies": [
+        "v0",
+        "lovable",
+        "bolt"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "tickers": 0,
+        "triggered": false
+      }
+    },
+    {
+      "id": "fade_up_monoculture",
+      "label": "At-rest fade-up entrance monoculture (≥6 below-fold elements at opacity 0 + translateY)",
+      "short": "Fade-up monoculture",
+      "category": "css",
+      "weight": 0,
+      "status": "pass",
+      "ruleStatus": "review",
+      "evidenceGrade": "practitioner",
+      "era": "2025-v0",
+      "modelFamilies": [
+        "v0",
+        "lovable",
+        "bolt",
+        "cursor"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "count": 0,
+        "sectionCount": 0,
+        "triggered": false
+      }
+    },
+    {
+      "id": "cursor_spotlight_gradient",
+      "label": "Cursor-tracking radial-gradient spotlight overlay (--mouse-x / --mouse-y)",
+      "short": "Cursor spotlight",
+      "category": "css",
+      "weight": 0,
+      "status": "pass",
+      "ruleStatus": "review",
+      "evidenceGrade": "practitioner",
+      "era": "2025-v0",
+      "modelFamilies": [
+        "v0",
+        "cursor",
+        "bolt"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "hits": 0,
+        "triggered": false
+      }
+    },
+    {
+      "id": "uniform_card_hover",
+      "label": "Identical transform/box-shadow hover transition tuple across ≥4 cards",
+      "short": "Uniform hover",
+      "category": "css",
+      "weight": 0,
+      "status": "review",
+      "ruleStatus": "review",
+      "evidenceGrade": "practitioner",
+      "era": "2025-v0",
+      "modelFamilies": [
+        "v0",
+        "lovable",
+        "bolt"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": true,
+      "locations": [
+        {
+          "selector": "nav.nav",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 1280,
+            "height": 62
+          }
+        },
+        {
+          "selector": "div.nav-inner",
+          "rect": {
+            "x": 80,
+            "y": 0,
+            "width": 1120,
+            "height": 61
+          }
+        },
+        {
+          "selector": "a.logo",
+          "rect": {
+            "x": 112,
+            "y": 18,
+            "width": 127,
+            "height": 24
+          }
+        },
+        {
+          "selector": "span.logo-mark",
+          "rect": {
+            "x": 112,
+            "y": 19,
+            "width": 22,
+            "height": 22
+          }
+        },
+        {
+          "selector": "svg",
+          "rect": {
+            "x": 112,
+            "y": 19,
+            "width": 22,
+            "height": 22
+          }
+        }
+      ],
+      "evidence": {
+        "maxCount": 4,
+        "dominantTuple": "opacity, transform|0.45s, 0.45s|cubic-bezier(0.2, 0.7, 0.2, 1), cubic-bezier(0.2, 0.7, 0.2, 1)",
+        "triggered": true,
+        "locations": [
+          {
+            "selector": "nav.nav",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1280,
+              "height": 62
+            }
+          },
+          {
+            "selector": "div.nav-inner",
+            "rect": {
+              "x": 80,
+              "y": 0,
+              "width": 1120,
+              "height": 61
+            }
+          },
+          {
+            "selector": "a.logo",
+            "rect": {
+              "x": 112,
+              "y": 18,
+              "width": 127,
+              "height": 24
+            }
+          },
+          {
+            "selector": "span.logo-mark",
+            "rect": {
+              "x": 112,
+              "y": 19,
+              "width": 22,
+              "height": 22
+            }
+          },
+          {
+            "selector": "svg",
+            "rect": {
+              "x": 112,
+              "y": 19,
+              "width": 22,
+              "height": 22
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "section_template_repetition",
+      "label": "Repeated top-level section structural template signature (≥3 identical sections)",
+      "short": "Section repetition",
+      "category": "layout",
+      "weight": 0,
+      "status": "review",
+      "ruleStatus": "review",
+      "evidenceGrade": "hypothesis",
+      "era": "2025-v0",
+      "modelFamilies": [
+        "v0",
+        "lovable",
+        "bolt"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": true,
+      "locations": [
+        {
+          "selector": "nav.nav",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 1280,
+            "height": 62
+          }
+        },
+        {
+          "selector": "div.nav-inner",
+          "rect": {
+            "x": 80,
+            "y": 0,
+            "width": 1120,
+            "height": 61
+          }
+        },
+        {
+          "selector": "a.logo",
+          "rect": {
+            "x": 112,
+            "y": 18,
+            "width": 127,
+            "height": 24
+          }
+        },
+        {
+          "selector": "span.logo-mark",
+          "rect": {
+            "x": 112,
+            "y": 19,
+            "width": 22,
+            "height": 22
+          }
+        },
+        {
+          "selector": "svg",
+          "rect": {
+            "x": 112,
+            "y": 19,
+            "width": 22,
+            "height": 22
+          }
+        }
+      ],
+      "evidence": {
+        "sectionCount": 8,
+        "repeatedShare": 0.5,
+        "maxSignatureCount": 4,
+        "paddingCV": 0.517,
+        "referenceMedians": {
+          "gridAdherence": 0.62,
+          "distinctTypeSizes": 8,
+          "maxRadiusPx": 50
+        },
+        "triggered": true,
+        "locations": [
+          {
+            "selector": "nav.nav",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1280,
+              "height": 62
+            }
+          },
+          {
+            "selector": "div.nav-inner",
+            "rect": {
+              "x": 80,
+              "y": 0,
+              "width": 1120,
+              "height": 61
+            }
+          },
+          {
+            "selector": "a.logo",
+            "rect": {
+              "x": 112,
+              "y": 18,
+              "width": 127,
+              "height": 24
+            }
+          },
+          {
+            "selector": "span.logo-mark",
+            "rect": {
+              "x": 112,
+              "y": 19,
+              "width": 22,
+              "height": 22
+            }
+          },
+          {
+            "selector": "svg",
+            "rect": {
+              "x": 112,
+              "y": 19,
+              "width": 22,
+              "height": 22
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "unthemed_browser_surfaces",
+      "label": "Dark page missing color-scheme: dark or dynamic counters missing tabular-nums",
+      "short": "Unthemed surfaces",
+      "category": "css",
+      "weight": 0,
+      "status": "pass",
+      "ruleStatus": "review",
+      "evidenceGrade": "standard",
+      "era": "2025-v0",
+      "modelFamilies": [
+        "v0",
+        "bolt",
+        "lovable",
+        "cursor"
+      ],
+      "lastValidatedIn": "2026.11",
+      "likelihoodRatio": null,
+      "fpRate": null,
+      "fpRatePre2022": null,
+      "triggered": false,
+      "evidence": {
+        "missingColorSchemeDark": false,
+        "missingTabularNums": 0,
+        "surfaceLum": 0.9095,
+        "colorScheme": "light",
+        "triggered": false
+      }
+    }
+  ],
+  "patternsErrored": 0,
+  "browserVersion": "158.0.8127.18",
+  "madeWith": [],
+  "kitMatch": {
+    "id": "claude-opus-5.5-default",
+    "hits": 3,
+    "of": 5,
+    "matched": false,
+    "signals": {
+      "cream_ground": true,
+      "hero_accent_word": true,
+      "numbered_labels": false,
+      "mono_labels": true,
+      "pill_buttons": false
+    },
+    "summary": "matches 3 of 5 signals of the default kit named in Anthropic's Opus 5.5 prompting guide",
+    "source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5#frontend-design-defaults",
+    "sourceDate": "2026-10-20",
+    "status": "active"
+  },
+  "kitMatches": [
+    {
+      "id": "claude-opus-5.5-default",
+      "hits": 3,
+      "of": 5,
+      "matched": false,
+      "signals": {
+        "cream_ground": true,
+        "hero_accent_word": true,
+        "numbered_labels": false,
+        "mono_labels": true,
+        "pill_buttons": false
+      },
+      "summary": "matches 3 of 5 signals of the default kit named in Anthropic's Opus 5.5 prompting guide",
+      "source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5#frontend-design-defaults",
+      "sourceDate": "2026-10-20",
+      "status": "active"
+    }
+  ],
+  "renderedWords": 1082,
+  "schemaVersion": 1,
+  "environment": {
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "userAgent": "SlopDetector/0.8.0 (+https://slop-detect.com/bot)",
+    "chromium": "158.0.8127.18"
+  },
+  "craft": {
+    "axis": "craft",
+    "evidence": [],
+    "score": 100,
+    "maxScore": 100,
+    "earnedWeight": 110,
+    "applicableWeight": 110,
+    "coverage": 0.9,
+    "checks": [
+      {
+        "id": "gray_on_color",
+        "label": "Neutral grey text on a colored background",
+        "weight": 10,
+        "category": "contrast",
+        "severity": "warning",
+        "lifecycleStatus": "active",
+        "evidenceGrade": "practitioner",
+        "status": "pass",
+        "passed": true,
+        "triggered": false,
+        "scoreDelta": 0,
+        "evidence": {
+          "count": 0,
+          "samples": []
+        }
+      },
+      {
+        "id": "wide_body_tracking",
+        "label": "Wide letter-spacing on body text (>0.05em)",
+        "weight": 8,
+        "category": "typography",
+        "severity": "warning",
+        "lifecycleStatus": "active",
+        "evidenceGrade": "practitioner",
+        "status": "pass",
+        "passed": true,
+        "triggered": false,
+        "scoreDelta": 0,
+        "evidence": {
+          "count": 0,
+          "samples": []
+        }
+      },
+      {
+        "id": "viewport_meta_missing",
+        "label": "Missing responsive <meta name=\"viewport\"> with width=device-width",
+        "weight": 15,
+        "category": "viewport",
+        "severity": "warning",
+        "lifecycleStatus": "active",
+        "evidenceGrade": "standard",
+        "status": "pass",
+        "passed": true,
+        "triggered": false,
+        "scoreDelta": 0,
+        "evidence": {
+          "present": true,
+          "content": "width=device-width,initial-scale=1"
+        }
+      },
+      {
+        "id": "zoom_disabled",
+        "label": "Pinch-to-zoom disabled via user-scalable=no or maximum-scale < 2",
+        "weight": 15,
+        "category": "viewport",
+        "severity": "warning",
+        "lifecycleStatus": "active",
+        "evidenceGrade": "standard",
+        "status": "pass",
+        "passed": true,
+        "triggered": false,
+        "scoreDelta": 0,
+        "evidence": {
+          "content": "width=device-width,initial-scale=1",
+          "userScalableNo": false,
+          "maxScale": null
+        }
+      },
+      {
+        "id": "mobile_reflow_failure",
+        "label": "Horizontal overflow, protrusion, or text box collision (RLF taxonomy)",
+        "weight": 20,
+        "category": "responsive",
+        "severity": "warning",
+        "lifecycleStatus": "active",
+        "evidenceGrade": "standard",
+        "status": "pass",
+        "passed": true,
+        "triggered": false,
+        "scoreDelta": 0,
+        "evidence": {
+          "subtypes": [],
+          "pageOverflowPx": 0,
+          "viewportProtrusions": [],
+          "elementProtrusions": [],
+          "collisions": []
+        }
+      },
+      {
+        "id": "focus_indicator_missing",
+        "label": "Interactive elements missing a visible keyboard focus indicator",
+        "weight": 12,
+        "category": "interaction",
+        "severity": "warning",
+        "lifecycleStatus": "active",
+        "evidenceGrade": "standard",
+        "status": "pass",
+        "passed": true,
+        "triggered": false,
+        "scoreDelta": 0,
+        "evidence": {
+          "probedCount": 15,
+          "missingFirst5": 0,
+          "missingCount": 1,
+          "missingRatio": 0.07
+        }
+      },
+      {
+        "id": "content_stuck_hidden",
+        "label": "Page content stuck at opacity 0 or visibility:hidden after load/scroll",
+        "weight": 10,
+        "category": "motion",
+        "severity": "warning",
+        "lifecycleStatus": "active",
+        "evidenceGrade": "practitioner",
+        "status": "pass",
+        "passed": true,
+        "triggered": false,
+        "scoreDelta": 0,
+        "evidence": {
+          "count": 0,
+          "samples": []
+        }
+      },
+      {
+        "id": "dead_cta_controls",
+        "label": "Primary or repeated CTA controls produce no navigation or state change",
+        "weight": 10,
+        "category": "interaction",
+        "severity": "warning",
+        "lifecycleStatus": "active",
+        "evidenceGrade": "practitioner",
+        "status": "pass",
+        "passed": true,
+        "triggered": false,
+        "scoreDelta": 0,
+        "evidence": {
+          "probedCount": 12,
+          "deadCount": 0,
+          "deadRatio": 0,
+          "heroCtaDead": false,
+          "placeholderHrefs": 0,
+          "samples": []
+        }
+      },
+      {
+        "id": "reduced_motion_ignored",
+        "label": "Continuous decorative animations remain active under prefers-reduced-motion: reduce",
+        "weight": 0,
+        "category": "motion",
+        "severity": "info",
+        "lifecycleStatus": "review",
+        "evidenceGrade": "standard",
+        "status": "pass",
+        "passed": true,
+        "triggered": false,
+        "scoreDelta": 0,
+        "evidence": {
+          "reducedMotionQueried": false,
+          "activeInfinite": 0,
+          "severity": "info"
+        }
+      },
+      {
+        "id": "generic_control_labels",
+        "label": "Ambiguous generic link/button accessible names (\"learn more\", \"click here\") or filename alt text",
+        "weight": 10,
+        "category": "a11y",
+        "severity": "warning",
+        "lifecycleStatus": "active",
+        "evidenceGrade": "standard",
+        "status": "pass",
+        "passed": true,
+        "triggered": false,
+        "scoreDelta": 0,
+        "evidence": {
+          "genericCount": 0,
+          "distinctTargets": 0,
+          "badAlts": []
+        }
+      },
+      {
+        "id": "form_no_failure_feedback",
+        "label": "Form submits empty with no invalid state or visible error feedback",
+        "weight": 10,
+        "category": "interaction",
+        "severity": "warning",
+        "lifecycleStatus": "active",
+        "evidenceGrade": "practitioner",
+        "status": "unknown",
+        "passed": false,
+        "triggered": false,
+        "scoreDelta": 0,
+        "evidence": {
+          "formPresent": true,
+          "status": "unknown",
+          "reason": "form_not_probed",
+          "requestsMade": 0
+        }
+      }
+    ],
+    "failed": [],
+    "advisories": []
+  },
+  "axes": {
+    "design": {
+      "axis": "design",
+      "score": 0,
+      "tier": "Clean",
+      "grade": "A+",
+      "patternsFlagged": 5,
+      "patternsTotal": 45,
+      "patterns": [
+        {
+          "id": "slop_fonts",
+          "label": "AI-default font stack (Inter / Geist / Space Grotesk / Instrument Serif)",
+          "short": "Slop fonts",
+          "category": "fonts",
+          "weight": 8,
+          "status": "pass",
+          "ruleStatus": "decaying",
+          "evidenceGrade": "practitioner",
+          "era": "2024-gpt4",
+          "modelFamilies": [
+            "v0",
+            "cursor",
+            "lovable",
+            "bolt"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "slopCount": 0,
+            "primaryCount": 0,
+            "secondaryCount": 0,
+            "total": 480,
+            "ratio": 0,
+            "heroIsSlop": false,
+            "heroFam": "Newsreader, Georgia, \"Times New Roman\", serif",
+            "resolvedHeroFam": "newsreader",
+            "secondaryOnly": false,
+            "interOrGeistOnly": false,
+            "interLifecycleStatus": "decaying",
+            "accentSerifItalicCount": 0,
+            "triggered": false
+          }
+        },
+        {
+          "id": "slop_fonts_2026",
+          "label": "Expanded 2026 default font stack (Syne / Fraunces / Outfit / Sora / Playfair / Lora / JetBrains Mono)",
+          "short": "2026 slop fonts",
+          "category": "fonts",
+          "weight": 0,
+          "status": "review",
+          "ruleStatus": "review",
+          "evidenceGrade": "practitioner",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "v0",
+            "cursor",
+            "lovable",
+            "bolt",
+            "claude"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": true,
+          "locations": [
+            {
+              "selector": "h1.display-hero",
+              "rect": {
+                "x": 360,
+                "y": 173,
+                "width": 560,
+                "height": 127
+              }
+            },
+            {
+              "selector": "nav.nav",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "width": 1280,
+                "height": 62
+              }
+            },
+            {
+              "selector": "div.nav-inner",
+              "rect": {
+                "x": 80,
+                "y": 0,
+                "width": 1120,
+                "height": 61
+              }
+            },
+            {
+              "selector": "a.logo",
+              "rect": {
+                "x": 112,
+                "y": 18,
+                "width": 127,
+                "height": 24
+              }
+            },
+            {
+              "selector": "span.logo-mark",
+              "rect": {
+                "x": 112,
+                "y": 19,
+                "width": 22,
+                "height": 22
+              }
+            }
+          ],
+          "evidence": {
+            "matchCount": 260,
+            "total": 480,
+            "ratio": 0.542,
+            "heroFam": "Newsreader, Georgia, \"Times New Roman\", serif",
+            "resolvedHeroFam": "newsreader",
+            "heroMatches": false,
+            "triggered": true,
+            "locations": [
+              {
+                "selector": "h1.display-hero",
+                "rect": {
+                  "x": 360,
+                  "y": 173,
+                  "width": 560,
+                  "height": 127
+                }
+              },
+              {
+                "selector": "nav.nav",
+                "rect": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 1280,
+                  "height": 62
+                }
+              },
+              {
+                "selector": "div.nav-inner",
+                "rect": {
+                  "x": 80,
+                  "y": 0,
+                  "width": 1120,
+                  "height": 61
+                }
+              },
+              {
+                "selector": "a.logo",
+                "rect": {
+                  "x": 112,
+                  "y": 18,
+                  "width": 127,
+                  "height": 24
+                }
+              },
+              {
+                "selector": "span.logo-mark",
+                "rect": {
+                  "x": 112,
+                  "y": 19,
+                  "width": 22,
+                  "height": 22
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "purple_accent",
+          "label": "VibeCode Purple — filled indigo/violet CTAs",
+          "short": "Vibe purple",
+          "category": "colors",
+          "weight": 4,
+          "status": "pass",
+          "ruleStatus": "decaying",
+          "evidenceGrade": "practitioner",
+          "era": "2024-gpt4",
+          "modelFamilies": [
+            "v0",
+            "cursor",
+            "bolt",
+            "lovable"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "purpleEls": 0,
+            "filledCtas": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "gradient_text",
+          "label": "Hero gradient text (background-clip:text)",
+          "short": "Gradient text",
+          "category": "colors",
+          "weight": 6,
+          "status": "pass",
+          "ruleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "era": "2024-gpt4",
+          "modelFamilies": [
+            "v0",
+            "cursor",
+            "bolt",
+            "lovable"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "count": 0,
+            "heroHasGradient": false,
+            "triggered": false
+          }
+        },
+        {
+          "id": "gradient_backgrounds",
+          "label": "Gradient-heavy backgrounds (≥15% viewport across ≥2 sections)",
+          "short": "Gradient bgs",
+          "category": "colors",
+          "weight": 4,
+          "status": "pass",
+          "ruleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "era": "2024-gpt4",
+          "modelFamilies": [
+            "v0",
+            "bolt",
+            "lovable"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "gradientAreaRatio": 0,
+            "sections": 0,
+            "elements": 0,
+            "bgElements": 0,
+            "conic": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "accent_stripe",
+          "label": "Colored top/left card borders (the AI em-dash)",
+          "short": "Accent stripe",
+          "category": "layout",
+          "weight": 6,
+          "status": "pass",
+          "ruleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "claude",
+            "v0",
+            "cursor"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "stripeCards": 0,
+            "sides": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "accent_stripe_2026",
+          "label": "Broadened 2px or bottom colored card borders (D-07)",
+          "short": "Accent stripe 2026",
+          "category": "layout",
+          "weight": 0,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "practitioner",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "claude",
+            "v0",
+            "cursor"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "stripeCards": 0,
+            "sides": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "glassmorphism",
+          "label": "Glassmorphism (backdrop-filter blur on translucent layers)",
+          "short": "Glass",
+          "category": "css",
+          "weight": 4,
+          "status": "pass",
+          "ruleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "era": "2024-gpt4",
+          "modelFamilies": [
+            "bolt",
+            "v0",
+            "lovable"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "glassCount": 0,
+            "triggered": false
+          }
+        },
+        {
+          "id": "colored_glows",
+          "label": "Big colored box-shadow glows (purple/blue/pink)",
+          "short": "Colored glows",
+          "category": "css",
+          "weight": 4,
+          "status": "pass",
+          "ruleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "era": "2024-gpt4",
+          "modelFamilies": [
+            "v0",
+            "bolt",
+            "lovable"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "glowCount": 0,
+            "triggered": false
+          }
+        },
+        {
+          "id": "centered_hero",
+          "label": "Centered hero in generic sans (Inter-style)",
+          "short": "Centered hero",
+          "category": "layout",
+          "weight": 4,
+          "status": "pass",
+          "ruleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "era": "2024-gpt4",
+          "modelFamilies": [
+            "v0",
+            "cursor",
+            "lovable",
+            "bolt"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "triggered": false,
+            "fontSize": 58.88,
+            "centered": true,
+            "slopFont": false,
+            "family": "Newsreader, Georgia, \"Times New Roman\", serif"
+          }
+        },
+        {
+          "id": "hero_eyebrow_pill",
+          "label": "Eyebrow pill above hero (\"Now in beta\" / \"New\")",
+          "short": "Eyebrow pill",
+          "category": "layout",
+          "weight": 5,
+          "status": "pass",
+          "ruleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "era": "2024-gpt4",
+          "modelFamilies": [
+            "v0",
+            "lovable",
+            "bolt"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "triggered": false
+          }
+        },
+        {
+          "id": "all_caps_labels",
+          "label": "All-caps section labels (retired — replaced by eyebrow_label)",
+          "short": "All-caps (retired)",
+          "category": "fonts",
+          "weight": 0,
+          "status": "pass",
+          "ruleStatus": "retired",
+          "evidenceGrade": "practitioner",
+          "era": "2024-gpt4",
+          "modelFamilies": [
+            "v0",
+            "cursor"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "count": 0,
+            "samples": [],
+            "retired": true,
+            "replacedBy": "eyebrow_label",
+            "triggered": false
+          }
+        },
+        {
+          "id": "eyebrow_label",
+          "label": "Tracked or uppercase eyebrow labels above ≥60% of section headings",
+          "short": "Eyebrow labels",
+          "category": "fonts",
+          "weight": 0,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "practitioner",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "v0",
+            "cursor",
+            "claude",
+            "lovable"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "eyebrowCount": 0,
+            "headingCount": 10,
+            "ratio": 0,
+            "samples": [],
+            "nodeIds": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "perma_dark_mode",
+          "label": "Perma dark mode + medium-grey body text",
+          "short": "Perma dark",
+          "category": "colors",
+          "weight": 4,
+          "status": "pass",
+          "ruleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "era": "2024-gpt4",
+          "modelFamilies": [
+            "v0",
+            "bolt",
+            "cursor"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "triggered": false,
+            "bodyDark": false
+          }
+        },
+        {
+          "id": "icon_card_grid",
+          "label": "Identical feature cards with icon on top",
+          "short": "Icon cards",
+          "category": "layout",
+          "weight": 4,
+          "status": "pass",
+          "ruleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "era": "2024-gpt4",
+          "modelFamilies": [
+            "v0",
+            "lovable",
+            "bolt",
+            "cursor"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "maxGroupSize": 0,
+            "boxedTiles": 0,
+            "triggered": false
+          }
+        },
+        {
+          "id": "numbered_steps",
+          "label": "Numbered \"1 · 2 · 3\" step sequences",
+          "short": "Numbered steps",
+          "category": "layout",
+          "weight": 3,
+          "status": "pass",
+          "ruleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "era": "2024-gpt4",
+          "modelFamilies": [
+            "v0",
+            "claude",
+            "lovable"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "bestRun": 0,
+            "nodeIds": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "stat_banner",
+          "label": "Big-number stat banner (\"10k+\", \"99.9%\", \"$2M+\")",
+          "short": "Stat banner",
+          "category": "layout",
+          "weight": 3,
+          "status": "pass",
+          "ruleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "era": "2024-gpt4",
+          "modelFamilies": [
+            "v0",
+            "lovable",
+            "bolt"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "clusterSize": 1,
+            "triggered": false
+          }
+        },
+        {
+          "id": "faq_accordion",
+          "label": "FAQ accordion in the lower half",
+          "short": "FAQ",
+          "category": "layout",
+          "weight": 2,
+          "status": "pass",
+          "ruleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "era": "2024-gpt4",
+          "modelFamilies": [
+            "v0",
+            "lovable",
+            "bolt"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "detailsCount": 0,
+            "hasFaqHeading": false,
+            "triggered": false
+          }
+        },
+        {
+          "id": "gradient_letter_avatars",
+          "label": "Gradient-letter avatars (testimonial slop)",
+          "short": "Letter avatars",
+          "category": "images",
+          "weight": 5,
+          "status": "pass",
+          "ruleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "era": "2024-gpt4",
+          "modelFamilies": [
+            "v0",
+            "lovable",
+            "bolt"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "count": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "bento_grid",
+          "label": "Bento-grid wall — mixed-span rounded card grid",
+          "short": "Bento grid",
+          "category": "layout",
+          "weight": 4,
+          "status": "pass",
+          "ruleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "v0",
+            "lovable",
+            "bolt",
+            "cursor"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "children": 0,
+            "spanVariety": 0,
+            "rounded": 0,
+            "triggered": false
+          }
+        },
+        {
+          "id": "aurora_mesh_gradient",
+          "label": "Aurora / mesh gradient blobs (blurred glowing backdrop)",
+          "short": "Aurora blobs",
+          "category": "css",
+          "weight": 5,
+          "status": "pass",
+          "ruleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "v0",
+            "lovable",
+            "bolt"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "blobs": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "ai_sparkle_badges",
+          "label": "AI-sparkle badges (✨ / Sparkles \"magic\" tells)",
+          "short": "AI sparkles",
+          "category": "images",
+          "weight": 3,
+          "status": "pass",
+          "ruleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "v0",
+            "lovable",
+            "bolt",
+            "cursor"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "emojiHits": 0,
+            "svgHits": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "cream_default_bg",
+          "label": "Cream / beige default page background",
+          "short": "Cream bg",
+          "category": "colors",
+          "weight": 7,
+          "status": "pass",
+          "ruleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "era": "2026-opus4.6",
+          "modelFamilies": [
+            "claude",
+            "v0",
+            "cursor"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "surface": "#f4f5f2",
+            "triggered": false
+          }
+        },
+        {
+          "id": "low_contrast_text",
+          "label": "Washed-out grey body text (below WCAG AA contrast floor)",
+          "short": "Low contrast",
+          "category": "colors",
+          "weight": 7,
+          "status": "pass",
+          "ruleStatus": "active",
+          "evidenceGrade": "standard",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "v0",
+            "cursor",
+            "bolt",
+            "lovable"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "fails": 0,
+            "checked": 44,
+            "ratioFail": 0,
+            "samples": [],
+            "apcaNote": "APCA, a candidate method; the WCAG 3 draft leaves the contrast measure undetermined",
+            "triggered": false
+          }
+        },
+        {
+          "id": "crushed_tracking",
+          "label": "Crushed letter-spacing on display type",
+          "short": "Crushed tracking",
+          "category": "fonts",
+          "weight": 5,
+          "status": "pass",
+          "ruleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "v0",
+            "claude",
+            "cursor"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "count": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "oversized_hero_h1",
+          "label": "Oversized hero headline (long sentence at display size)",
+          "short": "Oversized H1",
+          "category": "fonts",
+          "weight": 4,
+          "status": "pass",
+          "ruleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "v0",
+            "claude",
+            "lovable"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "fontSize": 59,
+            "chars": 38,
+            "text": "Does your landing page look generated?",
+            "triggered": false
+          }
+        },
+        {
+          "id": "nested_cards",
+          "label": "Cards nested inside cards",
+          "short": "Nested cards",
+          "category": "layout",
+          "weight": 4,
+          "status": "pass",
+          "ruleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "v0",
+            "lovable",
+            "bolt"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "nested": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "flat_type_hierarchy",
+          "label": "Flat type hierarchy (sizes too close together)",
+          "short": "Flat hierarchy",
+          "category": "fonts",
+          "weight": 3,
+          "status": "pass",
+          "ruleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "v0",
+            "bolt"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "distinct": 14,
+            "ratio": 4.92,
+            "min": 12,
+            "max": 59,
+            "triggered": false
+          }
+        },
+        {
+          "id": "scaffold_defaults_unedited",
+          "label": "Unfinished page — scaffold defaults left unedited",
+          "short": "Scaffold defaults",
+          "category": "layout",
+          "weight": 0,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "practitioner",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "lovable",
+            "nextjs-scaffold"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "hits": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "hero_accent_word",
+          "label": "Single inline accent span/italic/color word inside H1",
+          "short": "Hero accent word",
+          "category": "fonts",
+          "weight": 0,
+          "status": "review",
+          "ruleStatus": "review",
+          "evidenceGrade": "practitioner",
+          "era": "2026-opus4.6",
+          "modelFamilies": [
+            "claude",
+            "v0",
+            "cursor"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": true,
+          "locations": [
+            {
+              "selector": "h1.display-hero",
+              "rect": {
+                "x": 360,
+                "y": 173,
+                "width": 560,
+                "height": 127
+              }
+            },
+            {
+              "selector": "h1.display-hero",
+              "rect": {
+                "x": 360,
+                "y": 173,
+                "width": 560,
+                "height": 127
+              }
+            },
+            {
+              "selector": "h2.h2-section",
+              "rect": {
+                "x": 112,
+                "y": 1421,
+                "width": 440,
+                "height": 39
+              }
+            },
+            {
+              "selector": "h3.lb-col-h",
+              "rect": {
+                "x": 112,
+                "y": 1592,
+                "width": 336,
+                "height": 28
+              }
+            },
+            {
+              "selector": "h3.lb-col-h",
+              "rect": {
+                "x": 472,
+                "y": 1592,
+                "width": 336,
+                "height": 28
+              }
+            }
+          ],
+          "evidence": {
+            "h1Text": "Does your landing page look generated?",
+            "accentText": "generated?",
+            "differedBy": [
+              "fontStyle",
+              "color"
+            ],
+            "triggered": true,
+            "locations": [
+              {
+                "selector": "h1.display-hero",
+                "rect": {
+                  "x": 360,
+                  "y": 173,
+                  "width": 560,
+                  "height": 127
+                }
+              },
+              {
+                "selector": "h1.display-hero",
+                "rect": {
+                  "x": 360,
+                  "y": 173,
+                  "width": 560,
+                  "height": 127
+                }
+              },
+              {
+                "selector": "h2.h2-section",
+                "rect": {
+                  "x": 112,
+                  "y": 1421,
+                  "width": 440,
+                  "height": 39
+                }
+              },
+              {
+                "selector": "h3.lb-col-h",
+                "rect": {
+                  "x": 112,
+                  "y": 1592,
+                  "width": 336,
+                  "height": 28
+                }
+              },
+              {
+                "selector": "h3.lb-col-h",
+                "rect": {
+                  "x": 472,
+                  "y": 1592,
+                  "width": 336,
+                  "height": 28
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "template_chrome_2026",
+          "label": "2026 template micro-chrome bundle (≥3 of 6 sub-signals)",
+          "short": "2026 chrome",
+          "category": "layout",
+          "weight": 0,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "practitioner",
+          "era": "2026-opus4.6",
+          "modelFamilies": [
+            "claude",
+            "v0",
+            "cursor"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "hits": 2,
+            "subSignals": {
+              "middle_dot_meta": true,
+              "arrow_ctas": false,
+              "small_mono_labels": true,
+              "word_emdash_fragment": false,
+              "tracked_eyebrows": false,
+              "double_slash_chrome": false
+            },
+            "pillButtons": false,
+            "triggered": false
+          }
+        },
+        {
+          "id": "uniform_radius_shadow",
+          "label": "Single border-radius (≥12px) and identical neutral shadow across ≥3 size classes",
+          "short": "Uniform radius/shadow",
+          "category": "css",
+          "weight": 0,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "hypothesis",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "v0",
+            "lovable",
+            "bolt"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "totalComponents": 55,
+            "dominantRadius": 3,
+            "radiusShare": 0.582,
+            "dominantSizeClasses": 2,
+            "shadowShare": 0,
+            "triggered": false
+          }
+        },
+        {
+          "id": "editorial_cream_kit",
+          "label": "Warm-editorial cream + serif + terracotta/brass or broadsheet hairline kit",
+          "short": "Editorial kit",
+          "category": "colors",
+          "weight": 0,
+          "status": "review",
+          "ruleStatus": "review",
+          "evidenceGrade": "practitioner",
+          "era": "2026-opus4.6",
+          "modelFamilies": [
+            "claude"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": true,
+          "locations": [
+            {
+              "selector": "nav.nav",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "width": 1280,
+                "height": 62
+              }
+            },
+            {
+              "selector": "div.nav-inner",
+              "rect": {
+                "x": 80,
+                "y": 0,
+                "width": 1120,
+                "height": 61
+              }
+            },
+            {
+              "selector": "a.logo",
+              "rect": {
+                "x": 112,
+                "y": 18,
+                "width": 127,
+                "height": 24
+              }
+            },
+            {
+              "selector": "span.logo-mark",
+              "rect": {
+                "x": 112,
+                "y": 19,
+                "width": 22,
+                "height": 22
+              }
+            },
+            {
+              "selector": "svg",
+              "rect": {
+                "x": 112,
+                "y": 19,
+                "width": 22,
+                "height": 22
+              }
+            }
+          ],
+          "evidence": {
+            "creamBranch": true,
+            "broadsheetBranch": false,
+            "hasSerifH1": true,
+            "hairlineRules": 99,
+            "trackedLabels": 0,
+            "triggered": true,
+            "locations": [
+              {
+                "selector": "nav.nav",
+                "rect": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 1280,
+                  "height": 62
+                }
+              },
+              {
+                "selector": "div.nav-inner",
+                "rect": {
+                  "x": 80,
+                  "y": 0,
+                  "width": 1120,
+                  "height": 61
+                }
+              },
+              {
+                "selector": "a.logo",
+                "rect": {
+                  "x": 112,
+                  "y": 18,
+                  "width": 127,
+                  "height": 24
+                }
+              },
+              {
+                "selector": "span.logo-mark",
+                "rect": {
+                  "x": 112,
+                  "y": 19,
+                  "width": 22,
+                  "height": 22
+                }
+              },
+              {
+                "selector": "svg",
+                "rect": {
+                  "x": 112,
+                  "y": 19,
+                  "width": 22,
+                  "height": 22
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "template_page_order",
+          "label": "Canonical 8-section landing-page sequence order",
+          "short": "Page order",
+          "category": "layout",
+          "weight": 0,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "practitioner",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "v0",
+            "lovable",
+            "bolt",
+            "cursor"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "roles": [
+              "hero",
+              "features",
+              "cta_footer"
+            ],
+            "canonical": [
+              "hero",
+              "logo_bar",
+              "features",
+              "testimonials",
+              "stats",
+              "pricing",
+              "faq",
+              "cta_footer"
+            ],
+            "editDistance": 5,
+            "normalizedDistance": 0.625,
+            "triggered": false
+          }
+        },
+        {
+          "id": "pulsing_status_badge",
+          "label": "Infinite pulsing \"Live / Active / Beta\" status dot on marketing copy",
+          "short": "Pulsing badge",
+          "category": "css",
+          "weight": 0,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "practitioner",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "v0",
+            "lovable",
+            "bolt"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "count": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "display_mono_heading",
+          "label": "Monospace H1/H2 heading at display size (≥24px) outside devtool context",
+          "short": "Mono heading",
+          "category": "fonts",
+          "weight": 0,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "practitioner",
+          "era": "2026-opus4.6",
+          "modelFamilies": [
+            "claude",
+            "cursor"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "hits": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "chip_rainbow",
+          "label": "Multi-hue badge/pill/tag rainbow (≥6 chips across ≥4 hues separated by >30°)",
+          "short": "Chip rainbow",
+          "category": "colors",
+          "weight": 0,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "practitioner",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "v0",
+            "lovable",
+            "bolt"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "chipCount": 0,
+            "distinctHueCount": 0,
+            "distinctHues": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "fake_macos_terminal",
+          "label": "Decorative macOS traffic-light window chrome above a code/text block",
+          "short": "Fake terminal",
+          "category": "layout",
+          "weight": 0,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "practitioner",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "v0",
+            "bolt",
+            "lovable",
+            "cursor"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "count": 0,
+            "triggered": false
+          }
+        },
+        {
+          "id": "fake_logo_bar",
+          "label": "Placeholder or duplicate-asset logo bar (\"Trusted by\" generic SVG/text row)",
+          "short": "Fake logo bar",
+          "category": "images",
+          "weight": 0,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "practitioner",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "v0",
+            "lovable",
+            "bolt"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "placeholderLogos": 1,
+            "duplicateLogoRows": 0,
+            "nodeIds": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "infinite_marquee_ticker",
+          "label": "Infinite linear horizontal marquee ticker with duplicated child sequence",
+          "short": "Marquee ticker",
+          "category": "css",
+          "weight": 0,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "practitioner",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "v0",
+            "lovable",
+            "bolt"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "tickers": 0,
+            "triggered": false
+          }
+        },
+        {
+          "id": "fade_up_monoculture",
+          "label": "At-rest fade-up entrance monoculture (≥6 below-fold elements at opacity 0 + translateY)",
+          "short": "Fade-up monoculture",
+          "category": "css",
+          "weight": 0,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "practitioner",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "v0",
+            "lovable",
+            "bolt",
+            "cursor"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "count": 0,
+            "sectionCount": 0,
+            "triggered": false
+          }
+        },
+        {
+          "id": "cursor_spotlight_gradient",
+          "label": "Cursor-tracking radial-gradient spotlight overlay (--mouse-x / --mouse-y)",
+          "short": "Cursor spotlight",
+          "category": "css",
+          "weight": 0,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "practitioner",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "v0",
+            "cursor",
+            "bolt"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "hits": 0,
+            "triggered": false
+          }
+        },
+        {
+          "id": "uniform_card_hover",
+          "label": "Identical transform/box-shadow hover transition tuple across ≥4 cards",
+          "short": "Uniform hover",
+          "category": "css",
+          "weight": 0,
+          "status": "review",
+          "ruleStatus": "review",
+          "evidenceGrade": "practitioner",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "v0",
+            "lovable",
+            "bolt"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": true,
+          "locations": [
+            {
+              "selector": "nav.nav",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "width": 1280,
+                "height": 62
+              }
+            },
+            {
+              "selector": "div.nav-inner",
+              "rect": {
+                "x": 80,
+                "y": 0,
+                "width": 1120,
+                "height": 61
+              }
+            },
+            {
+              "selector": "a.logo",
+              "rect": {
+                "x": 112,
+                "y": 18,
+                "width": 127,
+                "height": 24
+              }
+            },
+            {
+              "selector": "span.logo-mark",
+              "rect": {
+                "x": 112,
+                "y": 19,
+                "width": 22,
+                "height": 22
+              }
+            },
+            {
+              "selector": "svg",
+              "rect": {
+                "x": 112,
+                "y": 19,
+                "width": 22,
+                "height": 22
+              }
+            }
+          ],
+          "evidence": {
+            "maxCount": 4,
+            "dominantTuple": "opacity, transform|0.45s, 0.45s|cubic-bezier(0.2, 0.7, 0.2, 1), cubic-bezier(0.2, 0.7, 0.2, 1)",
+            "triggered": true,
+            "locations": [
+              {
+                "selector": "nav.nav",
+                "rect": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 1280,
+                  "height": 62
+                }
+              },
+              {
+                "selector": "div.nav-inner",
+                "rect": {
+                  "x": 80,
+                  "y": 0,
+                  "width": 1120,
+                  "height": 61
+                }
+              },
+              {
+                "selector": "a.logo",
+                "rect": {
+                  "x": 112,
+                  "y": 18,
+                  "width": 127,
+                  "height": 24
+                }
+              },
+              {
+                "selector": "span.logo-mark",
+                "rect": {
+                  "x": 112,
+                  "y": 19,
+                  "width": 22,
+                  "height": 22
+                }
+              },
+              {
+                "selector": "svg",
+                "rect": {
+                  "x": 112,
+                  "y": 19,
+                  "width": 22,
+                  "height": 22
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "section_template_repetition",
+          "label": "Repeated top-level section structural template signature (≥3 identical sections)",
+          "short": "Section repetition",
+          "category": "layout",
+          "weight": 0,
+          "status": "review",
+          "ruleStatus": "review",
+          "evidenceGrade": "hypothesis",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "v0",
+            "lovable",
+            "bolt"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": true,
+          "locations": [
+            {
+              "selector": "nav.nav",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "width": 1280,
+                "height": 62
+              }
+            },
+            {
+              "selector": "div.nav-inner",
+              "rect": {
+                "x": 80,
+                "y": 0,
+                "width": 1120,
+                "height": 61
+              }
+            },
+            {
+              "selector": "a.logo",
+              "rect": {
+                "x": 112,
+                "y": 18,
+                "width": 127,
+                "height": 24
+              }
+            },
+            {
+              "selector": "span.logo-mark",
+              "rect": {
+                "x": 112,
+                "y": 19,
+                "width": 22,
+                "height": 22
+              }
+            },
+            {
+              "selector": "svg",
+              "rect": {
+                "x": 112,
+                "y": 19,
+                "width": 22,
+                "height": 22
+              }
+            }
+          ],
+          "evidence": {
+            "sectionCount": 8,
+            "repeatedShare": 0.5,
+            "maxSignatureCount": 4,
+            "paddingCV": 0.517,
+            "referenceMedians": {
+              "gridAdherence": 0.62,
+              "distinctTypeSizes": 8,
+              "maxRadiusPx": 50
+            },
+            "triggered": true,
+            "locations": [
+              {
+                "selector": "nav.nav",
+                "rect": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 1280,
+                  "height": 62
+                }
+              },
+              {
+                "selector": "div.nav-inner",
+                "rect": {
+                  "x": 80,
+                  "y": 0,
+                  "width": 1120,
+                  "height": 61
+                }
+              },
+              {
+                "selector": "a.logo",
+                "rect": {
+                  "x": 112,
+                  "y": 18,
+                  "width": 127,
+                  "height": 24
+                }
+              },
+              {
+                "selector": "span.logo-mark",
+                "rect": {
+                  "x": 112,
+                  "y": 19,
+                  "width": 22,
+                  "height": 22
+                }
+              },
+              {
+                "selector": "svg",
+                "rect": {
+                  "x": 112,
+                  "y": 19,
+                  "width": 22,
+                  "height": 22
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "unthemed_browser_surfaces",
+          "label": "Dark page missing color-scheme: dark or dynamic counters missing tabular-nums",
+          "short": "Unthemed surfaces",
+          "category": "css",
+          "weight": 0,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "standard",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "v0",
+            "bolt",
+            "lovable",
+            "cursor"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "triggered": false,
+          "evidence": {
+            "missingColorSchemeDark": false,
+            "missingTabularNums": 0,
+            "surfaceLum": 0.9095,
+            "colorScheme": "light",
+            "triggered": false
+          }
+        }
+      ]
+    },
+    "copy": {
+      "axis": "copy",
+      "evidence": [],
+      "score": 0,
+      "tier": "Clean",
+      "grade": "A+",
+      "patternsFlagged": 0,
+      "patternsTotal": 26,
+      "wordCount": 1082,
+      "proseWordCount": 678,
+      "lang": "en",
+      "isEnglish": true,
+      "proseConfidence": "high",
+      "thin": false,
+      "adjustments": [],
+      "patterns": [
+        {
+          "id": "buzzword_density",
+          "label": "AI buzzword density (leverage / seamless / robust / elevate …)",
+          "short": "Buzzwords",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 7,
+          "statistical": true,
+          "status": "pass",
+          "ruleStatus": "active",
+          "evidenceGrade": "measured",
+          "era": "2024-gpt4",
+          "modelFamilies": [
+            "GPT-4",
+            "Claude",
+            "Gemini"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "coOccurrenceOnly": false,
+          "triggered": false,
+          "evidence": {
+            "total": 1,
+            "distinct": 1,
+            "density": 0.9,
+            "topWords": [
+              {
+                "word": "bespoke",
+                "count": 1,
+                "era": "2025-2026"
+              }
+            ],
+            "confusablesFolded": 0,
+            "triggered": false
+          }
+        },
+        {
+          "id": "em_dash_overload",
+          "label": "Em-dash overload (— used as the default connective)",
+          "short": "Em-dashes",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 2,
+          "statistical": true,
+          "status": "pass",
+          "ruleStatus": "decaying",
+          "evidenceGrade": "measured",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "Claude (unconstrained)",
+            "GPT-4.1/4o era",
+            "DeepSeek"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "coOccurrenceOnly": true,
+          "triggered": false,
+          "evidence": {
+            "emDashes": 1,
+            "enDashAsDash": 0,
+            "total": 1,
+            "density": 0.9,
+            "triggered": false
+          }
+        },
+        {
+          "id": "antithesis_construction",
+          "label": "\"It's not just X — it's Y\" / \"not only … but also\" antithesis",
+          "short": "Not-just-X",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 6,
+          "statistical": true,
+          "status": "pass",
+          "ruleStatus": "rising",
+          "evidenceGrade": "measured",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "Claude",
+            "GPT-4o",
+            "v0"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "coOccurrenceOnly": false,
+          "triggered": false,
+          "evidence": {
+            "total": 0,
+            "bareForms": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "filler_openers",
+          "label": "Generic filler openers (\"In today's fast-paced world …\")",
+          "short": "Filler opener",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 5,
+          "statistical": true,
+          "status": "pass",
+          "ruleStatus": "decaying",
+          "evidenceGrade": "practitioner",
+          "era": "2024-gpt4",
+          "modelFamilies": [
+            "GPT-4"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "coOccurrenceOnly": false,
+          "triggered": false,
+          "evidence": {
+            "total": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "formulaic_closers",
+          "label": "Essay-style closers (\"In conclusion\", \"In summary\", \"Ultimately\")",
+          "short": "Closers",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 4,
+          "statistical": true,
+          "status": "pass",
+          "ruleStatus": "historical",
+          "evidenceGrade": "practitioner",
+          "era": "2024-gpt4",
+          "modelFamilies": [
+            "GPT-3.5",
+            "GPT-4"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "coOccurrenceOnly": false,
+          "triggered": false,
+          "evidence": {
+            "total": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "rule_of_three",
+          "label": "Rule-of-three adjective tricolons (\"fast, reliable, and scalable\")",
+          "short": "Rule of three",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 4,
+          "statistical": true,
+          "status": "pass",
+          "ruleStatus": "decaying",
+          "evidenceGrade": "practitioner",
+          "era": "2024-gpt4",
+          "modelFamilies": [
+            "GPT-4",
+            "Claude"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "coOccurrenceOnly": true,
+          "triggered": false,
+          "evidence": {
+            "total": 0,
+            "density": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "whether_youre",
+          "label": "\"Whether you're X or Y\" audience-spanning construction",
+          "short": "Whether-you",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 3,
+          "statistical": true,
+          "status": "pass",
+          "ruleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "era": "2024-gpt4",
+          "modelFamilies": [
+            "GPT-4",
+            "Claude"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "coOccurrenceOnly": false,
+          "triggered": false,
+          "evidence": {
+            "total": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "unicode_artifacts",
+          "label": "Invisible Unicode or mathematical fake-bold characters in text",
+          "short": "Unicode tells",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 0,
+          "statistical": false,
+          "status": "pass",
+          "ruleStatus": "retired",
+          "evidenceGrade": "standard",
+          "era": "baseline",
+          "modelFamilies": [],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "coOccurrenceOnly": false,
+          "triggered": false,
+          "evidence": {
+            "zeroWidth": 0,
+            "inWordInvisibles": 0,
+            "tagChars": 0,
+            "narrowNbsp": 0,
+            "nbsp": 0,
+            "mathAlnum": 0,
+            "total": 0,
+            "retired": true,
+            "replacedBy": [
+              "hidden_tag_characters",
+              "invisible_characters",
+              "fake_bold_math_alnum"
+            ],
+            "triggered": false
+          }
+        },
+        {
+          "id": "emoji_bullet_headers",
+          "label": "Emoji-prefixed bullet/headers (🚀 ✅ ✨ as list markers)",
+          "short": "Emoji bullets",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 3,
+          "statistical": true,
+          "status": "pass",
+          "ruleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "era": "2024-gpt4",
+          "modelFamilies": [
+            "GPT-4",
+            "GPT-4o"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "coOccurrenceOnly": false,
+          "triggered": false,
+          "evidence": {
+            "count": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "hidden_tag_characters",
+          "label": "Hidden instruction characters (prompt-injection or smuggling vector)",
+          "short": "Hidden tag chars",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 0,
+          "statistical": false,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "standard",
+          "era": "2025-v0",
+          "modelFamilies": [],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "coOccurrenceOnly": false,
+          "triggered": false,
+          "evidence": {
+            "tagChars": 0,
+            "triggered": false
+          }
+        },
+        {
+          "id": "invisible_characters",
+          "label": "Invisible characters in text (often humanizer or paste residue)",
+          "short": "Invisible chars",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 0,
+          "statistical": false,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "standard",
+          "era": "2025-v0",
+          "modelFamilies": [],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "coOccurrenceOnly": false,
+          "triggered": false,
+          "evidence": {
+            "inWordInvisibles": 0,
+            "narrowNbsp": 0,
+            "triggered": false
+          }
+        },
+        {
+          "id": "fake_bold_math_alnum",
+          "label": "Mathematical Alphanumeric Symbols used as fake bold/italic in prose",
+          "short": "Fake-bold Unicode",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 4,
+          "statistical": false,
+          "status": "pass",
+          "ruleStatus": "active",
+          "evidenceGrade": "standard",
+          "era": "2024-gpt4",
+          "modelFamilies": [],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "coOccurrenceOnly": false,
+          "triggered": false,
+          "evidence": {
+            "mathAlnum": 0,
+            "triggered": false
+          }
+        },
+        {
+          "id": "chatbot_markup_leak",
+          "label": "Leaked chatbot citation or internal UI markup (oaicite / attributableIndex /grok-card)",
+          "short": "Chatbot markup",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 0,
+          "statistical": false,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "practitioner",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "ChatGPT",
+            "Gemini",
+            "Grok",
+            "Perplexity"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "coOccurrenceOnly": false,
+          "triggered": false,
+          "evidence": {
+            "total": 0,
+            "families": [],
+            "samples": [],
+            "effectiveTier": "Warning",
+            "downgraded": true,
+            "triggered": false
+          }
+        },
+        {
+          "id": "chatbot_reply_residue",
+          "label": "Chatbot turn framing, refusal, or UI Chrome pasted into page copy",
+          "short": "Reply residue",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 0,
+          "statistical": false,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "practitioner",
+          "era": "2024-gpt4",
+          "modelFamilies": [
+            "ChatGPT",
+            "Claude",
+            "Gemini"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "coOccurrenceOnly": false,
+          "triggered": false,
+          "evidence": {
+            "total": 0,
+            "errorHits": 0,
+            "warningHits": 0,
+            "theUserCount": 0,
+            "effectiveTier": "Suggestion",
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "ai_referral_utm_links",
+          "label": "Links copied from an AI assistant (utm_source=chatgpt.com / openai / copilot.com)",
+          "short": "AI UTM links",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 0,
+          "statistical": false,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "standard",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "ChatGPT",
+            "Copilot",
+            "Grok"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "coOccurrenceOnly": false,
+          "triggered": false,
+          "evidence": {
+            "count": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "unfilled_placeholders",
+          "label": "Unfinished copy (unfilled placeholders)",
+          "short": "Placeholders",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 0,
+          "statistical": false,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "practitioner",
+          "era": "baseline",
+          "modelFamilies": [],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "coOccurrenceOnly": false,
+          "triggered": false,
+          "evidence": {
+            "unambiguousHits": 0,
+            "genericHits": 0,
+            "total": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "leaked_markdown",
+          "label": "Unrendered raw Markdown syntax in visible non-code text",
+          "short": "Raw Markdown",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 0,
+          "statistical": false,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "practitioner",
+          "era": "baseline",
+          "modelFamilies": [],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "coOccurrenceOnly": false,
+          "triggered": false,
+          "evidence": {
+            "boldItalic": 0,
+            "headingSyntax": 0,
+            "inlineLinks": 0,
+            "hrLines": 0,
+            "kinds": 0,
+            "total": 0,
+            "downgraded": false,
+            "effectiveTier": "Warning",
+            "triggered": false
+          }
+        },
+        {
+          "id": "structural_fake_social_proof",
+          "label": "Placeholder avatar services, duplicated avatar assets, or unattributed testimonials",
+          "short": "Fake social proof",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 0,
+          "statistical": false,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "practitioner",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "v0",
+            "lovable",
+            "bolt"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "coOccurrenceOnly": false,
+          "triggered": false,
+          "evidence": {
+            "placeholderAvatarHits": 0,
+            "duplicateAvatars": 0,
+            "unattributedTestimonials": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "bare_antithesis",
+          "label": "Bare contrastive frames (\"It's not X, it's Y\" / \"No X, no Y, just Z\")",
+          "short": "Bare antithesis",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 0,
+          "statistical": true,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "practitioner",
+          "era": "2026-opus4.6",
+          "modelFamilies": [
+            "Claude",
+            "GPT-4o"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "coOccurrenceOnly": false,
+          "triggered": false,
+          "evidence": {
+            "total": 0,
+            "samples": [],
+            "nodeIds": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "emoji_heading_ratio",
+          "label": "Lead emoji ratio ≥30% across ≥6 headings or list items",
+          "short": "Emoji ratio",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 0,
+          "statistical": true,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "practitioner",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "GPT-4o"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "coOccurrenceOnly": false,
+          "triggered": false,
+          "evidence": {
+            "count": 0,
+            "total": 21,
+            "ratio": 0,
+            "ctaEmoji": 0,
+            "triggered": false
+          }
+        },
+        {
+          "id": "announced_structure",
+          "label": "Announced essay structure in opening prose (\"In this post, we'll explore …\")",
+          "short": "Announced structure",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 0,
+          "statistical": true,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "practitioner",
+          "era": "2024-gpt4",
+          "modelFamilies": [
+            "GPT-4",
+            "Claude"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "coOccurrenceOnly": false,
+          "triggered": false,
+          "evidence": {
+            "count": 0,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "restated_thesis_closer",
+          "label": "Closing paragraph restates H1/opening thesis with ≥50% content-word overlap",
+          "short": "Restated thesis",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 0,
+          "statistical": true,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "hypothesis",
+          "era": "2024-gpt4",
+          "modelFamilies": [
+            "GPT-4",
+            "Claude"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "coOccurrenceOnly": false,
+          "triggered": false,
+          "evidence": {
+            "startsWithSummary": false,
+            "overlap": 0.2,
+            "legacyVsModernPer1000": 0,
+            "triggered": false
+          }
+        },
+        {
+          "id": "context_leak_copy",
+          "label": "Context-inappropriate dev/privacy boilerplate (\"never leaves your browser\")",
+          "short": "Context leak",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 0,
+          "statistical": true,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "practitioner",
+          "era": "2025-v0",
+          "modelFamilies": [
+            "Claude",
+            "Cursor",
+            "v0"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "coOccurrenceOnly": false,
+          "triggered": false,
+          "evidence": {
+            "families": {
+              "never_leaves_browser": 0,
+              "built_written_stack": 0,
+              "no_x_no_y": 0,
+              "lowercase_one_noun_tagline": 0
+            },
+            "total": 0,
+            "nodeIds": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "trailing_participial_clauses",
+          "label": "Trailing participial clauses (\", ensuring / unlocking / enabling …\")",
+          "short": "Participial tails",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 0,
+          "statistical": true,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "hypothesis",
+          "era": "2024-gpt4",
+          "modelFamilies": [
+            "GPT-4",
+            "Claude"
+          ],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "coOccurrenceOnly": false,
+          "triggered": false,
+          "evidence": {
+            "count": 0,
+            "density": 0,
+            "nominalizationDensity": 11.1,
+            "samples": [],
+            "triggered": false
+          }
+        },
+        {
+          "id": "sentence_length_uniformity",
+          "label": "Paragraph sentence-length dispersion statistics (mean, SD, CV, IQR)",
+          "short": "Sentence uniformity",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 0,
+          "statistical": true,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "hypothesis",
+          "era": "2025-v0",
+          "modelFamilies": [],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "coOccurrenceOnly": false,
+          "triggered": false,
+          "evidence": {
+            "sentenceCount": 34,
+            "mean": 15.76,
+            "sd": 7.48,
+            "cv": 0.475,
+            "iqr": 11,
+            "triggered": false
+          }
+        },
+        {
+          "id": "excess_vocabulary_log_odds",
+          "label": "Corpus-derived Fightin' Words excess vocabulary log-odds score",
+          "short": "Log-odds vocab",
+          "axis": "copy",
+          "category": "copy",
+          "weight": 0,
+          "statistical": true,
+          "status": "pass",
+          "ruleStatus": "review",
+          "evidenceGrade": "hypothesis",
+          "era": "2026-opus4.6",
+          "modelFamilies": [],
+          "lastValidatedIn": "2026.11",
+          "likelihoodRatio": null,
+          "fpRate": null,
+          "fpRatePre2022": null,
+          "coOccurrenceOnly": false,
+          "triggered": false,
+          "evidence": {
+            "matchedTerms": [],
+            "score": 0,
+            "triggered": false
+          }
+        }
+      ]
+    },
+    "craft": {
+      "axis": "craft",
+      "evidence": [],
+      "score": 100,
+      "maxScore": 100,
+      "earnedWeight": 110,
+      "applicableWeight": 110,
+      "coverage": 0.9,
+      "checks": [
+        {
+          "id": "gray_on_color",
+          "label": "Neutral grey text on a colored background",
+          "weight": 10,
+          "category": "contrast",
+          "severity": "warning",
+          "lifecycleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "status": "pass",
+          "passed": true,
+          "triggered": false,
+          "scoreDelta": 0,
+          "evidence": {
+            "count": 0,
+            "samples": []
+          }
+        },
+        {
+          "id": "wide_body_tracking",
+          "label": "Wide letter-spacing on body text (>0.05em)",
+          "weight": 8,
+          "category": "typography",
+          "severity": "warning",
+          "lifecycleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "status": "pass",
+          "passed": true,
+          "triggered": false,
+          "scoreDelta": 0,
+          "evidence": {
+            "count": 0,
+            "samples": []
+          }
+        },
+        {
+          "id": "viewport_meta_missing",
+          "label": "Missing responsive <meta name=\"viewport\"> with width=device-width",
+          "weight": 15,
+          "category": "viewport",
+          "severity": "warning",
+          "lifecycleStatus": "active",
+          "evidenceGrade": "standard",
+          "status": "pass",
+          "passed": true,
+          "triggered": false,
+          "scoreDelta": 0,
+          "evidence": {
+            "present": true,
+            "content": "width=device-width,initial-scale=1"
+          }
+        },
+        {
+          "id": "zoom_disabled",
+          "label": "Pinch-to-zoom disabled via user-scalable=no or maximum-scale < 2",
+          "weight": 15,
+          "category": "viewport",
+          "severity": "warning",
+          "lifecycleStatus": "active",
+          "evidenceGrade": "standard",
+          "status": "pass",
+          "passed": true,
+          "triggered": false,
+          "scoreDelta": 0,
+          "evidence": {
+            "content": "width=device-width,initial-scale=1",
+            "userScalableNo": false,
+            "maxScale": null
+          }
+        },
+        {
+          "id": "mobile_reflow_failure",
+          "label": "Horizontal overflow, protrusion, or text box collision (RLF taxonomy)",
+          "weight": 20,
+          "category": "responsive",
+          "severity": "warning",
+          "lifecycleStatus": "active",
+          "evidenceGrade": "standard",
+          "status": "pass",
+          "passed": true,
+          "triggered": false,
+          "scoreDelta": 0,
+          "evidence": {
+            "subtypes": [],
+            "pageOverflowPx": 0,
+            "viewportProtrusions": [],
+            "elementProtrusions": [],
+            "collisions": []
+          }
+        },
+        {
+          "id": "focus_indicator_missing",
+          "label": "Interactive elements missing a visible keyboard focus indicator",
+          "weight": 12,
+          "category": "interaction",
+          "severity": "warning",
+          "lifecycleStatus": "active",
+          "evidenceGrade": "standard",
+          "status": "pass",
+          "passed": true,
+          "triggered": false,
+          "scoreDelta": 0,
+          "evidence": {
+            "probedCount": 15,
+            "missingFirst5": 0,
+            "missingCount": 1,
+            "missingRatio": 0.07
+          }
+        },
+        {
+          "id": "content_stuck_hidden",
+          "label": "Page content stuck at opacity 0 or visibility:hidden after load/scroll",
+          "weight": 10,
+          "category": "motion",
+          "severity": "warning",
+          "lifecycleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "status": "pass",
+          "passed": true,
+          "triggered": false,
+          "scoreDelta": 0,
+          "evidence": {
+            "count": 0,
+            "samples": []
+          }
+        },
+        {
+          "id": "dead_cta_controls",
+          "label": "Primary or repeated CTA controls produce no navigation or state change",
+          "weight": 10,
+          "category": "interaction",
+          "severity": "warning",
+          "lifecycleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "status": "pass",
+          "passed": true,
+          "triggered": false,
+          "scoreDelta": 0,
+          "evidence": {
+            "probedCount": 12,
+            "deadCount": 0,
+            "deadRatio": 0,
+            "heroCtaDead": false,
+            "placeholderHrefs": 0,
+            "samples": []
+          }
+        },
+        {
+          "id": "reduced_motion_ignored",
+          "label": "Continuous decorative animations remain active under prefers-reduced-motion: reduce",
+          "weight": 0,
+          "category": "motion",
+          "severity": "info",
+          "lifecycleStatus": "review",
+          "evidenceGrade": "standard",
+          "status": "pass",
+          "passed": true,
+          "triggered": false,
+          "scoreDelta": 0,
+          "evidence": {
+            "reducedMotionQueried": false,
+            "activeInfinite": 0,
+            "severity": "info"
+          }
+        },
+        {
+          "id": "generic_control_labels",
+          "label": "Ambiguous generic link/button accessible names (\"learn more\", \"click here\") or filename alt text",
+          "weight": 10,
+          "category": "a11y",
+          "severity": "warning",
+          "lifecycleStatus": "active",
+          "evidenceGrade": "standard",
+          "status": "pass",
+          "passed": true,
+          "triggered": false,
+          "scoreDelta": 0,
+          "evidence": {
+            "genericCount": 0,
+            "distinctTargets": 0,
+            "badAlts": []
+          }
+        },
+        {
+          "id": "form_no_failure_feedback",
+          "label": "Form submits empty with no invalid state or visible error feedback",
+          "weight": 10,
+          "category": "interaction",
+          "severity": "warning",
+          "lifecycleStatus": "active",
+          "evidenceGrade": "practitioner",
+          "status": "unknown",
+          "passed": false,
+          "triggered": false,
+          "scoreDelta": 0,
+          "evidence": {
+            "formPresent": true,
+            "status": "unknown",
+            "reason": "form_not_probed",
+            "requestsMade": 0
+          }
+        }
+      ],
+      "failed": [],
+      "advisories": []
+    }
+  },
+  "unifiedScore": 0,
+  "unifiedTier": "Clean",
+  "unifiedGrade": "A+",
+  "axesScored": [
+    "design",
+    "copy"
+  ],
+  "dirtyAxes": 0,
+  "system": {
+    "axis": "system",
+    "declared": true,
+    "name": "slop-detect.com",
+    "evidence": [],
+    "score": 100,
+    "maxScore": 100,
+    "tier": "Aligned",
+    "checksEvaluated": 6,
+    "checksSkipped": 3,
+    "checks": [
+      {
+        "id": "fonts.declared",
+        "weight": 25,
+        "status": "pass",
+        "evidenceGrade": "spec-normative",
+        "era": "evergreen",
+        "modelFamilies": [
+          "all"
+        ],
+        "lastValidatedIn": "2026.11",
+        "likelihoodRatio": null,
+        "fpRate": null,
+        "fpRatePre2022": null,
+        "label": "Fonts in use are declared in the system",
+        "message": "all primary fonts are declared",
+        "evidence": {
+          "declared": [
+            "newsreader",
+            "libre franklin",
+            "jetbrains mono"
+          ]
+        }
+      },
+      {
+        "id": "colors.cta",
+        "weight": 20,
+        "status": "pass",
+        "evidenceGrade": "spec-normative",
+        "era": "evergreen",
+        "modelFamilies": [
+          "all"
+        ],
+        "lastValidatedIn": "2026.11",
+        "likelihoodRatio": null,
+        "fpRate": null,
+        "fpRatePre2022": null,
+        "label": "CTA / button colors come from the palette (Oklab ΔE ≤ 0.02)",
+        "message": "all 19 CTA colors match the palette"
+      },
+      {
+        "id": "colors.surface",
+        "weight": 10,
+        "status": "pass",
+        "evidenceGrade": "spec-normative",
+        "era": "evergreen",
+        "modelFamilies": [
+          "all"
+        ],
+        "lastValidatedIn": "2026.11",
+        "likelihoodRatio": null,
+        "fpRate": null,
+        "fpRatePre2022": null,
+        "label": "Page surface color comes from the palette (Oklab ΔE ≤ 0.02)",
+        "message": "surface color matches the palette"
+      },
+      {
+        "id": "colors.headings",
+        "weight": 10,
+        "status": "pass",
+        "evidenceGrade": "spec-normative",
+        "era": "evergreen",
+        "modelFamilies": [
+          "all"
+        ],
+        "lastValidatedIn": "2026.11",
+        "likelihoodRatio": null,
+        "fpRate": null,
+        "fpRatePre2022": null,
+        "label": "Heading colors come from the palette (Oklab ΔE ≤ 0.02)",
+        "message": "heading colors match the palette"
+      },
+      {
+        "id": "radii.scale",
+        "weight": 10,
+        "status": "pass",
+        "evidenceGrade": "spec-normative",
+        "era": "evergreen",
+        "modelFamilies": [
+          "all"
+        ],
+        "lastValidatedIn": "2026.11",
+        "likelihoodRatio": null,
+        "fpRate": null,
+        "fpRatePre2022": null,
+        "label": "Corner radii across all 4 corners follow the declared scale (±2px)",
+        "message": "corner radii follow the declared scale"
+      },
+      {
+        "id": "spacing.scale",
+        "weight": 10,
+        "status": "pass",
+        "evidenceGrade": "spec-normative",
+        "era": "evergreen",
+        "modelFamilies": [
+          "all"
+        ],
+        "lastValidatedIn": "2026.11",
+        "likelihoodRatio": null,
+        "fpRate": null,
+        "fpRatePre2022": null,
+        "label": "Rendered spacing values follow the declared spacing scale (±1px)",
+        "message": "spacing values follow the declared scale"
+      },
+      {
+        "id": "typography.scale",
+        "weight": 10,
+        "status": "skip",
+        "evidenceGrade": "spec-normative",
+        "era": "evergreen",
+        "modelFamilies": [
+          "all"
+        ],
+        "lastValidatedIn": "2026.11",
+        "likelihoodRatio": null,
+        "fpRate": null,
+        "fpRatePre2022": null,
+        "label": "Rendered font sizes follow the declared type scale (±0.5px)",
+        "message": "no typography fontSize tokens declared"
+      },
+      {
+        "id": "typography.styles",
+        "weight": 5,
+        "status": "skip",
+        "evidenceGrade": "spec-normative",
+        "era": "evergreen",
+        "modelFamilies": [
+          "all"
+        ],
+        "lastValidatedIn": "2026.11",
+        "likelihoodRatio": null,
+        "fpRate": null,
+        "fpRatePre2022": null,
+        "label": "Composite typography tuples match declared style definitions",
+        "message": "no composite typography styles declared"
+      },
+      {
+        "id": "contrast.componentPairs",
+        "weight": 0,
+        "status": "pass",
+        "evidenceGrade": "spec-normative",
+        "era": "evergreen",
+        "modelFamilies": [
+          "all"
+        ],
+        "lastValidatedIn": "2026.11",
+        "likelihoodRatio": null,
+        "fpRate": null,
+        "fpRatePre2022": null,
+        "label": "Component foreground/background pairs meet ≥ 4.5:1 WCAG contrast",
+        "message": "all component pairs meet ≥ 4.5:1 contrast"
+      }
+    ],
+    "drift": [],
+    "nearMisses": [],
+    "coverage": {
+      "classes": {
+        "textColor": {
+          "countRatio": 1,
+          "areaRatio": 1,
+          "matchedCount": 11,
+          "nearMissCount": 0,
+          "totalCount": 11,
+          "matchedArea": 281264,
+          "totalArea": 281264,
+          "tier": "Aligned"
+        },
+        "backgroundColor": {
+          "countRatio": 1,
+          "areaRatio": 1,
+          "matchedCount": 20,
+          "nearMissCount": 0,
+          "totalCount": 20,
+          "matchedArea": 199712,
+          "totalArea": 199712,
+          "tier": "Aligned"
+        },
+        "borderColor": {
+          "countRatio": null,
+          "areaRatio": null,
+          "matchedCount": 0,
+          "nearMissCount": 0,
+          "totalCount": 0,
+          "matchedArea": 0,
+          "totalArea": 0,
+          "tier": "No data"
+        },
+        "fontSize": {
+          "countRatio": null,
+          "areaRatio": null,
+          "matchedCount": 0,
+          "nearMissCount": 0,
+          "totalCount": 0,
+          "matchedArea": 0,
+          "totalArea": 0,
+          "tier": "No data"
+        },
+        "lineHeight": {
+          "countRatio": null,
+          "areaRatio": null,
+          "matchedCount": 0,
+          "nearMissCount": 0,
+          "totalCount": 0,
+          "matchedArea": 0,
+          "totalArea": 0,
+          "tier": "No data"
+        },
+        "letterSpacing": {
+          "countRatio": null,
+          "areaRatio": null,
+          "matchedCount": 0,
+          "nearMissCount": 0,
+          "totalCount": 0,
+          "matchedArea": 0,
+          "totalArea": 0,
+          "tier": "No data"
+        },
+        "spacing": {
+          "countRatio": 0.731,
+          "areaRatio": 0.731,
+          "matchedCount": 19,
+          "nearMissCount": 0,
+          "totalCount": 26,
+          "matchedArea": 19,
+          "totalArea": 26,
+          "tier": "Drifting"
+        },
+        "borderRadius": {
+          "countRatio": 1,
+          "areaRatio": 1,
+          "matchedCount": 5,
+          "nearMissCount": 0,
+          "totalCount": 5,
+          "matchedArea": 5,
+          "totalArea": 5,
+          "tier": "Aligned"
+        },
+        "boxShadow": {
+          "countRatio": null,
+          "areaRatio": null,
+          "matchedCount": 0,
+          "nearMissCount": 0,
+          "totalCount": 0,
+          "matchedArea": 0,
+          "totalArea": 0,
+          "tier": "No data"
+        }
+      },
+      "overallCountRatio": 0.933,
+      "overallAreaRatio": 0.933
+    },
+    "typeScaleInflation": null,
+    "tokenHygiene": {
+      "scored": false,
+      "unusedTokens": [
+        "#E8EBE4",
+        "#0F0F0B",
+        "#28291F",
+        "#25261D",
+        "#2C2D23",
+        "#46473F",
+        "#565750",
+        "#7A7B73",
+        "#86877E",
+        "#A1A299",
+        "#A8A9A0",
+        "#C4C5BC",
+        "#3FBE7A",
+        "#D3F2E0",
+        "#D89A2E",
+        "#E3B04B",
+        "#78520A",
+        "#C9402E",
+        "#E05A47",
+        "#A83223",
+        "#2C6E8F",
+        "#DBDDD6",
+        "#DEDFD9",
+        "#E2E4DE",
+        "999px"
+      ],
+      "unusedTokenShare": 0.595,
+      "deprecatedTokensUsed": [],
+      "motionTokensDeclared": 0,
+      "unmatchedMotionCount": 0
+    }
+  },
+  "waivedPatterns": [],
+  "systemContext": {
+    "fonts": {
+      "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace": 190,
+      "Newsreader, Georgia, \"Times New Roman\", serif": 17,
+      "\"Libre Franklin\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif": 67
+    },
+    "ctas": [
+      {
+        "bg": "rgb(24, 24, 21)",
+        "color": "rgb(244, 245, 242)",
+        "hasBgImage": false,
+        "area": 3496,
+        "text": "Scan",
+        "location": {
+          "selector": "button#go",
+          "rect": {
+            "x": 843,
+            "y": 329,
+            "width": 76,
+            "height": 46
+          }
+        }
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "color": "rgb(44, 45, 39)",
+        "hasBgImage": false,
+        "area": 6464,
+        "text": "news.ycombinator.com",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 417,
+            "y": 423,
+            "width": 202,
+            "height": 32
+          }
+        }
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "color": "rgb(44, 45, 39)",
+        "hasBgImage": false,
+        "area": 3904,
+        "text": "linear.app",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 627,
+            "y": 423,
+            "width": 122,
+            "height": 32
+          }
+        }
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "color": "rgb(44, 45, 39)",
+        "hasBgImage": false,
+        "area": 3392,
+        "text": "bolt.new",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 757,
+            "y": 423,
+            "width": 106,
+            "height": 32
+          }
+        }
+      },
+      {
+        "bg": "rgb(24, 24, 21)",
+        "color": "rgb(244, 245, 242)",
+        "hasBgImage": false,
+        "area": 4030,
+        "text": "v0-starter · 48 · F",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 315,
+            "y": 556,
+            "width": 155,
+            "height": 26
+          }
+        }
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "color": "rgb(62, 64, 56)",
+        "hasBgImage": false,
+        "area": 4212,
+        "text": "linear-type · 16 · B",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 475,
+            "y": 556,
+            "width": 162,
+            "height": 26
+          }
+        }
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "color": "rgb(62, 64, 56)",
+        "hasBgImage": false,
+        "area": 4212,
+        "text": "slop-detect · 0 · A+",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 642,
+            "y": 556,
+            "width": 162,
+            "height": 26
+          }
+        }
+      },
+      {
+        "bg": "rgb(14, 107, 58)",
+        "color": "rgb(244, 245, 242)",
+        "hasBgImage": false,
+        "area": 4212,
+        "text": "Explode Z-layers: ON",
+        "location": {
+          "selector": "button#stageExplodeBtn",
+          "rect": {
+            "x": 987,
+            "y": 556,
+            "width": 162,
+            "height": 26
+          }
+        }
+      },
+      {
+        "bg": "rgb(24, 24, 21)",
+        "color": "rgb(244, 245, 242)",
+        "hasBgImage": false,
+        "area": 4200,
+        "text": "De-slop to 0/100 →",
+        "location": {
+          "selector": "button#stageDeslopBtn",
+          "rect": {
+            "x": 980,
+            "y": 801,
+            "width": 150,
+            "height": 28
+          }
+        }
+      },
+      {
+        "bg": "rgb(24, 24, 21)",
+        "color": "rgb(244, 245, 242)",
+        "hasBgImage": false,
+        "area": 2436,
+        "text": "all rules",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 131,
+            "y": 2104,
+            "width": 87,
+            "height": 28
+          }
+        }
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "color": "rgb(62, 64, 56)",
+        "hasBgImage": false,
+        "area": 1652,
+        "text": "fonts",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 224,
+            "y": 2104,
+            "width": 59,
+            "height": 28
+          }
+        }
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "color": "rgb(62, 64, 56)",
+        "hasBgImage": false,
+        "area": 1848,
+        "text": "colors",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 289,
+            "y": 2104,
+            "width": 66,
+            "height": 28
+          }
+        }
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "color": "rgb(62, 64, 56)",
+        "hasBgImage": false,
+        "area": 1848,
+        "text": "layout",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 361,
+            "y": 2104,
+            "width": 66,
+            "height": 28
+          }
+        }
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "color": "rgb(62, 64, 56)",
+        "hasBgImage": false,
+        "area": 1260,
+        "text": "css",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 433,
+            "y": 2104,
+            "width": 45,
+            "height": 28
+          }
+        }
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "color": "rgb(62, 64, 56)",
+        "hasBgImage": false,
+        "area": 1848,
+        "text": "images",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 484,
+            "y": 2104,
+            "width": 66,
+            "height": 28
+          }
+        }
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "color": "rgb(62, 64, 56)",
+        "hasBgImage": false,
+        "area": 2632,
+        "text": "copy tells",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 556,
+            "y": 2104,
+            "width": 94,
+            "height": 28
+          }
+        }
+      },
+      {
+        "bg": "rgb(31, 168, 94)",
+        "color": "rgb(10, 42, 24)",
+        "hasBgImage": false,
+        "area": 4400,
+        "text": "Monitor",
+        "location": {
+          "selector": "button#watchGo",
+          "rect": {
+            "x": 692,
+            "y": 4301,
+            "width": 100,
+            "height": 44
+          }
+        }
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "color": "rgb(24, 24, 21)",
+        "hasBgImage": false,
+        "area": 135538,
+        "text": "How the scan works\n            The weigh",
+        "location": {
+          "selector": "a",
+          "rect": {
+            "x": 112,
+            "y": 4717,
+            "width": 554,
+            "height": 245
+          }
+        }
+      },
+      {
+        "bg": "rgb(24, 24, 21)",
+        "color": "rgb(244, 245, 242)",
+        "hasBgImage": false,
+        "area": 7128,
+        "text": "Scan your page",
+        "location": {
+          "selector": "a",
+          "rect": {
+            "x": 460,
+            "y": 5238,
+            "width": 162,
+            "height": 44
+          }
+        }
+      }
+    ],
+    "surface": "rgb(244, 245, 242)",
+    "headings": [
+      {
+        "tag": "H1",
+        "color": "rgb(24, 24, 21)",
+        "fontFamily": "Newsreader, Georgia, \"Times New Roman\", serif",
+        "fontSize": 58.88,
+        "area": 71208,
+        "location": {
+          "selector": "h1",
+          "rect": {
+            "x": 360,
+            "y": 173,
+            "width": 560,
+            "height": 127
+          }
+        }
+      },
+      {
+        "tag": "H2",
+        "color": "rgb(24, 24, 21)",
+        "fontFamily": "Newsreader, Georgia, \"Times New Roman\", serif",
+        "fontSize": 34,
+        "area": 17198,
+        "location": {
+          "selector": "h2",
+          "rect": {
+            "x": 112,
+            "y": 1421,
+            "width": 440,
+            "height": 39
+          }
+        }
+      },
+      {
+        "tag": "H3",
+        "color": "rgb(62, 64, 56)",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "area": 9471,
+        "location": {
+          "selector": "h3",
+          "rect": {
+            "x": 112,
+            "y": 1592,
+            "width": 336,
+            "height": 28
+          }
+        }
+      },
+      {
+        "tag": "H3",
+        "color": "rgb(62, 64, 56)",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "area": 9471,
+        "location": {
+          "selector": "h3",
+          "rect": {
+            "x": 472,
+            "y": 1592,
+            "width": 336,
+            "height": 28
+          }
+        }
+      },
+      {
+        "tag": "H3",
+        "color": "rgb(62, 64, 56)",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "area": 9471,
+        "location": {
+          "selector": "h3",
+          "rect": {
+            "x": 832,
+            "y": 1592,
+            "width": 336,
+            "height": 28
+          }
+        }
+      },
+      {
+        "tag": "H2",
+        "color": "rgb(24, 24, 21)",
+        "fontFamily": "Newsreader, Georgia, \"Times New Roman\", serif",
+        "fontSize": 34,
+        "area": 18642,
+        "location": {
+          "selector": "h2",
+          "rect": {
+            "x": 112,
+            "y": 1955,
+            "width": 477,
+            "height": 39
+          }
+        }
+      },
+      {
+        "tag": "H2",
+        "color": "rgb(24, 24, 21)",
+        "fontFamily": "Newsreader, Georgia, \"Times New Roman\", serif",
+        "fontSize": 30,
+        "area": 25694,
+        "location": {
+          "selector": "h2",
+          "rect": {
+            "x": 112,
+            "y": 2769,
+            "width": 726,
+            "height": 35
+          }
+        }
+      },
+      {
+        "tag": "H2",
+        "color": "rgb(244, 245, 242)",
+        "fontFamily": "Newsreader, Georgia, \"Times New Roman\", serif",
+        "fontSize": 38,
+        "area": 38981,
+        "location": {
+          "selector": "h2#band-h",
+          "rect": {
+            "x": 112,
+            "y": 3528,
+            "width": 450,
+            "height": 87
+          }
+        }
+      },
+      {
+        "tag": "H3",
+        "color": "rgb(244, 245, 242)",
+        "fontFamily": "Newsreader, Georgia, \"Times New Roman\", serif",
+        "fontSize": 28,
+        "area": 22079,
+        "location": {
+          "selector": "h3",
+          "rect": {
+            "x": 112,
+            "y": 4163,
+            "width": 680,
+            "height": 32
+          }
+        }
+      },
+      {
+        "tag": "H3",
+        "color": "rgb(24, 24, 21)",
+        "fontFamily": "Newsreader, Georgia, \"Times New Roman\", serif",
+        "fontSize": 22,
+        "area": 13311,
+        "location": {
+          "selector": "h3",
+          "rect": {
+            "x": 141,
+            "y": 4742,
+            "width": 496,
+            "height": 27
+          }
+        }
+      },
+      {
+        "tag": "H2",
+        "color": "rgb(24, 24, 21)",
+        "fontFamily": "Newsreader, Georgia, \"Times New Roman\", serif",
+        "fontSize": 38,
+        "area": 45738,
+        "location": {
+          "selector": "h2",
+          "rect": {
+            "x": 112,
+            "y": 5098,
+            "width": 1056,
+            "height": 43
+          }
+        }
+      }
+    ],
+    "radii": [
+      4,
+      3,
+      8,
+      5,
+      6
+    ],
+    "spacings": [
+      13,
+      32,
+      16,
+      8,
+      18,
+      6,
+      12,
+      72,
+      56,
+      14,
+      22,
+      5,
+      7,
+      4,
+      10,
+      20,
+      3,
+      9,
+      2,
+      64,
+      11,
+      24,
+      40,
+      28,
+      80,
+      46
+    ],
+    "fontSizes": [
+      15,
+      13,
+      59,
+      14,
+      12.5,
+      12,
+      42,
+      34,
+      18,
+      14.5,
+      22,
+      30,
+      16,
+      38,
+      28,
+      19,
+      24
+    ],
+    "typographyStyles": [
+      {
+        "tag": "SPAN",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 15,
+        "lineHeight": 1.6,
+        "letterSpacing": -0.15,
+        "area": 2337
+      },
+      {
+        "tag": "A",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 13,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 1830
+      },
+      {
+        "tag": "A",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 13,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 1165
+      },
+      {
+        "tag": "A",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 13,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 666
+      },
+      {
+        "tag": "A",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 13,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 1497
+      },
+      {
+        "tag": "A",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 13,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 3132
+      },
+      {
+        "tag": "P",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 13,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 21962
+      },
+      {
+        "tag": "H1",
+        "fontFamily": "Newsreader, Georgia, \"Times New Roman\", serif",
+        "fontSize": 59,
+        "lineHeight": 1.08,
+        "letterSpacing": -1.29536,
+        "area": 71208
+      },
+      {
+        "tag": "EM",
+        "fontFamily": "Newsreader, Georgia, \"Times New Roman\", serif",
+        "fontSize": 59,
+        "lineHeight": 1.08,
+        "letterSpacing": -1.29536,
+        "area": 14694
+      },
+      {
+        "tag": "SPAN",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 15,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 3956
+      },
+      {
+        "tag": "BUTTON",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 14,
+        "lineHeight": null,
+        "letterSpacing": 0,
+        "area": 3496
+      },
+      {
+        "tag": "P",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 13,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 21962
+      },
+      {
+        "tag": "BUTTON",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12.5,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 6464
+      },
+      {
+        "tag": "BUTTON",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12.5,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 3904
+      },
+      {
+        "tag": "BUTTON",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12.5,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 3392
+      },
+      {
+        "tag": "SUMMARY",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 3833
+      },
+      {
+        "tag": "SPAN",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 3224
+      },
+      {
+        "tag": "SPAN",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 1344
+      },
+      {
+        "tag": "SPAN",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 3492
+      },
+      {
+        "tag": "SPAN",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 1568
+      },
+      {
+        "tag": "LABEL",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 806
+      },
+      {
+        "tag": "SPAN",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 3089
+      },
+      {
+        "tag": "BUTTON",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": null,
+        "letterSpacing": 0,
+        "area": 4030
+      },
+      {
+        "tag": "BUTTON",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": null,
+        "letterSpacing": 0,
+        "area": 4212
+      },
+      {
+        "tag": "BUTTON",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": null,
+        "letterSpacing": 0,
+        "area": 4212
+      },
+      {
+        "tag": "BUTTON",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": null,
+        "letterSpacing": 0,
+        "area": 4212
+      },
+      {
+        "tag": "SPAN",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 2149
+      },
+      {
+        "tag": "SPAN",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 2552
+      },
+      {
+        "tag": "SPAN",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 6428
+      },
+      {
+        "tag": "A",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 2283
+      },
+      {
+        "tag": "SPAN",
+        "fontFamily": "Newsreader, Georgia, \"Times New Roman\", serif",
+        "fontSize": 42,
+        "lineHeight": 0.95,
+        "letterSpacing": 0,
+        "area": 2100
+      },
+      {
+        "tag": "SPAN",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 13,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 544
+      },
+      {
+        "tag": "SPAN",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 1495
+      },
+      {
+        "tag": "P",
+        "fontFamily": "Newsreader, Georgia, \"Times New Roman\", serif",
+        "fontSize": 15,
+        "lineHeight": 1.4,
+        "letterSpacing": 0,
+        "area": 8495
+      },
+      {
+        "tag": "LABEL",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 3358
+      },
+      {
+        "tag": "SPAN",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 1746
+      },
+      {
+        "tag": "BUTTON",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": null,
+        "letterSpacing": 0,
+        "area": 4200
+      },
+      {
+        "tag": "SPAN",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 3761
+      },
+      {
+        "tag": "SPAN",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 2283
+      },
+      {
+        "tag": "SPAN",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 652
+      }
+    ],
+    "componentPairs": [
+      {
+        "tag": "BUTTON",
+        "fg": "rgb(244, 245, 242)",
+        "bg": "rgb(24, 24, 21)",
+        "hasBgImage": false,
+        "text": "Scan",
+        "location": {
+          "selector": "button#go",
+          "rect": {
+            "x": 843,
+            "y": 329,
+            "width": 76,
+            "height": 46
+          }
+        }
+      },
+      {
+        "tag": "BUTTON",
+        "fg": "rgb(44, 45, 39)",
+        "bg": "rgb(251, 251, 249)",
+        "hasBgImage": false,
+        "text": "news.ycombinator.com",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 417,
+            "y": 423,
+            "width": 202,
+            "height": 32
+          }
+        }
+      },
+      {
+        "tag": "BUTTON",
+        "fg": "rgb(44, 45, 39)",
+        "bg": "rgb(251, 251, 249)",
+        "hasBgImage": false,
+        "text": "linear.app",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 627,
+            "y": 423,
+            "width": 122,
+            "height": 32
+          }
+        }
+      },
+      {
+        "tag": "BUTTON",
+        "fg": "rgb(44, 45, 39)",
+        "bg": "rgb(251, 251, 249)",
+        "hasBgImage": false,
+        "text": "bolt.new",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 757,
+            "y": 423,
+            "width": 106,
+            "height": 32
+          }
+        }
+      },
+      {
+        "tag": "BUTTON",
+        "fg": "rgb(244, 245, 242)",
+        "bg": "rgb(24, 24, 21)",
+        "hasBgImage": false,
+        "text": "v0-starter · 48 · F",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 315,
+            "y": 556,
+            "width": 155,
+            "height": 26
+          }
+        }
+      },
+      {
+        "tag": "BUTTON",
+        "fg": "rgb(62, 64, 56)",
+        "bg": "rgb(251, 251, 249)",
+        "hasBgImage": false,
+        "text": "linear-type · 16 · B",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 475,
+            "y": 556,
+            "width": 162,
+            "height": 26
+          }
+        }
+      },
+      {
+        "tag": "BUTTON",
+        "fg": "rgb(62, 64, 56)",
+        "bg": "rgb(251, 251, 249)",
+        "hasBgImage": false,
+        "text": "slop-detect · 0 · A+",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 642,
+            "y": 556,
+            "width": 162,
+            "height": 26
+          }
+        }
+      },
+      {
+        "tag": "BUTTON",
+        "fg": "rgb(244, 245, 242)",
+        "bg": "rgb(14, 107, 58)",
+        "hasBgImage": false,
+        "text": "Explode Z-layers: ON",
+        "location": {
+          "selector": "button#stageExplodeBtn",
+          "rect": {
+            "x": 987,
+            "y": 556,
+            "width": 162,
+            "height": 26
+          }
+        }
+      },
+      {
+        "tag": "BUTTON",
+        "fg": "rgb(244, 245, 242)",
+        "bg": "rgb(24, 24, 21)",
+        "hasBgImage": false,
+        "text": "De-slop to 0/100 →",
+        "location": {
+          "selector": "button#stageDeslopBtn",
+          "rect": {
+            "x": 980,
+            "y": 801,
+            "width": 150,
+            "height": 28
+          }
+        }
+      },
+      {
+        "tag": "BUTTON",
+        "fg": "rgb(244, 245, 242)",
+        "bg": "rgb(24, 24, 21)",
+        "hasBgImage": false,
+        "text": "all rules",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 131,
+            "y": 2104,
+            "width": 87,
+            "height": 28
+          }
+        }
+      },
+      {
+        "tag": "BUTTON",
+        "fg": "rgb(62, 64, 56)",
+        "bg": "rgb(251, 251, 249)",
+        "hasBgImage": false,
+        "text": "fonts",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 224,
+            "y": 2104,
+            "width": 59,
+            "height": 28
+          }
+        }
+      },
+      {
+        "tag": "BUTTON",
+        "fg": "rgb(62, 64, 56)",
+        "bg": "rgb(251, 251, 249)",
+        "hasBgImage": false,
+        "text": "colors",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 289,
+            "y": 2104,
+            "width": 66,
+            "height": 28
+          }
+        }
+      },
+      {
+        "tag": "BUTTON",
+        "fg": "rgb(62, 64, 56)",
+        "bg": "rgb(251, 251, 249)",
+        "hasBgImage": false,
+        "text": "layout",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 361,
+            "y": 2104,
+            "width": 66,
+            "height": 28
+          }
+        }
+      },
+      {
+        "tag": "BUTTON",
+        "fg": "rgb(62, 64, 56)",
+        "bg": "rgb(251, 251, 249)",
+        "hasBgImage": false,
+        "text": "css",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 433,
+            "y": 2104,
+            "width": 45,
+            "height": 28
+          }
+        }
+      },
+      {
+        "tag": "BUTTON",
+        "fg": "rgb(62, 64, 56)",
+        "bg": "rgb(251, 251, 249)",
+        "hasBgImage": false,
+        "text": "images",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 484,
+            "y": 2104,
+            "width": 66,
+            "height": 28
+          }
+        }
+      },
+      {
+        "tag": "BUTTON",
+        "fg": "rgb(62, 64, 56)",
+        "bg": "rgb(251, 251, 249)",
+        "hasBgImage": false,
+        "text": "copy tells",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 556,
+            "y": 2104,
+            "width": 94,
+            "height": 28
+          }
+        }
+      },
+      {
+        "tag": "BUTTON",
+        "fg": "rgb(10, 42, 24)",
+        "bg": "rgb(31, 168, 94)",
+        "hasBgImage": false,
+        "text": "Monitor",
+        "location": {
+          "selector": "button#watchGo",
+          "rect": {
+            "x": 692,
+            "y": 4301,
+            "width": 100,
+            "height": 44
+          }
+        }
+      },
+      {
+        "tag": "A",
+        "fg": "rgb(24, 24, 21)",
+        "bg": "rgb(251, 251, 249)",
+        "hasBgImage": false,
+        "text": "How the scan works\n            The weigh",
+        "location": {
+          "selector": "a",
+          "rect": {
+            "x": 112,
+            "y": 4717,
+            "width": 554,
+            "height": 245
+          }
+        }
+      },
+      {
+        "tag": "A",
+        "fg": "rgb(244, 245, 242)",
+        "bg": "rgb(24, 24, 21)",
+        "hasBgImage": false,
+        "text": "Scan your page",
+        "location": {
+          "selector": "a",
+          "rect": {
+            "x": 460,
+            "y": 5238,
+            "width": 162,
+            "height": 44
+          }
+        }
+      }
+    ]
+  },
+  "aeo": {
+    "schemaVersion": 1,
+    "axis": "aeo",
+    "url": "https://slop-detect.com/",
+    "mdUrl": "https://slop-detect.com/index.md",
+    "vantagePoint": "scanner-origin",
+    "evidence": [],
+    "score": 100,
+    "maxScore": 100,
+    "earnedWeight": 96,
+    "applicableWeight": 96,
+    "ratio": 1,
+    "tier": "Eligible",
+    "requiredFailed": 0,
+    "recommendedFailed": 0,
+    "passed": [
+      {
+        "id": "html.reachable",
+        "label": "Page is reachable over HTTP (HTML 2xx)",
+        "severity": "required",
+        "weight": 10,
+        "status": "pass",
+        "passed": true,
+        "message": "status 200",
+        "detail": {
+          "httpStatus": 200
+        }
+      },
+      {
+        "id": "edge.access",
+        "label": "Edge/WAF allows automated retrieval without challenge or block",
+        "severity": "required",
+        "weight": 20,
+        "status": "pass",
+        "passed": true,
+        "message": "Edge allowed search-class probe (200)",
+        "detail": {
+          "vantagePoint": "scanner-origin",
+          "p0": {
+            "outcome": "ok",
+            "status": "pass",
+            "vendor": null,
+            "httpStatus": 200
+          },
+          "p1": {
+            "outcome": "ok",
+            "status": "pass",
+            "vendor": null,
+            "httpStatus": 200
+          }
+        }
+      },
+      {
+        "id": "robots.searchAllowed",
+        "label": "robots.txt permits AI search & citation crawlers (RFC 9309)",
+        "severity": "required",
+        "weight": 20,
+        "status": "pass",
+        "passed": true,
+        "message": "robots.txt allows search crawlers (opts out of training: gptbot, claudebot, google-extended, applebot-extended, ccbot, bytespider, meta-externalagent, mistralai-training)",
+        "detail": {
+          "fetchOutcome": "ok",
+          "searchAllowed": true,
+          "blocked": true,
+          "agents": [
+            "gptbot",
+            "claudebot",
+            "google-extended",
+            "applebot-extended",
+            "ccbot",
+            "bytespider",
+            "meta-externalagent",
+            "mistralai-training"
+          ],
+          "searchBlocked": [],
+          "userActionBlocked": [],
+          "trainingBlocked": [
+            "gptbot",
+            "claudebot",
+            "google-extended",
+            "applebot-extended",
+            "ccbot",
+            "bytespider",
+            "meta-externalagent",
+            "mistralai-training"
+          ],
+          "cloudflareManaged": false,
+          "cloudflareSearchCollateral": [],
+          "remediation": null,
+          "warning": null,
+          "legacyTokensUsed": [],
+          "agentmaps": [
+            "https://slop-detect.com/.well-known/ard.json"
+          ],
+          "contentSignals": [
+            {
+              "group": [
+                "*"
+              ],
+              "value": "ai-train=no, search=yes, ai-input=yes"
+            },
+            {
+              "group": [
+                "oai-searchbot",
+                "chatgpt-user",
+                "claude-searchbot",
+                "claude-user",
+                "perplexitybot",
+                "perplexity-user",
+                "applebot",
+                "googlebot",
+                "bingbot",
+                "amzn-searchbot",
+                "amzn-user",
+                "duckassistbot"
+              ],
+              "value": "ai-train=no, search=yes, ai-input=yes"
+            },
+            {
+              "group": [
+                "gptbot",
+                "claudebot",
+                "google-extended",
+                "applebot-extended",
+                "ccbot",
+                "meta-externalagent",
+                "bytespider",
+                "mistralai-training"
+              ],
+              "value": "ai-train=no, search=yes, ai-input=yes"
+            }
+          ]
+        }
+      },
+      {
+        "id": "html.indexable",
+        "label": "Page is indexable (no global noindex directive)",
+        "severity": "required",
+        "weight": 12,
+        "status": "pass",
+        "passed": true,
+        "message": "no noindex directive",
+        "detail": {
+          "globalNoindex": false
+        }
+      },
+      {
+        "id": "ai.previewControls",
+        "label": "Snippet & preview controls permit quoting across Google, Bing, and Apple",
+        "severity": "required",
+        "weight": 8,
+        "status": "pass",
+        "passed": true,
+        "message": "snippet and preview controls allow quoting across Google, Bing, and Apple",
+        "detail": {
+          "engines": {
+            "google": {
+              "status": "pass",
+              "directives": [],
+              "maxSnippet": null
+            },
+            "bing": {
+              "status": "pass",
+              "directives": [],
+              "maxSnippet": null
+            },
+            "apple": {
+              "status": "pass",
+              "directives": [],
+              "maxSnippet": null
+            }
+          },
+          "globalNoindex": false,
+          "nosnippetCharShare": 0,
+          "status": "pass",
+          "earnedWeight": 8,
+          "maxWeight": 8,
+          "searchConsoleDisclosure": "Google AI Overviews and AI Mode use standard Googlebot snippet controls (nosnippet, max-snippet, data-nosnippet) and report clicks/impressions under Web search in Search Console."
+        }
+      },
+      {
+        "id": "html.serverTextCoverage",
+        "label": "Server-rendered HTML contains primary page prose without JS",
+        "severity": "required",
+        "weight": 15,
+        "status": "pass",
+        "passed": true,
+        "message": "server HTML contains 100% of rendered words (1168/1082)",
+        "detail": {
+          "noJsWords": 1168,
+          "renderedWords": 1082,
+          "ratio": 1
+        }
+      },
+      {
+        "id": "md.twin",
+        "label": "Validated Markdown twin served via negotiation or .md route",
+        "severity": "recommended",
+        "weight": 6,
+        "status": "pass",
+        "passed": true,
+        "message": "validated markdown twin at http://127.0.0.1:8788/index.md (4134 bytes)",
+        "detail": {
+          "valid": true,
+          "strippedLength": 4134,
+          "negotiatedMarkdown": false
+        }
+      },
+      {
+        "id": "html.linkAlternate",
+        "label": "HTML advertises a valid Markdown twin (Link rel=alternate)",
+        "severity": "recommended",
+        "weight": 3,
+        "status": "pass",
+        "passed": true,
+        "message": "Link rel=alternate type=text/markdown points to valid twin (/index.md)",
+        "detail": {
+          "href": "/index.md",
+          "twinValid": true,
+          "invalidUrl": false
+        }
+      },
+      {
+        "id": "site.llmsTxt",
+        "label": "Valid /llms.txt published at site root (H1 + links, non-HTML)",
+        "severity": "recommended",
+        "weight": 2,
+        "status": "pass",
+        "passed": true,
+        "message": "/llms.txt valid (20 links)",
+        "detail": {
+          "valid": true,
+          "hasH1": true,
+          "linkCount": 20,
+          "instructions": []
+        }
+      },
+      {
+        "id": "ai.manipulation",
+        "label": "No prompt injection, hidden instructions, or AI manipulation links",
+        "severity": "info",
+        "weight": 0,
+        "status": "pass",
+        "passed": true,
+        "message": "No prompt manipulation signals detected",
+        "detail": {
+          "triggered": false,
+          "canaryOnly": false,
+          "findings": []
+        }
+      },
+      {
+        "id": "agent.operability",
+        "label": "Interactive controls have accessible names and no blocking overlays",
+        "severity": "info",
+        "weight": 0,
+        "status": "pass",
+        "passed": true,
+        "message": "Accessible name coverage: 97%",
+        "detail": {
+          "healthy": true,
+          "accessibleNameRatio": 0.973,
+          "totalInteractive": 74,
+          "namedInteractive": 72,
+          "emptyPriceShell": false,
+          "axeRuleCount": 33,
+          "lighthouseEquivalent": {
+            "audit": "agent-accessibility-tree",
+            "version": "13.5.0"
+          }
+        }
+      }
+    ],
+    "failed": [],
+    "checks": [
+      {
+        "id": "html.reachable",
+        "label": "Page is reachable over HTTP (HTML 2xx)",
+        "severity": "required",
+        "weight": 10,
+        "status": "pass",
+        "passed": true,
+        "message": "status 200",
+        "detail": {
+          "httpStatus": 200
+        }
+      },
+      {
+        "id": "edge.access",
+        "label": "Edge/WAF allows automated retrieval without challenge or block",
+        "severity": "required",
+        "weight": 20,
+        "status": "pass",
+        "passed": true,
+        "message": "Edge allowed search-class probe (200)",
+        "detail": {
+          "vantagePoint": "scanner-origin",
+          "p0": {
+            "outcome": "ok",
+            "status": "pass",
+            "vendor": null,
+            "httpStatus": 200
+          },
+          "p1": {
+            "outcome": "ok",
+            "status": "pass",
+            "vendor": null,
+            "httpStatus": 200
+          }
+        }
+      },
+      {
+        "id": "robots.searchAllowed",
+        "label": "robots.txt permits AI search & citation crawlers (RFC 9309)",
+        "severity": "required",
+        "weight": 20,
+        "status": "pass",
+        "passed": true,
+        "message": "robots.txt allows search crawlers (opts out of training: gptbot, claudebot, google-extended, applebot-extended, ccbot, bytespider, meta-externalagent, mistralai-training)",
+        "detail": {
+          "fetchOutcome": "ok",
+          "searchAllowed": true,
+          "blocked": true,
+          "agents": [
+            "gptbot",
+            "claudebot",
+            "google-extended",
+            "applebot-extended",
+            "ccbot",
+            "bytespider",
+            "meta-externalagent",
+            "mistralai-training"
+          ],
+          "searchBlocked": [],
+          "userActionBlocked": [],
+          "trainingBlocked": [
+            "gptbot",
+            "claudebot",
+            "google-extended",
+            "applebot-extended",
+            "ccbot",
+            "bytespider",
+            "meta-externalagent",
+            "mistralai-training"
+          ],
+          "cloudflareManaged": false,
+          "cloudflareSearchCollateral": [],
+          "remediation": null,
+          "warning": null,
+          "legacyTokensUsed": [],
+          "agentmaps": [
+            "https://slop-detect.com/.well-known/ard.json"
+          ],
+          "contentSignals": [
+            {
+              "group": [
+                "*"
+              ],
+              "value": "ai-train=no, search=yes, ai-input=yes"
+            },
+            {
+              "group": [
+                "oai-searchbot",
+                "chatgpt-user",
+                "claude-searchbot",
+                "claude-user",
+                "perplexitybot",
+                "perplexity-user",
+                "applebot",
+                "googlebot",
+                "bingbot",
+                "amzn-searchbot",
+                "amzn-user",
+                "duckassistbot"
+              ],
+              "value": "ai-train=no, search=yes, ai-input=yes"
+            },
+            {
+              "group": [
+                "gptbot",
+                "claudebot",
+                "google-extended",
+                "applebot-extended",
+                "ccbot",
+                "meta-externalagent",
+                "bytespider",
+                "mistralai-training"
+              ],
+              "value": "ai-train=no, search=yes, ai-input=yes"
+            }
+          ]
+        }
+      },
+      {
+        "id": "html.indexable",
+        "label": "Page is indexable (no global noindex directive)",
+        "severity": "required",
+        "weight": 12,
+        "status": "pass",
+        "passed": true,
+        "message": "no noindex directive",
+        "detail": {
+          "globalNoindex": false
+        }
+      },
+      {
+        "id": "ai.previewControls",
+        "label": "Snippet & preview controls permit quoting across Google, Bing, and Apple",
+        "severity": "required",
+        "weight": 8,
+        "status": "pass",
+        "passed": true,
+        "message": "snippet and preview controls allow quoting across Google, Bing, and Apple",
+        "detail": {
+          "engines": {
+            "google": {
+              "status": "pass",
+              "directives": [],
+              "maxSnippet": null
+            },
+            "bing": {
+              "status": "pass",
+              "directives": [],
+              "maxSnippet": null
+            },
+            "apple": {
+              "status": "pass",
+              "directives": [],
+              "maxSnippet": null
+            }
+          },
+          "globalNoindex": false,
+          "nosnippetCharShare": 0,
+          "status": "pass",
+          "earnedWeight": 8,
+          "maxWeight": 8,
+          "searchConsoleDisclosure": "Google AI Overviews and AI Mode use standard Googlebot snippet controls (nosnippet, max-snippet, data-nosnippet) and report clicks/impressions under Web search in Search Console."
+        }
+      },
+      {
+        "id": "html.serverTextCoverage",
+        "label": "Server-rendered HTML contains primary page prose without JS",
+        "severity": "required",
+        "weight": 15,
+        "status": "pass",
+        "passed": true,
+        "message": "server HTML contains 100% of rendered words (1168/1082)",
+        "detail": {
+          "noJsWords": 1168,
+          "renderedWords": 1082,
+          "ratio": 1
+        }
+      },
+      {
+        "id": "md.twin",
+        "label": "Validated Markdown twin served via negotiation or .md route",
+        "severity": "recommended",
+        "weight": 6,
+        "status": "pass",
+        "passed": true,
+        "message": "validated markdown twin at http://127.0.0.1:8788/index.md (4134 bytes)",
+        "detail": {
+          "valid": true,
+          "strippedLength": 4134,
+          "negotiatedMarkdown": false
+        }
+      },
+      {
+        "id": "html.linkAlternate",
+        "label": "HTML advertises a valid Markdown twin (Link rel=alternate)",
+        "severity": "recommended",
+        "weight": 3,
+        "status": "pass",
+        "passed": true,
+        "message": "Link rel=alternate type=text/markdown points to valid twin (/index.md)",
+        "detail": {
+          "href": "/index.md",
+          "twinValid": true,
+          "invalidUrl": false
+        }
+      },
+      {
+        "id": "site.llmsTxt",
+        "label": "Valid /llms.txt published at site root (H1 + links, non-HTML)",
+        "severity": "recommended",
+        "weight": 2,
+        "status": "pass",
+        "passed": true,
+        "message": "/llms.txt valid (20 links)",
+        "detail": {
+          "valid": true,
+          "hasH1": true,
+          "linkCount": 20,
+          "instructions": []
+        }
+      },
+      {
+        "id": "html.vary",
+        "label": "Negotiated responses send Vary: Accept",
+        "severity": "recommended",
+        "weight": 4,
+        "status": "na",
+        "passed": false,
+        "message": "Site does not negotiate markdown — Vary: Accept not applicable",
+        "detail": {
+          "hasVaryAccept": true,
+          "negotiatedMarkdown": false
+        }
+      },
+      {
+        "id": "ai.manipulation",
+        "label": "No prompt injection, hidden instructions, or AI manipulation links",
+        "severity": "info",
+        "weight": 0,
+        "status": "pass",
+        "passed": true,
+        "message": "No prompt manipulation signals detected",
+        "detail": {
+          "triggered": false,
+          "canaryOnly": false,
+          "findings": []
+        }
+      },
+      {
+        "id": "agent.operability",
+        "label": "Interactive controls have accessible names and no blocking overlays",
+        "severity": "info",
+        "weight": 0,
+        "status": "pass",
+        "passed": true,
+        "message": "Accessible name coverage: 97%",
+        "detail": {
+          "healthy": true,
+          "accessibleNameRatio": 0.973,
+          "totalInteractive": 74,
+          "namedInteractive": 72,
+          "emptyPriceShell": false,
+          "axeRuleCount": 33,
+          "lighthouseEquivalent": {
+            "audit": "agent-accessibility-tree",
+            "version": "13.5.0"
+          }
+        }
+      },
+      {
+        "id": "agent.discovery",
+        "label": "Agent discovery endpoints (ARD, Agentmap, A2A agent-card, WebMCP)",
+        "severity": "info",
+        "weight": 0,
+        "status": "info",
+        "passed": true,
+        "message": "Agent discovery signals advertised",
+        "detail": {
+          "agentmaps": [
+            "https://slop-detect.com/.well-known/ard.json"
+          ],
+          "webMcp": false
+        }
+      },
+      {
+        "id": "ai.usagePolicy",
+        "label": "Machine-readable AI usage preferences (AIPREF Content-Usage, Content-Signal, TDMRep)",
+        "severity": "info",
+        "weight": 0,
+        "status": "info",
+        "passed": true,
+        "message": "Machine-readable AI usage preferences declared",
+        "detail": {
+          "contentUsage": null,
+          "contentSignal": null,
+          "robotsContentSignals": [
+            {
+              "group": [
+                "*"
+              ],
+              "value": "ai-train=no, search=yes, ai-input=yes"
+            },
+            {
+              "group": [
+                "oai-searchbot",
+                "chatgpt-user",
+                "claude-searchbot",
+                "claude-user",
+                "perplexitybot",
+                "perplexity-user",
+                "applebot",
+                "googlebot",
+                "bingbot",
+                "amzn-searchbot",
+                "amzn-user",
+                "duckassistbot"
+              ],
+              "value": "ai-train=no, search=yes, ai-input=yes"
+            },
+            {
+              "group": [
+                "gptbot",
+                "claudebot",
+                "google-extended",
+                "applebot-extended",
+                "ccbot",
+                "meta-externalagent",
+                "bytespider",
+                "mistralai-training"
+              ],
+              "value": "ai-train=no, search=yes, ai-input=yes"
+            }
+          ],
+          "policyConflict": false
+        }
+      },
+      {
+        "id": "content.dates",
+        "label": "Publication and modification dates are valid and consistent across signals",
+        "severity": "info",
+        "weight": 0,
+        "status": "info",
+        "passed": true,
+        "message": "No structured dates found",
+        "detail": {
+          "datesFound": [],
+          "dateMismatch": false
+        }
+      },
+      {
+        "id": "jsonld.hygiene",
+        "label": "JSON-LD structured data parses cleanly and matches visible text",
+        "severity": "info",
+        "weight": 0,
+        "status": "info",
+        "passed": true,
+        "message": "JSON-LD syntax or @context/@type issue detected",
+        "detail": {
+          "blocks": 1,
+          "valid": false,
+          "matchesVisibleText": true
+        }
+      }
+    ],
+    "durationMs": 63
+  }
+}

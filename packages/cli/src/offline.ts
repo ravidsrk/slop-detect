@@ -2,7 +2,9 @@
 // reporters, and AEO starter files.
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { dirname, join, relative } from 'node:path';
+import { createServer } from 'node:http';
+import { dirname, extname, join, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   buildAeoFixFiles,
   buildAvoidList,
@@ -123,4 +125,102 @@ export function writeBaseline(path: string, result: any) {
 
 export function pathExists(path: string): boolean {
   return existsSync(path);
+}
+
+const MIME_BY_EXT: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8',
+  '.htm': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.md': 'text/markdown; charset=utf-8',
+  '.txt': 'text/plain; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+};
+
+export function isLocalTarget(target: string): boolean {
+  if (/^file:\/\//i.test(target)) {
+    try {
+      const p = fileURLToPath(target);
+      return existsSync(p) && (statSync(p).isDirectory() || /\.html?$/i.test(p));
+    } catch {
+      return false;
+    }
+  }
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(target)) return false;
+  return existsSync(target) && (statSync(target).isDirectory() || /\.html?$/i.test(target));
+}
+
+export async function startStaticTargetServer(target: string): Promise<{
+  url: string;
+  urls: string[];
+  close: () => Promise<void>;
+}> {
+  const fsTarget = /^file:\/\//i.test(target) ? fileURLToPath(target) : resolve(target);
+  if (!existsSync(fsTarget)) {
+    throw new Error(`Local target does not exist: ${target}`);
+  }
+  const info = statSync(fsTarget);
+  const rootDir = info.isDirectory() ? fsTarget : dirname(fsTarget);
+  const entryPath = info.isDirectory() ? '/' : '/' + relative(rootDir, fsTarget);
+
+  const server = createServer((req, res) => {
+    try {
+      const u = new URL(req.url || '/', 'http://127.0.0.1');
+      const decoded = decodeURIComponent(u.pathname);
+      let candidate = resolve(rootDir, '.' + decoded);
+      if (!candidate.startsWith(rootDir)) {
+        res.writeHead(403, { 'content-type': 'text/plain' });
+        res.end('Forbidden');
+        return;
+      }
+      if (existsSync(candidate) && statSync(candidate).isDirectory()) {
+        candidate = join(candidate, 'index.html');
+      } else if (!existsSync(candidate) && existsSync(candidate + '.html')) {
+        candidate = candidate + '.html';
+      }
+      if (!existsSync(candidate) || !statSync(candidate).isFile()) {
+        res.writeHead(404, { 'content-type': 'text/plain' });
+        res.end('Not found');
+        return;
+      }
+      const ext = extname(candidate).toLowerCase();
+      const ct = MIME_BY_EXT[ext] || 'application/octet-stream';
+      const body = readFileSync(candidate);
+      res.writeHead(200, { 'content-type': ct });
+      res.end(body);
+    } catch {
+      res.writeHead(500, { 'content-type': 'text/plain' });
+      res.end('Server error');
+    }
+  });
+
+  await new Promise<void>((resolveListen, rejectListen) => {
+    server.once('error', rejectListen);
+    server.listen(0, '127.0.0.1', () => resolveListen());
+  });
+  const addr = server.address();
+  const port = typeof addr === 'object' && addr ? addr.port : 0;
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const htmlFiles = info.isDirectory() ? listHtmlFiles(rootDir) : [fsTarget];
+  const urls = htmlFiles.map((f) => {
+    const rel = relative(rootDir, f).replace(/\\/g, '/');
+    return rel === 'index.html' ? `${baseUrl}/` : `${baseUrl}/${rel}`;
+  });
+  return {
+    url: `${baseUrl}${entryPath}`,
+    urls: urls.length > 0 ? urls : [`${baseUrl}${entryPath}`],
+    close: () =>
+      new Promise<void>((resolveClose) => {
+        server.close(() => resolveClose());
+      }),
+  };
 }

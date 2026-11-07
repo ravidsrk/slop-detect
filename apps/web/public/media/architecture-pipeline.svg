@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" width="960" height="360" role="img" aria-labelledby="arch-title arch-desc">
+  <title id="arch-title">Slop Detector — End-to-End Architecture Pipeline</title>
+  <desc id="arch-desc">Single-round-trip headless Chromium evaluation feeding the five-axis scoring engine across CLI, MCP, GitHub Action, and Cloudflare Pages API.</desc>
+  <style>
+    .bg { fill: #F4F5F2; }
+    .panel { fill: #FBFBF9; stroke: #DBDDD6; stroke-width: 1; }
+    .panel-dark { fill: #16170F; stroke: #28291F; stroke-width: 1; }
+    .ledger { stroke: #181815; stroke-width: 1.5; }
+    .wire { stroke: #181815; stroke-width: 1.25; fill: none; }
+    .wire-accent { stroke: #1FA85E; stroke-width: 1.5; fill: none; }
+    .serif { font-family: 'Newsreader', Georgia, serif; fill: #181815; }
+    .sans { font-family: 'Libre Franklin', -apple-system, BlinkMacSystemFont, sans-serif; fill: #3A3B33; }
+    .mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace; fill: #181815; }
+    .mono-muted { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace; fill: #565750; }
+    .mono-light { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace; fill: #F4F5F2; }
+    .mono-clean { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace; fill: #0E6B3A; }
+    .badge-clean { fill: #D3F2E0; stroke: #1FA85E; stroke-width: 1; }
+  </style>
+
+  <rect width="960" height="360" class="bg" />
+  <line x1="32" y1="28" x2="928" y2="28" class="ledger" />
+  <text x="32" y="20" class="mono-muted" font-size="10" letter-spacing="1.2">PLATE 01 // SINGLE-PASS HEADLESS CHROMIUM PIPELINE</text>
+  <text x="928" y="20" text-anchor="end" class="mono-muted" font-size="10">DEFS 2026.11 · SCHEMA V1</text>
+
+  <!-- Step 1: Target Input -->
+  <rect x="32" y="54" width="180" height="264" rx="5" class="panel" />
+  <rect x="32" y="54" width="180" height="3" fill="#181815" />
+  <text x="48" y="80" class="mono-muted" font-size="10">01 / TARGET</text>
+  <text x="48" y="102" class="serif" font-size="18" font-weight="500">Page Source</text>
+  <text x="48" y="128" class="mono" font-size="11">• Live https:// URL</text>
+  <text x="48" y="148" class="mono" font-size="11">• Deploy preview URL</text>
+  <text x="48" y="168" class="mono" font-size="11">• Local ./dist build</text>
+  <text x="48" y="188" class="mono" font-size="11">• DESIGN.md / DTCG</text>
+  <rect x="48" y="214" width="148" height="84" rx="4" fill="#EEF0EB" stroke="#DBDDD6" />
+  <text x="58" y="234" class="mono-muted" font-size="10">SSRF &amp; WAF GUARD</text>
+  <text x="58" y="252" class="sans" font-size="11">Blocks RFC-1918 &amp; cloud</text>
+  <text x="58" y="268" class="sans" font-size="11">metadata; classifies</text>
+  <text x="58" y="284" class="sans" font-size="11">403/202/402 challenges.</text>
+
+  <!-- Arrow 1 -> 2 -->
+  <line x1="212" y1="186" x2="244" y2="186" class="wire" />
+  <polygon points="244,186 237,182 237,190" fill="#181815" />
+
+  <!-- Step 2: Headless Chromium -->
+  <rect x="246" y="54" width="216" height="264" rx="5" class="panel-dark" />
+  <rect x="246" y="54" width="216" height="3" fill="#1FA85E" />
+  <text x="262" y="80" class="mono-light" font-size="10" opacity="0.65">02 / BROWSER EVAL</text>
+  <text x="262" y="102" class="mono-light" font-size="16" font-weight="700">Headless Chromium</text>
+  <text x="262" y="124" class="mono-light" font-size="11" opacity="0.85">1280×800 + 320×568 reflow</text>
+  <text x="262" y="144" class="mono-light" font-size="11" opacity="0.85">document.fonts.ready gate</text>
+  <rect x="262" y="160" width="184" height="140" rx="4" fill="#0F0F0B" stroke="#28291F" />
+  <text x="274" y="180" class="mono-light" font-size="10" fill="#3FBE7A">page.evaluate(IIFE)</text>
+  <text x="274" y="200" class="mono-light" font-size="10" opacity="0.8">• getComputedStyle (OKLab)</text>
+  <text x="274" y="218" class="mono-light" font-size="10" opacity="0.8">• getBoundingClientRect()</text>
+  <text x="274" y="236" class="mono-light" font-size="10" opacity="0.8">• Landmark prose walker</text>
+  <text x="274" y="254" class="mono-light" font-size="10" opacity="0.8">• data-slop-ignore waivers</text>
+  <text x="274" y="272" class="mono-light" font-size="10" opacity="0.8">• Bounding-box locations</text>
+  <text x="274" y="290" class="mono-light" font-size="10" opacity="0.8">• Craft &amp; focus probes</text>
+
+  <!-- Arrow 2 -> 3 -->
+  <line x1="462" y1="186" x2="494" y2="186" class="wire" />
+  <polygon points="494,186 487,182 487,190" fill="#181815" />
+
+  <!-- Step 3: Core Scoring Engine -->
+  <rect x="496" y="54" width="216" height="264" rx="5" class="panel" />
+  <rect x="496" y="54" width="216" height="3" fill="#2C6E8F" />
+  <text x="512" y="80" class="mono-muted" font-size="10">03 / @SLOP-DETECT/CORE</text>
+  <text x="512" y="102" class="serif" font-size="18" font-weight="500">Pure Scoring Engine</text>
+  <text x="512" y="128" class="mono" font-size="11">• Design: 45 CSS/DOM rules</text>
+  <text x="512" y="148" class="mono" font-size="11">• Copy: 26 prose/token rules</text>
+  <text x="512" y="168" class="mono" font-size="11">• System: 9 DESIGN.md checks</text>
+  <text x="512" y="188" class="mono" font-size="11">• Craft: 9 floor checks</text>
+  <text x="512" y="208" class="mono" font-size="11">• AEO: 16 retrieval checks</text>
+  <rect x="512" y="224" width="184" height="76" rx="4" class="badge-clean" />
+  <text x="524" y="244" class="mono-clean" font-size="10" font-weight="700">CALIBRATION &amp; WAIVERS</text>
+  <text x="524" y="262" class="mono" font-size="10">Co-occurrence attenuation</text>
+  <text x="524" y="278" class="mono" font-size="10">Overlap dedup + DESIGN.md</text>
+  <text x="524" y="292" class="mono" font-size="10">.sloprc.json waivers</text>
+
+  <!-- Arrow 3 -> 4 -->
+  <line x1="712" y1="186" x2="744" y2="186" class="wire-accent" />
+  <polygon points="744,186 737,182 737,190" fill="#1FA85E" />
+
+  <!-- Step 4: Surfaces & Outputs -->
+  <rect x="746" y="54" width="182" height="264" rx="5" class="panel" />
+  <rect x="746" y="54" width="182" height="3" fill="#1FA85E" />
+  <text x="762" y="80" class="mono-muted" font-size="10">04 / SURFACES</text>
+  <text x="762" y="102" class="serif" font-size="18" font-weight="500">Outputs &amp; Gates</text>
+  <text x="762" y="128" class="mono" font-size="11">• CLI (json/sarif/agent)</text>
+  <text x="762" y="148" class="mono" font-size="11">• MCP stdio &amp; /mcp HTTP</text>
+  <text x="762" y="168" class="mono" font-size="11">• MCP App scorecard UI</text>
+  <text x="762" y="188" class="mono" font-size="11">• GitHub Action PR gate</text>
+  <text x="762" y="208" class="mono" font-size="11">• Annotated PNG overlay</text>
+  <text x="762" y="228" class="mono" font-size="11">• Vale .yml style rules</text>
+  <rect x="762" y="244" width="150" height="56" rx="4" fill="#EEF0EB" stroke="#DBDDD6" />
+  <text x="772" y="264" class="mono" font-size="10" font-weight="700">EXIT CODES</text>
+  <text x="772" y="280" class="mono-muted" font-size="10">0 Pass · 1 Gate · 2 Blocked</text>
+  <text x="772" y="294" class="mono-muted" font-size="10">scan-result.v1.json</text>
+
+  <line x1="32" y1="338" x2="928" y2="338" stroke="#DBDDD6" stroke-width="1" />
+  <text x="32" y="352" class="mono-muted" font-size="10">SLOP-DETECT.COM // DETERMINISTIC MULTI-AXIS LANDING PAGE AUDITOR</text>
+  <text x="928" y="352" text-anchor="end" class="mono-muted" font-size="10">MIT LICENSE</text>
+</svg>

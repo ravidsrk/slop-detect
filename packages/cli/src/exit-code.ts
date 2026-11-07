@@ -21,7 +21,16 @@ export function exitCodeForScanResults(results: any[] | any, flags: ScanExitFlag
     return 2;
 
   let exitCode: 0 | 1 = 0;
-  if (flags.failOn) {
+  if (flags.failOn === 'Drift') {
+    const drifted = list.some(
+      (r) =>
+        r.system &&
+        (r.system.tier === 'Drifting' ||
+          r.system.tier === 'Off-system' ||
+          (Array.isArray(r.system.drift) && r.system.drift.length > 0))
+    );
+    if (drifted) exitCode = 1;
+  } else if (flags.failOn) {
     const threshold = TIER_RANK[flags.failOn];
     const failed = list.some((r) => {
       const tier = r.axes && r.axes.copy ? r.unifiedTier : r.tier;

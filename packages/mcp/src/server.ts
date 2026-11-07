@@ -23,6 +23,8 @@ import {
   DEFINITIONS_VERSION,
   buildAvoidList,
   diffDesignMd,
+  extractDtcgTokens,
+  generateDesignMd,
   lintDesignMd,
   stampScanResult,
 } from '@slop-detect/core';
@@ -120,7 +122,8 @@ export const TOOLS = [
         url: { type: 'string', description: 'The page URL to scan (e.g. https://example.com).' },
         copy: {
           type: 'boolean',
-          description: 'Optional: also score the copy axis (9 LLM prose tells).',
+          description:
+            'Optional: also score the copy axis (prose tells, chatbot markup, and vocabulary signals).',
         },
         axes: {
           type: 'array',
@@ -305,6 +308,38 @@ export const TOOLS = [
     icons: PUBLIC_ICON,
     outputSchema: TEXT_OUTPUT_SCHEMA,
   },
+  {
+    name: 'extract_design_system',
+    title: 'Extract Live DESIGN.md & DTCG Tokens',
+    description:
+      'Reverse-engineer a live page into a Google Labs DESIGN.md document or W3C DTCG 2025.10 tokens.json from observed DOM colors, typography, radii, shadows, and spacing.',
+    annotations: {
+      title: 'Extract Live DESIGN.md & DTCG Tokens',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        url: {
+          type: 'string',
+          description:
+            'The page URL to extract live design tokens from (e.g. https://example.com).',
+        },
+        format: {
+          type: 'string',
+          enum: ['design_md', 'dtcg', 'both'],
+          description:
+            'Output format: "design_md" (default), "dtcg" (W3C DTCG 2025.10 JSON), or "both".',
+        },
+      },
+      required: ['url'],
+    },
+    icons: PUBLIC_ICON,
+    outputSchema: TEXT_OUTPUT_SCHEMA,
+  },
 ];
 
 export const PROMPTS = [
@@ -387,7 +422,92 @@ export const RESOURCES = [
     mimeType: 'application/json',
     icons: PUBLIC_ICON,
   },
+  {
+    uri: 'ui://slop-detect/scorecard.html',
+    name: 'Slop Detector Interactive MCP App Scorecard',
+    description:
+      'Interactive MCP App HTML scorecard (text/html;profile=mcp-app) rendering design, copy, system, craft, and AEO axes with K-06 compliant framing and uncalibrated beta disclosure.',
+    mimeType: 'text/html;profile=mcp-app',
+    icons: PUBLIC_ICON,
+  },
 ];
+
+export const MCP_APP_SCORECARD_HTML = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Slop Detector — MCP App Scorecard</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0a0b09;
+      --surface: #121410;
+      --border: #262922;
+      --ink: #ebede8;
+      --muted: #93998b;
+      --accent: #3ddc84;
+      --warn: #eab308;
+      --danger: #ef4444;
+    }
+    body {
+      margin: 0;
+      padding: 16px;
+      background: var(--bg);
+      color: var(--ink);
+      font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    .card {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      padding: 16px;
+      border-radius: 5px;
+    }
+    .hdr {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+    }
+    .badge {
+      font-size: 11px;
+      padding: 2px 6px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+    }
+    .cell {
+      border: 1px solid var(--border);
+      padding: 10px;
+      border-radius: 5px;
+    }
+    .k { color: var(--muted); font-size: 11px; text-transform: uppercase; }
+    .v { font-size: 18px; font-weight: 700; margin-top: 4px; }
+    .note { margin-top: 12px; color: var(--muted); font-size: 11px; }
+  </style>
+</head>
+<body>
+  <div class="card" id="scorecard">
+    <div class="hdr">
+      <strong>SLOP DETECTOR // INSTRUMENT SCORECARD</strong>
+      <span class="badge">uncalibrated beta · defs ${DEFINITIONS_VERSION}</span>
+    </div>
+    <div class="grid">
+      <div class="cell"><div class="k">Design Axis</div><div class="v" id="design-score">matches N default patterns</div></div>
+      <div class="cell"><div class="k">Copy Axis</div><div class="v" id="copy-score">0–100 (lower is better)</div></div>
+      <div class="cell"><div class="k">System (DESIGN.md)</div><div class="v" id="system-score">0–100 (higher is better)</div></div>
+      <div class="cell"><div class="k">AEO Eligibility</div><div class="v" id="aeo-score">0–100 (higher is better)</div></div>
+    </div>
+    <p class="note">Measures convergence onto default template patterns (not page authorship).</p>
+  </div>
+</body>
+</html>`;
 
 // Wrap a tool body so any thrown error (network, ApiError, validation) becomes
 // MCP error content instead of crashing the process. A long-lived server must
@@ -496,6 +616,21 @@ export async function handleCall(name, args) {
     const prompt = await fixPrompt(url, extractScanOptions(args));
     return textResult(prompt);
   }
+  if (name === 'extract_design_system') {
+    const fmt = typeof args?.format === 'string' ? args.format : 'design_md';
+    const result: any = await scanPage(url, { designMd: true });
+    const sysCtx = result?.systemContext || {};
+    let host = 'Site';
+    try {
+      host = new URL(result?.finalUrl || url).hostname.replace(/^www\./, '');
+    } catch {}
+    const md = generateDesignMd(sysCtx, { name: result?.title || host, url });
+    const dtcg = extractDtcgTokens(sysCtx, { name: result?.title || host });
+    if (fmt === 'dtcg') return textResult(JSON.stringify(dtcg, null, 2));
+    if (fmt === 'both')
+      return textResult(`${md}\n\n\`\`\`json\n${JSON.stringify(dtcg, null, 2)}\n\`\`\``);
+    return textResult(md);
+  }
   return asToolResult(`Unknown tool: ${name}`, true);
 }
 
@@ -517,6 +652,21 @@ async function handleLocalScan(name, url, args) {
   if (name === 'fix_prompt') {
     const prompt = await localFixPrompt(url, extractScanOptions(args));
     return textResult(prompt);
+  }
+  if (name === 'extract_design_system') {
+    const fmt = typeof args?.format === 'string' ? args.format : 'design_md';
+    const result: any = await localScan(url, { designMd: true });
+    const sysCtx = result?.systemContext || {};
+    let host = 'Site';
+    try {
+      host = new URL(result?.finalUrl || url).hostname.replace(/^www\./, '');
+    } catch {}
+    const md = generateDesignMd(sysCtx, { name: result?.title || host, url });
+    const dtcg = extractDtcgTokens(sysCtx, { name: result?.title || host });
+    if (fmt === 'dtcg') return textResult(JSON.stringify(dtcg, null, 2));
+    if (fmt === 'both')
+      return textResult(`${md}\n\n\`\`\`json\n${JSON.stringify(dtcg, null, 2)}\n\`\`\``);
+    return textResult(md);
   }
   return asToolResult(`Unknown tool: ${name}`, true);
 }
@@ -628,6 +778,13 @@ export async function loadResource(uri: string) {
         null,
         2
       ),
+    };
+  }
+  if (uri === 'ui://slop-detect/scorecard.html') {
+    return {
+      uri,
+      mimeType: 'text/html;profile=mcp-app',
+      text: MCP_APP_SCORECARD_HTML,
     };
   }
   throw new Error(`Unknown resource URI: ${uri}`);

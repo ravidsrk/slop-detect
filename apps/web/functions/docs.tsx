@@ -32,6 +32,7 @@ import { jsonForScript } from './_render.js';
 import {
   PATTERNS,
   COPY_PATTERNS,
+  CRAFT_CHECKS,
   AEO_CHECKS,
   PRESETS,
   GRADE_BANDS,
@@ -45,6 +46,7 @@ const ORIGIN = 'https://slop-detect.com';
 // with no edit here (MNR-23: the count is never hardcoded).
 const N_DESIGN = PATTERNS.length;
 const N_COPY = COPY_PATTERNS.length;
+const N_CRAFT = CRAFT_CHECKS.length;
 const N_AEO = AEO_CHECKS.length;
 const N_AEO_REQUIRED = AEO_CHECKS.filter((c) => c.severity === 'required').length;
 
@@ -614,6 +616,27 @@ export async function onRequestGet({ request }) {
                 caption="Four-axis telemetry architecture: headless Chromium DOM extraction feeding design, copy, system, and AEO instruments."
               />
 
+              <DocFigure
+                src="/media/architecture-pipeline.svg"
+                alt="Deterministic Scan & Scoring Pipeline schematic"
+                figNum="FIG. 01B"
+                caption="Deterministic scan and scoring pipeline from Playwright / Cloudflare Browser Rendering to the 5-axis telemetry payload."
+              />
+
+              <DocFigure
+                src="/media/five-axis-model.svg"
+                alt="Five-Axis Orthogonal Telemetry Model schematic"
+                figNum="FIG. 01C"
+                caption="Five-axis orthogonal model: Design Slop, Copy Slop, Craft Floor, DESIGN.md System Compliance, and AEO Readiness."
+              />
+
+              <DocFigure
+                src="/media/calibration-funnel.svg"
+                alt="Held-Out Calibration & Promotion Gate schematic"
+                figNum="FIG. 01D"
+                caption="Calibration Protocol v2 (K-01 / K-04): domain-grouped 70/30 held-out split, LR >= 3.0 gate, and Clopper-Pearson 95% CIs."
+              />
+
               {/* Interactive live catalogue explorer */}
               <div class="cat-exp" id="docCatExp">
                 <div class="cat-exp-hd">
@@ -645,6 +668,14 @@ export async function onRequestGet({ request }) {
                       aria-pressed="false"
                     >
                       copy ({N_COPY})
+                    </button>
+                    <button
+                      type="button"
+                      class="cat-pill"
+                      data-cat-filter="craft"
+                      aria-pressed="false"
+                    >
+                      craft ({N_CRAFT})
                     </button>
                     <button
                       type="button"
@@ -702,6 +733,18 @@ export async function onRequestGet({ request }) {
                       <span class="cat-lbl">{p.label}</span>
                       <span class="cat-w" style="color:var(--mild-text)">
                         +{p.weight}
+                      </span>
+                    </div>
+                  ))}
+                  {CRAFT_CHECKS.map((p) => (
+                    <div class="cat-row" data-cat-row="1" data-axis="craft" data-cat="craft">
+                      <span class="cat-id">{p.id}</span>
+                      <span class="cat-cat" style="color:var(--system-text)">
+                        craft
+                      </span>
+                      <span class="cat-lbl">{p.label}</span>
+                      <span class="cat-w" style="color:var(--system-text)">
+                        -{p.weight}
                       </span>
                     </div>
                   ))}

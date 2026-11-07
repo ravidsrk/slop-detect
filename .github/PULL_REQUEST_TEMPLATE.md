@@ -1,32 +1,21 @@
-<!-- Thanks for the PR! Fill in the relevant sections. Delete the ones that don't apply. -->
+## Summary
 
-## What this PR does
+<!-- Describe what this PR changes and link the tracking issue (e.g. Closes #...). -->
 
-<!-- One sentence -->
+## Verification
 
-## Type
+- [ ] `bun run test` passes across all workspaces
+- [ ] `bun run typecheck` and `bun run format:check` pass
+- [ ] Copy and UI strings follow **K-06** (never claim a page is "AI-generated"; report matched default-template patterns and evidence)
+- [ ] Pattern counts are read dynamically from `/api/patterns` / `@slop-detect/core` (never hardcoded)
 
-- [ ] New pattern (#17, #18, ...)
-- [ ] Improved fix recipe
-- [ ] Bug fix in detection logic
-- [ ] Bug fix in scoring / output
-- [ ] Documentation
-- [ ] Tooling / CI / repo plumbing
+## K-04 Rule & Weight Gate (Required if adding a rule or changing a rule weight)
 
-## Checklist
-
-- [ ] `bun run format:check` and `bun run typecheck` pass
-- [ ] `bun run test` is green
-- [ ] I ran the CLI against ≥2 URLs and confirmed the change behaves correctly
-- [ ] If new pattern: linked the proposal issue, included ≥10 real-world examples in the description
-- [ ] If fix-recipe: included a before/after comparison of the generated prompt
-- [ ] README / spec updated if public surface changed
-
-## Test URLs
-
-<!-- Which URLs did you run the CLI / web against to validate this? -->
-
-- `https://...` — before: <score> / after: <score>
-- `https://...` — before: <score> / after: <score>
-
-## Anything else
+- [ ] **New rule or broadened matcher:** Enters at `weight: 0` with `status: 'review'` (`rule:weight-0`)
+- [ ] **Weight promotion (`weight > 0`):**
+  - Held-out Likelihood Ratio (`LR >= 3.0`): `___`
+  - 95% Clopper-Pearson CI: `[___, ___]`
+  - Pre-2022 human control FPR: `___`
+  - Heavy FPR delta on held-out set (`<= 0`): `___`
+  - Pioneer regression suite (`K-05`) passes with zero Heavy verdicts
+  - `DEFINITIONS_VERSION` bumped and corpus score deltas published

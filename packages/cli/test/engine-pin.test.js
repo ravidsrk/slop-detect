@@ -11,7 +11,7 @@ const pkg = JSON.parse(
 
 test('playwright dependency is pinned to an exact semver (no caret)', () => {
   expect(pkg.dependencies.playwright).toMatch(/^\d+\.\d+\.\d+$/);
-  expect(pkg.dependencies.playwright).toBe('1.60.0');
+  expect(pkg.dependencies.playwright).toBe('1.65.0');
 });
 
 test(

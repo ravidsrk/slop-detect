@@ -10,6 +10,10 @@ is too sloppy.
 The slop **score is 0–100 where _lower is better_** (Clean `0–9`, Mild `10–27`,
 Heavy `28+`), surfaced as a letter grade (`A+ … F`).
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/ravidsrk/slop-detect/main/apps/web/public/media/docs-ci-mcp-loop.png" alt="Closed-Loop Anti-Slop Engineering Workflow (MCP + CI Gate)" width="100%" />
+</p>
+
 ---
 
 ## Security (`pull_request_target` and `url`)

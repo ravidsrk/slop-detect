@@ -30,6 +30,7 @@ import {
   addToEmailIndex,
   watchVerifyAllowed,
   deferFlowBump,
+  validateScanUrl,
 } from '../_shared.js';
 import { emailConfigured, sendEmail } from '../_email.js';
 import { buildVerificationEmail, mailFooter } from '../_alerts.js';
@@ -136,10 +137,30 @@ export async function onRequestPost({ request, env, waitUntil }) {
   const systemMonitoring =
     body.system === true ? true : body.system === false ? false : (existing?.system ?? false);
 
+  // Optional webhook URL (#335): must be HTTPS and pass SSRF validation.
+  let webhookUrl = existing?.webhookUrl ?? null;
+  if (body.webhookUrl === null || body.webhookUrl === '') {
+    webhookUrl = null;
+  } else if (typeof body.webhookUrl === 'string') {
+    const trimmedHook = body.webhookUrl.trim();
+    if (!/^https:\/\//i.test(trimmedHook)) {
+      return json({ error: 'webhookUrl must use https://' }, 400);
+    }
+    const hv = validateScanUrl(trimmedHook);
+    if (hv.error) {
+      return json({ error: `webhookUrl: ${hv.error}` }, hv.status || 400);
+    }
+    webhookUrl = hv.url;
+  }
+
   const watch = {
     domain,
     email,
     system: systemMonitoring,
+    webhookUrl,
+    webhookFailures: existing?.webhookUrl === webhookUrl ? (existing?.webhookFailures ?? 0) : 0,
+    webhookDisabled:
+      existing?.webhookUrl === webhookUrl ? (existing?.webhookDisabled ?? false) : false,
     plan: existing?.plan || 'trial',
     createdAt: existing?.createdAt || now,
     updatedAt: now,

@@ -1,0 +1,16 @@
+{
+  "description": "Run a local Slop Detector scan after UI file edits when SLOP_LOCAL_URL is configured.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/../../packages/mcp/hooks/scan-local.mjs\""
+          }
+        ]
+      }
+    ]
+  }
+}

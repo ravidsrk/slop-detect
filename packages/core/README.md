@@ -6,6 +6,10 @@ This is the heart of [`slop-detect`](https://github.com/ravidsrk/slop-detect). I
 
 > **Package name:** published to npm as **`slop-detect-core`**. Inside this monorepo the workspace is named `@slop-detect/core`; that scoped name is not published to npm.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/ravidsrk/slop-detect/main/apps/web/public/media/five-axis-model.svg" alt="Five-Axis Orthogonal Telemetry Model" width="100%" />
+</p>
+
 ## Install
 
 ```bash

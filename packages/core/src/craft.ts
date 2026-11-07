@@ -24,18 +24,6 @@ export interface CraftCheckMeta {
   extract: (ctx: any) => any;
 }
 
-const GENERIC_LABELS = new Set([
-  'learn more',
-  'read more',
-  'click here',
-  'more',
-  'here',
-  'submit',
-  'click',
-]);
-
-const PLACEHOLDER_ALT_NAMES = new Set(['image', 'photo', 'picture', 'placeholder']);
-
 // Pure helper for F-02 (#257) mobile reflow failure evaluation.
 export function evaluateMobileReflow(input: {
   viewportWidth?: number;
@@ -843,7 +831,7 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
         if (checked++ > 1500) break;
         if (
           el.closest(
-            'details:not([open]), [hidden], [aria-hidden="true"], [role="tabpanel"][hidden], script, style, noscript, template'
+            'details:not([open]), [hidden], [aria-hidden="true"], [role="tabpanel"][hidden], [role="status"], [role="alert"], [role="tooltip"], [role="dialog"], [aria-live], .toast, script, style, noscript, template'
           )
         ) {
           continue;

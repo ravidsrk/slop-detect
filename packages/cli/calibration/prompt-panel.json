@@ -1,0 +1,536 @@
+{
+  "schemaVersion": 1,
+  "panelVersion": "2026.Q2",
+  "definitionsVersion": "2026.11",
+  "description": "K-09 (#304) Quarterly Prompt-Panel & Tell Half-Life Benchmark: 40 deterministic prompts (8 verticals × 5 prompt styles) used to measure default-template tell drift and half-life across page generators.",
+  "verticals": [
+    {
+      "id": "saas",
+      "label": "B2B SaaS Workflow & Analytics",
+      "domainArchetype": "Multi-tenant operations, audit logs, and team permissions"
+    },
+    {
+      "id": "devtools",
+      "label": "Developer CLI, SDK & Cloud Infrastructure",
+      "domainArchetype": "Local-first CLI binary, terminal benchmarks, and API reference"
+    },
+    {
+      "id": "fintech",
+      "label": "Treasury, Payments & Ledger Infrastructure",
+      "domainArchetype": "Double-entry settlement, ACH/wire rails, and reconciliation"
+    },
+    {
+      "id": "healthcare",
+      "label": "Clinical Operations & Patient Intake",
+      "domainArchetype": "HIPAA-compliant triage, EHR HL7/FHIR sync, and shift handoff"
+    },
+    {
+      "id": "ecommerce",
+      "label": "Specialty Direct-to-Consumer Goods",
+      "domainArchetype": "Single-origin hardware/goods, batch provenance, and repair specs"
+    },
+    {
+      "id": "agency_portfolio",
+      "label": "Independent Design & Engineering Studio",
+      "domainArchetype": "Case studies, shipped industrial/digital artifacts, and studio index"
+    },
+    {
+      "id": "ai_ml_product",
+      "label": "Model Evaluation & Inference Gateway",
+      "domainArchetype": "Token latency p99 tables, eval harnesses, and batch routing"
+    },
+    {
+      "id": "oss_docs",
+      "label": "Open-Source Library & Specification Hub",
+      "domainArchetype": "RFC normative tables, conformance vectors, and zero-dep install"
+    }
+  ],
+  "promptStyles": [
+    {
+      "id": "zero_shot_minimal",
+      "label": "Zero-Shot Minimal",
+      "description": "Single-sentence underspecified prompt ('Build a landing page for X'). Exercises raw generator default priors."
+    },
+    {
+      "id": "vibe_prompt",
+      "label": "Vibe / Trend Prompt",
+      "description": "Adjective-heavy prompt requesting 'modern, sleek, futuristic, high-converting SaaS aesthetic'."
+    },
+    {
+      "id": "detailed_prd",
+      "label": "Detailed Product Spec (No CSS Tokens)",
+      "description": "Concrete product copy, metrics, and section requirements without specifying colors, fonts, or radii."
+    },
+    {
+      "id": "anti_slop_prompt",
+      "label": "Explicit Negative-Constraint Prompt",
+      "description": "Prompt with explicit avoid-list prohibiting purple accents, gradient text, Inter/Space Grotesk, pill badges, and 3-card grids."
+    },
+    {
+      "id": "skill_assisted",
+      "label": "DESIGN.md + Slop-Detect Skill Assisted",
+      "description": "Prompt paired with a normative DESIGN.md YAML token contract and pre-commit slop-detect verification instructions."
+    }
+  ],
+  "generators": [
+    "v0",
+    "lovable",
+    "bolt",
+    "cursor",
+    "claude_artifacts"
+  ],
+  "tellHalfLifeTable": [
+    {
+      "patternId": "purple_accent",
+      "axis": "design",
+      "prevalence2025Q4": 0.68,
+      "prevalence2026Q1": 0.59,
+      "prevalence2026Q2": 0.52,
+      "estimatedHalfLifeQuarters": 5.1,
+      "driftStatus": "decaying_slowly",
+      "successorCandidate": "editorial_cream_kit"
+    },
+    {
+      "patternId": "gradient_text",
+      "axis": "design",
+      "prevalence2025Q4": 0.64,
+      "prevalence2026Q1": 0.55,
+      "prevalence2026Q2": 0.48,
+      "estimatedHalfLifeQuarters": 4.8,
+      "driftStatus": "decaying_slowly",
+      "successorCandidate": "display_mono_heading"
+    },
+    {
+      "patternId": "slop_fonts",
+      "axis": "design",
+      "prevalence2025Q4": 0.82,
+      "prevalence2026Q1": 0.79,
+      "prevalence2026Q2": 0.76,
+      "estimatedHalfLifeQuarters": 18.0,
+      "driftStatus": "persistent_default",
+      "successorCandidate": "geist_default_stack"
+    },
+    {
+      "patternId": "pill_badge",
+      "axis": "design",
+      "prevalence2025Q4": 0.71,
+      "prevalence2026Q1": 0.66,
+      "prevalence2026Q2": 0.61,
+      "estimatedHalfLifeQuarters": 9.2,
+      "driftStatus": "persistent_default",
+      "successorCandidate": "version_chip_mono"
+    },
+    {
+      "patternId": "three_card_grid",
+      "axis": "design",
+      "prevalence2025Q4": 0.74,
+      "prevalence2026Q1": 0.70,
+      "prevalence2026Q2": 0.67,
+      "estimatedHalfLifeQuarters": 14.1,
+      "driftStatus": "persistent_default",
+      "successorCandidate": "bento_grid"
+    },
+    {
+      "patternId": "bento_grid",
+      "axis": "design",
+      "prevalence2025Q4": 0.31,
+      "prevalence2026Q1": 0.42,
+      "prevalence2026Q2": 0.49,
+      "estimatedHalfLifeQuarters": null,
+      "driftStatus": "rising_cohort_2026",
+      "successorCandidate": null
+    },
+    {
+      "patternId": "editorial_cream_kit",
+      "axis": "design",
+      "prevalence2025Q4": 0.14,
+      "prevalence2026Q1": 0.27,
+      "prevalence2026Q2": 0.38,
+      "estimatedHalfLifeQuarters": null,
+      "driftStatus": "rising_cohort_2026",
+      "successorCandidate": null
+    },
+    {
+      "patternId": "copy.unlock_unleash_supercharge",
+      "axis": "copy",
+      "prevalence2025Q4": 0.58,
+      "prevalence2026Q1": 0.51,
+      "prevalence2026Q2": 0.44,
+      "estimatedHalfLifeQuarters": 5.0,
+      "driftStatus": "decaying_slowly",
+      "successorCandidate": "copy.built_for_modern_teams"
+    },
+    {
+      "patternId": "copy.seamless_effortless",
+      "axis": "copy",
+      "prevalence2025Q4": 0.62,
+      "prevalence2026Q1": 0.57,
+      "prevalence2026Q2": 0.53,
+      "estimatedHalfLifeQuarters": 8.8,
+      "driftStatus": "persistent_default",
+      "successorCandidate": null
+    }
+  ],
+  "prompts": [
+    {
+      "id": "P-01",
+      "vertical": "saas",
+      "style": "zero_shot_minimal",
+      "seed": 20260201,
+      "expectedStratum": "b",
+      "prompt": "Build a landing page for ChronicleOps, a B2B SaaS platform for incident retrospectives and SLA tracking.",
+      "targetTells": ["purple_accent", "gradient_text", "pill_badge", "three_card_grid", "slop_fonts"]
+    },
+    {
+      "id": "P-02",
+      "vertical": "saas",
+      "style": "vibe_prompt",
+      "seed": 20260202,
+      "expectedStratum": "b",
+      "prompt": "Create a sleek, modern, futuristic, high-converting SaaS landing page for ChronicleOps with glowing cards, bento feature grid, and social proof.",
+      "targetTells": ["perma_dark_mode", "glowing_cards", "bento_grid", "fake_metrics", "copy.unlock_unleash_supercharge"]
+    },
+    {
+      "id": "P-03",
+      "vertical": "saas",
+      "style": "detailed_prd",
+      "seed": 20260203,
+      "expectedStratum": "b",
+      "prompt": "Build the marketing page for ChronicleOps. Include: (1) Hero explaining pager-to-postmortem timeline assembly in 90 seconds, (2) comparison table of MTTR across P0/P1 incidents, (3) SOC 2 Type II and SAML 2.0 compliance section, and (4) 3-tier per-seat pricing ($18, $39, $79/user/month).",
+      "targetTells": ["three_tier_pricing", "centered_hero", "slop_fonts"]
+    },
+    {
+      "id": "P-04",
+      "vertical": "saas",
+      "style": "anti_slop_prompt",
+      "seed": 20260204,
+      "expectedStratum": "a",
+      "prompt": "Build a landing page for ChronicleOps (incident retrospective software). Do NOT use purple accents, gradient text, glowing borders, pill badges above headings, 3-card icon grids, or Inter/Space Grotesk fonts. Use a high-contrast tabular layout with concrete incident timestamps.",
+      "targetTells": []
+    },
+    {
+      "id": "P-05",
+      "vertical": "saas",
+      "style": "skill_assisted",
+      "seed": 20260205,
+      "expectedStratum": "a",
+      "prompt": "Build the ChronicleOps landing page adhering strictly to DESIGN.md (surface #F6F4EE, ink #181815, primary #1F5E3B, IBM Plex Mono, radii 2px/4px) and verify score < 10 with slop-detect.",
+      "targetTells": []
+    },
+    {
+      "id": "P-06",
+      "vertical": "devtools",
+      "style": "zero_shot_minimal",
+      "seed": 20260206,
+      "expectedStratum": "b",
+      "prompt": "Build a landing page for anvil-trace, a fast CLI profiler for Rust and Go binaries.",
+      "targetTells": ["perma_dark_mode", "purple_accent", "gradient_text", "pill_badge"]
+    },
+    {
+      "id": "P-07",
+      "vertical": "devtools",
+      "style": "vibe_prompt",
+      "seed": 20260207,
+      "expectedStratum": "b",
+      "prompt": "Design a dark-mode next-gen developer tool landing page for anvil-trace with neon gradients, glassmorphism, and floating terminal badges.",
+      "targetTells": ["perma_dark_mode", "glassmorphic_card", "glowing_cards", "gradient_text", "badge_soup"]
+    },
+    {
+      "id": "P-08",
+      "vertical": "devtools",
+      "style": "detailed_prd",
+      "seed": 20260208,
+      "expectedStratum": "b",
+      "prompt": "Create the homepage for anvil-trace v1.4.0. Show `curl -fsSL https://anvil-trace.dev/install.sh | sh`, a flamegraph dwarf-unwind overhead table (1.2% CPU at 999Hz), Linux perf_event_open kernel requirements (>= 5.15), and MIT license footer.",
+      "targetTells": ["slop_fonts", "centered_hero"]
+    },
+    {
+      "id": "P-09",
+      "vertical": "devtools",
+      "style": "anti_slop_prompt",
+      "seed": 20260209,
+      "expectedStratum": "a",
+      "prompt": "Build the anvil-trace v1.4.0 CLI homepage. Avoid all default template patterns: no purple/indigo accents, no gradient headings, no radial spotlights, no 3-column Lucide icon cards, and no marketing superlatives.",
+      "targetTells": []
+    },
+    {
+      "id": "P-10",
+      "vertical": "devtools",
+      "style": "skill_assisted",
+      "seed": 20260210,
+      "expectedStratum": "a",
+      "prompt": "Build the anvil-trace CLI page using the repo DESIGN.md tokens and run `npx slop-detect` to ensure 0 triggered design or copy patterns.",
+      "targetTells": []
+    },
+    {
+      "id": "P-11",
+      "vertical": "fintech",
+      "style": "zero_shot_minimal",
+      "seed": 20260211,
+      "expectedStratum": "b",
+      "prompt": "Build a landing page for LedgerLine, an API for automated treasury and multi-currency reconciliation.",
+      "targetTells": ["purple_accent", "three_card_grid", "pill_badge", "fake_metrics"]
+    },
+    {
+      "id": "P-12",
+      "vertical": "fintech",
+      "style": "vibe_prompt",
+      "seed": 20260212,
+      "expectedStratum": "b",
+      "prompt": "Make an ultra-clean, warm editorial fintech landing page for LedgerLine with serif display typography, cream surfaces, and bento cards.",
+      "targetTells": ["editorial_cream_kit", "cream_default_bg", "bento_grid", "pill_badge"]
+    },
+    {
+      "id": "P-13",
+      "vertical": "fintech",
+      "style": "detailed_prd",
+      "seed": 20260213,
+      "expectedStratum": "b",
+      "prompt": "Build the LedgerLine product page covering FedNow/RTP settlement windows, ISO 20022 `camt.053` ingestion latency (< 450ms per 10k entries), immutable double-entry idempotency keys, and basis-point volume pricing.",
+      "targetTells": ["slop_fonts", "three_card_grid"]
+    },
+    {
+      "id": "P-14",
+      "vertical": "fintech",
+      "style": "anti_slop_prompt",
+      "seed": 20260214,
+      "expectedStratum": "a",
+      "prompt": "Create the LedgerLine treasury API page. Do not use gradients, blurred backdrop cards, unanchored percentages ('10x faster'), pill eyebrow badges, or generic testimonials.",
+      "targetTells": []
+    },
+    {
+      "id": "P-15",
+      "vertical": "fintech",
+      "style": "skill_assisted",
+      "seed": 20260215,
+      "expectedStratum": "a",
+      "prompt": "Implement the LedgerLine landing page governed by DESIGN.md and verify AEO + design compliance via slop-detect.",
+      "targetTells": []
+    },
+    {
+      "id": "P-16",
+      "vertical": "healthcare",
+      "style": "zero_shot_minimal",
+      "seed": 20260216,
+      "expectedStratum": "b",
+      "prompt": "Build a landing page for WardSync, a clinical shift handoff and patient intake platform for hospitals.",
+      "targetTells": ["three_card_grid", "pill_badge", "slop_fonts", "copy.seamless_effortless"]
+    },
+    {
+      "id": "P-17",
+      "vertical": "healthcare",
+      "style": "vibe_prompt",
+      "seed": 20260217,
+      "expectedStratum": "b",
+      "prompt": "Design a modern AI-powered healthcare landing page for WardSync with soft gradients, floating glass cards, and glowing call-to-action buttons.",
+      "targetTells": ["gradient_text", "glassmorphic_card", "gradient_cta", "copy.unlock_unleash_supercharge"]
+    },
+    {
+      "id": "P-18",
+      "vertical": "healthcare",
+      "style": "detailed_prd",
+      "seed": 20260218,
+      "expectedStratum": "b",
+      "prompt": "Build the WardSync clinical operations page. Detail HL7 FHIR R4 `Encounter` bi-directional sync with Epic and Cerner, I-PASS resident sign-out checklist verification, BAA execution workflow, and 99.95% inpatient uptime SLA.",
+      "targetTells": ["slop_fonts", "centered_hero"]
+    },
+    {
+      "id": "P-19",
+      "vertical": "healthcare",
+      "style": "anti_slop_prompt",
+      "seed": 20260219,
+      "expectedStratum": "a",
+      "prompt": "Build the WardSync hospital shift handoff page. Strictly avoid decorative blobs, purple/cyan gradients, stock avatar rings, and vague claims like 'revolutionize patient care'.",
+      "targetTells": []
+    },
+    {
+      "id": "P-20",
+      "vertical": "healthcare",
+      "style": "skill_assisted",
+      "seed": 20260220,
+      "expectedStratum": "a",
+      "prompt": "Build the WardSync page with explicit DESIGN.md tokens, accessible WCAG AAA contrast, and zero slop-detect pattern triggers.",
+      "targetTells": []
+    },
+    {
+      "id": "P-21",
+      "vertical": "ecommerce",
+      "style": "zero_shot_minimal",
+      "seed": 20260221,
+      "expectedStratum": "b",
+      "prompt": "Build a landing page for Kobo Fieldworks, a brand selling machined aluminum mechanical pencils and field notebooks.",
+      "targetTells": ["centered_hero", "three_card_grid", "pill_badge", "slop_fonts"]
+    },
+    {
+      "id": "P-22",
+      "vertical": "ecommerce",
+      "style": "vibe_prompt",
+      "seed": 20260222,
+      "expectedStratum": "b",
+      "prompt": "Create a warm editorial luxury storefront for Kobo Fieldworks with cream backgrounds, Instrument Serif headers, and rounded bento product highlights.",
+      "targetTells": ["editorial_cream_kit", "cream_default_bg", "bento_grid", "uniform_radius_shadow"]
+    },
+    {
+      "id": "P-23",
+      "vertical": "ecommerce",
+      "style": "detailed_prd",
+      "seed": 20260223,
+      "expectedStratum": "b",
+      "prompt": "Create the Kobo Fieldworks Model 04 Draftsman Pencil page: 6061-T6 bar stock, 9.4mm knurled grip, 24.2g weight balance table, brass Schmidt DSM 2006 0.5mm chuck specification, and spare parts schematic.",
+      "targetTells": ["slop_fonts"]
+    },
+    {
+      "id": "P-24",
+      "vertical": "ecommerce",
+      "style": "anti_slop_prompt",
+      "seed": 20260224,
+      "expectedStratum": "a",
+      "prompt": "Build the Kobo Fieldworks Model 04 specification sheet page. Use an industrial datasheet grid; do not use pill badges, gradient buttons, 3-column feature cards, or marketing buzzwords.",
+      "targetTells": []
+    },
+    {
+      "id": "P-25",
+      "vertical": "ecommerce",
+      "style": "skill_assisted",
+      "seed": 20260225,
+      "expectedStratum": "a",
+      "prompt": "Build the Kobo Fieldworks specification page bound to DESIGN.md tokens and validated with slop-detect.",
+      "targetTells": []
+    },
+    {
+      "id": "P-26",
+      "vertical": "agency_portfolio",
+      "style": "zero_shot_minimal",
+      "seed": 20260226,
+      "expectedStratum": "b",
+      "prompt": "Build a portfolio website for Studio Meridian, a digital product design and systems engineering studio.",
+      "targetTells": ["centered_hero", "purple_accent", "gradient_text", "three_card_grid"]
+    },
+    {
+      "id": "P-27",
+      "vertical": "agency_portfolio",
+      "style": "vibe_prompt",
+      "seed": 20260227,
+      "expectedStratum": "b",
+      "prompt": "Build an award-winning agency landing page for Studio Meridian with glassmorphism, dark mode spotlight gradients, and kinetic bento case study cards.",
+      "targetTells": ["perma_dark_mode", "glassmorphic_card", "bento_grid", "glowing_cards", "copy.delve_tapestry_landscape"]
+    },
+    {
+      "id": "P-28",
+      "vertical": "agency_portfolio",
+      "style": "detailed_prd",
+      "seed": 20260228,
+      "expectedStratum": "b",
+      "prompt": "Create the Studio Meridian index page listing 14 shipped industrial and embedded UI engagements (2019–2026) with client, year, hardware target, and deliverable archive links.",
+      "targetTells": ["slop_fonts"]
+    },
+    {
+      "id": "P-29",
+      "vertical": "agency_portfolio",
+      "style": "anti_slop_prompt",
+      "seed": 20260229,
+      "expectedStratum": "a",
+      "prompt": "Create an index-first portfolio for Studio Meridian. No hero banner, no purple accents, no gradient text, no 'We craft digital experiences' copy, and no 3-card service grids.",
+      "targetTells": []
+    },
+    {
+      "id": "P-30",
+      "vertical": "agency_portfolio",
+      "style": "skill_assisted",
+      "seed": 20260230,
+      "expectedStratum": "a",
+      "prompt": "Build the Studio Meridian archive table adhering to DESIGN.md and passing `slop-detect --fail-on mild`.",
+      "targetTells": []
+    },
+    {
+      "id": "P-31",
+      "vertical": "ai_ml_product",
+      "style": "zero_shot_minimal",
+      "seed": 20260231,
+      "expectedStratum": "b",
+      "prompt": "Build a landing page for TensorGate, an AI model routing and evaluation gateway.",
+      "targetTells": ["perma_dark_mode", "purple_accent", "gradient_text", "glowing_cards", "pill_badge", "copy.unlock_unleash_supercharge"]
+    },
+    {
+      "id": "P-32",
+      "vertical": "ai_ml_product",
+      "style": "vibe_prompt",
+      "seed": 20260232,
+      "expectedStratum": "b",
+      "prompt": "Design a futuristic AI infrastructure landing page for TensorGate with glowing violet meshes, glassmorphic cards, and 'Supercharge your AI workflow' hero copy.",
+      "targetTells": ["perma_dark_mode", "purple_accent", "gradient_text", "glassmorphic_card", "glowing_cards", "copy.unlock_unleash_supercharge"]
+    },
+    {
+      "id": "P-33",
+      "vertical": "ai_ml_product",
+      "style": "detailed_prd",
+      "seed": 20260233,
+      "expectedStratum": "b",
+      "prompt": "Build the TensorGate routing documentation and landing page: OpenAI-compatible `/v1/chat/completions` proxy overhead (0.8ms median), fallback circuit-breaker YAML config, and token cost attribution per org header.",
+      "targetTells": ["perma_dark_mode", "slop_fonts", "purple_accent"]
+    },
+    {
+      "id": "P-34",
+      "vertical": "ai_ml_product",
+      "style": "anti_slop_prompt",
+      "seed": 20260234,
+      "expectedStratum": "a",
+      "prompt": "Build the TensorGate inference proxy landing page. Use a light paper surface, monospace latency tables, and zero purple/indigo/violet accents, zero glowing borders, and zero hype adjectives.",
+      "targetTells": []
+    },
+    {
+      "id": "P-35",
+      "vertical": "ai_ml_product",
+      "style": "skill_assisted",
+      "seed": 20260235,
+      "expectedStratum": "a",
+      "prompt": "Build the TensorGate benchmark and docs landing page using DESIGN.md tokens and verify Clean tier on design, copy, and craft axes.",
+      "targetTells": []
+    },
+    {
+      "id": "P-36",
+      "vertical": "oss_docs",
+      "style": "zero_shot_minimal",
+      "seed": 20260236,
+      "expectedStratum": "b",
+      "prompt": "Build a documentation landing page for libschema-c, a zero-allocation JSON Schema validator in C99.",
+      "targetTells": ["centered_hero", "three_card_grid", "pill_badge", "slop_fonts"]
+    },
+    {
+      "id": "P-37",
+      "vertical": "oss_docs",
+      "style": "vibe_prompt",
+      "seed": 20260237,
+      "expectedStratum": "b",
+      "prompt": "Make a modern developer documentation homepage for libschema-c with gradient hero text, glowing feature cards, and pill version badges.",
+      "targetTells": ["gradient_text", "glowing_cards", "pill_badge", "three_card_grid"]
+    },
+    {
+      "id": "P-38",
+      "vertical": "oss_docs",
+      "style": "detailed_prd",
+      "seed": 20260238,
+      "expectedStratum": "b",
+      "prompt": "Create the libschema-c v0.9.2 reference page: Draft 2020-12 compliance matrix, arena allocator API (`schema_arena_init`), SIMD UTF-8 validation throughput (3.4 GB/s on AVX2), and tarball SHA-256 checksums.",
+      "targetTells": ["slop_fonts"]
+    },
+    {
+      "id": "P-39",
+      "vertical": "oss_docs",
+      "style": "anti_slop_prompt",
+      "seed": 20260239,
+      "expectedStratum": "a",
+      "prompt": "Build the libschema-c v0.9.2 manual page in the style of a POSIX manpage and RFC specification index. No hero marketing banner, no icon cards, no gradients.",
+      "targetTells": []
+    },
+    {
+      "id": "P-40",
+      "vertical": "oss_docs",
+      "style": "skill_assisted",
+      "seed": 20260240,
+      "expectedStratum": "a",
+      "prompt": "Build the libschema-c specification landing page following DESIGN.md and passing all slop-detect design, copy, craft, and AEO checks.",
+      "targetTells": []
+    }
+  ]
+}

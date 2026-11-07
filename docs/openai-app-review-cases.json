@@ -1,0 +1,73 @@
+{
+  "app": "Slop Detector",
+  "version": "0.8.0",
+  "endpoint": "https://slop-detect.com/mcp",
+  "positiveCases": [
+    {
+      "id": "pos-1-scan-page",
+      "prompt": "Scan https://slop-detect.com for default-template design and copy patterns.",
+      "expectedTool": "scan_page",
+      "expectedArguments": {
+        "url": "https://slop-detect.com",
+        "axes": ["design", "copy"]
+      },
+      "expectedBehavior": "Calls scan_page and reports the numeric score, grade, tier (Clean/Mild/Heavy), and triggered default-template patterns with DOM/CSS evidence without making authorship claims."
+    },
+    {
+      "id": "pos-2-check-aeo",
+      "prompt": "Check whether search and answer-engine crawlers can fetch and index https://slop-detect.com.",
+      "expectedTool": "check_aeo",
+      "expectedArguments": {
+        "url": "https://slop-detect.com"
+      },
+      "expectedBehavior": "Calls check_aeo and returns the AEO eligibility score, tier (Eligible/Partially Eligible/Restricted), and per-check breakdown (robots.searchAllowed, html.serverTextCoverage, site.llmsTxt)."
+    },
+    {
+      "id": "pos-3-check-design-system",
+      "prompt": "Verify whether https://slop-detect.com conforms to its declared DESIGN.md tokens.",
+      "expectedTool": "check_design_system",
+      "expectedArguments": {
+        "url": "https://slop-detect.com"
+      },
+      "expectedBehavior": "Calls check_design_system and reports the 0-100 system compliance score, tier (Aligned/Drifting/Off-system), and any token drift."
+    },
+    {
+      "id": "pos-4-fix-prompt",
+      "prompt": "Generate a remediation prompt to clean up the default-template patterns on https://slop-detect.com.",
+      "expectedTool": "fix_prompt",
+      "expectedArguments": {
+        "url": "https://slop-detect.com"
+      },
+      "expectedBehavior": "Calls fix_prompt and returns a deterministic, copy-pasteable engineering brief listing concrete CSS/DOM/copy adjustments."
+    },
+    {
+      "id": "pos-5-lint-design-md",
+      "prompt": "Lint this DESIGN.md content for missing token sections and low-contrast colour pairs:\n---\nversion: \"alpha\"\ntokens:\n  color:\n    background:\n      $type: color\n      $value: \"#0a0a0a\"\n---",
+      "expectedTool": "lint_design_md",
+      "expectedArguments": {
+        "content": "---\nversion: \"alpha\"\ntokens:\n  color:\n    background:\n      $type: color\n      $value: \"#0a0a0a\"\n---"
+      },
+      "expectedBehavior": "Calls lint_design_md and returns structured validation findings for the supplied DESIGN.md document."
+    }
+  ],
+  "negativeCases": [
+    {
+      "id": "neg-1-general-coding",
+      "prompt": "Write a TypeScript binary search function over a sorted array of numbers.",
+      "expectedTool": null,
+      "expectedBehavior": "Does not invoke any Slop Detector MCP tool because no web page audit, DESIGN.md check, or AEO check was requested."
+    },
+    {
+      "id": "neg-2-unrelated-math",
+      "prompt": "What is the derivative of sin(x^2) with respect to x?",
+      "expectedTool": null,
+      "expectedBehavior": "Answers directly without calling any Slop Detector MCP tool."
+    },
+    {
+      "id": "neg-3-private-localhost-remote-mcp",
+      "prompt": "Use the hosted Slop Detector server to scan http://localhost:3000.",
+      "expectedTool": "scan_page",
+      "expectedBehavior": "Rejects or warns that private/loopback URLs cannot be fetched by the remote https://slop-detect.com/mcp endpoint (SSRF guard) and instructs the user to run `npx slop-detect http://localhost:3000` or `npx -y slop-detect-mcp --local`."
+    }
+  ]
+}

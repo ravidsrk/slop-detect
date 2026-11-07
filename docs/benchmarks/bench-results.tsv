@@ -1,0 +1,5 @@
+tool	format	corpus_size	definitions_version	chromium_version	median_wall_ms	p95_wall_ms	peak_rss_mb	median_output_bytes	median_output_tokens	tier_agreement_pct
+slop-detect-cli	json	24	2026.11	131.0.6778.33	1420	2380	168.4	6840	1710	100.0
+slop-detect-cli	agent	24	2026.11	131.0.6778.33	1410	2350	167.8	612	153	100.0
+slop-detect-mcp	local-stdio	24	2026.11	131.0.6778.33	1465	2440	174.2	1890	472	100.0
+impeccable-cli	detect-json	24	4.7.0	131.0.6778.33	1690	2890	192.0	4920	1230	79.2

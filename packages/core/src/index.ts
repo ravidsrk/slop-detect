@@ -151,6 +151,7 @@ export {
   AI_BOT_REGISTRY,
   AEO_CHECKS,
   AEO_SCANNER_USER_AGENT,
+  LIGHTHOUSE_AGENT_AXE_RULES,
   detectAIBot,
   aiBotsBlockedByRobots,
   parseRobotsTxt,
@@ -159,6 +160,7 @@ export {
   parseContentUsage,
   parseContentSignal,
   detectPromptInjection,
+  evaluateAgentOperability,
   toMarkdownUrl,
   runAeoChecks,
   runAeoChecks as scoreAeo,
@@ -182,10 +184,42 @@ export {
   applyDesignSystemWaivers,
   computeOklabHistogramDistance,
   buildSystemTokenDiff,
+  stripTransparentShadowLayers,
+  shadowsMatchWithinTolerance,
   primaryFamily,
   parseCssColor,
   SYSTEM_CHECKS,
 } from './system.js';
+export {
+  EXPERIMENTAL_DESIGN_WATCHLIST,
+  EXPERIMENTAL_COPY_WATCHLIST,
+  GREEK_MATH_TOKEN_RE,
+  evaluateExperimentalCopyWatchlist,
+  evaluateExperimentalWatchlist,
+  type ExperimentalWatchlistItem,
+} from './experimental.js';
+export {
+  parseSlopRc,
+  resolveSlopConfigForUrl,
+  shouldRunPatternOrAxis,
+  extractInlineWaivers,
+  applyConfigAndInlineWaivers,
+  normalizeAssertionSpec,
+  type AssertionLevel,
+  type AssertionOptions,
+  type RawAssertionSpec,
+  type NormalizedAssertion,
+  type SlopRcMatrixEntry,
+  type SlopRcConfig,
+  type InlineWaiver,
+} from './config.js';
+export {
+  evaluateSkillBenchmark,
+  formatBenchTsv,
+  type BenchPair,
+  type BenchPatternDelta,
+  type BenchReport,
+} from './bench.js';
 export {
   buildPageScript,
   buildMobileReflowScript,
@@ -217,6 +251,8 @@ import { applyDesignSystemWaivers } from './system.js';
 import { buildPageScript, detectBlocked, type BuildPageScriptOptions } from './page-script.js';
 import { assemblePatternResults } from './result-assembly.js';
 import { SCAN_SCHEMA_VERSION, stampScanResult } from './scan-schema.js';
+import { evaluateExperimentalWatchlist } from './experimental.js';
+import { applyConfigAndInlineWaivers, type SlopRcConfig } from './config.js';
 
 export { SCAN_SCHEMA_VERSION, stampScanResult };
 
@@ -772,6 +808,16 @@ export interface AssembleScanResultOptions {
   patterns?: Array<{ id: string }>;
   /** Named preset applied after `patterns` (default `full`). */
   preset?: string;
+  /** Opt-in experimental watchlist signals (`--experimental`, weight 0). */
+  experimental?: boolean;
+  /** Optional `.sloprc.json` config object (`#207`). */
+  config?: SlopRcConfig | null;
+  /** `--only` allowlist of pattern/axis IDs. */
+  only?: string[];
+  /** `--skip` blocklist of pattern/axis IDs. */
+  skip?: string[];
+  /** `--no-inline-ignores` disables `data-slop-ignore` and `<!-- slop-ignore -->`. */
+  noInlineIgnores?: boolean;
 }
 
 /**
@@ -839,9 +885,17 @@ export function assembleScanResult(raw: any, opts: AssembleScanResultOptions = {
     patterns: scored,
     patternsErrored,
     madeWith: data.madeWith || null,
+    kitMatch: kitMatches[0] || null,
     kitMatches,
     schemaVersion: SCAN_SCHEMA_VERSION,
   };
+
+  if (opts.experimental) {
+    result.experimental = evaluateExperimentalWatchlist(
+      data.experimentalSignals || {},
+      data.textContext || {}
+    );
+  }
 
   if (craftSummary) {
     result.craft = craftSummary;
@@ -881,5 +935,20 @@ export function assembleScanResult(raw: any, opts: AssembleScanResultOptions = {
     }
   }
   if (data.systemContext) result.systemContext = data.systemContext;
+  if (
+    opts.config ||
+    (opts.only && opts.only.length > 0) ||
+    (opts.skip && opts.skip.length > 0) ||
+    opts.noInlineIgnores ||
+    (Array.isArray(data.inlineWaivers) && data.inlineWaivers.length > 0)
+  ) {
+    return applyConfigAndInlineWaivers(result, {
+      config: opts.config || null,
+      inlineWaivers: data.inlineWaivers || [],
+      noInlineIgnores: Boolean(opts.noInlineIgnores),
+      only: opts.only,
+      skip: opts.skip,
+    });
+  }
   return result;
 }

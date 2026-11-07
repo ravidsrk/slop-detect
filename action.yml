@@ -1,0 +1,169 @@
+# Slop Detect — GitHub Marketplace composite Action (root manifest).
+#
+# Mirrors packages/action/action.yml at the repository root so the repository
+# is directly listable on the GitHub Actions Marketplace (`uses: ravidsrk/slop-detect@v0.8.0`)
+# while keeping `uses: ravidsrk/slop-detect/packages/action@v0.8.0` working.
+name: 'Slop Detect — Design & AEO Gate'
+description: 'Score a landing page against default-template design and copy patterns, DESIGN.md compliance, and AEO readiness.'
+author: 'Ravindra Kumar'
+
+branding:
+  icon: 'shield'
+  color: 'gray-dark'
+
+inputs:
+  url:
+    description: 'The page (URL) to scan — typically a trusted, workflow-derived deploy-preview URL. Treat as untrusted input: pass only URLs your workflow resolves from your host, never PR-controlled content (especially on pull_request_target).'
+    required: true
+  mode:
+    description: 'Execution mode: "api" (default, zero-install hosted scanner) or "local" (local headless Chromium via npx slop-detect for private previews or static builds).'
+    required: false
+    default: 'api'
+  static-dir:
+    description: 'Optional local static build directory (e.g. "./dist") to serve and scan when mode is "local".'
+    required: false
+    default: ''
+  baseline-url:
+    description: 'Optional production/baseline URL to compare against for regression ratcheting.'
+    required: false
+    default: ''
+  fail-on-regression:
+    description: 'Fail the check if the slop score regresses against baseline-url ("true"/"false").'
+    required: false
+    default: 'false'
+  fail-on:
+    description: 'Fail the check on tier ("mild", "heavy") or DESIGN.md drift ("drift").'
+    required: false
+    default: ''
+  fail-under:
+    description: 'Fail the check if the slop score exceeds this number, or (if a letter grade like "B" is given) if the page grades worse than it. Empty = report-only.'
+    required: false
+    default: ''
+  api-base:
+    description: 'Base URL of the slop-detect API.'
+    required: false
+    default: 'https://slop-detect.com'
+  axes:
+    description: 'Axes to score: "design" (default), "design,copy", "design,craft", or "all" (design + copy). Craft is a separate floor and does not change the fail-under gate.'
+    required: false
+    default: 'design'
+  preset:
+    description: 'Scoring preset: full (default), strict, marketing, minimal, editorial, devtool.'
+    required: false
+    default: 'full'
+  design-md:
+    description: 'Check DESIGN.md system compliance ("auto" for <origin>/DESIGN.md, an http(s) URL, or empty to skip).'
+    required: false
+    default: ''
+  aeo:
+    description: 'Run the AEO crawler & citation readiness checks ("true"/"false").'
+    required: false
+    default: 'false'
+  api-key:
+    description: 'Optional API key (SLOP_API_KEY) for higher scan rate limits.'
+    required: false
+    default: ''
+  share:
+    description: 'Mint a public shareable permalink for the scan ("true"/"false").'
+    required: false
+    default: 'true'
+  comment:
+    description: 'Post/update a sticky PR comment with the report ("true"/"false").'
+    required: false
+    default: 'true'
+  github-token:
+    description: 'Token used to post the sticky PR comment.'
+    required: false
+    default: ${{ github.token }}
+  sarif:
+    description: 'Write a SARIF 2.1.0 file to this path. The job summary is still written.'
+    required: false
+    default: ''
+  upload-sarif:
+    description: 'Upload the generated SARIF file to GitHub Code Scanning via github/codeql-action/upload-sarif ("true"/"false"). Requires security-events: write.'
+    required: false
+    default: 'false'
+
+outputs:
+  score:
+    description: 'Slop score 0–100 (lower is better).'
+    value: ${{ steps.scan.outputs.score }}
+  grade:
+    description: 'Letter grade (A+ … F).'
+    value: ${{ steps.scan.outputs.grade }}
+  tier:
+    description: 'Tier bucket: Clean / Mild / Heavy.'
+    value: ${{ steps.scan.outputs.tier }}
+  verdict:
+    description: 'One-line human-readable verdict.'
+    value: ${{ steps.scan.outputs.verdict }}
+  copy-score:
+    description: 'Copy axis score 0–100 (lower is better), when copy axis is enabled.'
+    value: ${{ steps.scan.outputs.copy-score }}
+  unified-score:
+    description: 'Unified multi-axis score 0–100 (lower is better).'
+    value: ${{ steps.scan.outputs.unified-score }}
+  system-score:
+    description: 'DESIGN.md system compliance score 0–100 (higher is better), when design-md is enabled.'
+    value: ${{ steps.scan.outputs.system-score }}
+  aeo-score:
+    description: 'AEO readiness score 0–100 (higher is better), when aeo is enabled.'
+    value: ${{ steps.scan.outputs.aeo-score }}
+  result-url:
+    description: 'Shareable result page URL.'
+    value: ${{ steps.scan.outputs.result-url }}
+  sarif-file:
+    description: 'Path of the SARIF file when the sarif input is set.'
+    value: ${{ steps.scan.outputs.sarif-file }}
+
+runs:
+  using: 'composite'
+  steps:
+    - id: scan
+      shell: bash
+      run: |
+        if [ "${INPUT_MODE}" = "local" ]; then
+          TARGET="${INPUT_STATIC_DIR:-$INPUT_URL}"
+          SARIF_OUT="${INPUT_SARIF}"
+          ARGS=("$TARGET" "--preset" "$INPUT_PRESET")
+          if [ -n "$INPUT_FAIL_UNDER" ]; then
+            ARGS+=("--fail-under" "$INPUT_FAIL_UNDER")
+          fi
+          if [ -n "$INPUT_BASELINE_URL" ]; then
+            ARGS+=("--baseline" "$INPUT_BASELINE_URL")
+          fi
+          if [ "$INPUT_FAIL_ON_REGRESSION" = "true" ]; then
+            ARGS+=("--fail-on-regression")
+          fi
+          if [ -n "$SARIF_OUT" ]; then
+            npx --yes slop-detect "${ARGS[@]}" --sarif > "$SARIF_OUT"
+            echo "sarif-file=$SARIF_OUT" >> "$GITHUB_OUTPUT"
+          else
+            npx --yes slop-detect "${ARGS[@]}" --format github
+          fi
+        else
+          node "${{ github.action_path }}/packages/action/scan.mjs"
+        fi
+      env:
+        INPUT_URL: ${{ inputs.url }}
+        INPUT_MODE: ${{ inputs.mode }}
+        INPUT_STATIC_DIR: ${{ inputs.static-dir }}
+        INPUT_BASELINE_URL: ${{ inputs.baseline-url }}
+        INPUT_FAIL_ON_REGRESSION: ${{ inputs.fail-on-regression }}
+        INPUT_FAIL_UNDER: ${{ inputs.fail-under }}
+        INPUT_API_BASE: ${{ inputs.api-base }}
+        INPUT_AXES: ${{ inputs.axes }}
+        INPUT_PRESET: ${{ inputs.preset }}
+        INPUT_DESIGN_MD: ${{ inputs.design-md }}
+        INPUT_AEO: ${{ inputs.aeo }}
+        INPUT_API_KEY: ${{ inputs.api-key }}
+        INPUT_SHARE: ${{ inputs.share }}
+        INPUT_COMMENT: ${{ inputs.comment }}
+        INPUT_SARIF: ${{ inputs.sarif }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+    - name: Upload SARIF to GitHub Code Scanning
+      if: ${{ inputs.upload-sarif == 'true' && inputs.sarif != '' }}
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ inputs.sarif }}
+        category: slop-detect/${{ inputs.url }}

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://schemas.agentdiscovery.io/ard/0.91/schema.json",
+  "specVersion": "0.91",
+  "draft": "draft-zahradnik-ard-00",
+  "name": "Slop Detector",
+  "origin": "https://slop-detect.com",
+  "description": "Deterministic landing-page scanner measuring default-template design patterns, copy tells, DESIGN.md system compliance, craft-floor hygiene, and AEO technical eligibility. Published at /.well-known/ai-catalog.json for Lighthouse 13.5.0 parity alongside /.well-known/ard.json.",
+  "entries": [
+    {
+      "id": "mcp-server-card",
+      "type": "application/mcp-server-card+json",
+      "url": "https://slop-detect.com/.well-known/mcp/server-card.json",
+      "description": "MCP Server Card advertising the stateless Streamable HTTP remote endpoint (/mcp) and local stdio package (slop-detect-mcp)."
+    },
+    {
+      "id": "mcp-streamable-http",
+      "type": "application/mcp+json",
+      "url": "https://slop-detect.com/mcp",
+      "transport": "streamable-http",
+      "protocolVersion": "2025-11-25",
+      "description": "Stateless Streamable HTTP MCP endpoint supporting scan_page, check_aeo, check_design_system, fix_prompt, lint_design_md, diff_design_md, and extract_design_system."
+    },
+    {
+      "id": "openapi",
+      "type": "application/vnd.oai.openapi+json;version=3.1",
+      "url": "https://slop-detect.com/openapi.json",
+      "description": "OpenAPI 3.1 specification for the public Slop Detector HTTP API."
+    },
+    {
+      "id": "llms-txt",
+      "type": "text/markdown",
+      "url": "https://slop-detect.com/llms.txt",
+      "description": "Concise machine-readable documentation index for coding agents."
+    },
+    {
+      "id": "a2a-agent-card",
+      "type": "application/a2a-agent-card+json",
+      "url": "https://slop-detect.com/.well-known/agent-card.json",
+      "description": "A2A Agent Card for agent-to-agent discovery."
+    }
+  ]
+}

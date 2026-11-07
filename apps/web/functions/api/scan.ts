@@ -20,10 +20,14 @@ import {
   measureMobileReflowOnPage,
   combineAxes,
   applyDeclaredDesignWaivers,
+  evaluateDefaultKits,
+  evaluateExperimentalWatchlist,
+  applyConfigAndInlineWaivers,
   SCAN_PAGE_WAIT,
   waitFontsReadyInPage,
   readCapped,
   DEFINITIONS_VERSION,
+  SCANNER_USER_AGENT,
   stampScanResult,
 } from '@slop-detect/core';
 import {
@@ -168,7 +172,10 @@ export async function onRequestPost({ request, env, waitUntil }) {
   }
 
   // Build the page-side IIFE that runs all detectors in one round-trip.
-  const pageScript = buildPageScript({ includeSystem: wantsSystem });
+  const pageScript = buildPageScript({
+    includeSystem: wantsSystem,
+    includeExperimental: Boolean(body?.experimental),
+  });
 
   let browser;
   let page;
@@ -179,7 +186,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
     ({ browser } = await acquireBrowser(env.BROWSER));
     page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 800 });
-    await page.setUserAgent('Mozilla/5.0 SlopDetector/1.0 (+slop-detector.pages.dev)');
+    await page.setUserAgent(SCANNER_USER_AGENT);
 
     const navStart = Date.now();
     const navResponse = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25000 });
@@ -300,6 +307,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
     const preset = isPreset(body?.preset) ? body.preset : 'full';
     const scored = applyPreset(patterns, preset);
     const scoring = scorePatterns(scored);
+    const kitMatches = evaluateDefaultKits(data.signals || {});
 
     const result: any = {
       url,
@@ -314,10 +322,19 @@ export async function onRequestPost({ request, env, waitUntil }) {
       patternsErrored,
       browserVersion,
       madeWith: data.madeWith ?? null,
+      kitMatch: kitMatches[0] || null,
+      kitMatches,
       environment: browserVersion ? { chromium: browserVersion } : undefined,
       screenshot,
       navMs,
     };
+
+    if (body?.experimental) {
+      result.experimental = evaluateExperimentalWatchlist(
+        data.experimentalSignals || {},
+        data.textContext || {}
+      );
+    }
 
     // Multi-axis: opt into copy and craft via { axes:['design','copy','craft'] } or 'all'.
     // Craft is reported beside the design score and never feeds Clean/Mild/Heavy.
@@ -383,6 +400,20 @@ export async function onRequestPost({ request, env, waitUntil }) {
         result.presetWarning = coverage.warning;
         result.presetNotApplied = coverage.notApplied;
       }
+    }
+
+    if (
+      Array.isArray(data.inlineWaivers) &&
+      data.inlineWaivers.length > 0 &&
+      !body?.noInlineIgnores
+    ) {
+      Object.assign(
+        result,
+        applyConfigAndInlineWaivers(result, {
+          inlineWaivers: data.inlineWaivers,
+          noInlineIgnores: false,
+        })
+      );
     }
 
     // Persist a slim snapshot so the scan gets a shareable permalink (/r/:id),

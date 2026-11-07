@@ -1,0 +1,40 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "schemaVersion": "1.0.0",
+  "name": "slop-detect",
+  "version": "0.8.0",
+  "displayName": "Slop Detector",
+  "description": "Deterministic landing-page auditor across design patterns, copy tells, DESIGN.md token compliance, craft floor, and AEO eligibility.",
+  "author": {
+    "name": "Ravindra Kumar",
+    "email": "ravidsrk@gmail.com"
+  },
+  "license": "MIT",
+  "homepage": "https://slop-detect.com",
+  "repository": "https://github.com/ravidsrk/slop-detect",
+  "skills": ["./skills/slop-detect/SKILL.md"],
+  "mcpServers": {
+    "slop-detect": {
+      "command": "npx",
+      "args": ["-y", "slop-detect-mcp"]
+    },
+    "slop-detect-remote": {
+      "url": "https://slop-detect.com/mcp",
+      "transport": "streamable-http"
+    }
+  },
+  "extensions": {
+    "com.openai": {
+      "displayName": "Slop Detector",
+      "websiteUrl": "https://slop-detect.com",
+      "supportUrl": "https://github.com/ravidsrk/slop-detect/issues",
+      "privacyPolicyUrl": "https://slop-detect.com/privacy.md",
+      "termsOfUseUrl": "https://slop-detect.com/terms.md",
+      "capabilities": ["mcp", "mcp-app"],
+      "reviewCases": "docs/openai-app-review-cases.json"
+    },
+    "com.cursor": {
+      "installDeeplink": "cursor://anysphere.cursor-deeplink/mcp/install?name=slop-detect&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsInNsb3AtZGV0ZWN0LW1jcCJdfQ=="
+    }
+  }
+}

@@ -87,6 +87,41 @@ export const AI_BOT_REGISTRY: AIBotEntry[] = [
     purpose: 'search',
     verifiedAt: '2026-10-01',
   },
+  {
+    name: 'Amzn-SearchBot',
+    uaPattern: 'Amzn-SearchBot',
+    vendor: 'Amazon',
+    purpose: 'search',
+    verifiedAt: '2026-10-01',
+  },
+  {
+    name: 'MistralAI-Index',
+    uaPattern: 'MistralAI-Index',
+    vendor: 'Mistral',
+    purpose: 'search',
+    verifiedAt: '2026-10-01',
+  },
+  {
+    name: 'OAI-AdsBot',
+    uaPattern: 'OAI-AdsBot',
+    vendor: 'OpenAI',
+    purpose: 'search',
+    verifiedAt: '2026-10-01',
+  },
+  {
+    name: 'meta-webindexer',
+    uaPattern: 'meta-webindexer',
+    vendor: 'Meta',
+    purpose: 'search',
+    verifiedAt: '2026-10-01',
+  },
+  {
+    name: 'meta-externalads',
+    uaPattern: 'meta-externalads',
+    vendor: 'Meta',
+    purpose: 'search',
+    verifiedAt: '2026-10-01',
+  },
 
   // User-triggered / agent fetchers (informational)
   {
@@ -124,6 +159,20 @@ export const AI_BOT_REGISTRY: AIBotEntry[] = [
     name: 'MistralAI-User',
     uaPattern: 'MistralAI-User',
     vendor: 'Mistral',
+    purpose: 'user-action',
+    verifiedAt: '2026-10-01',
+  },
+  {
+    name: 'Amzn-User',
+    uaPattern: 'Amzn-User',
+    vendor: 'Amazon',
+    purpose: 'user-action',
+    verifiedAt: '2026-10-01',
+  },
+  {
+    name: 'Google-Agent',
+    uaPattern: 'Google-Agent',
+    vendor: 'Google',
     purpose: 'user-action',
     verifiedAt: '2026-10-01',
   },
@@ -239,6 +288,13 @@ export const AI_BOT_REGISTRY: AIBotEntry[] = [
     name: 'Omgilibot',
     uaPattern: 'Omgilibot',
     vendor: 'Webz.io',
+    purpose: 'training',
+    verifiedAt: '2026-10-01',
+  },
+  {
+    name: 'MistralAI-Training',
+    uaPattern: 'MistralAI-Training',
+    vendor: 'Mistral',
     purpose: 'training',
     verifiedAt: '2026-10-01',
   },
@@ -1084,9 +1140,7 @@ export function parsePreviewDirectives(
 
     return {
       status: (hasHardBlock ? 'fail' : hasRestriction ? 'warn' : 'pass') as
-        | 'pass'
-        | 'warn'
-        | 'fail',
+        'pass' | 'warn' | 'fail',
       directives: combined,
       maxSnippet,
     };
@@ -1377,6 +1431,10 @@ export function evaluateAgentOperability(htmlBody: string) {
     namedInteractive,
     emptyPriceShell,
     axeRuleCount: LIGHTHOUSE_AGENT_AXE_RULES.length,
+    lighthouseEquivalent: {
+      audit: 'agent-accessibility-tree',
+      version: '13.5.0',
+    },
   };
 }
 
@@ -2073,41 +2131,87 @@ export async function runAeoChecks(
         /<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
       ) || [];
     let jsonLdValid = true;
+    let jsonLdMatchesVisible = true;
     const datesFound: string[] = [];
+    const jsonLdDates: string[] = [];
+    const visibleLower = stripHtmlToText(htmlBody).toLowerCase();
     for (const blk of ldMatches) {
       const inner = blk.replace(/^<script[^>]*>|<\/script>$/gi, '').trim();
       try {
         const obj = JSON.parse(inner);
         if (!obj['@context'] || !obj['@type']) jsonLdValid = false;
-        if (typeof obj.datePublished === 'string') datesFound.push(obj.datePublished);
-        if (typeof obj.dateModified === 'string') datesFound.push(obj.dateModified);
+        if (typeof obj.datePublished === 'string') {
+          datesFound.push(obj.datePublished);
+          jsonLdDates.push(obj.datePublished.slice(0, 10));
+        }
+        if (typeof obj.dateModified === 'string') {
+          datesFound.push(obj.dateModified);
+          jsonLdDates.push(obj.dateModified.slice(0, 10));
+        }
+        const literalCandidate =
+          typeof obj.headline === 'string'
+            ? obj.headline
+            : typeof obj.name === 'string'
+              ? obj.name
+              : null;
+        if (literalCandidate && visibleLower.length >= 20) {
+          const normLit = literalCandidate.trim().toLowerCase();
+          if (normLit.length >= 6 && !visibleLower.includes(normLit)) {
+            jsonLdMatchesVisible = false;
+          }
+        }
       } catch {
         jsonLdValid = false;
       }
     }
+    const metaDates =
+      htmlBody.match(
+        /<meta\b[^>]+(?:property|name)\s*=\s*["'](?:article:(?:published|modified)_time|date|pubdate)["'][^>]*>/gi
+      ) || [];
+    for (const mt of metaDates) {
+      const cm = mt.match(/\bcontent\s*=\s*["']([^"']+)["']/i);
+      if (cm && cm[1]) datesFound.push(cm[1]);
+    }
+    const timeTags = htmlBody.match(/<time\b[^>]+datetime\s*=\s*["']([^"']+)["'][^>]*>/gi) || [];
+    const timeDates: string[] = [];
+    for (const tt of timeTags) {
+      const dm = tt.match(/\bdatetime\s*=\s*["']([^"']+)["']/i);
+      if (dm && dm[1]) {
+        datesFound.push(dm[1]);
+        timeDates.push(dm[1].slice(0, 10));
+      }
+    }
     const lastMod = html.headers.get('last-modified');
     if (lastMod) datesFound.push(lastMod);
+    const dateMismatch =
+      jsonLdDates.length > 0 &&
+      timeDates.length > 0 &&
+      !jsonLdDates.some((d) => timeDates.includes(d));
 
     checks.push(
       makeCheckResult(
         pickCheck('content.dates'),
         'info',
-        datesFound.length > 0
-          ? `Found ${datesFound.length} date signal(s)`
-          : 'No structured dates found',
-        { datesFound }
+        dateMismatch
+          ? `Date mismatch between JSON-LD (${jsonLdDates[0]}) and <time datetime> (${timeDates[0]})`
+          : datesFound.length > 0
+            ? `Found ${datesFound.length} date signal(s)`
+            : 'No structured dates found',
+        { datesFound, dateMismatch }
       )
     );
     checks.push(
       makeCheckResult(
         pickCheck('jsonld.hygiene'),
-        jsonLdValid ? 'pass' : 'info',
+        jsonLdValid && jsonLdMatchesVisible ? 'pass' : 'info',
         ldMatches.length === 0
           ? 'No JSON-LD blocks present'
-          : jsonLdValid
-            ? 'JSON-LD parses cleanly'
-            : 'JSON-LD syntax or @context/@type issue detected',
-        { blocks: ldMatches.length, valid: jsonLdValid }
+          : !jsonLdValid
+            ? 'JSON-LD syntax or @context/@type issue detected'
+            : !jsonLdMatchesVisible
+              ? 'JSON-LD headline/name does not match visible page text'
+              : 'JSON-LD parses cleanly',
+        { blocks: ldMatches.length, valid: jsonLdValid, matchesVisibleText: jsonLdMatchesVisible }
       )
     );
   } else {

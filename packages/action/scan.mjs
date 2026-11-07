@@ -206,11 +206,12 @@ export async function scanAeo(apiBase, url, opts = {}) {
 // ---------------------------------------------------------------------------
 // Threshold gate. Returns { passed, reason } given the result + fail-under.
 // ---------------------------------------------------------------------------
-export function evaluateThreshold(result, failUnder) {
+export function evaluateThreshold(result, failUnder, failOn = '') {
   const raw = String(failUnder ?? '').trim();
+  const rawFailOn = String(failOn ?? '').trim().toLowerCase();
 
   // Empty → report-only, always passes.
-  if (raw === '') {
+  if (raw === '' && rawFailOn === '') {
     return { passed: true, mode: 'report-only', reason: 'No threshold set — report only.' };
   }
 
@@ -222,6 +223,24 @@ export function evaluateThreshold(result, failUnder) {
         ? `Scan error: ${result.error}`
         : `Scan blocked (${result.code || 'blocked'}).`,
     };
+  }
+
+  if (rawFailOn === 'drift') {
+    const drifted =
+      result?.system &&
+      (result.system.tier === 'Drifting' ||
+        result.system.tier === 'Off-system' ||
+        (Array.isArray(result.system.drift) && result.system.drift.length > 0));
+    if (drifted) {
+      return {
+        passed: false,
+        mode: 'drift',
+        reason: `DESIGN.md drift detected (${result.system.tier}, ${result.system.drift?.length || 0} drift item(s)).`,
+      };
+    }
+    if (raw === '') {
+      return { passed: true, mode: 'drift', reason: 'No DESIGN.md drift detected.' };
+    }
   }
 
   const effectiveScore =
@@ -433,6 +452,7 @@ async function upsertStickyComment(token, repo, prNumber, body) {
 async function main() {
   const url = (process.env.INPUT_URL || '').trim();
   const failUnder = process.env.INPUT_FAIL_UNDER || '';
+  const failOn = process.env.INPUT_FAIL_ON || '';
   const apiBase = (process.env.INPUT_API_BASE || 'https://slop-detect.com').trim();
   const axes = (process.env.INPUT_AXES || 'design').trim();
   const preset = (process.env.INPUT_PRESET || 'full').trim();
@@ -471,7 +491,7 @@ async function main() {
   setOutput('result-url', resultUrl);
 
   // Evaluate the gate before writing the report so the report reflects pass/fail.
-  const gate = evaluateThreshold(result, failUnder);
+  const gate = evaluateThreshold(result, failUnder, failOn);
 
   // Job summary — same markdown as the comment but without the sticky marker.
   writeSummary(`${reportBody(apiBase, result, gate, { withMarker: false })}\n`);

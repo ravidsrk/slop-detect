@@ -1,23 +1,24 @@
 ---
 name: slop-detect
-description: Score any landing page against the versioned design-slop fingerprint, copy axis, DESIGN.md system compliance, craft floor, and AEO readiness, then generate a deterministic fix prompt. Use when the user asks to audit a landing page for default-template design or copy patterns, verify DESIGN.md compliance, check if answer engines can read a site (AEO), or get specific feedback to clean up a generic site.
+description: Score any landing page against the versioned design-slop fingerprint, copy axis, DESIGN.md system compliance, craft floor, and AEO eligibility, then generate a deterministic fix prompt. Use when the user asks to audit a landing page for default-template design or copy patterns, verify DESIGN.md compliance, check if answer engines can read a site (AEO), or get specific feedback to clean up a generic site.
 license: MIT
 metadata:
   author: ravidsrk
   version: "0.8.0"
   homepage: "https://slop-detect.com"
   repository: "https://github.com/ravidsrk/slop-detect"
-compatibility: Requires internet access. Uses the public slop-detect.com API (no auth, rate-limited per-IP) or the slop-detect-mcp MCP server. Falls back to the slop-detect npm CLI when offline or when scanning behind auth.
+compatibility: Runs offline by default via the local slop-detect CLI (Playwright Chromium) or slop-detect-mcp --local with zero external data egress. Optional hosted API mode (slop-detect.com/api/scan) sends only the target URL.
 ---
 
 # slop-detect
 
-Score any landing page against the versioned telemetry engine (`definitions@2026.11`):
-1. **Design Slop (45 CSS/DOM patterns)** — deterministic live-DOM inspection derived from Adrian Krebs's study of 1,400 Show HN submissions, Meng To's Aura study, and Impeccable typography/contrast rules. Weight 0 review rules add no points.
-2. **Copy Slop (26 prose patterns)** — density-calibrated text analysis. Weight 0 review rules add no points.
+Score any landing page against the versioned telemetry engine (`definitions@2026.11`). The offline CLI (`npx slop-detect <url>`) and local MCP server (`npx -y slop-detect-mcp --local`) are the default local runners and keep all scanning on this machine with zero data egress. Only when you explicitly call the hosted HTTP API (`POST https://slop-detect.com/api/scan`) does data leave the machine, and only the target URL (plus optional axis/preset flags) is transmitted. Live pattern counts and rule lifecycle metadata are served dynamically from `GET https://slop-detect.com/api/patterns` (and MCP resource `slop://spec/patterns`).
+
+1. **Design Axis** — deterministic live-DOM inspection of computed styles in headless Chromium against default-template patterns. Weight 0 review rules add no points.
+2. **Copy Axis** — density-calibrated text and paste-artifact analysis. Weight 0 review rules add no points.
 3. **System Axis (`DESIGN.md` compliance)** — relative per-site audit checking whether the live DOM honors the site's own declared `DESIGN.md` or DTCG tokens.
-4. **AEO Axis (16 checks)** — whether a page can be fetched and read. The scanner uses its own user agent and does not impersonate vendor crawlers. Tiers are Eligible, Partially Eligible, and Restricted.
-5. **Craft floor (11 checks)** — a separate score. It never feeds design, copy, or Clean / Mild / Heavy.
+4. **AEO Axis** — whether a page can be fetched, parsed, and indexed by search and user-action crawlers. The scanner uses its own user agent and does not impersonate vendor crawlers. Tiers are Eligible, Partially Eligible, and Restricted.
+5. **Craft floor** — a separate defect score. It never feeds design, copy, or Clean / Mild / Heavy.
 
 This skill is the **fast path**. When the user pastes a URL and asks anything about its design quality, default-template pattern overlap, copywriting tells, `DESIGN.md` drift, AEO readiness, or how to clean it up, call the tool rather than eyeballing the page yourself.
 
@@ -36,7 +37,7 @@ Trigger phrases (non-exhaustive):
 
 ## Four-axis catalogue (`definitions@2026.11`)
 
-The live counts below come from the engine. Weight 0 rules are listed and add no points. Published leaderboard scores stay on definitions 2026.10 until a re-score.
+The live counts below come from the engine (`GET /api/patterns` is the canonical live count authority). Weight 0 rules are listed and add no points. Published leaderboard scores stay on definitions 2026.10 until a re-score.
 
 ### Axis 1: The 45 design patterns (lower score = cleaner)
 
@@ -140,7 +141,35 @@ A separate 0–100 floor. Findings never feed design, copy, or Clean / Mild / He
 
 ## How to use it
 
-### 1. Hosted HTTP API (preferred — zero install, ~5–8s per scan)
+### 1. Offline CLI (`slop-detect` — default local runner, no data leaves the machine)
+
+```bash
+npx slop-detect https://example.com
+npx slop-detect http://localhost:3000 --format agent
+npx slop-detect https://example.com --copy --craft --aeo --design-md auto
+npx slop-detect https://example.com --fail-on heavy --fail-under B
+npx slop-detect https://example.com --sarif > slop.sarif
+npx slop-detect https://example.com --init-design-md > DESIGN.md
+npx slop-detect https://example.com --init-tokens > tokens.json
+npx slop-detect --lint-design-md ./DESIGN.md
+npx slop-detect --diff-design-md ./base/DESIGN.md ./head/DESIGN.md
+npx slop-detect https://example.com --fix-prompt > fix.md
+```
+
+### 2. MCP Server (`slop-detect-mcp`)
+
+Exposes tools (`scan_page`, `check_aeo`, `check_design_system`, `fix_prompt`, `lint_design_md`, `diff_design_md`), workflow prompts (`audit_landing_page`, `deslop_and_verify`), and spec resources (`slop://spec/patterns`, `slop://spec/design-md-template`, `slop://spec/aeo`) directly to MCP-capable agents:
+
+```bash
+npx -y slop-detect-mcp --local
+npx -y slop-detect-mcp
+```
+
+`--local` scores `localhost`, `file://`, and remote URLs locally with Playwright and does not call slop-detect.com. It needs the `slop-detect` package installed. Without `--local`, the server calls the hosted API for public `https://` URLs. `packages/mcp/hooks/scan-local.mjs` is the matching Claude Code PostToolUse / Stop command. Set `SLOP_LOCAL_URL` to the dev server.
+
+### 3. Hosted HTTP API (optional — zero install for public URLs; sends only target URL)
+
+Data egress notice: calling `https://slop-detect.com/api/*` transmits only the target `url` and scan options (`axes`, `preset`, `designMd`) to the public scanner. Never send private or localhost URLs to the hosted API; use the offline CLI or `--local` MCP mode instead.
 
 ```bash
 # Multi-axis scan (design + copy + optional DESIGN.md system check)
@@ -157,32 +186,6 @@ curl -s -X POST -H 'Content-Type: application/json' \
 curl -s -X POST -H 'Content-Type: application/json' \
   https://slop-detect.com/api/fix-prompt \
   -d '{"url":"https://example.com"}' > fix.md
-```
-
-### 2. MCP Server (`slop-detect-mcp`)
-
-Exposes tools (`scan_page`, `check_aeo`, `check_design_system`, `fix_prompt`, `lint_design_md`, `diff_design_md`), workflow prompts (`audit_landing_page`, `deslop_and_verify`), and spec resources (`slop://spec/patterns`, `slop://spec/design-md-template`, `slop://spec/aeo`) directly to MCP-capable agents:
-
-```bash
-npx -y slop-detect-mcp
-npx -y slop-detect-mcp --local
-```
-
-`--local` scores `localhost` and `file://` with Playwright and does not call slop-detect.com. It needs the `slop-detect` package installed. The default server still uses the hosted API. `packages/mcp/hooks/scan-local.mjs` is the matching Claude Code PostToolUse / Stop command. Set `SLOP_LOCAL_URL` to the dev server.
-
-### 3. CLI (`slop-detect`)
-
-```bash
-npx slop-detect https://example.com
-npx slop-detect https://example.com --copy --craft --aeo --design-md auto
-npx slop-detect https://example.com --fail-on heavy --fail-under B
-npx slop-detect https://example.com --sarif > slop.sarif
-npx slop-detect https://example.com --init-design-md > DESIGN.md
-npx slop-detect https://example.com --init-tokens > tokens.json
-npx slop-detect --lint-design-md ./DESIGN.md
-npx slop-detect --diff-design-md ./base/DESIGN.md ./head/DESIGN.md
-npx slop-detect https://example.com --fix-prompt > fix.md
-npx slop-detect https://example.com --remote --json
 ```
 
 ### 4. Programmatic embed (`slop-detect-core`)
@@ -205,7 +208,7 @@ After a scan, present results in this shape:
    - 🟢 Clean (0–9) — "Clean — few default-template patterns"
 2. **Triggered patterns** (only `triggered: true`), each with weight + literal DOM/CSS evidence
 3. **Copy, System (`DESIGN.md`), and AEO readouts** when requested
-4. **Always offer the fix prompt** if score ≥ 10: "Want a copy-pasteable prompt to fix these in your editor? Run `/api/fix-prompt`."
+4. **Always offer the fix prompt** if score ≥ 10: "Want a copy-pasteable prompt to fix these in your editor? Run `npx slop-detect <url> --fix-prompt` or `/api/fix-prompt`."
 
 ## Don't replace one slop pattern with another
 
@@ -215,7 +218,7 @@ When advising fixes, never recommend:
 - Indigo-600 → Violet-600 (both trigger `purple_accent`)
 - Linear-gradient text → Radial-gradient text (still triggers `gradient_text`)
 
-Trust `/api/fix-prompt` recipes rather than improvising.
+Trust `buildFixPrompt` / `/api/fix-prompt` recipes rather than improvising.
 
 ## Reference
 

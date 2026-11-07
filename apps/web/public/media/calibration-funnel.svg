@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 280" width="960" height="280" role="img" aria-labelledby="cal-title cal-desc">
+  <title id="cal-title">Slop Detector — Calibration Protocol v2 &amp; Rule Promotion Gate (K-04)</title>
+  <desc id="cal-desc">Four-stage rule governance pipeline from weight-0 watchlist to active scored rule on the domain-grouped held-out corpus.</desc>
+  <style>
+    .bg { fill: #F4F5F2; }
+    .box { fill: #FBFBF9; stroke: #DBDDD6; stroke-width: 1; }
+    .ledger { stroke: #181815; stroke-width: 1.5; }
+    .wire { stroke: #181815; stroke-width: 1.25; fill: none; }
+    .serif { font-family: 'Newsreader', Georgia, serif; fill: #181815; }
+    .sans { font-family: 'Libre Franklin', -apple-system, BlinkMacSystemFont, sans-serif; fill: #3A3B33; }
+    .mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace; fill: #181815; }
+    .mono-muted { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace; fill: #565750; }
+  </style>
+
+  <rect width="960" height="280" class="bg" />
+  <line x1="32" y1="28" x2="928" y2="28" class="ledger" />
+  <text x="32" y="20" class="mono-muted" font-size="10" letter-spacing="1.2">PLATE 03 // CALIBRATION PROTOCOL V2 &amp; RULE PROMOTION GATE (K-01 / K-04)</text>
+  <text x="928" y="20" text-anchor="end" class="mono-muted" font-size="10">DOMAIN-GROUPED SPLIT</text>
+
+  <!-- Stage 1 -->
+  <rect x="32" y="52" width="204" height="188" rx="5" class="box" />
+  <rect x="32" y="52" width="204" height="3" fill="#565750" />
+  <text x="46" y="76" class="mono-muted" font-size="10">STAGE 01 · WATCHLIST</text>
+  <text x="46" y="98" class="serif" font-size="17" font-weight="500">Weight 0 (Review)</text>
+  <text x="46" y="122" class="sans" font-size="11">New rules &amp; broadened</text>
+  <text x="46" y="138" class="sans" font-size="11">matchers ship at weight 0</text>
+  <text x="46" y="154" class="sans" font-size="11">(status: review / --experimental).</text>
+  <text x="46" y="182" class="mono" font-size="10">• 0 score impact</text>
+  <text x="46" y="200" class="mono" font-size="10">• Telemetry only</text>
+
+  <line x1="236" y1="146" x2="262" y2="146" class="wire" />
+  <polygon points="262,146 255,142 255,150" fill="#181815" />
+
+  <!-- Stage 2 -->
+  <rect x="264" y="52" width="204" height="188" rx="5" class="box" />
+  <rect x="264" y="52" width="204" height="3" fill="#2C6E8F" />
+  <text x="278" y="76" class="mono-muted" font-size="10">STAGE 02 · CORPUS SPLIT</text>
+  <text x="278" y="98" class="serif" font-size="17" font-weight="500">5 Strata (a/b/c/t/p)</text>
+  <text x="278" y="122" class="mono" font-size="10">a: Pre-2022 Wayback human</text>
+  <text x="278" y="140" class="mono" font-size="10">b: Curated gallery human</text>
+  <text x="278" y="158" class="mono" font-size="10">c: Post-2024 default-heavy</text>
+  <text x="278" y="176" class="mono" font-size="10">t: Builder gallery outputs</text>
+  <text x="278" y="194" class="mono" font-size="10">p: Controlled 40-prompt</text>
+  <text x="278" y="216" class="mono-muted" font-size="10">splitByDomain (70% / 30%)</text>
+
+  <line x1="468" y1="146" x2="494" y2="146" class="wire" />
+  <polygon points="494,146 487,142 487,150" fill="#181815" />
+
+  <!-- Stage 3 -->
+  <rect x="496" y="52" width="204" height="188" rx="5" class="box" />
+  <rect x="496" y="52" width="204" height="3" fill="#D89A2E" />
+  <text x="510" y="76" class="mono-muted" font-size="10">STAGE 03 · K-04 GATE</text>
+  <text x="510" y="98" class="serif" font-size="17" font-weight="500">Held-Out Lift Proof</text>
+  <text x="510" y="122" class="mono" font-size="10">• Held-out LR ≥ 3.0</text>
+  <text x="510" y="140" class="mono" font-size="10">• Clopper-Pearson 95% CI</text>
+  <text x="510" y="158" class="mono" font-size="10">• Heavy FPR ≤ 2% on (a)</text>
+  <text x="510" y="176" class="mono" font-size="10">• 0 Pioneer regressions</text>
+  <text x="510" y="194" class="mono" font-size="10">• w = round(2·clip(log₂LR))</text>
+
+  <line x1="700" y1="146" x2="726" y2="146" class="wire" />
+  <polygon points="726,146 719,142 719,150" fill="#181815" />
+
+  <!-- Stage 4 -->
+  <rect x="728" y="52" width="200" height="188" rx="5" class="box" />
+  <rect x="728" y="52" width="200" height="3" fill="#1FA85E" />
+  <text x="742" y="76" class="mono-muted" font-size="10">STAGE 04 · ACTIVE RULE</text>
+  <text x="742" y="98" class="serif" font-size="17" font-weight="500">Definitions Bump</text>
+  <text x="742" y="122" class="sans" font-size="11">Promoted to active weight</text>
+  <text x="742" y="138" class="sans" font-size="11">in DEFINITIONS_VERSION</text>
+  <text x="742" y="154" class="sans" font-size="11">with quarterly K-09</text>
+  <text x="742" y="170" class="sans" font-size="11">half-life tracking.</text>
+  <rect x="742" y="186" width="172" height="38" rx="4" fill="#D3F2E0" stroke="#1FA85E" />
+  <text x="752" y="209" class="mono" font-size="10" fill="#0E6B3A">evidenceGrade: measured</text>
+
+  <line x1="32" y1="258" x2="928" y2="258" stroke="#DBDDD6" stroke-width="1" />
+  <text x="32" y="272" class="mono-muted" font-size="10">ASSERTNOTHELDOUT() PREVENTS TUNING LEAKAGE · ORDER-STATISTIC THRESHOLDS CALIBRATED ON HUMAN STRATA</text>
+</svg>

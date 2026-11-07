@@ -27,6 +27,7 @@ export default tseslint.config(
       '**/.astro/**',
       '**/.next/**',
       '**/.turbo/**',
+      '**/.wrangler/**',
       '**/coverage/**',
       '**/out/**',
       '**/next-env.d.ts',

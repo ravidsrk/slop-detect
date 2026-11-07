@@ -4,6 +4,10 @@
 
 Playwright-based, deterministic, zero-config. Audits visual design slop (45 CSS/DOM rules), copy tells (26 prose rules), `DESIGN.md` token compliance, a craft floor that never feeds Clean / Mild / Heavy, and Answer Engine Optimization (16 AEO checks). Weight 0 review rules add no points. Package version stays 0.8.0.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/ravidsrk/slop-detect/main/apps/web/public/media/architecture-pipeline.svg" alt="Deterministic Scan & Scoring Pipeline" width="100%" />
+</p>
+
 ## Install
 
 ```bash

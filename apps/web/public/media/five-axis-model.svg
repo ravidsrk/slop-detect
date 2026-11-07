@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 340" width="960" height="340" role="img" aria-labelledby="axes-title axes-desc">
+  <title id="axes-title">Slop Detector — Five-Axis Scoring Model &amp; Polarity</title>
+  <desc id="axes-desc">Overview of Design Slop, Copy Slop, System Compliance (DESIGN.md), Craft Floor, and AEO Eligibility axes with their rule counts, polarity, and tier bands.</desc>
+  <style>
+    .bg { fill: #F4F5F2; }
+    .card { fill: #FBFBF9; stroke: #DBDDD6; stroke-width: 1; }
+    .ledger { stroke: #181815; stroke-width: 1.5; }
+    .serif { font-family: 'Newsreader', Georgia, serif; fill: #181815; }
+    .sans { font-family: 'Libre Franklin', -apple-system, BlinkMacSystemFont, sans-serif; fill: #3A3B33; }
+    .mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace; fill: #181815; }
+    .mono-muted { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace; fill: #565750; }
+  </style>
+
+  <rect width="960" height="340" class="bg" />
+  <line x1="32" y1="28" x2="928" y2="28" class="ledger" />
+  <text x="32" y="20" class="mono-muted" font-size="10" letter-spacing="1.2">PLATE 02 // FIVE-AXIS ORTHOGONAL SCORING MODEL</text>
+  <text x="928" y="20" text-anchor="end" class="mono-muted" font-size="10">POLARITY &amp; TIER BANDS</text>
+
+  <!-- Axis 1: Design -->
+  <rect x="32" y="50" width="168" height="244" rx="5" class="card" />
+  <rect x="32" y="50" width="168" height="3" fill="#C9402E" />
+  <text x="46" y="74" class="mono-muted" font-size="10">AXIS 01 · DESIGN</text>
+  <text x="46" y="96" class="serif" font-size="17" font-weight="500">Design Slop</text>
+  <text x="46" y="118" class="mono" font-size="11" fill="#A83223">↓ Lower is better</text>
+  <text x="46" y="142" class="sans" font-size="11">45 computed-style &amp;</text>
+  <text x="46" y="158" class="sans" font-size="11">DOM layout patterns</text>
+  <text x="46" y="174" class="sans" font-size="11">(OKLab, fonts, radii).</text>
+  <rect x="46" y="196" width="140" height="82" rx="4" fill="#EEF0EB" stroke="#DBDDD6" />
+  <text x="56" y="216" class="mono" font-size="10" fill="#0E6B3A">Clean    0 – 9</text>
+  <text x="56" y="236" class="mono" font-size="10" fill="#78520A">Mild    10 – 27</text>
+  <text x="56" y="256" class="mono" font-size="10" fill="#A83223">Heavy   28+</text>
+
+  <!-- Axis 2: Copy -->
+  <rect x="214" y="50" width="168" height="244" rx="5" class="card" />
+  <rect x="214" y="50" width="168" height="3" fill="#D89A2E" />
+  <text x="228" y="74" class="mono-muted" font-size="10">AXIS 02 · COPY</text>
+  <text x="228" y="96" class="serif" font-size="17" font-weight="500">Copy Slop</text>
+  <text x="228" y="118" class="mono" font-size="11" fill="#78520A">↓ Lower is better</text>
+  <text x="228" y="142" class="sans" font-size="11">26 prose, lexicon &amp;</text>
+  <text x="228" y="158" class="sans" font-size="11">chatbot markup rules</text>
+  <text x="228" y="174" class="sans" font-size="11">(≥150w English gate).</text>
+  <rect x="228" y="196" width="140" height="82" rx="4" fill="#EEF0EB" stroke="#DBDDD6" />
+  <text x="238" y="216" class="mono" font-size="10" fill="#0E6B3A">Clean    0 – 7</text>
+  <text x="238" y="236" class="mono" font-size="10" fill="#78520A">Mild     8 – 19</text>
+  <text x="238" y="256" class="mono" font-size="10" fill="#A83223">Heavy   20+</text>
+
+  <!-- Axis 3: System -->
+  <rect x="396" y="50" width="168" height="244" rx="5" class="card" />
+  <rect x="396" y="50" width="168" height="3" fill="#2C6E8F" />
+  <text x="410" y="74" class="mono-muted" font-size="10">AXIS 03 · SYSTEM</text>
+  <text x="410" y="96" class="serif" font-size="17" font-weight="500">DESIGN.md</text>
+  <text x="410" y="118" class="mono" font-size="11" fill="#2C6E8F">↑ Higher is better</text>
+  <text x="410" y="142" class="sans" font-size="11">9 live token drift</text>
+  <text x="410" y="158" class="sans" font-size="11">checks + waives</text>
+  <text x="410" y="174" class="sans" font-size="11">declared brand rules.</text>
+  <rect x="410" y="196" width="140" height="82" rx="4" fill="#EEF0EB" stroke="#DBDDD6" />
+  <text x="420" y="216" class="mono" font-size="10" fill="#0E6B3A">Aligned  85 – 100</text>
+  <text x="420" y="236" class="mono" font-size="10" fill="#78520A">Drifting 60 – 84</text>
+  <text x="420" y="256" class="mono" font-size="10" fill="#A83223">Off-sys  &lt; 60</text>
+
+  <!-- Axis 4: Craft Floor -->
+  <rect x="578" y="50" width="168" height="244" rx="5" class="card" />
+  <rect x="578" y="50" width="168" height="3" fill="#181815" />
+  <text x="592" y="74" class="mono-muted" font-size="10">AXIS 04 · CRAFT</text>
+  <text x="592" y="96" class="serif" font-size="17" font-weight="500">Craft Floor</text>
+  <text x="592" y="118" class="mono" font-size="11">↑ Higher is better</text>
+  <text x="592" y="142" class="sans" font-size="11">9 rendering, a11y,</text>
+  <text x="592" y="158" class="sans" font-size="11">320px reflow &amp; CTA</text>
+  <text x="592" y="174" class="sans" font-size="11">checks. Orthogonal.</text>
+  <rect x="592" y="196" width="140" height="82" rx="4" fill="#EEF0EB" stroke="#DBDDD6" />
+  <text x="602" y="216" class="mono" font-size="10">Never feeds</text>
+  <text x="602" y="236" class="mono" font-size="10">Clean / Mild /</text>
+  <text x="602" y="256" class="mono" font-size="10">Heavy tier (F-00)</text>
+
+  <!-- Axis 5: AEO -->
+  <rect x="760" y="50" width="168" height="244" rx="5" class="card" />
+  <rect x="760" y="50" width="168" height="3" fill="#1FA85E" />
+  <text x="774" y="74" class="mono-muted" font-size="10">AXIS 05 · AEO</text>
+  <text x="774" y="96" class="serif" font-size="17" font-weight="500">AEO Readiness</text>
+  <text x="774" y="118" class="mono" font-size="11" fill="#0E6B3A">↑ Higher is better</text>
+  <text x="774" y="142" class="sans" font-size="11">16 protocol checks</text>
+  <text x="774" y="158" class="sans" font-size="11">(robots RFC 9309,</text>
+  <text x="774" y="174" class="sans" font-size="11">WAF, SSR, .md twin).</text>
+  <rect x="774" y="196" width="140" height="82" rx="4" fill="#EEF0EB" stroke="#DBDDD6" />
+  <text x="784" y="216" class="mono" font-size="10" fill="#0E6B3A">Eligible  80–100</text>
+  <text x="784" y="236" class="mono" font-size="10" fill="#78520A">Partial   50–79</text>
+  <text x="784" y="256" class="mono" font-size="10" fill="#A83223">Restrict  &lt; 50</text>
+
+  <line x1="32" y1="316" x2="928" y2="316" stroke="#DBDDD6" stroke-width="1" />
+  <text x="32" y="330" class="mono-muted" font-size="10">UNIFIED SCORE COMBINES DESIGN + COPY ONLY · SYSTEM, CRAFT, AND AEO ARE REPORTED SEPARATELY</text>
+</svg>
