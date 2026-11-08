@@ -30,34 +30,35 @@ For pure pattern development you don't need Cloudflare — the CLI runs everythi
 
 ```
 packages/
-├── core/    slop-detect-core     ← rule definitions, scoring, fix recipes (workspace @slop-detect/core)
-├── cli/     slop-detect          ← Playwright runner
-├── mcp/     slop-detect-mcp      ← MCP server for AI agents
-└── action/                       ← GitHub Action wrapper (not on npm)
+├── core/                            ← rule definitions, 5-axis scoring, fix recipes (workspace @slop-detect/core -> npm: slop-detect-core)
+├── cli/                             ← Playwright runner, static HTML scanner, SARIF/JUnit/agent reporters (npm: slop-detect)
+├── mcp/                             ← MCP server for AI coding agents (npm: slop-detect-mcp)
+├── action/                          ← Composite GitHub Action (api + local Chromium + SARIF)
+├── netlify-plugin-slop-detect/      ← Netlify onPostBuild deploy gate
+└── lighthouse-plugin-slop-copy/     ← Lighthouse copy + HTML AEO plugin
 
 apps/
-├── web/     slop-detect-web      ← Cloudflare Pages app for slop-detect.com
+├── web/                             ← Cloudflare Pages app, REST API (/api/*) & remote MCP (/mcp)
 
-examples/
-├── astro-blog/                   ← reference Astro integration
-└── nextjs-app-router/            ← reference Next 15 integration
-
-spec/                             ← versioned pattern + AEO + conformance spec
+docs/                                ← Developer guides, generator/builder recipes & ops runbooks
+examples/                            ← Astro 5 & Next.js 15 reference integrations
+schemas/                             ← JSON Schema v1 (scan-result.v1.json)
+spec/                                ← Versioned pattern, copy, system, AEO & conformance specs
 ```
 
-When you change a rule in `packages/core/src/patterns.ts`, both the CLI and the web app pick it up automatically — they're consumers of the same `@slop-detect/core` package via `workspace:*` symlinks.
+When you change a rule in `packages/core/src/patterns.ts` or `packages/core/src/copyPatterns.ts`, the CLI, MCP server, GitHub Action, and web app pick it up automatically — they all consume `@slop-detect/core` via `workspace:*`.
 
-## Proposing a new pattern (#28, #29, ...)
+## Proposing a new pattern
 
-The bar for adding a new pattern is high but not impossible. Convince us with **evidence at scale**:
+New rules (and changes that broaden what an existing rule fires on) follow **Calibration Protocol v2** ([`CALIBRATION.md`](CALIBRATION.md)):
 
-1. **Find the pattern in the wild.** Show 10+ real landing pages where it appears.
-2. **Confirm template correlation.** It must be over-represented in default-template pages (Cursor, v0, Lovable, Bolt, GPT image-to-code) versus custom-designed ones.
-3. **Write a deterministic detector.** `extract(ctx)` runs in the page's DOM; `detect(signals)` returns true/false. Avoid heuristics that depend on screenshots, ML, or wall-clock timing.
-4. **Assign a weight (1–8).** Justify it relative to the existing 27. Weight 8 is reserved for slam-dunk signals like Inter-font usage and indigo-600 CTAs.
-5. **Write a fix recipe.** Add a `FIXES` entry in `packages/core/src/fixes.ts` with: problem, fix, alternatives, hard rule.
+1. **Find the pattern in the wild.** Show 5+ real landing pages where it appears and confirm it is over-represented in default-template pages compared with bespoke human-designed pages.
+2. **Write a deterministic detector.** `extract(ctx)` runs in the page's DOM; `detect(signals)` returns `true`/`false`. Avoid heuristics that depend on screenshots, ML, or wall-clock timing.
+3. **Enter at `weight: 0, status: 'review'` (`rule:weight-0`).** Every new rule ships at weight `0` first so it collects evidence in scan output without altering any site's score or tier. To graduate to a positive weight (`1–8`, `status: 'active'`), it must pass the **K-04 Promotion Gate** on the locked 30% held-out calibration split ($\text{LR}_+ \ge 3.0$, Clopper–Pearson 95% CI, and zero regressions on `packages/core/test/pioneers.test.js`).
+4. **Write a fix recipe.** Add a `FIXES` entry in `packages/core/src/fixes.ts` with: `problem`, `fix`, `alternatives`, and `rule` (following [K-06](https://github.com/ravidsrk/slop-detect/issues/301): describe default-template pattern overlap, never claim a page is "AI-generated").
+5. **Update the normative spec.** Add the rule to [`spec/patterns.md`](spec/patterns.md) or [`spec/copy-axis.md`](spec/copy-axis.md) (and run `node scripts/export-vale.mjs` if adding a regex-expressible copy rule).
 
-Open an issue first using the **New Pattern** template before writing code. We'd rather discuss it before you spend an evening on a detector we can't accept.
+Open an issue first using the [**New Pattern**](.github/ISSUE_TEMPLATE/new_pattern.md) template before writing code.
 
 ### The low-friction path: declarative rules
 

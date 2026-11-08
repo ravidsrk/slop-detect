@@ -14,7 +14,7 @@ Three layers, each tested. Report issues via
   `http://localhost` Pages dev), HSTS `preload` (one-way commitment),
   CSP nonces (needs inline-script refactor — a follow-up, not this run).
 
-## Application (see [AUTHZ_MATRIX.md](AUTHZ_MATRIX.md), T-07 secret scan)
+## Application (see [operations/AUTHZ_MATRIX.md](operations/AUTHZ_MATRIX.md), T-07 secret scan)
 
 - Sessions: stateless HMAC cookies (30d), `__Host-` prefix, Secure/HttpOnly/SameSite.
 - SSRF boundary around every server-side fetch (redirect + metadata guards).
@@ -22,7 +22,7 @@ Three layers, each tested. Report issues via
 
 ## Edge / Cloudflare dashboard (verify by hand — H-08)
 
-The repo cannot assert dashboard state, so confirm once and re-check yearly (verified 2026-10-19 in `docs/completion/evidence/H-08-edge-security-live.txt`):
+The repo cannot assert dashboard state, so confirm once and re-check yearly:
 
 - [x] TLS mode Full (strict); Always Use HTTPS on; HSTS dashboard toggle matches
       the header (or off, since the header carries it).
