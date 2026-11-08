@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "slop-detect": {
+      "command": "npx",
+      "args": ["-y", "slop-detect-mcp", "--local"]
+    }
+  }
+}

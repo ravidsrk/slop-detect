@@ -113,10 +113,16 @@ function resolveRefsWithDiagnostics(tree: Record<string, any>): RefResolutionInf
   return { brokenRefs, referencedPaths };
 }
 
-// Parse a DESIGN.md document into its token tree.
+// Parse a DESIGN.md document (or DTCG tokens.json) into its token tree.
 export function parseDesignMd(text: string): Record<string, any> | null {
+  if (typeof text !== 'string') return null;
   const fm = extractFrontMatter(text);
-  if (!fm) return null;
+  if (!fm) {
+    if (text.trim().startsWith('{')) {
+      return parseDtcgTokens(text, { lenient: true });
+    }
+    return null;
+  }
   let tree: Record<string, any>;
   try {
     tree = parseYamlSubset(fm);
@@ -525,12 +531,22 @@ export function extractSystemContext() {
         bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)' && (!a || parseFloat(a[1]) >= 0.5);
       if (opaque) {
         const hasBgImage = Boolean(cs.backgroundImage && cs.backgroundImage !== 'none');
+        const loc = {
+          selector: el.id ? `${tag.toLowerCase()}#${el.id}` : tag.toLowerCase(),
+          rect: {
+            x: Math.round(rect.x ?? rect.left ?? 0),
+            y: Math.round(rect.y ?? rect.top ?? 0),
+            width: Math.round(rect.width),
+            height: Math.round(rect.height),
+          },
+        };
         out.ctas.push({
           bg,
           color: cs.color,
           hasBgImage,
           area,
           text: (el.textContent || '').trim().slice(0, 40),
+          location: loc,
         });
         out.componentPairs.push({
           tag,
@@ -538,6 +554,7 @@ export function extractSystemContext() {
           bg,
           hasBgImage,
           text: (el.textContent || '').trim().slice(0, 40),
+          location: loc,
         });
       }
     }
@@ -549,6 +566,15 @@ export function extractSystemContext() {
         fontFamily: cs.fontFamily,
         fontSize: parsePx(cs.fontSize),
         area,
+        location: {
+          selector: el.id ? `${tag.toLowerCase()}#${el.id}` : tag.toLowerCase(),
+          rect: {
+            x: Math.round(rect.x ?? rect.left ?? 0),
+            y: Math.round(rect.y ?? rect.top ?? 0),
+            width: Math.round(rect.width),
+            height: Math.round(rect.height),
+          },
+        },
       });
     }
   }
@@ -724,10 +750,19 @@ export function scoreSystemCompliance(parsed: any, observed: any) {
   const drift: any[] = [];
   const nearMisses: any[] = [];
 
-  const push = (id: string, status: string, message: string, evidence?: any) => {
+  const push = (id: string, status: string, message: string, evidence?: any, locations?: any[]) => {
     const def = SYSTEM_CHECKS.find((c) => c.id === id);
-    checks.push({ ...def, status, message, evidence });
-    if (status === 'fail') drift.push({ id, message, evidence });
+    const locs = Array.isArray(locations) ? locations.filter(Boolean).slice(0, 5) : undefined;
+    checks.push({
+      ...def,
+      status,
+      message,
+      evidence,
+      ...(locs && locs.length ? { locations: locs } : {}),
+    });
+    if (status === 'fail') {
+      drift.push({ id, message, evidence, ...(locs && locs.length ? { locations: locs } : {}) });
+    }
   };
 
   // 1. Fonts
@@ -789,9 +824,15 @@ export function scoreSystemCompliance(parsed: any, observed: any) {
         }
       }
       if (off.length) {
-        push('colors.cta', 'fail', `${off.length}/${ctas.length} CTA color(s) not in the palette`, {
-          samples: off.slice(0, 4).map((c) => ({ bg: c.bg, text: c.text, deltaE: c.deltaE })),
-        });
+        push(
+          'colors.cta',
+          'fail',
+          `${off.length}/${ctas.length} CTA color(s) not in the palette`,
+          {
+            samples: off.slice(0, 4).map((c) => ({ bg: c.bg, text: c.text, deltaE: c.deltaE })),
+          },
+          off.map((c) => c.location).filter(Boolean)
+        );
       } else {
         push('colors.cta', 'pass', `all ${ctas.length} CTA colors match the palette`);
       }
@@ -862,7 +903,8 @@ export function scoreSystemCompliance(parsed: any, observed: any) {
           `${off.length}/${hs.length} heading color(s) not in the palette`,
           {
             samples: off.slice(0, 3).map((h) => ({ tag: h.tag, color: h.color, deltaE: h.deltaE })),
-          }
+          },
+          off.map((h) => h.location).filter(Boolean)
         );
       } else {
         push('colors.headings', 'pass', 'heading colors match the palette');
@@ -1042,6 +1084,10 @@ export function scoreSystemCompliance(parsed: any, observed: any) {
   // S-01 (#280): Compute dual count-ratio and area-weighted coverage across 9 token classes.
   const coverage = computeClassCoverage(tokens, obs);
 
+  // S-06 (#285): Informational token hygiene (unused tokens, deprecated tokens in use, motion tokens).
+  // Never affects the system compliance score.
+  const tokenHygiene = computeTokenHygiene(parsed, tokens, obs);
+
   const evaluated = checks.filter(
     (c) => c.status !== 'skip' && c.status !== 'unknown' && c.weight > 0
   );
@@ -1064,6 +1110,163 @@ export function scoreSystemCompliance(parsed: any, observed: any) {
     nearMisses,
     coverage,
     typeScaleInflation,
+    tokenHygiene,
+  };
+}
+
+// S-06 (#285): Strip Tailwind transparent ring layers and compare shadow layers within +-1px and dE_OK <= 0.02.
+export function stripTransparentShadowLayers(rawShadow: string): string[] {
+  if (!rawShadow || rawShadow === 'none') return [];
+  const layers: string[] = [];
+  let depth = 0;
+  let cur = '';
+  for (const ch of String(rawShadow)) {
+    if (ch === '(') depth++;
+    else if (ch === ')') depth = Math.max(0, depth - 1);
+    if (ch === ',' && depth === 0) {
+      if (cur.trim()) layers.push(cur.trim());
+      cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  if (cur.trim()) layers.push(cur.trim());
+  return layers.filter((layer) => {
+    if (
+      /^0(?:px)?\s+0(?:px)?(?:\s+0(?:px)?){0,2}\s+(?:#0000|transparent|rgba\(\s*0\s*,\s*0\s*,\s*0\s*,\s*0\s*\))$/i.test(
+        layer
+      )
+    ) {
+      return false;
+    }
+    const cMatch = layer.match(
+      /(?:rgba?\([^)]+\)|#[0-9a-fA-F]{3,8}|oklch\([^)]+\)|oklab\([^)]+\))/i
+    );
+    if (cMatch) {
+      const col = parseColor(cMatch[0]);
+      if (col && (col.a ?? 1) <= 0.001) return false;
+    }
+    return true;
+  });
+}
+
+function parseShadowLayerTuple(layer: string): {
+  ox: number;
+  oy: number;
+  blur: number;
+  spread: number;
+  color: string | null;
+} | null {
+  const cMatch = layer.match(/(?:rgba?\([^)]+\)|#[0-9a-fA-F]{3,8}|oklch\([^)]+\)|oklab\([^)]+\))/i);
+  const color = cMatch ? cMatch[0] : null;
+  const withoutColor = color ? layer.replace(color, ' ') : layer;
+  const nums = (withoutColor.match(/-?\d+(?:\.\d+)?(?=px|\b)/g) || []).map(Number);
+  if (nums.length < 2) return null;
+  return {
+    ox: nums[0] ?? 0,
+    oy: nums[1] ?? 0,
+    blur: nums[2] ?? 0,
+    spread: nums[3] ?? 0,
+    color,
+  };
+}
+
+export function shadowsMatchWithinTolerance(
+  declaredShadow: string,
+  observedShadow: string
+): boolean {
+  const decLayers = stripTransparentShadowLayers(declaredShadow);
+  const obsLayers = stripTransparentShadowLayers(observedShadow);
+  if (decLayers.length === 0 || obsLayers.length === 0) {
+    return decLayers.length === obsLayers.length;
+  }
+  if (decLayers.length !== obsLayers.length) return false;
+  for (let i = 0; i < decLayers.length; i++) {
+    const d = parseShadowLayerTuple(decLayers[i]);
+    const o = parseShadowLayerTuple(obsLayers[i]);
+    if (!d || !o) {
+      if (decLayers[i].trim() !== obsLayers[i].trim()) return false;
+      continue;
+    }
+    if (
+      Math.abs(d.ox - o.ox) > 1 ||
+      Math.abs(d.oy - o.oy) > 1 ||
+      Math.abs(d.blur - o.blur) > 1 ||
+      Math.abs(d.spread - o.spread) > 1
+    ) {
+      return false;
+    }
+    if (d.color && o.color) {
+      const cmp = compareSystemColors(d.color, o.color);
+      if (cmp.deltaE > 0.02 || cmp.deltaAlpha > 0.02) return false;
+    }
+  }
+  return true;
+}
+
+function computeTokenHygiene(
+  parsed: Record<string, any>,
+  tokens: ReturnType<typeof flattenDesignTokens>,
+  obs: Record<string, any>
+) {
+  const allColors: string[] = [
+    ...(obs.surface ? [obs.surface] : []),
+    ...(obs.ctas || []).map((c: any) => c.bg).filter(Boolean),
+    ...(obs.headings || []).map((h: any) => h.color).filter(Boolean),
+  ];
+  const unusedColors = tokens.colors.filter(
+    (tok) => !allColors.some((seen) => compareSystemColors(tok, seen).status === 'match')
+  );
+  const unusedRadii = tokens.radii
+    .filter((t) => !(obs.radii || []).some((r: number) => Math.abs(t - r) <= 2))
+    .map((r) => `${r}px`);
+  const unusedTokens = [...unusedColors, ...unusedRadii];
+  const totalDeclared = tokens.colors.length + tokens.radii.length;
+  const unusedTokenShare =
+    totalDeclared > 0 ? Number((unusedTokens.length / totalDeclared).toFixed(3)) : 0;
+
+  const deprecatedList: Array<{ path: string; type: string; value: string; reason: string }> =
+    Array.isArray(parsed.deprecatedTokens) ? parsed.deprecatedTokens : [];
+  const deprecatedTokensUsed = deprecatedList.filter((dep) => {
+    if (dep.type === 'color') {
+      return allColors.some((seen) => compareSystemColors(dep.value, seen).status === 'match');
+    }
+    if (dep.type === 'dimension') {
+      const px = parseLengthPx(dep.value);
+      return (
+        px !== null &&
+        ((obs.radii || []).some((r: number) => Math.abs(px - r) <= 2) ||
+          (obs.spacings || []).some((s: number) => Math.abs(px - s) <= 1))
+      );
+    }
+    return false;
+  });
+
+  // Motion token matching (durations and easings)
+  const declaredDurations = Object.values<string>(parsed?.motion?.durations || {});
+  const declaredEasings = Object.values<string>(parsed?.motion?.easings || {});
+  const obsAnimations: Array<{ duration?: string; easing?: string }> = Array.isArray(obs.animations)
+    ? obs.animations
+    : [];
+  const unmatchedMotion = obsAnimations.filter((anim) => {
+    const durOk =
+      !declaredDurations.length ||
+      !anim.duration ||
+      declaredDurations.some((d) => d.trim() === String(anim.duration).trim());
+    const easeOk =
+      !declaredEasings.length ||
+      !anim.easing ||
+      declaredEasings.some((e) => e.trim() === String(anim.easing).trim());
+    return !durOk || !easeOk;
+  });
+
+  return {
+    scored: false as const,
+    unusedTokens,
+    unusedTokenShare,
+    deprecatedTokensUsed,
+    motionTokensDeclared: declaredDurations.length + declaredEasings.length,
+    unmatchedMotionCount: unmatchedMotion.length,
   };
 }
 
@@ -1169,8 +1372,9 @@ function computeClassCoverage(
           };
         }
         if (cls === 'boxShadow') {
+          const obsVal = String(sample.value || '').trim();
           return {
-            matched: tokens.shadows.includes(String(sample.value || '').trim()),
+            matched: tokens.shadows.some((dec) => shadowsMatchWithinTolerance(dec, obsVal)),
             area: sample.area,
           };
         }
@@ -1715,12 +1919,22 @@ export function parseDtcgTokens(
   };
   applyGroupExtends(raw);
 
-  // Collect flat token map: path -> { type, rawValue }
-  const flatTokens = new Map<string, { type: string; value: any; ref?: string }>();
+  // Collect flat token map: path -> { type, rawValue, deprecated }
+  const flatTokens = new Map<
+    string,
+    { type: string; value: any; ref?: string; deprecated?: boolean | string }
+  >();
 
-  const walkDtcg = (node: any, pathParts: string[], inheritedType?: string) => {
+  const walkDtcg = (
+    node: any,
+    pathParts: string[],
+    inheritedType?: string,
+    inheritedDeprecated?: boolean | string
+  ) => {
     if (!node || typeof node !== 'object') return;
     const currentType = typeof node.$type === 'string' ? node.$type : inheritedType;
+    const currentDeprecated =
+      node.$deprecated !== undefined ? node.$deprecated : inheritedDeprecated;
 
     // Check if this node is a token ($value or $ref, or lenient value)
     const hasDollarValue = '$value' in node || '$ref' in node;
@@ -1738,13 +1952,18 @@ export function parseDtcgTokens(
       if (!currentType && !node.$type) {
         if (opts.lenient) nonConformant = true;
       }
-      flatTokens.set(tokenPath, { type: tokType || 'unknown', value: val, ref });
+      flatTokens.set(tokenPath, {
+        type: tokType || 'unknown',
+        value: val,
+        ref,
+        deprecated: currentDeprecated,
+      });
       return;
     }
 
     for (const [k, v] of Object.entries(node)) {
       if (k === '$root' && v && typeof v === 'object') {
-        walkDtcg(v, pathParts, currentType);
+        walkDtcg(v, pathParts, currentType, currentDeprecated);
         continue;
       }
       if (k.startsWith('$')) continue;
@@ -1757,7 +1976,7 @@ export function parseDtcgTokens(
         if (!opts.lenient) continue;
         nonConformant = true;
       }
-      walkDtcg(v, [...pathParts, k], currentType);
+      walkDtcg(v, [...pathParts, k], currentType, currentDeprecated);
     }
   };
 
@@ -1833,6 +2052,11 @@ export function parseDtcgTokens(
   const rounded: Record<string, string> = {};
   const spacing: Record<string, string> = {};
   const shadows: Record<string, string> = {};
+  const motion: { durations: Record<string, string>; easings: Record<string, string> } = {
+    durations: {},
+    easings: {},
+  };
+  const deprecatedTokens: Array<{ path: string; type: string; value: string; reason: string }> = [];
   const components: Record<string, any> = {};
 
   for (const [path, entry] of flatTokens.entries()) {
@@ -1844,16 +2068,21 @@ export function parseDtcgTokens(
     const t = entry.type;
     const shortKey = path.replace(/\./g, '_');
 
+    let cssStrValue = '';
     if (t === 'color') {
       const css = dtcgColorValueToCss(resolved);
-      if (css) colors[shortKey] = css;
-      else if (opts.lenient && typeof resolved === 'string') {
+      if (css) {
+        colors[shortKey] = css;
+        cssStrValue = css;
+      } else if (opts.lenient && typeof resolved === 'string') {
         nonConformant = true;
         colors[shortKey] = resolved;
+        cssStrValue = resolved;
       }
     } else if (t === 'fontFamily') {
       const fam = Array.isArray(resolved) ? resolved.join(', ') : String(resolved);
       typography[shortKey] = { fontFamily: fam };
+      cssStrValue = fam;
     } else if (t === 'typography' && resolved && typeof resolved === 'object') {
       typography[shortKey] = {
         fontFamily: Array.isArray(resolved.fontFamily)
@@ -1867,6 +2096,7 @@ export function parseDtcgTokens(
     } else if (t === 'dimension') {
       const dim = dtcgDimensionToCss(resolved);
       if (dim) {
+        cssStrValue = dim;
         if (/radius|rounded|corner/i.test(path)) rounded[shortKey] = dim;
         else if (/font|size|text/i.test(path)) {
           typography[shortKey] = { ...(typography[shortKey] || {}), fontSize: dim };
@@ -1875,7 +2105,47 @@ export function parseDtcgTokens(
         }
       }
     } else if (t === 'shadow') {
-      shadows[shortKey] = typeof resolved === 'string' ? resolved : JSON.stringify(resolved);
+      if (typeof resolved === 'string') {
+        shadows[shortKey] = resolved;
+        cssStrValue = resolved;
+      } else if (resolved && typeof resolved === 'object') {
+        const layers = Array.isArray(resolved) ? resolved : [resolved];
+        const cssLayers = layers
+          .map((l: any) => {
+            if (typeof l === 'string') return l;
+            const ox = dtcgDimensionToCss(l.offsetX) || '0px';
+            const oy = dtcgDimensionToCss(l.offsetY) || '0px';
+            const blur = dtcgDimensionToCss(l.blur) || '0px';
+            const spread = dtcgDimensionToCss(l.spread) || '0px';
+            const col = dtcgColorValueToCss(l.color) || '#000000';
+            return `${l.inset ? 'inset ' : ''}${ox} ${oy} ${blur} ${spread} ${col}`;
+          })
+          .join(', ');
+        shadows[shortKey] = cssLayers;
+        cssStrValue = cssLayers;
+      }
+    } else if (t === 'duration') {
+      const dur =
+        typeof resolved === 'object' && resolved && typeof resolved.value === 'number'
+          ? `${resolved.value}${resolved.unit || 'ms'}`
+          : String(resolved);
+      motion.durations[shortKey] = dur;
+      cssStrValue = dur;
+    } else if (t === 'cubicBezier') {
+      const ease = Array.isArray(resolved)
+        ? `cubic-bezier(${resolved.join(', ')})`
+        : String(resolved);
+      motion.easings[shortKey] = ease;
+      cssStrValue = ease;
+    }
+
+    if (entry.deprecated) {
+      deprecatedTokens.push({
+        path,
+        type: t,
+        value: cssStrValue || String(resolved),
+        reason: typeof entry.deprecated === 'string' ? entry.deprecated : 'deprecated token',
+      });
     }
   }
 
@@ -1895,6 +2165,8 @@ export function parseDtcgTokens(
     rounded,
     spacing,
     shadows,
+    motion,
+    deprecatedTokens,
     components,
   };
 }
@@ -1933,9 +2205,6 @@ export function extractDtcgTokens(
 ): Record<string, any> {
   const md = generateDesignMd(observed, opts);
   const parsed = parseDesignMd(md);
-  const tokens = parsed
-    ? flattenDesignTokens(parsed)
-    : { colors: [], fonts: [], radii: [], spacing: [] };
   const hexToSrgb = (hex: string) => {
     const rgb = parseCssColor(hex) || [0, 0, 0];
     return {
@@ -1964,6 +2233,7 @@ export function extractDtcgTokens(
     }
   }
   return {
+    $schema: 'https://tr.designtokens.org/format/2025.10/schema.json',
     $name: opts.name || 'Site Design System',
     colors: colorsGroup,
     typography: typographyGroup,

@@ -1,0 +1,127 @@
+{
+  "style": "SlopDetect",
+  "definitionsVersion": "2026.11",
+  "exportedRules": [
+    {
+      "file": "ChatbotMarkupLeak.yml",
+      "level": "error"
+    },
+    {
+      "file": "ChatbotReplyResidue.yml",
+      "level": "error"
+    },
+    {
+      "file": "UnfilledPlaceholders.yml",
+      "level": "error"
+    },
+    {
+      "file": "LeakedMarkdown.yml",
+      "level": "error"
+    },
+    {
+      "file": "Buzzwords.yml",
+      "level": "suggestion"
+    },
+    {
+      "file": "AntithesisConstruction.yml",
+      "level": "suggestion"
+    },
+    {
+      "file": "FillerOpeners.yml",
+      "level": "suggestion"
+    },
+    {
+      "file": "FormulaicClosers.yml",
+      "level": "suggestion"
+    },
+    {
+      "file": "WhetherYoure.yml",
+      "level": "suggestion"
+    },
+    {
+      "file": "BareAntithesis.yml",
+      "level": "suggestion"
+    },
+    {
+      "file": "AnnouncedStructure.yml",
+      "level": "suggestion"
+    },
+    {
+      "file": "ContextLeakCopy.yml",
+      "level": "suggestion"
+    }
+  ],
+  "exportedPatternIds": [
+    "chatbot_markup_leak",
+    "chatbot_reply_residue",
+    "unfilled_placeholders",
+    "leaked_markdown",
+    "buzzword_density",
+    "antithesis_construction",
+    "filler_openers",
+    "formulaic_closers",
+    "whether_youre",
+    "bare_antithesis",
+    "announced_structure",
+    "context_leak_copy"
+  ],
+  "excludedRules": [
+    {
+      "id": "em_dash_overload",
+      "reason": "requires-document-level-density-or-150-word-prose-gate"
+    },
+    {
+      "id": "rule_of_three",
+      "reason": "requires-document-level-density-or-150-word-prose-gate"
+    },
+    {
+      "id": "unicode_artifacts",
+      "reason": "retired-rule"
+    },
+    {
+      "id": "emoji_bullet_headers",
+      "reason": "requires-document-level-density-or-150-word-prose-gate"
+    },
+    {
+      "id": "hidden_tag_characters",
+      "reason": "requires-dom-or-unicode-codepoint-inspection"
+    },
+    {
+      "id": "invisible_characters",
+      "reason": "requires-dom-or-unicode-codepoint-inspection"
+    },
+    {
+      "id": "fake_bold_math_alnum",
+      "reason": "requires-dom-or-unicode-codepoint-inspection"
+    },
+    {
+      "id": "ai_referral_utm_links",
+      "reason": "requires-dom-or-unicode-codepoint-inspection"
+    },
+    {
+      "id": "structural_fake_social_proof",
+      "reason": "requires-dom-or-unicode-codepoint-inspection"
+    },
+    {
+      "id": "emoji_heading_ratio",
+      "reason": "requires-document-level-density-or-150-word-prose-gate"
+    },
+    {
+      "id": "restated_thesis_closer",
+      "reason": "requires-document-level-density-or-150-word-prose-gate"
+    },
+    {
+      "id": "trailing_participial_clauses",
+      "reason": "requires-document-level-density-or-150-word-prose-gate"
+    },
+    {
+      "id": "sentence_length_uniformity",
+      "reason": "requires-document-level-density-or-150-word-prose-gate"
+    },
+    {
+      "id": "excess_vocabulary_log_odds",
+      "reason": "requires-document-level-density-or-150-word-prose-gate"
+    }
+  ],
+  "bannedSignalsPolicy": "C-15: Formality/contraction rate, lexical diversity/readability, positive sentiment, and single-model perplexity are never scored or exported."
+}

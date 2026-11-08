@@ -4,6 +4,10 @@
 
 Part of [slop-detect](https://slop-detect.com): the versioned fingerprint that catches Cursor / v0 / Lovable template slop in the wild (live catalogue: [`/api/patterns`](https://slop-detect.com/api/patterns)). This package wraps the live `slop-detect.com` API as a [Model Context Protocol](https://modelcontextprotocol.io) server, so **Claude Code, Cursor, and Windsurf** can audit and de-slop pages without a browser or API key.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/ravidsrk/slop-detect/main/apps/web/public/media/docs-ci-mcp-loop.png" alt="Closed-Loop Anti-Slop Engineering Workflow (MCP + CI Gate)" width="100%" />
+</p>
+
 ## Tools
 
 | Tool | Input | What it does |
@@ -14,6 +18,7 @@ Part of [slop-detect](https://slop-detect.com): the versioned fingerprint that c
 | `fix_prompt` | `{ url }` | Returns a copy-paste prompt that tells a coding agent exactly how to de-slop the page. |
 | `lint_design_md` | `{ design_md }` | Lints DESIGN.md text locally (broken refs, contrast below 4.5:1, orphaned tokens, specVersion). No page fetch and no score change. |
 | `diff_design_md` | `{ base_design_md, head_design_md }` | Diffs two DESIGN.md documents. A removed or changed token is breaking. No page fetch. |
+| `extract_design_system` | `{ url?, format? }` | Extracts a deterministic Google Labs `DESIGN.md` or DTCG `2025.10` `tokens.json` document from a live URL or `observed` DOM telemetry. |
 
 > **Score polarity:** slop `0` = clean (Clean 0–9, Mild 10–27, Heavy 28+). AEO and design-system scores are inverted: **higher is better**.
 

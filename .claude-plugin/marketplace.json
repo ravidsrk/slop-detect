@@ -1,0 +1,28 @@
+{
+  "name": "slop-detect",
+  "owner": {
+    "name": "Ravindra Kumar",
+    "email": "ravidsrk@gmail.com",
+    "url": "https://slop-detect.com"
+  },
+  "metadata": {
+    "description": "Deterministic landing-page auditor across design patterns, copy tells, DESIGN.md compliance, craft floor, and AEO eligibility.",
+    "version": "0.8.0"
+  },
+  "plugins": [
+    {
+      "name": "slop-detect",
+      "description": "Scan landing pages for default-template design and copy patterns, DESIGN.md token drift, craft defects, and AEO crawler eligibility.",
+      "version": "0.8.0",
+      "author": {
+        "name": "Ravindra Kumar",
+        "email": "ravidsrk@gmail.com"
+      },
+      "homepage": "https://slop-detect.com",
+      "repository": "https://github.com/ravidsrk/slop-detect",
+      "license": "MIT",
+      "category": "design",
+      "source": "./plugins/slop-detect"
+    }
+  ]
+}

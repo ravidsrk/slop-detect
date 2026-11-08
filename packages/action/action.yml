@@ -27,6 +27,26 @@ inputs:
   url:
     description: 'The page (URL) to scan — typically a trusted, workflow-derived deploy-preview URL. Treat as untrusted input: pass only URLs your workflow resolves from your host, never PR-controlled content (especially on pull_request_target).'
     required: true
+  mode:
+    description: 'Execution mode: "api" (default, zero-install hosted scanner) or "local" (local headless Chromium via npx slop-detect for private previews or static builds).'
+    required: false
+    default: 'api'
+  static-dir:
+    description: 'Optional local static build directory (e.g. "./dist") to serve and scan when mode is "local".'
+    required: false
+    default: ''
+  baseline-url:
+    description: 'Optional production/baseline URL to compare against for regression ratcheting.'
+    required: false
+    default: ''
+  fail-on-regression:
+    description: 'Fail the check if the slop score regresses against baseline-url ("true"/"false").'
+    required: false
+    default: 'false'
+  fail-on:
+    description: 'Fail the check on tier ("mild", "heavy") or DESIGN.md drift ("drift").'
+    required: false
+    default: ''
   fail-under:
     # NOTE on semantics: the slop score is 0–100 where LOWER is better. So
     # "fail-under" here means "fail if the slop score climbs ABOVE this number".
@@ -76,6 +96,10 @@ inputs:
     description: 'Write a SARIF 2.1.0 file to this path. The job summary is still written. This action does not upload the file. Source lines are not invented.'
     required: false
     default: ''
+  upload-sarif:
+    description: 'Upload the generated SARIF file to GitHub Code Scanning via github/codeql-action/upload-sarif ("true"/"false"). Requires security-events: write.'
+    required: false
+    default: 'false'
 
 outputs:
   score:

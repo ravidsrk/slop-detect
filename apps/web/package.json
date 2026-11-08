@@ -14,12 +14,12 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@cloudflare/puppeteer": "^1.1.0",
-    "hono": "^4.12.25",
+    "@cloudflare/puppeteer": "^1.4.0",
+    "hono": "^4.13.17",
     "@slop-detect/core": "*"
   },
   "devDependencies": {
-    "wrangler": "^4.86.0"
+    "wrangler": "^4.158.0"
   },
   "engines": {
     "node": ">=20.0.0"

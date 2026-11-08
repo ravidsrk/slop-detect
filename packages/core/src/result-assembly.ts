@@ -11,6 +11,11 @@ export interface PatternSignal {
 
 export type FindingStatus = 'fail' | 'review' | 'unknown' | 'pass';
 
+export interface PatternLocation {
+  selector: string;
+  rect: { x: number; y: number; width: number; height: number };
+}
+
 export interface AssembledPatternResults {
   patterns: Array<{
     id: string;
@@ -28,6 +33,7 @@ export interface AssembledPatternResults {
     fpRate?: number | null;
     fpRatePre2022?: number | null;
     triggered: boolean;
+    locations?: PatternLocation[];
     evidence: PatternSignal;
   }>;
   patternsErrored: number;
@@ -70,6 +76,11 @@ export function assemblePatternResults(
       fpRate: p.fpRate ?? null,
       fpRatePre2022: p.fpRatePre2022 ?? null,
       triggered,
+      ...(Array.isArray(sig.locations)
+        ? { locations: (sig.locations as PatternLocation[]).slice(0, 5) }
+        : triggered
+          ? { locations: [] }
+          : {}),
       evidence: sig,
     };
   });

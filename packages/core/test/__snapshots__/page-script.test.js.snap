@@ -2871,6 +2871,61 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
       signals["unthemed_browser_surfaces"] = { triggered: false, error: e.message };
     }
 
+    // #208: Attach per-pattern DOM locations (selector + rect, capped at 5) for every triggered pattern.
+    const toCssSelector = (el) => {
+      if (!el || !el.tagName) return 'body';
+      const tag = el.tagName.toLowerCase();
+      if (el.id) return tag + '#' + el.id;
+      const cls = typeof el.className === 'string'
+        ? el.className.trim().split(/\\s+/).filter(Boolean).slice(0, 2).join('.')
+        : '';
+      return cls ? tag + '.' + cls : tag;
+    };
+    const toLoc = (el) => {
+      if (!el || typeof el.getBoundingClientRect !== 'function') return null;
+      const r = el.getBoundingClientRect();
+      if (!r || r.width <= 0 || r.height <= 0) return null;
+      return {
+        selector: toCssSelector(el),
+        rect: {
+          x: Math.round(r.x ?? r.left ?? 0),
+          y: Math.round(r.y ?? r.top ?? 0),
+          width: Math.round(r.width),
+          height: Math.round(r.height)
+        }
+      };
+    };
+    for (const [pid, sig] of Object.entries(signals)) {
+      if (!sig || !sig.triggered || Array.isArray(sig.locations)) continue;
+      const locs = [];
+      if (Array.isArray(sig.nodeIds) && sig.nodeIds.length > 0) {
+        for (const nid of sig.nodeIds) {
+          const el = document.querySelector('[data-slop-node-id="' + nid + '"]');
+          const l = toLoc(el);
+          if (l) locs.push(l);
+          if (locs.length >= 5) break;
+        }
+      }
+      if (locs.length === 0) {
+        const candidates = [];
+        if (/hero|font|gradient_text|mono_heading/.test(pid) && h1) candidates.push(h1);
+        for (const el of visible) {
+          if (candidates.length >= 5) break;
+          if (/button|cta|purple/.test(pid) && !/^(A|BUTTON)$/.test(el.tagName)) continue;
+          if (/heading|eyebrow|hero/.test(pid) && !/^H[1-6]$/.test(el.tagName)) continue;
+          candidates.push(el);
+        }
+        if (candidates.length === 0 && h1) candidates.push(h1);
+        if (candidates.length === 0 && visible.length > 0) candidates.push(visible[0]);
+        for (const el of candidates) {
+          const l = toLoc(el);
+          if (l) locs.push(l);
+          if (locs.length >= 5) break;
+        }
+      }
+      sig.locations = locs.slice(0, 5);
+    }
+
     const craftSignals = {};
 
     try {
@@ -3207,7 +3262,7 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
       for (const el of Array.from(all)) {
         if (checked++ > 1500) break;
         if (el.closest(
-          'details:not([open]), [hidden], [aria-hidden="true"], [role="tabpanel"][hidden], script, style, noscript, template'
+          'details:not([open]), [hidden], [aria-hidden="true"], [role="tabpanel"][hidden], [role="status"], [role="alert"], [role="tooltip"], [role="dialog"], [aria-live], .toast, script, style, noscript, template'
         )) {
           continue;
         }
@@ -3508,6 +3563,277 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
     } catch (e) {
       craftSignals["form_no_failure_feedback"] = { triggered: false, error: e.message };
     }
+
+    const experimentalSignals = {};
+
+    try {
+      experimentalSignals["neobrutalist_hard_shadow"] = ((ctx) => {
+      const { visible, parseColor: parseColor2 } = ctx;
+      let count = 0;
+      const samples = [];
+      for (const el of visible || []) {
+        const cs = getComputedStyle(el);
+        const bw = parseFloat(cs.borderTopWidth || "0") || 0;
+        if (bw < 2) continue;
+        const bs = String(cs.boxShadow || "");
+        if (!bs || bs === "none") continue;
+        const m = bs.match(
+          /(-?\\d+(?:\\.\\d+)?)px\\s+(-?\\d+(?:\\.\\d+)?)px\\s+(-?\\d+(?:\\.\\d+)?)px(?:\\s+(-?\\d+(?:\\.\\d+)?)px)?/
+        );
+        if (!m) continue;
+        const ox = Math.abs(parseFloat(m[1]));
+        const oy = Math.abs(parseFloat(m[2]));
+        const blur = parseFloat(m[3]);
+        if (blur === 0 && (ox >= 3 || oy >= 3)) {
+          const colMatch = bs.match(/(?:rgba?\\([^)]+\\)|#[0-9a-fA-F]{3,8}|oklch\\([^)]+\\))/);
+          const col = colMatch && parseColor2 ? parseColor2(colMatch[0]) : { r: 0, g: 0, b: 0, a: 1 };
+          const isDarkShadow = !col || col.r < 80 && col.g < 80 && col.b < 80 && (col.a ?? 1) >= 0.7;
+          if (isDarkShadow) {
+            count++;
+            if (samples.length < 3) {
+              samples.push((el.tagName || "DIV").toLowerCase());
+            }
+          }
+        }
+      }
+      return { count, samples, triggered: count >= 4 };
+    })(ctx);
+    } catch (e) {
+      experimentalSignals["neobrutalist_hard_shadow"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      experimentalSignals["analogous_hue_goo"] = ((ctx) => {
+      const { visible, parseColor: parseColor2, rgbToOklch: rgbToOklch2 } = ctx;
+      let chains = 0;
+      for (const el of visible || []) {
+        const hues = [];
+        let cur = el;
+        let depth = 0;
+        while (cur && depth++ < 6) {
+          const cs = getComputedStyle(cur);
+          const bg = parseColor2 ? parseColor2(cs.backgroundColor) : null;
+          if (bg && (bg.a ?? 1) >= 0.15 && rgbToOklch2) {
+            const lch = rgbToOklch2(bg);
+            if (lch && lch.C >= 0.03 && Number.isFinite(lch.h)) {
+              hues.push(lch.h);
+            }
+          }
+          cur = cur.parentElement;
+        }
+        if (hues.length >= 3) {
+          const first = hues[0];
+          const allClose = hues.slice(0, 3).every((h) => {
+            const diff = Math.abs(((h - first) % 360 + 540) % 360 - 180);
+            return diff <= 20;
+          });
+          if (allClose) chains++;
+        }
+      }
+      return { chains, triggered: chains >= 1 };
+    })(ctx);
+    } catch (e) {
+      experimentalSignals["analogous_hue_goo"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      experimentalSignals["unbranded_chat_bubble"] = ((ctx) => {
+      const { visible } = ctx;
+      const scripts = Array.from(document.querySelectorAll("script[src]")).map(
+        (s) => String(s.getAttribute("src") || "").toLowerCase()
+      );
+      const knownVendors = [
+        "intercom",
+        "crisp.chat",
+        "zdassets",
+        "zendesk",
+        "drift",
+        "hubspot",
+        "tawk.to",
+        "freshchat",
+        "helpscout"
+      ];
+      const hasVendorScript = scripts.some((s) => knownVendors.some((v) => s.includes(v)));
+      if (hasVendorScript) {
+        return { triggered: false, hasVendorScript: true };
+      }
+      const vw = window.innerWidth || 1280;
+      const vh = window.innerHeight || 800;
+      let found = false;
+      for (const el of visible || []) {
+        const cs = getComputedStyle(el);
+        if (cs.position !== "fixed") continue;
+        const r = el.getBoundingClientRect();
+        if (r.width >= 36 && r.width <= 84 && r.height >= 36 && r.height <= 84 && vw - r.right <= 48 && vh - r.bottom <= 48) {
+          found = true;
+          break;
+        }
+      }
+      return { triggered: found, hasVendorScript: false };
+    })(ctx);
+    } catch (e) {
+      experimentalSignals["unbranded_chat_bubble"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      experimentalSignals["glass_gradient_kit"] = ((ctx) => {
+      const { visible, parseColor: parseColor2 } = ctx;
+      let glassCards = 0;
+      let hasGradientGround = false;
+      for (const el of visible || []) {
+        const cs = getComputedStyle(el);
+        const bgImg = String(cs.backgroundImage || "");
+        if (/gradient\\(/i.test(bgImg)) {
+          const r = el.getBoundingClientRect();
+          if (r.width * r.height >= (window.innerWidth || 1280) * (window.innerHeight || 800) * 0.2) {
+            hasGradientGround = true;
+          }
+        }
+        const bf = String(cs.backdropFilter || cs.webkitBackdropFilter || "");
+        const bw = parseFloat(cs.borderTopWidth || "0") || 0;
+        const bc = parseColor2 ? parseColor2(cs.borderTopColor) : null;
+        if (/blur\\(/i.test(bf) && bw >= 0.5 && bw <= 1.5 && bc && bc.r > 200 && bc.g > 200 && bc.b > 200 && (bc.a ?? 1) < 0.6) {
+          glassCards++;
+        }
+      }
+      return { glassCards, hasGradientGround, triggered: hasGradientGround && glassCards >= 2 };
+    })(ctx);
+    } catch (e) {
+      experimentalSignals["glass_gradient_kit"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      experimentalSignals["dev_theme_palette"] = ((ctx) => {
+      const { visible, parseColor: parseColor2, rgbToOklch: rgbToOklch2 } = ctx;
+      const bodyBg = parseColor2 ? parseColor2(getComputedStyle(document.body).backgroundColor) : null;
+      if (!bodyBg) return { triggered: false, theme: null };
+      const bodyLch = rgbToOklch2 ? rgbToOklch2(bodyBg) : null;
+      if (!bodyLch || bodyLch.L > 0.28) return { triggered: false, theme: null };
+      const isTokyoBg = Math.abs(bodyBg.r - 26) <= 10 && Math.abs(bodyBg.g - 27) <= 10 && Math.abs(bodyBg.b - 38) <= 12;
+      const isDraculaBg = Math.abs(bodyBg.r - 40) <= 10 && Math.abs(bodyBg.g - 42) <= 10 && Math.abs(bodyBg.b - 54) <= 12;
+      let emeraldHits = 0;
+      let acidGreenHits = 0;
+      let vermilionHits = 0;
+      for (const el of visible || []) {
+        const cs = getComputedStyle(el);
+        for (const raw of [cs.color, cs.backgroundColor, cs.borderTopColor]) {
+          const c = parseColor2 ? parseColor2(raw) : null;
+          if (!c || (c.a ?? 1) < 0.5) continue;
+          const lch = rgbToOklch2 ? rgbToOklch2(c) : null;
+          if (!lch || lch.C < 0.12) continue;
+          if (lch.h >= 145 && lch.h <= 170) emeraldHits++;
+          else if (lch.h >= 115 && lch.h < 145) acidGreenHits++;
+          else if (lch.h >= 20 && lch.h <= 38) vermilionHits++;
+        }
+      }
+      const theme = isTokyoBg ? "tokyo-night" : isDraculaBg ? "dracula" : emeraldHits >= 3 ? "near-black-emerald" : acidGreenHits >= 3 ? "near-black-acid-green" : vermilionHits >= 3 ? "near-black-vermilion" : null;
+      return {
+        triggered: Boolean(theme),
+        theme,
+        emeraldHits,
+        acidGreenHits,
+        vermilionHits
+      };
+    })(ctx);
+    } catch (e) {
+      experimentalSignals["dev_theme_palette"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      experimentalSignals["tilted_device_mockup"] = ((ctx) => {
+      const { visible, parseColor: parseColor2, rgbToOklch: rgbToOklch2 } = ctx;
+      const bodyBg = parseColor2 ? parseColor2(getComputedStyle(document.body).backgroundColor) : null;
+      const bodyLch = bodyBg && rgbToOklch2 ? rgbToOklch2(bodyBg) : null;
+      const isCream = bodyLch && bodyLch.L >= 0.92 && bodyLch.C >= 8e-3 && bodyLch.C <= 0.06 && bodyLch.h >= 60 && bodyLch.h <= 115;
+      let tiltedFrames = 0;
+      let hasSage = false;
+      for (const el of visible || []) {
+        const cs = getComputedStyle(el);
+        const tf = String(cs.transform || "");
+        const rot = String(cs.rotate || "");
+        if (tf && tf !== "none" && /matrix|rotate/i.test(tf) || rot && rot !== "none" && rot !== "0deg") {
+          const r = el.getBoundingClientRect();
+          const radius = parseFloat(cs.borderTopLeftRadius || "0") || 0;
+          if (r.width >= 180 && r.height >= 240 && radius >= 16) {
+            tiltedFrames++;
+          }
+        }
+        const bg = parseColor2 ? parseColor2(cs.backgroundColor) : null;
+        const lch = bg && rgbToOklch2 ? rgbToOklch2(bg) : null;
+        if (lch && lch.C >= 0.03 && lch.C <= 0.12 && lch.h >= 120 && lch.h <= 165) {
+          hasSage = true;
+        }
+      }
+      return {
+        isCream: Boolean(isCream),
+        hasSage,
+        tiltedFrames,
+        triggered: Boolean(isCream && hasSage && tiltedFrames >= 1)
+      };
+    })(ctx);
+    } catch (e) {
+      experimentalSignals["tilted_device_mockup"] = { triggered: false, error: e.message };
+    }
+
+    const extractInlineWaivers = function extractInlineWaivers() {
+  const out = [];
+  const seen = /* @__PURE__ */ new Set();
+  const add = (id, reason, selector) => {
+    const cleanId = String(id || "").trim();
+    if (!cleanId) return;
+    const key = \`\${cleanId}::\${reason || ""}\`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push({
+      id: cleanId,
+      reason: String(reason || "").trim() || "inline data-slop-ignore waiver",
+      source: "inline",
+      ...selector ? { selector } : {}
+    });
+  };
+  if (typeof document === "undefined" || !document.querySelectorAll) return out;
+  for (const el of Array.from(document.querySelectorAll("[data-slop-ignore]"))) {
+    const rawAttr = el.getAttribute("data-slop-ignore") || "";
+    const explicitReason = el.getAttribute("data-slop-reason") || "";
+    const tag = el.tagName ? el.tagName.toLowerCase() : "div";
+    const sel = el.id ? \`\${tag}#\${el.id}\` : tag;
+    for (const chunk of rawAttr.split(",")) {
+      const trimmed = chunk.trim();
+      if (!trimmed) continue;
+      const colonIdx = trimmed.indexOf(":");
+      if (colonIdx !== -1) {
+        const id = trimmed.slice(0, colonIdx).trim();
+        const reason = trimmed.slice(colonIdx + 1).trim() || explicitReason;
+        add(id, reason, sel);
+      } else {
+        add(trimmed, explicitReason, sel);
+      }
+    }
+  }
+  try {
+    const walker = document.createTreeWalker(
+      document,
+      128
+      /* NodeFilter.SHOW_COMMENT */
+    );
+    let node;
+    while (node = walker.nextNode()) {
+      const text = String(node.nodeValue || "").trim();
+      const m = text.match(
+        /^slop(?:-detect)?-(?:ignore|disable)\\s+([a-z0-9_.,\\s-]+?)(?::\\s*(.+))?$/i
+      );
+      if (m) {
+        const ids = m[1].split(",").map((s) => s.trim()).filter(Boolean);
+        const reason = (m[2] || "").trim() || "inline comment waiver";
+        for (const id of ids) add(id, reason);
+      }
+    }
+  } catch {
+  }
+  return out;
+};
+    let inlineWaivers = [];
+    try { inlineWaivers = extractInlineWaivers(); } catch (e) { inlineWaivers = []; }
 
     const extractMadeWith = function extractMadeWith(rootDoc) {
   const doc = rootDoc || (typeof document !== "undefined" ? document : null);
@@ -3982,6 +4308,8 @@ exports[`buildPageScript default (design + copy, no system axis) 1`] = `
       visibleCount: visible.length,
       signals,
       craftSignals,
+      experimentalSignals,
+      inlineWaivers,
       madeWith,
       textContext,
       systemContext
@@ -6860,6 +7188,61 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
       signals["unthemed_browser_surfaces"] = { triggered: false, error: e.message };
     }
 
+    // #208: Attach per-pattern DOM locations (selector + rect, capped at 5) for every triggered pattern.
+    const toCssSelector = (el) => {
+      if (!el || !el.tagName) return 'body';
+      const tag = el.tagName.toLowerCase();
+      if (el.id) return tag + '#' + el.id;
+      const cls = typeof el.className === 'string'
+        ? el.className.trim().split(/\\s+/).filter(Boolean).slice(0, 2).join('.')
+        : '';
+      return cls ? tag + '.' + cls : tag;
+    };
+    const toLoc = (el) => {
+      if (!el || typeof el.getBoundingClientRect !== 'function') return null;
+      const r = el.getBoundingClientRect();
+      if (!r || r.width <= 0 || r.height <= 0) return null;
+      return {
+        selector: toCssSelector(el),
+        rect: {
+          x: Math.round(r.x ?? r.left ?? 0),
+          y: Math.round(r.y ?? r.top ?? 0),
+          width: Math.round(r.width),
+          height: Math.round(r.height)
+        }
+      };
+    };
+    for (const [pid, sig] of Object.entries(signals)) {
+      if (!sig || !sig.triggered || Array.isArray(sig.locations)) continue;
+      const locs = [];
+      if (Array.isArray(sig.nodeIds) && sig.nodeIds.length > 0) {
+        for (const nid of sig.nodeIds) {
+          const el = document.querySelector('[data-slop-node-id="' + nid + '"]');
+          const l = toLoc(el);
+          if (l) locs.push(l);
+          if (locs.length >= 5) break;
+        }
+      }
+      if (locs.length === 0) {
+        const candidates = [];
+        if (/hero|font|gradient_text|mono_heading/.test(pid) && h1) candidates.push(h1);
+        for (const el of visible) {
+          if (candidates.length >= 5) break;
+          if (/button|cta|purple/.test(pid) && !/^(A|BUTTON)$/.test(el.tagName)) continue;
+          if (/heading|eyebrow|hero/.test(pid) && !/^H[1-6]$/.test(el.tagName)) continue;
+          candidates.push(el);
+        }
+        if (candidates.length === 0 && h1) candidates.push(h1);
+        if (candidates.length === 0 && visible.length > 0) candidates.push(visible[0]);
+        for (const el of candidates) {
+          const l = toLoc(el);
+          if (l) locs.push(l);
+          if (locs.length >= 5) break;
+        }
+      }
+      sig.locations = locs.slice(0, 5);
+    }
+
     const craftSignals = {};
 
     try {
@@ -7196,7 +7579,7 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
       for (const el of Array.from(all)) {
         if (checked++ > 1500) break;
         if (el.closest(
-          'details:not([open]), [hidden], [aria-hidden="true"], [role="tabpanel"][hidden], script, style, noscript, template'
+          'details:not([open]), [hidden], [aria-hidden="true"], [role="tabpanel"][hidden], [role="status"], [role="alert"], [role="tooltip"], [role="dialog"], [aria-live], .toast, script, style, noscript, template'
         )) {
           continue;
         }
@@ -7497,6 +7880,277 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
     } catch (e) {
       craftSignals["form_no_failure_feedback"] = { triggered: false, error: e.message };
     }
+
+    const experimentalSignals = {};
+
+    try {
+      experimentalSignals["neobrutalist_hard_shadow"] = ((ctx) => {
+      const { visible, parseColor: parseColor2 } = ctx;
+      let count = 0;
+      const samples = [];
+      for (const el of visible || []) {
+        const cs = getComputedStyle(el);
+        const bw = parseFloat(cs.borderTopWidth || "0") || 0;
+        if (bw < 2) continue;
+        const bs = String(cs.boxShadow || "");
+        if (!bs || bs === "none") continue;
+        const m = bs.match(
+          /(-?\\d+(?:\\.\\d+)?)px\\s+(-?\\d+(?:\\.\\d+)?)px\\s+(-?\\d+(?:\\.\\d+)?)px(?:\\s+(-?\\d+(?:\\.\\d+)?)px)?/
+        );
+        if (!m) continue;
+        const ox = Math.abs(parseFloat(m[1]));
+        const oy = Math.abs(parseFloat(m[2]));
+        const blur = parseFloat(m[3]);
+        if (blur === 0 && (ox >= 3 || oy >= 3)) {
+          const colMatch = bs.match(/(?:rgba?\\([^)]+\\)|#[0-9a-fA-F]{3,8}|oklch\\([^)]+\\))/);
+          const col = colMatch && parseColor2 ? parseColor2(colMatch[0]) : { r: 0, g: 0, b: 0, a: 1 };
+          const isDarkShadow = !col || col.r < 80 && col.g < 80 && col.b < 80 && (col.a ?? 1) >= 0.7;
+          if (isDarkShadow) {
+            count++;
+            if (samples.length < 3) {
+              samples.push((el.tagName || "DIV").toLowerCase());
+            }
+          }
+        }
+      }
+      return { count, samples, triggered: count >= 4 };
+    })(ctx);
+    } catch (e) {
+      experimentalSignals["neobrutalist_hard_shadow"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      experimentalSignals["analogous_hue_goo"] = ((ctx) => {
+      const { visible, parseColor: parseColor2, rgbToOklch: rgbToOklch2 } = ctx;
+      let chains = 0;
+      for (const el of visible || []) {
+        const hues = [];
+        let cur = el;
+        let depth = 0;
+        while (cur && depth++ < 6) {
+          const cs = getComputedStyle(cur);
+          const bg = parseColor2 ? parseColor2(cs.backgroundColor) : null;
+          if (bg && (bg.a ?? 1) >= 0.15 && rgbToOklch2) {
+            const lch = rgbToOklch2(bg);
+            if (lch && lch.C >= 0.03 && Number.isFinite(lch.h)) {
+              hues.push(lch.h);
+            }
+          }
+          cur = cur.parentElement;
+        }
+        if (hues.length >= 3) {
+          const first = hues[0];
+          const allClose = hues.slice(0, 3).every((h) => {
+            const diff = Math.abs(((h - first) % 360 + 540) % 360 - 180);
+            return diff <= 20;
+          });
+          if (allClose) chains++;
+        }
+      }
+      return { chains, triggered: chains >= 1 };
+    })(ctx);
+    } catch (e) {
+      experimentalSignals["analogous_hue_goo"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      experimentalSignals["unbranded_chat_bubble"] = ((ctx) => {
+      const { visible } = ctx;
+      const scripts = Array.from(document.querySelectorAll("script[src]")).map(
+        (s) => String(s.getAttribute("src") || "").toLowerCase()
+      );
+      const knownVendors = [
+        "intercom",
+        "crisp.chat",
+        "zdassets",
+        "zendesk",
+        "drift",
+        "hubspot",
+        "tawk.to",
+        "freshchat",
+        "helpscout"
+      ];
+      const hasVendorScript = scripts.some((s) => knownVendors.some((v) => s.includes(v)));
+      if (hasVendorScript) {
+        return { triggered: false, hasVendorScript: true };
+      }
+      const vw = window.innerWidth || 1280;
+      const vh = window.innerHeight || 800;
+      let found = false;
+      for (const el of visible || []) {
+        const cs = getComputedStyle(el);
+        if (cs.position !== "fixed") continue;
+        const r = el.getBoundingClientRect();
+        if (r.width >= 36 && r.width <= 84 && r.height >= 36 && r.height <= 84 && vw - r.right <= 48 && vh - r.bottom <= 48) {
+          found = true;
+          break;
+        }
+      }
+      return { triggered: found, hasVendorScript: false };
+    })(ctx);
+    } catch (e) {
+      experimentalSignals["unbranded_chat_bubble"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      experimentalSignals["glass_gradient_kit"] = ((ctx) => {
+      const { visible, parseColor: parseColor2 } = ctx;
+      let glassCards = 0;
+      let hasGradientGround = false;
+      for (const el of visible || []) {
+        const cs = getComputedStyle(el);
+        const bgImg = String(cs.backgroundImage || "");
+        if (/gradient\\(/i.test(bgImg)) {
+          const r = el.getBoundingClientRect();
+          if (r.width * r.height >= (window.innerWidth || 1280) * (window.innerHeight || 800) * 0.2) {
+            hasGradientGround = true;
+          }
+        }
+        const bf = String(cs.backdropFilter || cs.webkitBackdropFilter || "");
+        const bw = parseFloat(cs.borderTopWidth || "0") || 0;
+        const bc = parseColor2 ? parseColor2(cs.borderTopColor) : null;
+        if (/blur\\(/i.test(bf) && bw >= 0.5 && bw <= 1.5 && bc && bc.r > 200 && bc.g > 200 && bc.b > 200 && (bc.a ?? 1) < 0.6) {
+          glassCards++;
+        }
+      }
+      return { glassCards, hasGradientGround, triggered: hasGradientGround && glassCards >= 2 };
+    })(ctx);
+    } catch (e) {
+      experimentalSignals["glass_gradient_kit"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      experimentalSignals["dev_theme_palette"] = ((ctx) => {
+      const { visible, parseColor: parseColor2, rgbToOklch: rgbToOklch2 } = ctx;
+      const bodyBg = parseColor2 ? parseColor2(getComputedStyle(document.body).backgroundColor) : null;
+      if (!bodyBg) return { triggered: false, theme: null };
+      const bodyLch = rgbToOklch2 ? rgbToOklch2(bodyBg) : null;
+      if (!bodyLch || bodyLch.L > 0.28) return { triggered: false, theme: null };
+      const isTokyoBg = Math.abs(bodyBg.r - 26) <= 10 && Math.abs(bodyBg.g - 27) <= 10 && Math.abs(bodyBg.b - 38) <= 12;
+      const isDraculaBg = Math.abs(bodyBg.r - 40) <= 10 && Math.abs(bodyBg.g - 42) <= 10 && Math.abs(bodyBg.b - 54) <= 12;
+      let emeraldHits = 0;
+      let acidGreenHits = 0;
+      let vermilionHits = 0;
+      for (const el of visible || []) {
+        const cs = getComputedStyle(el);
+        for (const raw of [cs.color, cs.backgroundColor, cs.borderTopColor]) {
+          const c = parseColor2 ? parseColor2(raw) : null;
+          if (!c || (c.a ?? 1) < 0.5) continue;
+          const lch = rgbToOklch2 ? rgbToOklch2(c) : null;
+          if (!lch || lch.C < 0.12) continue;
+          if (lch.h >= 145 && lch.h <= 170) emeraldHits++;
+          else if (lch.h >= 115 && lch.h < 145) acidGreenHits++;
+          else if (lch.h >= 20 && lch.h <= 38) vermilionHits++;
+        }
+      }
+      const theme = isTokyoBg ? "tokyo-night" : isDraculaBg ? "dracula" : emeraldHits >= 3 ? "near-black-emerald" : acidGreenHits >= 3 ? "near-black-acid-green" : vermilionHits >= 3 ? "near-black-vermilion" : null;
+      return {
+        triggered: Boolean(theme),
+        theme,
+        emeraldHits,
+        acidGreenHits,
+        vermilionHits
+      };
+    })(ctx);
+    } catch (e) {
+      experimentalSignals["dev_theme_palette"] = { triggered: false, error: e.message };
+    }
+
+    try {
+      experimentalSignals["tilted_device_mockup"] = ((ctx) => {
+      const { visible, parseColor: parseColor2, rgbToOklch: rgbToOklch2 } = ctx;
+      const bodyBg = parseColor2 ? parseColor2(getComputedStyle(document.body).backgroundColor) : null;
+      const bodyLch = bodyBg && rgbToOklch2 ? rgbToOklch2(bodyBg) : null;
+      const isCream = bodyLch && bodyLch.L >= 0.92 && bodyLch.C >= 8e-3 && bodyLch.C <= 0.06 && bodyLch.h >= 60 && bodyLch.h <= 115;
+      let tiltedFrames = 0;
+      let hasSage = false;
+      for (const el of visible || []) {
+        const cs = getComputedStyle(el);
+        const tf = String(cs.transform || "");
+        const rot = String(cs.rotate || "");
+        if (tf && tf !== "none" && /matrix|rotate/i.test(tf) || rot && rot !== "none" && rot !== "0deg") {
+          const r = el.getBoundingClientRect();
+          const radius = parseFloat(cs.borderTopLeftRadius || "0") || 0;
+          if (r.width >= 180 && r.height >= 240 && radius >= 16) {
+            tiltedFrames++;
+          }
+        }
+        const bg = parseColor2 ? parseColor2(cs.backgroundColor) : null;
+        const lch = bg && rgbToOklch2 ? rgbToOklch2(bg) : null;
+        if (lch && lch.C >= 0.03 && lch.C <= 0.12 && lch.h >= 120 && lch.h <= 165) {
+          hasSage = true;
+        }
+      }
+      return {
+        isCream: Boolean(isCream),
+        hasSage,
+        tiltedFrames,
+        triggered: Boolean(isCream && hasSage && tiltedFrames >= 1)
+      };
+    })(ctx);
+    } catch (e) {
+      experimentalSignals["tilted_device_mockup"] = { triggered: false, error: e.message };
+    }
+
+    const extractInlineWaivers = function extractInlineWaivers() {
+  const out = [];
+  const seen = /* @__PURE__ */ new Set();
+  const add = (id, reason, selector) => {
+    const cleanId = String(id || "").trim();
+    if (!cleanId) return;
+    const key = \`\${cleanId}::\${reason || ""}\`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push({
+      id: cleanId,
+      reason: String(reason || "").trim() || "inline data-slop-ignore waiver",
+      source: "inline",
+      ...selector ? { selector } : {}
+    });
+  };
+  if (typeof document === "undefined" || !document.querySelectorAll) return out;
+  for (const el of Array.from(document.querySelectorAll("[data-slop-ignore]"))) {
+    const rawAttr = el.getAttribute("data-slop-ignore") || "";
+    const explicitReason = el.getAttribute("data-slop-reason") || "";
+    const tag = el.tagName ? el.tagName.toLowerCase() : "div";
+    const sel = el.id ? \`\${tag}#\${el.id}\` : tag;
+    for (const chunk of rawAttr.split(",")) {
+      const trimmed = chunk.trim();
+      if (!trimmed) continue;
+      const colonIdx = trimmed.indexOf(":");
+      if (colonIdx !== -1) {
+        const id = trimmed.slice(0, colonIdx).trim();
+        const reason = trimmed.slice(colonIdx + 1).trim() || explicitReason;
+        add(id, reason, sel);
+      } else {
+        add(trimmed, explicitReason, sel);
+      }
+    }
+  }
+  try {
+    const walker = document.createTreeWalker(
+      document,
+      128
+      /* NodeFilter.SHOW_COMMENT */
+    );
+    let node;
+    while (node = walker.nextNode()) {
+      const text = String(node.nodeValue || "").trim();
+      const m = text.match(
+        /^slop(?:-detect)?-(?:ignore|disable)\\s+([a-z0-9_.,\\s-]+?)(?::\\s*(.+))?$/i
+      );
+      if (m) {
+        const ids = m[1].split(",").map((s) => s.trim()).filter(Boolean);
+        const reason = (m[2] || "").trim() || "inline comment waiver";
+        for (const id of ids) add(id, reason);
+      }
+    }
+  } catch {
+  }
+  return out;
+};
+    let inlineWaivers = [];
+    try { inlineWaivers = extractInlineWaivers(); } catch (e) { inlineWaivers = []; }
 
     const extractMadeWith = function extractMadeWith(rootDoc) {
   const doc = rootDoc || (typeof document !== "undefined" ? document : null);
@@ -8063,19 +8717,30 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
       const opaque = bg && bg !== "transparent" && bg !== "rgba(0, 0, 0, 0)" && (!a || parseFloat(a[1]) >= 0.5);
       if (opaque) {
         const hasBgImage = Boolean(cs.backgroundImage && cs.backgroundImage !== "none");
+        const loc = {
+          selector: el.id ? \`\${tag.toLowerCase()}#\${el.id}\` : tag.toLowerCase(),
+          rect: {
+            x: Math.round(rect.x ?? rect.left ?? 0),
+            y: Math.round(rect.y ?? rect.top ?? 0),
+            width: Math.round(rect.width),
+            height: Math.round(rect.height)
+          }
+        };
         out.ctas.push({
           bg,
           color: cs.color,
           hasBgImage,
           area,
-          text: (el.textContent || "").trim().slice(0, 40)
+          text: (el.textContent || "").trim().slice(0, 40),
+          location: loc
         });
         out.componentPairs.push({
           tag,
           fg: cs.color,
           bg,
           hasBgImage,
-          text: (el.textContent || "").trim().slice(0, 40)
+          text: (el.textContent || "").trim().slice(0, 40),
+          location: loc
         });
       }
     }
@@ -8085,7 +8750,16 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
         color: cs.color,
         fontFamily: cs.fontFamily,
         fontSize: parsePx(cs.fontSize),
-        area
+        area,
+        location: {
+          selector: el.id ? \`\${tag.toLowerCase()}#\${el.id}\` : tag.toLowerCase(),
+          rect: {
+            x: Math.round(rect.x ?? rect.left ?? 0),
+            y: Math.round(rect.y ?? rect.top ?? 0),
+            width: Math.round(rect.width),
+            height: Math.round(rect.height)
+          }
+        }
       });
     }
   }
@@ -8107,6 +8781,8 @@ exports[`buildPageScript with includeSystem injects system axis extractor 1`] = 
       visibleCount: visible.length,
       signals,
       craftSignals,
+      experimentalSignals,
+      inlineWaivers,
       madeWith,
       textContext,
       systemContext

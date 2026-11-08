@@ -55,3 +55,27 @@ aeo_tier          = Eligible            if aeo_score ≥ 80
 - Longest matching path pattern wins; `Allow` wins ties of equal length; `*` and trailing `$` wildcards and percent-encoding normalization are supported.
 - HTTP `5xx` on `/robots.txt` is treated as full disallow; `4xx` is treated as allow all; `200` with `text/html` is ignored with a warning.
 - Blocking training-only crawlers (`GPTBot`, `ClaudeBot`, `Google-Extended`, `Applebot-Extended`, `CCBot`) is recorded informationally and never reduces `robots.searchAllowed`.
+
+## Lighthouse 13.5.0 Agentic Browsing Crosswalk (K-08)
+
+The table below maps every AEO check (`AEO_CHECKS`) to its closest audit in Google Lighthouse `13.5.0` (released 2026-09-18) and `main` (2026-10-09 Agentic Browsing category), recording where behaviour matches or diverges.
+
+| Severity | Check ID | Lighthouse 13.5.0 / `main` Audit | Parity & divergence notes |
+|----------|----------|----------------------------------|---------------------------|
+| required | `html.reachable` | `unique` | Lighthouse aborts the run on HTTP 4xx/5xx document errors (`ERRORED_DOCUMENT_REQUEST`); Slop Detector scores `html.reachable` (10 pts) and marks downstream page-dependent checks `na`. |
+| required | `edge.access` | `unique` | Tri-state edge/WAF challenge probe (`pass` / `warn` / `fail` / `unknown`) using honest `SlopDetector-AEO/1.0 (+https://slop-detect.com/bot)` UA without vendor UA impersonation. |
+| required | `robots.searchAllowed` | `robots-txt` | Lighthouse `robots-txt` checks syntax and general crawlability; `robots.searchAllowed` evaluates RFC 9309 longest-match and purpose-tiered AI search tokens (`OAI-SearchBot`, `Claude-SearchBot`, `PerplexityBot`, `Googlebot`, `bingbot`, `Applebot`) while never penalizing training opt-outs. |
+| required | `html.indexable` | `is-crawlable` (`robots-txt`) | Matches Lighthouse `is-crawlable` inspection of `<meta name="robots">` and `X-Robots-Tag` for `noindex` / `none`. |
+| required | `ai.previewControls` | `unique` | Evaluates per-engine snippet and archive preview directives (`nosnippet`, `max-snippet`, `data-nosnippet`, `noarchive`) across Google, Bing, and Apple weights (5:2:1). |
+| required | `html.serverTextCoverage` | `unique` | Compares raw server-rendered HTML word count against rendered DOM word count (`≥80%` pass, `50–79%` warn, `<50%` fail). |
+| recommended | `md.twin` | `unique` | Validates content-negotiated (`Accept: text/markdown`) or `.md`-suffixed Markdown twin (`≥50` bytes of non-HTML prose after frontmatter stripping). |
+| recommended | `html.linkAlternate` | `unique` | Verifies `<link rel="alternate" type="text/markdown">` or HTTP `Link` header resolves to a validated Markdown twin. |
+| recommended | `site.llmsTxt` | `llms-txt` | Pinned to Lighthouse `main` `llms-txt.js` (#17295): HTTP `404`/`4xx` → `na` (excluded from denominator); `5xx` or `429` → `fail`; requires non-HTML body `≥50` chars with H1 and `≥1` Markdown link. |
+| recommended | `html.vary` | `unique` | Checks `Vary: Accept` when content negotiation is active (`na` when site does not negotiate Markdown). |
+| info | `ai.manipulation` | `unique` | Weight-0 informational scan for prompt injection, hidden DOM instructions, poisoning links, `X-AI-*`/`X-LLM-*` headers, JSON-LD strings, and `/llms.txt`. |
+| info | `agent.operability` | `agent-accessibility-tree` | Maps to Lighthouse 13.5.0 `agent-accessibility-tree` (interactive control accessible-name coverage) plus blocking modal/overlay detection. |
+| info | `agent.discovery` | `ard-schema` / `webmcp-registered-tools` | Pinned to both Lighthouse `13.5.0` (`/.well-known/ai-catalog.json`) and `main` (`/.well-known/ard.json` + `Agentmap:` in `robots.txt` + `Link rel="ard"`), plus `webmcp-registered-tools` and A2A `/.well-known/agent-card.json`. Never probes deprecated `/.well-known/mcp.json`. |
+| info | `ai.usagePolicy` | `unique` | Parses IETF AIPREF `Content-Usage` (`train-ai`, `ai-use`, `search`), `Content-Signal` (`ai-train`, `search`, `ai-input`), RSL, TDMRep, and `/ai.txt`. |
+| info | `content.dates` | `unique` | Validates presence and cross-signal consistency of `datePublished`, `dateModified`, `<meta property="article:*">`, and `Last-Modified` without penalizing content age. |
+| info | `jsonld.hygiene` | `structured-data` | Validates `<script type="application/ld+json">` parseability, `@context`/`@type` presence, visible-text grounding, and prompt-injection hygiene. |
+

@@ -9,9 +9,14 @@ const pkg = JSON.parse(
   readFileSync(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf8')
 );
 
-test('playwright dependency is pinned to an exact semver (no caret)', () => {
+test('playwright dependency is pinned to an exact semver (no caret) and synced with ci.yml', () => {
   expect(pkg.dependencies.playwright).toMatch(/^\d+\.\d+\.\d+$/);
-  expect(pkg.dependencies.playwright).toBe('1.60.0');
+  expect(pkg.dependencies.playwright).toBe('1.65.0');
+  const ciYml = readFileSync(
+    fileURLToPath(new URL('../../../.github/workflows/ci.yml', import.meta.url)),
+    'utf8'
+  );
+  expect(ciYml).toContain(`playwright@${pkg.dependencies.playwright}`);
 });
 
 test(

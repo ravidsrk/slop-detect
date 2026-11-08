@@ -1,0 +1,24 @@
+name: netlify-plugin-slop-detect
+inputs:
+  - name: url
+    description: Optional URL override to scan (defaults to DEPLOY_PRIME_URL or DEPLOY_URL).
+    default: ''
+  - name: failOn
+    description: Tier threshold that fails the build ("heavy", "mild", or "none").
+    default: 'heavy'
+  - name: failUnderScore
+    description: Maximum allowed slop score (0-100, lower is better). Empty disables numeric cap.
+  - name: axes
+    description: Axes to score (e.g. ["design", "copy"]).
+    default:
+      - design
+      - copy
+  - name: preset
+    description: Scoring preset (full, strict, marketing, minimal, editorial, devtool).
+    default: 'full'
+  - name: designMd
+    description: Optional DESIGN.md URL, file path, or "auto".
+    default: ''
+  - name: apiBase
+    description: Base URL of the Slop Detector API when scanning a deployed preview URL.
+    default: 'https://slop-detect.com'

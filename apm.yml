@@ -1,0 +1,12 @@
+name: slop-detect
+version: 0.8.0
+description: Deterministic landing-page auditor across design patterns, copy tells, DESIGN.md token compliance, craft floor, and AEO eligibility.
+license: MIT
+homepage: https://slop-detect.com
+repository: https://github.com/ravidsrk/slop-detect
+skills:
+  - skills/slop-detect/SKILL.md
+mcp: packages/mcp/server.json
+dependencies:
+  apm: []
+  mcp: []

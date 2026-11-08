@@ -55,6 +55,14 @@ By April 2026, default-template landing pages had collapsed onto a measurable vi
   <img src="apps/web/public/media/docs-four-axes-architecture.png" alt="Four-Axis Telemetry Architecture (Design · Copy · System · AEO)" width="100%" />
 </p>
 
+<p align="center">
+  <img src="apps/web/public/media/architecture-pipeline.svg" alt="Figure 01 · Deterministic Scan & Scoring Pipeline" width="100%" />
+</p>
+
+<p align="center">
+  <img src="apps/web/public/media/five-axis-model.svg" alt="Figure 02 · Five-Axis Orthogonal Telemetry Model" width="100%" />
+</p>
+
 All surfaces share the **same engine** (45 design patterns, 26 copy patterns, 9 `DESIGN.md` checks, 16 AEO checks, and a craft floor that never feeds Clean / Mild / Heavy) so a Heavy from the CLI is a Heavy from the web is a Heavy from the API. Weight 0 review rules add no points.
 
 ## Try it now

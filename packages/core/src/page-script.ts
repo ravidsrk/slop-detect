@@ -18,6 +18,8 @@ import {
 } from './fonts.js';
 import { extractTextContext } from './text.js';
 import { extractSystemContext } from './system.js';
+import { extractInlineWaivers } from './config.js';
+import { EXPERIMENTAL_DESIGN_WATCHLIST } from './experimental.js';
 
 export interface PageScriptData {
   title?: string;
@@ -25,6 +27,11 @@ export interface PageScriptData {
   visibleCount?: number;
   signals?: Record<string, { triggered?: boolean; error?: string; [key: string]: unknown }>;
   craftSignals?: Record<string, { triggered?: boolean; error?: string; [key: string]: unknown }>;
+  experimentalSignals?: Record<
+    string,
+    { triggered?: boolean; error?: string; [key: string]: unknown }
+  >;
+  inlineWaivers?: Array<{ id: string; reason: string; source: 'inline'; selector?: string }>;
   madeWith?: unknown;
   url?: string;
 }
@@ -37,6 +44,8 @@ export interface BlockedResult {
 
 export interface BuildPageScriptOptions {
   includeSystem?: boolean;
+  includeExperimental?: boolean;
+  experimental?: boolean;
   /** Pattern subset to extract (defaults to every built-in pattern). */
   patterns?: Array<{ id: string; extract: (ctx: any) => unknown }>;
 }
@@ -229,9 +238,19 @@ export function buildPageScript(opts: BuildPageScriptOptions = {}): string {
     }`
   ).join('\n');
 
+  const experimentalCalls = EXPERIMENTAL_DESIGN_WATCHLIST.map(
+    (w) => `
+    try {
+      experimentalSignals[${JSON.stringify(w.id)}] = (${w.extract!.toString()})(ctx);
+    } catch (e) {
+      experimentalSignals[${JSON.stringify(w.id)}] = { triggered: false, error: e.message };
+    }`
+  ).join('\n');
+
   const serialized = [
     patternCalls,
     craftCalls,
+    experimentalCalls,
     createColorHelpers.toString(),
     createVisibilityHelpers.toString(),
     isSlopFont.toString(),
@@ -239,6 +258,7 @@ export function buildPageScript(opts: BuildPageScriptOptions = {}): string {
     resolveRenderedFont.toString(),
     extractMadeWith.toString(),
     extractTextContext.toString(),
+    extractInlineWaivers.toString(),
     opts.includeSystem ? extractSystemContext.toString() : '',
   ].join('\n');
   const polyfills = esbuildNamePolyfills(serialized);
@@ -295,8 +315,70 @@ export function buildPageScript(opts: BuildPageScriptOptions = {}): string {
     const signals = {};
     ${patternCalls}
 
+    // #208: Attach per-pattern DOM locations (selector + rect, capped at 5) for every triggered pattern.
+    const toCssSelector = (el) => {
+      if (!el || !el.tagName) return 'body';
+      const tag = el.tagName.toLowerCase();
+      if (el.id) return tag + '#' + el.id;
+      const cls = typeof el.className === 'string'
+        ? el.className.trim().split(/\\s+/).filter(Boolean).slice(0, 2).join('.')
+        : '';
+      return cls ? tag + '.' + cls : tag;
+    };
+    const toLoc = (el) => {
+      if (!el || typeof el.getBoundingClientRect !== 'function') return null;
+      const r = el.getBoundingClientRect();
+      if (!r || r.width <= 0 || r.height <= 0) return null;
+      return {
+        selector: toCssSelector(el),
+        rect: {
+          x: Math.round(r.x ?? r.left ?? 0),
+          y: Math.round(r.y ?? r.top ?? 0),
+          width: Math.round(r.width),
+          height: Math.round(r.height)
+        }
+      };
+    };
+    for (const [pid, sig] of Object.entries(signals)) {
+      if (!sig || !sig.triggered || Array.isArray(sig.locations)) continue;
+      const locs = [];
+      if (Array.isArray(sig.nodeIds) && sig.nodeIds.length > 0) {
+        for (const nid of sig.nodeIds) {
+          const el = document.querySelector('[data-slop-node-id="' + nid + '"]');
+          const l = toLoc(el);
+          if (l) locs.push(l);
+          if (locs.length >= 5) break;
+        }
+      }
+      if (locs.length === 0) {
+        const candidates = [];
+        if (/hero|font|gradient_text|mono_heading/.test(pid) && h1) candidates.push(h1);
+        for (const el of visible) {
+          if (candidates.length >= 5) break;
+          if (/button|cta|purple/.test(pid) && !/^(A|BUTTON)$/.test(el.tagName)) continue;
+          if (/heading|eyebrow|hero/.test(pid) && !/^H[1-6]$/.test(el.tagName)) continue;
+          candidates.push(el);
+        }
+        if (candidates.length === 0 && h1) candidates.push(h1);
+        if (candidates.length === 0 && visible.length > 0) candidates.push(visible[0]);
+        for (const el of candidates) {
+          const l = toLoc(el);
+          if (l) locs.push(l);
+          if (locs.length >= 5) break;
+        }
+      }
+      sig.locations = locs.slice(0, 5);
+    }
+
     const craftSignals = {};
     ${craftCalls}
+
+    const experimentalSignals = {};
+    ${experimentalCalls}
+
+    const extractInlineWaivers = ${extractInlineWaivers.toString()};
+    let inlineWaivers = [];
+    try { inlineWaivers = extractInlineWaivers(); } catch (e) { inlineWaivers = []; }
 
     const extractMadeWith = ${extractMadeWith.toString()};
     let madeWith = null;
@@ -328,6 +410,8 @@ export function buildPageScript(opts: BuildPageScriptOptions = {}): string {
       visibleCount: visible.length,
       signals,
       craftSignals,
+      experimentalSignals,
+      inlineWaivers,
       madeWith,
       textContext,
       systemContext

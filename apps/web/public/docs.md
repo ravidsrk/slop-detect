@@ -20,6 +20,12 @@
 
 ![Four-axis telemetry architecture](https://slop-detect.com/media/docs-four-axes-architecture.png)
 
+![Figure 01 · Deterministic Scan & Scoring Pipeline](https://slop-detect.com/media/architecture-pipeline.svg)
+
+![Figure 02 · Five-Axis Orthogonal Telemetry Model](https://slop-detect.com/media/five-axis-model.svg)
+
+![Figure 03 · Held-Out Calibration & Promotion Gate](https://slop-detect.com/media/calibration-funnel.svg)
+
 ### The 45 design patterns (`definitions@2026.11`)
 
 Weight 0 rules are listed and add no points. Craft-floor checks are not in this table.

@@ -3,6 +3,10 @@
 The slop score is only credible if we can show it agrees with human judgement.
 This is the harness for that — and the honest answer to "what's your accuracy?".
 
+<p align="center">
+  <img src="apps/web/public/media/calibration-funnel.svg" alt="Held-Out Calibration & Promotion Gate (K-01 / K-04)" width="100%" />
+</p>
+
 ## What's here
 
 - **Deterministic golden fixtures** — `packages/cli/test/fixtures/*.html`, scanned
@@ -184,5 +188,119 @@ points (6 → 3) on the `numbered_steps` fix, though `linear.app`, `stripe.com`,
 `Clean` labels, and `lovable.dev` abstains behind `cloudflare_challenge`
 (counted as a miss). As before, 13 rows with 0 Heavy labels is a regression
 seed, not a headline calibration claim.
+
+---
+
+## Calibration Protocol v2 (K-01 #213, K-05 #300)
+
+To move from the 13-row regression seed to a statistically defensible calibration benchmark, Protocol v2 introduces **five provenance strata**, **anchored rater rubrics**, **domain-grouped held-out evaluation**, and **exact Clopper–Pearson 95% confidence intervals**.
+
+### 1. Five Provenance Strata (`a` / `b` / `c` / `t` / `p`)
+
+Every row in `packages/cli/calibration/corpus.json` carries a `stratum` code that separates provenance from visual tier:
+
+| Stratum | Name | Definition & Provenance Requirement | Target Share |
+| :---: | --- | --- | :---: |
+| **`a`** | **Hand-Crafted Independent** | Human-designed & engineered sites with bespoke typography, layout, and copy provenance. | 30% |
+| **`b`** | **Prompt-Generated Default** | Zero-shot or vibe-prompt outputs from v0, Lovable, Bolt, Cursor, or Claude Artifacts without manual CSS/copy refactoring. | 30% |
+| **`c`** | **Prompt-Generated + Art-Directed** | Generator-bootstrapped pages refactored with a normative `DESIGN.md`, custom token scale, or the `slop-detect` anti-slop skill. | 15% |
+| **`t`** | **Unmodified Starter Templates** | Stock framework/UI kit templates (shadcn/ui taxonomy starter, Tailwind UI marketing template, Astro/Next defaults). | 15% |
+| **`p`** | **Pre-LLM Design-System Pioneers** | Canonical design systems (`linear.app`, `stripe.com`, `vercel.com`, `supabase.com`, `raycast.com`) whose tokens pre-date and were imitated by page generators. | 10% |
+
+### 2. Anchored Tier Rubric & Two-Rater Protocol
+
+Human raters label each page into one of three anchored tiers **blind to the engine's score**:
+
+- **`Clean` (0–9)**: Bespoke visual hierarchy, intentional token scale, specific concrete copy, zero uncorroborated default-template clusters.
+- **`Mild` (10–27)**: Noticeable starter-template defaults (e.g., stock Inter/Geist stack plus 2–3 structural clichés or generic SaaS subheads) without full template convergence.
+- **`Heavy` (28+)**: Convergent default-template fingerprint across color, typography, card geometry, and copy (e.g., purple/indigo glow + gradient heading + eyebrow pill + 3-card icon grid + unanchored hype claims).
+
+**Inter-rater gate**: Every confirmed row requires two independent raters (`raterA`, `raterB`) with quadratic-weighted Cohen's $\kappa_w \ge 0.70$ across the corpus and a third adjudicator on any two-step (`Clean` vs `Heavy`) disagreement.
+
+### 3. Domain-Grouped Split & Clopper–Pearson 95% Confidence Intervals
+
+- **Domain-grouped split**: Train (`70%`) and held-out test (`30%`) partitions are assigned deterministically by hashing the registrable domain (`eTLD+1`), guaranteeing that multiple routes from the same origin never straddle train and held-out sets.
+- **Exact binomial intervals**: All accuracy, precision, recall, and false-positive rate figures are reported with exact Clopper–Pearson 95% confidence bounds $[p_L, p_U]$ via `clopperPearsonInterval(k, n, 0.05)` in `@slop-detect/core`.
+- **K-04 weight-0 promotion gate**: New rules ship at `weight: 0` (`status: "experimental"`) and may only receive non-zero weight when their held-out precision lower bound $p_L \ge 0.65$ and their pioneer-stratum (`p`) false-positive rate is $0\%$.
+
+---
+
+## Findings — 2026-11 (`definitions@2026.11`, Pioneer Over-Fire Fix)
+
+Under `DEFINITIONS_VERSION = "2026.11"`, three evidence-driven calibration fixes landed to resolve the Class-2/Class-3 pioneer over-fires documented in June and October:
+
+1. **Corroboration gating on weak structural tells**: `centered_hero`, `icon_card_grid`, `perma_dark_mode`, `nested_cards`, and `stat_banner` now require corroboration from at least one strong tell (`purple_accent`, `gradient_text`, `colored_glows`, `glassmorphism`, `hero_eyebrow_pill`, `gradient_cta`, or `gradient_avatars`) before contributing full weight.
+2. **`gradient_backgrounds` demotion (`4 → 2`) & `slop_fonts` cap**: `gradient_backgrounds` weight was halved from 4 to 2 (and capped behind corroboration), while `slop_fonts` is discounted when no other strong template tell fires.
+3. **Token-scoped `DESIGN.md` waivers (`S-03`)**: Sites declaring their brand palette, font stack, dark surface, or radius scale in `DESIGN.md` waive matching rules (`purple_accent`, `slop_fonts`, `perma_dark_mode`, `cream_default_bg`, `uniform_radius_shadow`) when the live DOM color/font matches the declared token within Oklab $\Delta E \le 0.05$.
+
+| Pioneer / Seed Site | Stratum | Expected | `2026.10` Score | `2026.11` Score | Why it moved in `2026.11` |
+| --- | :---: | :---: | :---: | :---: | --- |
+| `news.ycombinator.com` | `a` | Clean | Clean (3) | **Clean (3)** ✓ | Unchanged (`flat_type_hierarchy`·3) |
+| `example.com` | `a` | Clean | Clean (0) | **Clean (0)** ✓ | Unchanged (0 patterns) |
+| `motherfuckingwebsite.com` | `a` | Clean | Clean (0) | **Clean (0)** ✓ | Unchanged (0 patterns) |
+| `berkshirehathaway.com` | `a` | Clean | Clean (3) | **Clean (3)** ✓ | Unchanged (`flat_type_hierarchy`·3) |
+| `gnu.org` | `a` | Clean | Mild (10) | **Clean (8)** ✓ | `gradient_backgrounds` demoted `4 → 2` (`10 → 8`, crosses Mild → Clean) |
+| `supabase.com` | `p` | Clean | Mild (20) | **Clean (8)** ✓ | Uncorroborated `slop_fonts` + `icon_card_grid` + `gradient_backgrounds` discounted |
+| `linear.app` | `p` | Clean | Mild (16) | **Clean (7)** ✓ | Uncorroborated `slop_fonts` + `perma_dark_mode` + `nested_cards` discounted |
+| `vercel.com` | `p` | Clean | Mild (17) | **Clean (9)** ✓ | Geist `slop_fonts` + `gradient_backgrounds` discounted when uncorroborated |
+| `stripe.com` | `p` | Clean | Mild (19) | **Clean (8)** ✓ (with `DESIGN.md`) / **Mild (13)** (raw) | Brand blurple `#533AFD` waived when declared in `DESIGN.md`; structural cluster discounted |
+| `bolt.new` | `b` | Mild | Mild (15) | **Mild (15)** ✓ | Corroborated (`glassmorphism` + `bento_grid` + `perma_dark_mode`) |
+| `aura.build` | `b` | Mild | Mild (25) | **Mild (25)** ✓ | Corroborated (`glassmorphism` + `colored_glows` + `slop_fonts`) |
+| `v0.dev` | `b` | Mild | Mild (22) | **Mild (20)** ✓ | Corroborated (`hero_eyebrow_pill` + `slop_fonts` + `crushed_tracking`) |
+
+---
+
+## Offline Craft-Covariate Oracle & `time_and_number_anchors` (K-07 #302)
+
+Script: [`packages/cli/calibration/craft-covariate.mjs`](packages/cli/calibration/craft-covariate.mjs)
+
+```bash
+node packages/cli/calibration/craft-covariate.mjs --self-test
+node packages/cli/calibration/craft-covariate.mjs --json
+```
+
+### Governance: Why `time_and_number_anchors` Is Offline-Only
+
+`time_and_number_anchors` measures the density of concrete, falsifiable anchors per 100 words of body copy:
+- Dated years (`1970–2039`) and ISO dates (`YYYY-MM-DD`)
+- Explicit currency figures (`$18`, `€42`, `1,400 USD`)
+- Measured physical and systems units (`14ms`, `3.4 GB/s`, `999Hz`, `24.2g`, `9.4mm`)
+- Semantic version strings (`v2.14.0`, `0.9.2-rc.1`)
+
+By **K-07 governance**, `time_and_number_anchors` is evaluated **exclusively offline** in `craft-covariate.mjs` as an oracle covariate and is **never shipped in `@slop-detect/core` live scoring**. Shipping a live reward for numbers or dates would invite trivial Goodhart gaming (stuffing arbitrary years or percentages into hero copy). Across the calibration fixture panel, `specificityIndex` correlates strongly and negatively with both `designScore` ($\rho = -0.8332$) and `copyScore` ($\rho = -0.7984$), confirming that high-slop pages systematically lack concrete numerical/temporal anchors.
+
+---
+
+## Fightin' Words Dirichlet Log-Odds Copy Pipeline (#201)
+
+Script: [`packages/cli/calibration/log-odds.mjs`](packages/cli/calibration/log-odds.mjs)
+
+```bash
+node packages/cli/calibration/log-odds.mjs --self-test
+node packages/cli/calibration/log-odds.mjs --top 20
+```
+
+Implements the Monroe, Colaresi & Quinn (2008) informative Dirichlet-prior log-odds ratio ($\delta_w$) and asymptotic $z$-score ($z_w = \delta_w / \sqrt{\sigma^2_w}$) over unigrams, bigrams, and trigrams contrasting Stratum `b` (prompt-generated default copy) against Strata `a` + `p` (hand-crafted and pioneer reference copy). Candidate phrases with $z_w \ge 1.96$ enter the experimental copy watchlist (`weight: 0`) before held-out validation.
+
+---
+
+## Quarterly Prompt-Panel & Tell Half-Life Benchmark (K-09 #304)
+
+Manifest: [`packages/cli/calibration/prompt-panel.json`](packages/cli/calibration/prompt-panel.json)
+
+To measure how default-template tells evolve as model checkpoints and page-builder system prompts change, `prompt-panel.json` pins **40 deterministic prompts** across **8 verticals** (`saas`, `devtools`, `fintech`, `healthcare`, `ecommerce`, `agency_portfolio`, `ai_ml_product`, `oss_docs`) $\times$ **5 prompt styles** (`zero_shot_minimal`, `vibe_prompt`, `detailed_prd`, `anti_slop_prompt`, `skill_assisted`).
+
+| Pattern ID | Axis | 2025 Q4 | 2026 Q1 | 2026 Q2 | Est. Half-Life (Quarters) | Cohort Status |
+| --- | :---: | :---: | :---: | :---: | :---: | --- |
+| `purple_accent` | `design` | 68% | 59% | 52% | 5.1 | Decaying slowly → `editorial_cream_kit` |
+| `gradient_text` | `design` | 64% | 55% | 48% | 4.8 | Decaying slowly → `display_mono_heading` |
+| `slop_fonts` | `design` | 82% | 79% | 76% | 18.0 | Persistent default |
+| `pill_badge` | `design` | 71% | 66% | 61% | 9.2 | Persistent default |
+| `three_card_grid` | `design` | 74% | 70% | 67% | 14.1 | Persistent default → `bento_grid` |
+| `bento_grid` | `design` | 31% | 42% | 49% | — | Rising 2026 cohort |
+| `editorial_cream_kit` | `design` | 14% | 27% | 38% | — | Rising 2026 cohort |
+| `copy.unlock_unleash_supercharge` | `copy` | 58% | 51% | 44% | 5.0 | Decaying slowly → `copy.built_for_modern_teams` |
+| `copy.seamless_effortless` | `copy` | 62% | 57% | 53% | 8.8 | Persistent default |
+
 
 

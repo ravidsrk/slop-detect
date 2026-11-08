@@ -1,61 +1,34 @@
 ---
-name: Propose a new pattern
-about: Suggest a 17th (or 18th, ...) AI-design-slop pattern
-title: '[pattern] '
-labels: new-pattern
+name: New Pattern or Rule Proposal (K-04)
+about: Propose a new design, copy, craft, DESIGN.md, or AEO rule (enters at weight 0 under K-04)
+title: '[Rule]: '
+labels: ['roadmap:v4', 'rule:weight-0', 'evidence:hypothesis']
 ---
 
-## The pattern
+## Summary & Rule ID
 
-<!-- One sentence: what's the visual element? -->
+- **Proposed ID:** `snake_case_id`
+- **Axis:** `design` | `copy` | `craft` | `system` | `aeo`
+- **Initial Weight:** `weight: 0` (`status: 'review'` — required by [K-04 (#299)](https://github.com/ravidsrk/slop-detect/issues/299) for all new rules and broadened matchers)
+- **Proposed Target Weight (after held-out validation):**
 
-## Why it reads as AI-slop
+## Deterministic Detection Specification
 
-<!-- What's the tell? Specific Tailwind class, CSS property, design choice... -->
+- **DOM / Computed Style / Prose Signal:**
+- **False-Positive Exclusions (e.g. code blocks, quotes, declared `DESIGN.md` waivers):**
 
-## Evidence at scale
+## Evidence Grade
 
-<!-- The bar is 10+ real landing pages where this appears. Paste URLs: -->
+- [ ] `evidence:measured` — Lift measured on our own held-out calibration corpus (`LR >= 3.0`)
+- [ ] `evidence:standard` — Grounded in a W3C / RFC / vendor crawler specification
+- [ ] `evidence:practitioner` — Documented in verified practitioner studies or model prompt guides
+- [ ] `evidence:hypothesis` — Plausible signal awaiting held-out calibration measurement
 
-1. https://...
-2. https://...
-3. https://...
-4. https://...
-5. https://...
-(and so on)
+## K-04 Promotion Gate Checklist (Required Before Raising Weight > 0)
 
-## AI-tooling correlation
-
-<!-- Why is this AI-generated rather than just "common"? Show 3+ AI-generated pages
-     with it and 3+ human-designed pages without it, or vice versa. -->
-
-## Proposed detector
-
-<!-- Pseudocode or actual `extract()` + `detect()` JavaScript -->
-
-```js
-extract(ctx) {
-  // runs in the page's DOM context
-  // return signals
-},
-detect(signals) {
-  // pure function deciding triggered: true/false
-}
-```
-
-## Proposed weight (1–8)
-
-<!-- Justify relative to existing patterns. Weight 8 is for slam-dunks like Inter font.
-     Most new patterns should land at 3–5. -->
-
-## Proposed fix recipe
-
-```
-problem: <why this reads as AI-slop>
-fix:     <senior designer's prescription>
-alternatives:
-   - <option 1 with brand reference>
-   - <option 2>
-   - <option 3>
-rule:    <hard testable constraint>
-```
+- [ ] **Held-out Likelihood Ratio (LR):** `LR >= 3.0` on the locked held-out calibration split (`K-01`)
+- [ ] **95% Confidence Interval (Clopper-Pearson):** Lower bound documented (`[lower, upper]`)
+- [ ] **Pre-2022 Human Control FPR:** False-positive rate on pre-2022 human controls recorded
+- [ ] **Heavy FPR Delta:** `deltaHeavyFpr <= 0` (does not increase Heavy tier false-positive rate)
+- [ ] **Pioneer Regression Suite (`K-05`):** Zero Heavy regressions across the pioneer snapshot suite
+- [ ] **Harm-Avoiding Language (`K-06`):** Rule label and fix recipe describe default-template patterns or defects — never claims a page is "AI-generated"

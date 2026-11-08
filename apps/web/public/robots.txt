@@ -1,71 +1,39 @@
-# slop-detect.com — we want AI engines to read and cite us.
-# (We eat our own dog food: this site aims to pass its own AEO check.)
+# slop-detect.com — RFC 9309 crawl policy & purpose-tiered AI bot rules (FIX-16, FIX-17).
+# We dogfood our own AEO technical eligibility checks: search and user-triggered
+# crawlers are permitted; foundation-model training crawlers are disallowed,
+# matching our Content-Signal policy (ai-train=no, search=yes, ai-input=yes).
 
-# Content Signals (purpose-based crawl permissions): allow search + AI input,
-# disallow training-only use. https://contentsignals.org
 User-agent: *
-Content-Signal: search=yes, ai-input=yes, ai-train=no
+Content-Signal: ai-train=no, search=yes, ai-input=yes
 Allow: /
 
-# Explicitly welcome the major AI SEARCH / ANSWER crawlers (read + cite).
-User-agent: GPTBot
-Allow: /
-
+# ── AI Search & User-Action Crawlers (permitted for search indexing & user fetches) ──
 User-agent: OAI-SearchBot
-Allow: /
-
 User-agent: ChatGPT-User
-Allow: /
-
-User-agent: ClaudeBot
-Allow: /
-
 User-agent: Claude-SearchBot
-Allow: /
-
 User-agent: Claude-User
-Allow: /
-
-User-agent: Claude-Web
-Allow: /
-
-User-agent: Anthropic-AI
-Allow: /
-
 User-agent: PerplexityBot
-Allow: /
-
 User-agent: Perplexity-User
-Allow: /
-
-User-agent: Google-Extended
-Allow: /
-
-User-agent: Applebot-Extended
-Allow: /
-
+User-agent: Applebot
+User-agent: Googlebot
+User-agent: bingbot
+User-agent: Amzn-SearchBot
+User-agent: Amzn-User
 User-agent: DuckAssistBot
+Content-Signal: ai-train=no, search=yes, ai-input=yes
 Allow: /
 
-User-agent: Meta-ExternalAgent
-Allow: /
-
-User-agent: YouBot
-Allow: /
-
-User-agent: Amazonbot
-Allow: /
-
+# ── Training-Only Crawlers (disallowed, consistent with ai-train=no) ─────────
+User-agent: GPTBot
+User-agent: ClaudeBot
+User-agent: Google-Extended
+User-agent: Applebot-Extended
 User-agent: CCBot
-Allow: /
-
-# Training-only crawlers: we express a training opt-out via the Content-Signal
-# above (ai-train=no) rather than a hard Disallow. A hard block would also trip
-# our own AEO axis (which treats any blocked AI crawler as a readability hit) —
-# and we eat our own dog food: every AI engine should still be able to read and
-# cite this page. Purpose-based signalling, not gatekeeping.
+User-agent: Meta-ExternalAgent
+User-agent: Bytespider
+User-agent: MistralAI-Training
+Content-Signal: ai-train=no, search=yes, ai-input=yes
+Disallow: /
 
 Sitemap: https://slop-detect.com/sitemap.xml
-
-# NLWeb Schema Feeds — structured-data feed map.
-Schemamap: https://slop-detect.com/schema-map.xml
+Agentmap: https://slop-detect.com/.well-known/ard.json

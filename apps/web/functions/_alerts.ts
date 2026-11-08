@@ -100,3 +100,37 @@ export function buildDashboardLinkEmail(loginUrl, domainCount, opts: any = {}) {
   ].join('\n');
   return { subject, text };
 }
+
+// Webhook payload builder (#335): Slack/Discord/generic JSON compatible.
+export function buildWatchWebhookPayload(
+  watch: any,
+  eventType: 'slop_regression' | 'system_drift' = 'slop_regression'
+) {
+  const domain = watch?.domain || 'unknown';
+  const text =
+    eventType === 'system_drift'
+      ? `slop-detect: ${domain} drifted off its DESIGN.md (${watch?.baselineSystemTier || 'Aligned'} → ${watch?.lastSystemTier || 'Drifting'}, score ${watch?.lastSystemScore ?? '?'}/100)`
+      : `slop-detect: ${domain} regressed (${watch?.baselineGrade || '?'} ${watch?.baselineScore ?? '?'} → ${watch?.lastGrade || '?'} ${watch?.lastScore ?? '?'}, tier ${watch?.lastTier || '?'})`;
+  return {
+    event: eventType,
+    domain,
+    text,
+    content: text,
+    baseline: {
+      score: watch?.baselineScore ?? null,
+      grade: watch?.baselineGrade ?? null,
+      tier: watch?.baselineTier ?? null,
+      systemScore: watch?.baselineSystemScore ?? null,
+      systemTier: watch?.baselineSystemTier ?? null,
+    },
+    current: {
+      score: watch?.lastScore ?? null,
+      grade: watch?.lastGrade ?? null,
+      tier: watch?.lastTier ?? null,
+      systemScore: watch?.lastSystemScore ?? null,
+      systemTier: watch?.lastSystemTier ?? null,
+      id: watch?.lastId ?? null,
+    },
+    checkedAt: watch?.lastCheckedAt || new Date().toISOString(),
+  };
+}

@@ -23,6 +23,7 @@ test('TOOLS lists the API tools and the local DESIGN.md tools', () => {
     'fix_prompt',
     'lint_design_md',
     'diff_design_md',
+    'extract_design_system',
   ]);
   const local = new Set(['lint_design_md', 'diff_design_md']);
   for (const t of TOOLS) {
@@ -45,6 +46,7 @@ test('TOOLS lists the API tools and the local DESIGN.md tools', () => {
     'slop://spec/patterns',
     'slop://spec/design-md-template',
     'slop://spec/aeo',
+    'ui://slop-detect/scorecard.html',
   ]);
 });
 
@@ -264,13 +266,20 @@ test('icons point at the public favicon and text tools are not scan documents', 
     'fix_prompt',
     'lint_design_md',
     'diff_design_md',
+    'extract_design_system',
   ]);
   for (const name of ['scan_page', 'fix_prompt']) {
     const preset = TOOLS.find((tool) => tool.name === name).inputSchema.properties.preset.enum;
     expect(preset).toContain('editorial');
     expect(preset).toContain('devtool');
   }
-  for (const name of ['check_design_system', 'fix_prompt', 'lint_design_md', 'diff_design_md']) {
+  for (const name of [
+    'check_design_system',
+    'fix_prompt',
+    'lint_design_md',
+    'diff_design_md',
+    'extract_design_system',
+  ]) {
     const schema = TOOLS.find((tool) => tool.name === name).outputSchema;
     expect(schema.properties.text.type).toBe('string');
     expect(schema.required).toEqual(['text']);
@@ -284,4 +293,32 @@ test('icons point at the public favicon and text tools are not scan documents', 
   });
   expect(lint.structuredContent.text).toBe(lint.content[0].text);
   expect(lint.structuredContent.schemaVersion).toBeUndefined();
+
+  // R-07 (#323) & #212: ui://slop-detect/scorecard.html resource and extract_design_system tool
+  const scorecard = await loadResource('ui://slop-detect/scorecard.html');
+  expect(scorecard.mimeType).toBe('text/html;profile=mcp-app');
+  expect(scorecard.text).toMatch(/matches N default patterns/);
+  expect(scorecard.text).toMatch(/uncalibrated beta/);
+
+  global.fetch = async () =>
+    jsonRes({
+      url: 'https://example.com',
+      title: 'Example',
+      systemContext: {
+        fonts: { h1: 'Inter', body: 'Inter' },
+        colors: {
+          surface: ['rgb(10, 10, 10)'],
+          ink: ['rgb(240, 240, 240)'],
+          ctaBg: ['rgb(34, 197, 94)'],
+        },
+        radii: [6],
+      },
+    });
+  const extracted = await handleCall('extract_design_system', {
+    url: 'https://example.com',
+    format: 'dtcg',
+  });
+  expect(extracted.isError).toBeFalsy();
+  const parsedTokens = JSON.parse(extracted.content[0].text);
+  expect(parsedTokens.$schema).toMatch(/designtokens/);
 });

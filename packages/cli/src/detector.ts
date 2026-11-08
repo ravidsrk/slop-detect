@@ -19,16 +19,21 @@ import {
   measureMobileReflowOnPage,
   combineAxes,
   applyDeclaredDesignWaivers,
+  evaluateDefaultKits,
+  evaluateExperimentalWatchlist,
+  applyConfigAndInlineWaivers,
   formatAxeReport,
   SCAN_PAGE_WAIT,
   waitFontsReadyInPage,
   DEFINITIONS_VERSION,
   SCAN_SCHEMA_VERSION,
+  SCANNER_USER_AGENT,
+  type SlopRcConfig,
 } from '@slop-detect/core';
 
 const LOCAL_ENVIRONMENT = {
   viewport: { width: 1280, height: 800 },
-  userAgent: 'Mozilla/5.0 SlopDetector/1.0 (+https://github.com/ravidsrk/slop-detect)',
+  userAgent: SCANNER_USER_AGENT,
 };
 
 // Options accepted by the scan entry points. All optional — the CLI fills in
@@ -38,6 +43,7 @@ export interface ScanOptions {
   preset?: string;
   axes?: string[];
   screenshot?: boolean;
+  annotateScreenshot?: string | null;
   timeout?: number;
   designMd?: string;
   api?: string;
@@ -48,6 +54,13 @@ export interface ScanOptions {
   includeSystem?: boolean;
   // Optional axe-core report. Off unless the caller sets it. Never scored.
   a11y?: boolean;
+  // Optional weight-0 watchlist signals (--experimental).
+  experimental?: boolean;
+  // Optional .sloprc.json and inline waiver controls (#207).
+  config?: SlopRcConfig | null;
+  only?: string[];
+  skip?: string[];
+  noInlineIgnores?: boolean;
 }
 
 export function shouldIncludeSystem(opts: ScanOptions = {}) {
@@ -258,7 +271,7 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
     viewport: { width: 1280, height: 800 },
-    userAgent: 'Mozilla/5.0 SlopDetector/1.0 (+https://github.com/ravidsrk/slop-detect)',
+    userAgent: SCANNER_USER_AGENT,
     deviceScaleFactor: 1,
   });
   const page = await context.newPage();
@@ -276,7 +289,12 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
     await page.waitForTimeout(SCAN_PAGE_WAIT.postNetworkSettleMs);
     await page.evaluate(waitFontsReadyInPage, SCAN_PAGE_WAIT.fontsReadyTimeoutMs);
 
-    const data = await page.evaluate(buildPageScript({ includeSystem: shouldIncludeSystem(opts) }));
+    const data = await page.evaluate(
+      buildPageScript({
+        includeSystem: shouldIncludeSystem(opts),
+        includeExperimental: Boolean(opts.experimental),
+      })
+    );
 
     // Anti-bot / dead-page detection — don't silently return Clean 0.
     const blocked = detectBlocked(data);
@@ -326,6 +344,7 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
     // top-level score/grade/patterns stay exactly as before). Opt into copy or
     // craft via opts.axes. Craft never feeds the unified design/copy score.
     const reqAxes = normalizeAxes(opts.axes);
+    const kitMatches = evaluateDefaultKits(data.signals || {});
 
     result = {
       url,
@@ -340,9 +359,19 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
       patternsErrored,
       browserVersion,
       madeWith: data.madeWith ?? null,
+      kitMatch: kitMatches[0] || null,
+      kitMatches,
+      renderedWords: data.textContext?.wordCount ?? 0,
       schemaVersion: SCAN_SCHEMA_VERSION,
       environment: { ...LOCAL_ENVIRONMENT, chromium: browserVersion },
     };
+
+    if (opts.experimental) {
+      result.experimental = evaluateExperimentalWatchlist(
+        data.experimentalSignals || {},
+        data.textContext || {}
+      );
+    }
 
     // Multi-axis: attach per-axis summaries + a unified score when >1 axis asked.
     if (reqAxes.length > 1 || reqAxes.includes('copy')) {
@@ -405,9 +434,80 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
       }
     }
 
+    if (
+      opts.config ||
+      (opts.only && opts.only.length > 0) ||
+      (opts.skip && opts.skip.length > 0) ||
+      opts.noInlineIgnores ||
+      (Array.isArray(data.inlineWaivers) && data.inlineWaivers.length > 0)
+    ) {
+      result = applyConfigAndInlineWaivers(result, {
+        config: opts.config || null,
+        inlineWaivers: data.inlineWaivers || [],
+        noInlineIgnores: Boolean(opts.noInlineIgnores),
+        only: opts.only,
+        skip: opts.skip,
+      });
+    }
+
     if (opts.screenshot) {
       const buf = await page.screenshot({ fullPage: false });
       result.screenshot = buf.toString('base64');
+    }
+
+    // #208: --annotate-screenshot <file> injects bounding-box overlays ONLY AFTER
+    // all measurements and base64 screenshots are complete so it never contaminates DOM metrics.
+    if (opts.annotateScreenshot) {
+      const boxes: Array<{
+        label: string;
+        rect: { x: number; y: number; width: number; height: number };
+      }> = [];
+      for (const p of result.patterns || []) {
+        if (!p.triggered || p.waived || !Array.isArray(p.locations)) continue;
+        for (const loc of p.locations) {
+          if (loc && loc.rect && loc.rect.width > 0 && loc.rect.height > 0) {
+            boxes.push({
+              label: `${p.id} (+${p.weight})`,
+              rect: loc.rect,
+            });
+          }
+        }
+      }
+      if (result.system && Array.isArray(result.system.drift)) {
+        for (const d of result.system.drift) {
+          if (!Array.isArray(d.locations)) continue;
+          for (const loc of d.locations) {
+            if (loc && loc.rect && loc.rect.width > 0 && loc.rect.height > 0) {
+              boxes.push({
+                label: `drift:${d.id}`,
+                rect: loc.rect,
+              });
+            }
+          }
+        }
+      }
+      await page.evaluate((items) => {
+        const root = document.createElement('div');
+        root.setAttribute('data-slop-annotation-overlay', 'true');
+        root.style.cssText =
+          'position:fixed;inset:0;pointer-events:none;z-index:2147483647;overflow:hidden;';
+        for (const item of items) {
+          const box = document.createElement('div');
+          box.style.cssText = `position:fixed;left:${item.rect.x}px;top:${item.rect.y}px;width:${item.rect.width}px;height:${item.rect.height}px;border:2px solid #ef4444;background:rgba(239,68,68,0.08);box-sizing:border-box;`;
+          const tag = document.createElement('span');
+          tag.textContent = item.label;
+          tag.style.cssText =
+            'position:absolute;left:0;top:0;background:#ef4444;color:#0a0a0a;font:700 10px/1.2 monospace;padding:2px 4px;white-space:nowrap;';
+          box.appendChild(tag);
+          root.appendChild(box);
+        }
+        document.body.appendChild(root);
+      }, boxes);
+      await page.screenshot({ path: opts.annotateScreenshot, fullPage: false });
+      result.annotatedScreenshotPath = opts.annotateScreenshot;
+      process.stderr.write(
+        `slop-detect: wrote annotated screenshot to ${opts.annotateScreenshot}. Warning: screenshots may contain rendered page content or personal data — review before committing to public artifacts.\n`
+      );
     }
   } finally {
     await browser.close();

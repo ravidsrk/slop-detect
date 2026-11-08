@@ -9,8 +9,8 @@
     "check:slop": "slop-detect http://localhost:4321 --copy --aeo --design-md auto --fail-under B"
   },
   "devDependencies": {
-    "astro": "^5.0.0",
+    "astro": "^5.18.2",
     "slop-detect": "workspace:*",
-    "typescript": "^5.0.0"
+    "typescript": "^5.9.3"
   }
 }

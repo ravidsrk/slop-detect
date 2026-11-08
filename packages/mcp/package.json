@@ -1,5 +1,6 @@
 {
   "name": "slop-detect-mcp",
+  "mcpName": "com.slop-detect/slop-detect",
   "version": "0.8.0",
   "description": "MCP server that lets AI coding agents (Cursor, Claude Code, Windsurf) scan landing pages for AI-design-slop and pull a fix prompt.",
   "type": "module",
@@ -31,6 +32,8 @@
     "dist",
     "hooks",
     "schema",
+    "server.json",
+    "Dockerfile",
     "README.md",
     "LICENSE"
   ],
@@ -49,7 +52,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@slop-detect/core": "workspace:*"
   },
   "devDependencies": {

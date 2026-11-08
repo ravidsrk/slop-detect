@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 1,
+  "definitionsVersion": "2026.11",
+  "scanSchemaVersion": 1,
+  "description": "V1-00 (#331) Cross-Surface Conformance Vectors for @slop-detect/core, slop-detect CLI, slop-detect-mcp, and apps/web.",
+  "counts": {
+    "designPatterns": 45,
+    "copyPatterns": 26,
+    "craftChecks": 11,
+    "aeoChecks": 16,
+    "systemChecks": 9
+  },
+  "tiers": {
+    "design": {
+      "Clean": [0, 9],
+      "Mild": [10, 27],
+      "Heavy": [28, 100]
+    },
+    "copy": {
+      "Clean": [0, 9],
+      "Mild": [10, 27],
+      "Heavy": [28, 100]
+    },
+    "aeo": {
+      "Poor": [0, 39],
+      "Fair": [40, 69],
+      "Strong": [70, 100]
+    }
+  },
+  "vectors": [
+    {
+      "id": "clean-editorial",
+      "description": "Zero triggered patterns yields Clean (0) with empty evidence and adjustments.",
+      "patterns": [
+        { "id": "purple_accent", "weight": 8, "triggered": false },
+        { "id": "gradient_text", "weight": 6, "triggered": false },
+        { "id": "slop_fonts", "weight": 8, "triggered": false }
+      ],
+      "expected": {
+        "score": 0,
+        "tier": "Clean",
+        "patternsFlagged": 0,
+        "patternsScored": 0,
+        "adjustmentRuleIds": []
+      }
+    },
+    {
+      "id": "pioneer-inter-alone",
+      "description": "D-08: Inter/Geist alone without co-occurring design signals is discounted to 0 points.",
+      "patterns": [
+        {
+          "id": "slop_fonts",
+          "weight": 8,
+          "triggered": true,
+          "evidence": { "heroFam": "Inter", "interOrGeistOnly": true }
+        },
+        { "id": "purple_accent", "weight": 8, "triggered": false }
+      ],
+      "expected": {
+        "score": 0,
+        "tier": "Clean",
+        "patternsFlagged": 1,
+        "patternsScored": 1,
+        "adjustmentRuleIds": ["slop_fonts_co_signal"]
+      }
+    },
+    {
+      "id": "pioneer-purple-alone",
+      "description": "FIX-06: purple_accent alone with evidence and no co-occurring design signal is discounted to 0 points.",
+      "patterns": [
+        {
+          "id": "purple_accent",
+          "weight": 8,
+          "triggered": true,
+          "evidence": { "hex": "#533AFD" }
+        },
+        { "id": "centered_hero", "weight": 4, "triggered": false }
+      ],
+      "expected": {
+        "score": 0,
+        "tier": "Clean",
+        "patternsFlagged": 1,
+        "patternsScored": 1,
+        "adjustmentRuleIds": ["purple_accent_co_signal"]
+      }
+    },
+    {
+      "id": "mild-corroborated-hero-cap",
+      "description": "FIX-07: slop_fonts (8) + centered_hero (4) capped at 8 combined points, plus icon_card_grid (4) = 12 (Mild).",
+      "patterns": [
+        {
+          "id": "slop_fonts",
+          "weight": 8,
+          "triggered": true,
+          "evidence": { "heroFam": "Inter" }
+        },
+        { "id": "centered_hero", "weight": 4, "triggered": true },
+        { "id": "icon_card_grid", "weight": 4, "triggered": true }
+      ],
+      "expected": {
+        "score": 12,
+        "tier": "Mild",
+        "patternsFlagged": 3,
+        "patternsScored": 3,
+        "adjustmentRuleIds": ["slop_fonts_centered_hero_cap"]
+      }
+    },
+    {
+      "id": "heavy-convergent-cluster",
+      "description": "Convergent default-template cluster scores >= 28 (Heavy).",
+      "patterns": [
+        {
+          "id": "purple_accent",
+          "weight": 8,
+          "triggered": true,
+          "evidence": { "hex": "#7C3AED" }
+        },
+        { "id": "gradient_text", "weight": 6, "triggered": true },
+        {
+          "id": "slop_fonts",
+          "weight": 8,
+          "triggered": true,
+          "evidence": { "heroFam": "Plus Jakarta Sans" }
+        },
+        { "id": "glassmorphism", "weight": 4, "triggered": true },
+        { "id": "hero_eyebrow_pill", "weight": 5, "triggered": true }
+      ],
+      "expected": {
+        "score": 31,
+        "tier": "Heavy",
+        "patternsFlagged": 5,
+        "patternsScored": 5,
+        "adjustmentRuleIds": []
+      }
+    },
+    {
+      "id": "k04-weight-zero-review-rule",
+      "description": "K-04: Weight-0 / review-status rules record as review and contribute 0 points to the composite score.",
+      "patterns": [
+        { "id": "icon_card_grid", "weight": 4, "triggered": true },
+        {
+          "id": "editorial_cream_kit",
+          "weight": 0,
+          "status": "review",
+          "triggered": true
+        }
+      ],
+      "expected": {
+        "score": 4,
+        "tier": "Clean",
+        "patternsFlagged": 2,
+        "patternsScored": 1,
+        "reviewCount": 1,
+        "adjustmentRuleIds": []
+      }
+    },
+    {
+      "id": "fix19-overlapping-dom-dedup",
+      "description": "FIX-19: Two triggered patterns sharing >= 2 DOM nodeIds covering >= 50% of the smaller pattern deduplicate the lower-weight pattern.",
+      "patterns": [
+        {
+          "id": "gradient_text",
+          "weight": 6,
+          "triggered": true,
+          "evidence": { "nodeIds": ["n1", "n2", "n3"] }
+        },
+        {
+          "id": "colored_glows",
+          "weight": 5,
+          "triggered": true,
+          "evidence": { "nodeIds": ["n1", "n2", "n4"] }
+        }
+      ],
+      "expected": {
+        "score": 6,
+        "tier": "Clean",
+        "patternsFlagged": 2,
+        "patternsScored": 2,
+        "adjustmentRuleIds": ["overlapping_evidence_dedup"]
+      }
+    },
+    {
+      "id": "s03-design-md-token-waiver",
+      "description": "S-03: Declared DESIGN.md primary color (#533AFD) waives matching purple_accent and rescores remaining patterns.",
+      "patterns": [
+        {
+          "id": "purple_accent",
+          "weight": 8,
+          "triggered": true,
+          "evidence": { "hex": "#533AFD" }
+        },
+        { "id": "icon_card_grid", "weight": 4, "triggered": true }
+      ],
+      "designMd": "---\nname: \"Stripe Brand\"\nspecVersion: \"alpha\"\ncolors:\n  primary: \"#533AFD\"\n---\n",
+      "expected": {
+        "rawScore": 12,
+        "rawTier": "Mild",
+        "score": 4,
+        "tier": "Clean",
+        "waivedPatternIds": ["purple_accent"]
+      }
+    }
+  ]
+}

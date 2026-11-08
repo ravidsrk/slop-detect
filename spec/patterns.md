@@ -247,3 +247,93 @@ Detects dark-themed pages that omit `color-scheme: dark` on `html`/`body`, leavi
 | Heavy | 28+ |
 
 Score = sum of active triggered pattern weights after cross-pattern post-pass adjustments, clamped to 100. Letter grades (A+ through F) are derived from the same scale via `GRADE_BANDS` in `verdict.ts`.
+
+## Crosswalk to External Rule Sets (K-08)
+
+The table below maps every design pattern (`PATTERNS`), copy pattern (`COPY_PATTERNS`), and craft-floor check (`CRAFT_CHECKS`) to its closest equivalent in Adrian Krebs' field taxonomy (`krebs-2025`), Paul Bakaus' Impeccable (`impeccable`), yetone's `kill-ai-slop`, Gesso's `@gessobuild/anti-slop` (`gesso`), and Anthropic's `frontend-design` / Opus 5.5 prompting guide, or marks the rule `unique` where only Slop Detector evaluates it. External visual reference: [febbhav/signs-of-ai-design](https://github.com/febbhav/signs-of-ai-design) (CC BY-SA 4.0).
+
+| Axis | Rule ID | Krebs (`krebs-2025`) | Impeccable (`impeccable`) | `kill-ai-slop` | Gesso (`gesso`) | Anthropic `frontend-design` |
+|------|---------|----------------------|---------------------------|----------------|-----------------|-----------------------------|
+| design | `slop_fonts` | `inter-geist-default-sans` | `reflex-fonts` | `ai-font-stack` | `font-family-default` | `avoid-inter-roboto-arial` |
+| design | `slop_fonts_2026` | `instrument-serif-editorial` | `2026-editorial-reflex-fonts` | `syne-outfit-sora-stack` | `font-family-2026` | `avoid-playfair-fraunces-reflex` |
+| design | `purple_accent` | `vibecode-purple-cta` | `purple-indigo-gradient` | `indigo-violet-accent` | `color-indigo-violet` | `purple-gradient-on-white` |
+| design | `gradient_text` | `hero-gradient-text-clip` | `gradient-text-heading` | `bg-clip-text-gradient` | `text-gradient-clip` | `gradient-text-headline` |
+| design | `gradient_backgrounds` | `gradient-wash-sections` | `gratuitous-gradient-bg` | `multi-section-gradient` | `bg-gradient-excess` | `purple-gradient-surface` |
+| design | `accent_stripe` | `colored-card-border-stripe` | `card-left-top-accent-border` | `border-l-4-accent-card` | `card-accent-border` | `unique` |
+| design | `accent_stripe_2026` | `colored-card-border-stripe` | `card-border-accent-2px` | `border-b-accent-card` | `card-accent-border-thin` | `unique` |
+| design | `glassmorphism` | `glassmorphism-cards` | `backdrop-blur-overuse` | `backdrop-blur-translucent` | `glassmorphism-layer` | `glassmorphism-chrome` |
+| design | `colored_glows` | `neon-colored-box-shadow` | `colored-glow-shadow` | `shadow-indigo-glow` | `box-shadow-colored-glow` | `glowing-accent-shadow` |
+| design | `centered_hero` | `centered-sans-hero` | `centered-hero-stack` | `centered-hero-layout` | `hero-centered-generic` | `predictable-centered-hero` |
+| design | `hero_eyebrow_pill` | `beta-announcement-pill` | `hero-announcement-badge` | `eyebrow-pill-badge` | `hero-pill-badge` | `pill-badge-above-h1` |
+| design | `all_caps_labels` | `uppercase-tracked-eyebrow` | `all-caps-section-kicker` | `uppercase-tracking-widest` | `label-uppercase-tracked` | `mono-uppercase-labels` |
+| design | `eyebrow_label` | `uppercase-tracked-eyebrow` | `section-eyebrow-kicker` | `eyebrow-heading-prefix` | `section-eyebrow-ratio` | `small-mono-section-labels` |
+| design | `perma_dark_mode` | `slate-950-dark-mode` | `default-dark-slate-grey` | `dark-bg-muted-text` | `dark-surface-mid-grey` | `dark-mode-neon-accents` |
+| design | `icon_card_grid` | `three-up-icon-cards` | `icon-in-circle-card-grid` | `lucide-icon-feature-grid` | `feature-grid-icon-top` | `three-column-icon-cards` |
+| design | `numbered_steps` | `numbered-1-2-3-steps` | `how-it-works-123` | `step-1-2-3-sequence` | `numbered-step-cards` | `numbered-01-02-03-labels` |
+| design | `stat_banner` | `vanity-stat-row` | `three-up-stat-strip` | `big-number-stat-bar` | `stat-counter-row` | `metrics-strip-banner` |
+| design | `faq_accordion` | `unique` | `boilerplate-faq-accordion` | `bottom-faq-accordion` | `faq-details-stack` | `template-faq-section` |
+| design | `gradient_letter_avatars` | `unique` | `initials-avatar-circle` | `gradient-initial-avatar` | `avatar-letter-circle` | `unique` |
+| design | `bento_grid` | `bento-grid-cards` | `bento-box-feature-wall` | `bento-grid-spans` | `grid-bento-rounded` | `bento-grid-layout` |
+| design | `aurora_mesh_gradient` | `blurred-gradient-blobs` | `aurora-blob-backdrop` | `blur-3xl-gradient-orb` | `backdrop-aurora-orb` | `mesh-gradient-blobs` |
+| design | `ai_sparkle_badges` | `sparkle-emoji-ai-badge` | `sparkle-icon-magic` | `sparkles-lucide-badge` | `icon-sparkle-ai` | `sparkle-badge-tell` |
+| design | `cream_default_bg` | `warm-cream-editorial-bg` | `editorial-cream-surface` | `bg-faf8f5-cream` | `surface-warm-cream` | `opus-55-cream-ground` |
+| design | `low_contrast_text` | `washed-out-muted-copy` | `low-contrast-grey-body` | `text-slate-400-low-contrast` | `contrast-aa-body-fail` | `unique` |
+| design | `crushed_tracking` | `tight-display-tracking` | `crushed-heading-tracking` | `tracking-tighter-display` | `letter-spacing-crushed` | `unique` |
+| design | `oversized_hero_h1` | `giant-hero-sentence` | `oversized-display-h1` | `text-7xl-long-headline` | `h1-oversized-long` | `unique` |
+| design | `nested_cards` | `card-inside-card` | `nested-card-containers` | `card-in-card-nesting` | `container-nested-cards` | `nested-card-boxes` |
+| design | `flat_type_hierarchy` | `compressed-type-scale` | `flat-typographic-scale` | `uniform-font-size-scale` | `type-scale-ratio-low` | `weak-typographic-hierarchy` |
+| design | `scaffold_defaults_unedited` | `unique` | `unedited-framework-scaffold` | `vite-next-default-title` | `scaffold-boilerplate-left` | `unique` |
+| design | `hero_accent_word` | `serif-italic-accent-word` | `single-word-headline-accent` | `h1-span-gradient-italic` | `hero-inline-accent-span` | `opus-55-italic-accent-word` |
+| design | `template_chrome_2026` | `floating-pill-navbar` | `2026-saas-template-chrome` | `floating-nav-pricing-stack` | `chrome-pill-nav-3tier` | `opus-55-pill-buttons-mono` |
+| design | `uniform_radius_shadow` | `identical-card-radius-shadow` | `monotonous-card-elevation` | `rounded-xl-shadow-sm-all` | `card-radius-shadow-uniform` | `uniform-rounded-cards` |
+| design | `editorial_cream_kit` | `cream-serif-terracotta-kit` | `warm-editorial-2026-kit` | `cream-serif-warm-accent` | `kit-editorial-cream-serif` | `opus-55-default-kit` |
+| design | `template_page_order` | `canonical-saas-page-flow` | `predictable-section-sequence` | `hero-logos-features-pricing-faq` | `section-order-canonical` | `cookie-cutter-page-order` |
+| design | `pulsing_status_badge` | `pulsing-green-status-dot` | `animate-ping-status-pill` | `ping-dot-hero-badge` | `badge-pulsing-dot` | `unique` |
+| design | `display_mono_heading` | `monospace-display-h1` | `mono-heading-reflex` | `font-mono-display-heading` | `heading-monospace-face` | `opus-55-monospace-labels` |
+| design | `chip_rainbow` | `pastel-badge-rainbow` | `multi-hue-category-pills` | `pastel-chip-rainbow` | `badge-pastel-hue-spread` | `unique` |
+| design | `fake_macos_terminal` | `macos-traffic-light-chrome` | `decorative-window-dots` | `red-yellow-green-window-dots` | `window-chrome-traffic-lights` | `unique` |
+| design | `fake_logo_bar` | `placeholder-trusted-by-strip` | `generic-monochrome-logo-bar` | `trusted-by-placeholder-logos` | `logo-strip-placeholder` | `unique` |
+| design | `infinite_marquee_ticker` | `infinite-marquee-strip` | `continuous-ticker-animation` | `animate-marquee-duplicate` | `marquee-infinite-scroll` | `unique` |
+| design | `fade_up_monoculture` | `uniform-fade-up-reveal` | `monoculture-scroll-fade-up` | `translate-y-opacity-reveal` | `animation-fade-up-uniform` | `predictable-fade-up-motion` |
+| design | `cursor_spotlight_gradient` | `mouse-radial-spotlight` | `cursor-tracking-glow-card` | `mouse-x-y-radial-gradient` | `spotlight-cursor-vars` | `unique` |
+| design | `uniform_card_hover` | `hover-translate-y-cards` | `identical-card-hover-lift` | `hover-translate-y-1-all` | `card-hover-lift-uniform` | `unique` |
+| design | `section_template_repetition` | `repeated-section-skeleton` | `monotonous-section-rhythm` | `identical-section-grid` | `section-dom-signature-repeat` | `repetitive-section-layout` |
+| design | `unthemed_browser_surfaces` | `missing-color-scheme-dark` | `unthemed-dark-scrollbars` | `dark-without-color-scheme` | `color-scheme-dark-missing` | `unique` |
+| copy | `buzzword_density` | `llm-buzzword-lexicon` | `ai-slop-vocabulary` | `delve-tapestry-seamless` | `copy-buzzword-density` | `unique` |
+| copy | `em_dash_overload` | `em-dash-connective-overuse` | `em-dash-saturation` | `em-dash-frequency` | `copy-em-dash-density` | `unique` |
+| copy | `antithesis_construction` | `not-just-x-its-y` | `contrastive-antithesis-frame` | `not-just-but-also` | `copy-antithesis-frame` | `unique` |
+| copy | `bare_antithesis` | `bare-not-x-its-y` | `staccato-contrast-frame` | `no-x-no-y-just-z` | `copy-bare-antithesis` | `unique` |
+| copy | `filler_openers` | `in-todays-fast-paced-world` | `throat-clearing-opener` | `generic-opening-cliche` | `copy-filler-opener` | `unique` |
+| copy | `formulaic_closers` | `in-conclusion-summary` | `formulaic-sign-off` | `in-conclusion-ultimately` | `copy-formulaic-closer` | `unique` |
+| copy | `rule_of_three` | `adjective-tricolon-lists` | `rule-of-three-cadence` | `tricolon-adjective-triplet` | `copy-tricolon-density` | `unique` |
+| copy | `whether_youre` | `whether-youre-x-or-y` | `audience-spanning-whether` | `whether-youre-a-or-b` | `copy-whether-youre` | `unique` |
+| copy | `unicode_artifacts` | `unique` | `unicode-paste-artifacts` | `zero-width-unicode-tells` | `copy-unicode-legacy` | `unique` |
+| copy | `hidden_tag_characters` | `unique` | `unique` | `unicode-tag-smuggling` | `copy-unicode-tags` | `unique` |
+| copy | `invisible_characters` | `unique` | `zero-width-space-residue` | `zwsp-zwnj-in-word` | `copy-invisible-chars` | `unique` |
+| copy | `fake_bold_math_alnum` | `unique` | `unicode-math-bold-prose` | `math-alphanumeric-fake-bold` | `copy-math-bold` | `unique` |
+| copy | `emoji_bullet_headers` | `rocket-sparkle-bullet-list` | `emoji-prefixed-headings` | `emoji-list-markers` | `copy-emoji-bullets` | `unique` |
+| copy | `emoji_heading_ratio` | `emoji-heading-saturation` | `emoji-heading-overuse` | `heading-lead-emoji-ratio` | `copy-emoji-heading-ratio` | `unique` |
+| copy | `chatbot_markup_leak` | `unique` | `leaked-citation-tokens` | `oaicite-turn0search-leak` | `copy-chatbot-citation-leak` | `unique` |
+| copy | `chatbot_reply_residue` | `certainly-heres-your-copy` | `conversational-wrapper-leak` | `as-an-ai-hope-this-helps` | `copy-chatbot-turn-residue` | `unique` |
+| copy | `ai_referral_utm_links` | `unique` | `utm-source-chatgpt-links` | `ai-referral-utm-query` | `copy-utm-chatgpt` | `unique` |
+| copy | `unfilled_placeholders` | `unique` | `unfilled-bracket-placeholder` | `insert-company-name-token` | `copy-template-placeholder` | `unique` |
+| copy | `leaked_markdown` | `unique` | `unrendered-markdown-syntax` | `raw-double-asterisk-bold` | `copy-raw-markdown` | `unique` |
+| copy | `structural_fake_social_proof` | `fake-testimonial-cards` | `unverified-social-proof` | `pravatar-dicebear-testimonials` | `social-proof-placeholder` | `unique` |
+| copy | `announced_structure` | `unique` | `meta-structural-signposting` | `in-this-article-we-will` | `copy-announced-structure` | `unique` |
+| copy | `restated_thesis_closer` | `unique` | `repetitive-summary-closer` | `restated-opening-thesis` | `copy-restated-thesis` | `unique` |
+| copy | `context_leak_copy` | `never-leaves-your-browser` | `prompt-context-bleed` | `built-with-written-in-tells` | `copy-context-leak` | `unique` |
+| copy | `trailing_participial_clauses` | `comma-ensuring-unlocking` | `trailing-ing-participle` | `participial-tail-clause` | `copy-participial-clause` | `unique` |
+| copy | `sentence_length_uniformity` | `flat-sentence-rhythm` | `low-burstiness-cadence` | `uniform-sentence-length` | `copy-sentence-cv` | `unique` |
+| copy | `excess_vocabulary_log_odds` | `unique` | `unique` | `unique` | `unique` | `unique` |
+| craft | `gray_on_color` | `grey-text-on-colored-fill` | `muddy-grey-on-color` | `neutral-grey-on-tinted-bg` | `contrast-grey-on-color` | `unique` |
+| craft | `wide_body_tracking` | `tracked-out-body-copy` | `wide-body-letter-spacing` | `body-tracking-wide` | `typography-body-tracking` | `unique` |
+| craft | `viewport_meta_missing` | `unique` | `missing-viewport-meta` | `unique` | `viewport-meta-present` | `unique` |
+| craft | `zoom_disabled` | `unique` | `disabled-pinch-zoom` | `user-scalable-no` | `viewport-zoom-enabled` | `unique` |
+| craft | `mobile_reflow_failure` | `unique` | `horizontal-scroll-overflow` | `mobile-overflow-collision` | `responsive-reflow-390` | `unique` |
+| craft | `focus_indicator_missing` | `unique` | `missing-focus-visible-ring` | `focus-outline-none-unreplaced` | `a11y-focus-indicator` | `unique` |
+| craft | `content_stuck_hidden` | `unique` | `broken-scroll-reveal-opacity` | `opacity-0-stuck-visible` | `motion-stuck-hidden` | `unique` |
+| craft | `dead_cta_controls` | `dead-href-hash-buttons` | `non-functional-cta-links` | `href-hash-dead-button` | `interactive-dead-cta` | `unique` |
+| craft | `reduced_motion_ignored` | `unique` | `missing-reduced-motion-query` | `infinite-anim-no-reduced-motion` | `motion-prefers-reduced` | `unique` |
+| craft | `generic_control_labels` | `unique` | `ambiguous-link-text` | `click-here-learn-more-links` | `a11y-generic-control-name` | `unique` |
+| craft | `form_no_failure_feedback` | `unique` | `silent-empty-form-submit` | `unique` | `form-error-feedback` | `unique` |
+

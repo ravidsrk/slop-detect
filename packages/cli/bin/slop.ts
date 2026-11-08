@@ -7,7 +7,7 @@
 // Scores any URL against the AI-design-slop fingerprint and emits a
 // pretty terminal report or a machine-readable JSON blob.
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import {
   scanUrl,
   scanRemote,
@@ -37,6 +37,10 @@ import {
   compareScans,
   aggregateRuns,
   presetCoverage,
+  parseSlopRc,
+  resolveSlopConfigForUrl,
+  evaluateSkillBenchmark,
+  formatBenchTsv,
 } from '@slop-detect/core';
 import { applyInitPlan, parseProviders, planInitFiles } from '../src/init-project.js';
 import {
@@ -44,11 +48,13 @@ import {
   diffSavedScans,
   discoverRenderedSite,
   formatScanDocument,
+  isLocalTarget,
   pathExists,
   readCopyDir,
   readJsonFile,
   siteCopyReport,
   siteSummaryDocument,
+  startStaticTargetServer,
   writeAeoFixes,
   writeBaseline,
 } from '../src/offline.js';
@@ -100,11 +106,21 @@ const flags = {
   initCi: null as string | null,
   noHooks: false,
   initDir: null as string | null,
+  experimental: false,
+  annotateScreenshot: null as string | null,
+  only: null as string[] | null,
+  skip: null as string[] | null,
+  noInlineIgnores: false,
+  configPath: null as string | null,
+  extractTokensOut: null as string | null,
+  refFile: null as string | null,
+  benchManifest: null as string | null,
+  budget: null as number | null,
 };
 
 // Exit codes live in exitCodeForScanResults: 0 scored, 1 over the gate, 2 could
 // not scan. Exit 2 is never a Clean score.
-const VALID_FAIL_ON = ['mild', 'heavy'];
+const VALID_FAIL_ON = ['mild', 'heavy', 'drift'];
 
 // Parse --fail-under <grade|score> into a max allowed slop score (0..100).
 function parseFailUnder(raw: string | undefined): { maxScore: number; label: string } | null {
@@ -151,8 +167,103 @@ for (let i = 0; i < args.length; i++) {
   else if (a === '--fix-prompt' || a === '--fix') flags.fixPrompt = true;
   else if (a === '--init-design-md') flags.initDesignMd = true;
   else if (a === '--init-tokens') flags.initTokens = true;
-  else if (a === '--a11y') flags.a11y = true;
-  else if (a === '--lint-design-md' || a.startsWith('--lint-design-md=')) {
+  else if (a === '--extract-tokens' || a.startsWith('--extract-tokens=')) {
+    flags.initTokens = true;
+    if (a.startsWith('--extract-tokens=')) {
+      flags.extractTokensOut = a.slice('--extract-tokens='.length);
+    } else if (args[i + 1] && !args[i + 1].startsWith('--') && /\.json$/i.test(args[i + 1])) {
+      flags.extractTokensOut = args[++i];
+    }
+  } else if (a === '--a11y' || a.startsWith('--a11y=')) {
+    flags.a11y = true;
+    if (!a.startsWith('--a11y=') && args[i + 1] === 'axe') {
+      i++;
+    }
+  } else if (a === '--experimental') {
+    flags.experimental = true;
+  } else if (a === '--no-inline-ignores') {
+    flags.noInlineIgnores = true;
+  } else if (a === '--only' || a.startsWith('--only=')) {
+    const val = a.startsWith('--only=') ? a.slice('--only='.length) : args[++i];
+    if (!val || val.startsWith('--')) {
+      console.error('--only needs a comma-separated list of pattern or axis IDs.');
+      process.exit(2);
+    }
+    flags.only = val
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+  } else if (a === '--skip' || a.startsWith('--skip=')) {
+    const val = a.startsWith('--skip=') ? a.slice('--skip='.length) : args[++i];
+    if (!val || val.startsWith('--')) {
+      console.error('--skip needs a comma-separated list of pattern or axis IDs.');
+      process.exit(2);
+    }
+    flags.skip = val
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+  } else if (a === '--config' || a.startsWith('--config=')) {
+    const val = a.startsWith('--config=') ? a.slice('--config='.length) : args[++i];
+    if (!val || val.startsWith('--')) {
+      console.error('--config needs a path to a .sloprc.json file.');
+      process.exit(2);
+    }
+    flags.configPath = val;
+  } else if (a === '--annotate-screenshot' || a.startsWith('--annotate-screenshot=')) {
+    const val = a.startsWith('--annotate-screenshot=')
+      ? a.slice('--annotate-screenshot='.length)
+      : args[++i];
+    if (!val || val.startsWith('--')) {
+      console.error('--annotate-screenshot needs an output PNG file path.');
+      process.exit(2);
+    }
+    flags.annotateScreenshot = val;
+  } else if (a === '--ref' || a.startsWith('--ref=')) {
+    const val = a.startsWith('--ref=') ? a.slice('--ref='.length) : args[++i];
+    if (!val || val.startsWith('--')) {
+      console.error('--ref needs a reference image or token JSON path.');
+      process.exit(2);
+    }
+    flags.refFile = val;
+  } else if (a === '--tokens' || a.startsWith('--tokens=')) {
+    const val = a.startsWith('--tokens=') ? a.slice('--tokens='.length) : args[++i];
+    if (!val || val.startsWith('--')) {
+      console.error('--tokens needs a path to a tokens.json or DESIGN.md file.');
+      process.exit(2);
+    }
+    flags.designMd = val;
+  } else if (a === 'diff' && i === 0) {
+    const before = args[++i];
+    const after = args[++i];
+    if (!before || !after || before.startsWith('--') || after.startsWith('--')) {
+      console.error('diff needs two scan JSON files: slop-detect diff <before> <after>.');
+      process.exit(2);
+    }
+    flags.diffScan = [before, after];
+  } else if (a === 'bench' && i === 0) {
+    const manifestPath = args[++i];
+    if (!manifestPath || manifestPath.startsWith('--')) {
+      console.error('bench needs a manifest JSON file: slop-detect bench <manifest.json>.');
+      process.exit(2);
+    }
+    flags.benchManifest = manifestPath;
+  } else if (a === '--sitemap' || a === '--crawl') {
+    if (!flags.site) flags.site = 5;
+  } else if (a === '--max-pages' || a.startsWith('--max-pages=')) {
+    const raw = a.startsWith('--max-pages=') ? a.slice('--max-pages='.length) : args[++i];
+    flags.site = parseSampleSize(raw, '--max-pages');
+  } else if (a === '--budget' || a.startsWith('--budget=')) {
+    const raw = a.startsWith('--budget=') ? a.slice('--budget='.length) : args[++i];
+    const val = Number(raw);
+    if (!Number.isFinite(val) || val < 0 || val > 100) {
+      console.error('--budget needs a score from 0 to 100.');
+      process.exit(2);
+    }
+    flags.budget = val;
+    flags.failUnderScore = val;
+    flags.failUnderLabel = `${val}/100`;
+  } else if (a === '--lint-design-md' || a.startsWith('--lint-design-md=')) {
     const val = a.startsWith('--lint-design-md=') ? a.slice('--lint-design-md='.length) : args[++i];
     if (!val || val.startsWith('--')) {
       console.error('--lint-design-md needs a local DESIGN.md path.');
@@ -212,13 +323,18 @@ for (let i = 0; i < args.length; i++) {
       );
       process.exit(2);
     }
-    flags.failOn = val === 'mild' ? 'Mild' : 'Heavy';
-  } else if (a === '--fail-under' || a.startsWith('--fail-under=')) {
-    const val = a.startsWith('--fail-under=') ? a.slice('--fail-under='.length) : args[++i];
+    flags.failOn = val === 'mild' ? 'Mild' : val === 'drift' ? 'Drift' : 'Heavy';
+  } else if (
+    a === '--fail-under' ||
+    a.startsWith('--fail-under=') ||
+    a === '--min-score' ||
+    a.startsWith('--min-score=')
+  ) {
+    const val = a.includes('=') ? a.slice(a.indexOf('=') + 1) : args[++i];
     const parsed = parseFailUnder(val);
     if (!parsed) {
       console.error(
-        `Invalid --fail-under value: ${val || '(none)'}. Expected a letter grade (A+, A, A-, B+, B, B-, C+, C, C-, D+, D, F) or a max slop score (0-100).`
+        `Invalid ${a.split('=')[0]} value: ${val || '(none)'}. Expected a letter grade (A+, A, A-, B+, B, B-, C+, C, C-, D+, D, F) or a max slop score (0-100).`
       );
       process.exit(2);
     }
@@ -494,6 +610,18 @@ if (flags.emitAeoFixes) {
   }
 }
 
+if (flags.benchManifest) {
+  try {
+    const manifest = readJsonFile(flags.benchManifest);
+    const report = evaluateSkillBenchmark(manifest);
+    console.log(flags.json ? JSON.stringify(report, null, 2) : formatBenchTsv(report));
+    process.exit(0);
+  } catch (e: any) {
+    console.error(e.message || String(e));
+    process.exit(2);
+  }
+}
+
 if (flags.diffScan) {
   try {
     const diff = diffSavedScans(readJsonFile(flags.diffScan[0]), readJsonFile(flags.diffScan[1]));
@@ -543,7 +671,7 @@ if (flags.compareTo && flags.compareCurrent) {
   }
 }
 
-if (flags.format && urls.length === 1 && pathExists(urls[0])) {
+if (flags.format && urls.length === 1 && pathExists(urls[0]) && /\.json$/i.test(urls[0])) {
   try {
     const doc = readJsonFile(urls[0]);
     console.log(formatScanDocument(doc, flags.format));
@@ -600,13 +728,19 @@ if (flags.a11y && flags.remote) {
 }
 
 // Normalize bare hostnames the way the web UI does: `slop-detect example.com`
-// should Just Work. Prepend https:// when no http(s) scheme is present. An
-// explicit non-http(s) scheme (file:, ftp:…) is rejected — we only scan pages.
+// should Just Work. Local directories and HTML files (`./dist`, `file://...`)
+// are preserved and served over an ephemeral loopback server in Main (#210).
 for (let i = 0; i < urls.length; i++) {
   const u = urls[i].trim();
+  if (isLocalTarget(u)) {
+    urls[i] = u;
+    continue;
+  }
   const scheme = u.match(/^([a-z][a-z0-9+.-]*):/i);
   if (scheme && !/^https?$/i.test(scheme[1])) {
-    console.error(`Only http(s) URLs can be scanned: ${u}`);
+    console.error(
+      `Only http(s) URLs can be scanned (or existing local HTML/build directories): ${u}`
+    );
     process.exit(2);
   }
   urls[i] = /^https?:\/\//i.test(u) ? u : 'https://' + u;
@@ -1022,287 +1156,346 @@ const machineOutput =
 
 // ── Main ────────────────────────────────────────────────────────────────────
 (async () => {
-  if (flags.siteCopy) {
-    if (urls.length !== 1) {
-      console.error('--site-copy needs one http(s) URL.');
-      process.exit(2);
-    }
-    const outcome = await siteCopyReport(urls[0], flags.siteCopy);
-    if (!outcome.ok) {
-      console.error(outcome.message);
-      process.exit(2);
-    }
-    const report = outcome.report;
-    const line =
-      report.status === 'ok'
-        ? `Site copy: ${report.score}/100 ${report.tier}. Qualifying pages: ${report.qualifyingPages}. Rendered: false. Pre-2022 Heavy rate: unmeasured.`
-        : `Site copy: ${report.status} (${report.qualifyingPages} qualifying, ${report.requiredPages} required). No site score. Rendered: false. Pre-2022 Heavy rate: unmeasured.`;
-    console.log(flags.json || flags.format === 'json' ? JSON.stringify(report, null, 2) : line);
-    process.exit(0);
-  }
-  if (flags.site) {
-    if (urls.length !== 1) {
-      console.error('--site needs one http(s) URL.');
-      process.exit(2);
-    }
+  let loadedConfig = null;
+  const cfgCandidate = flags.configPath || (pathExists('.sloprc.json') ? '.sloprc.json' : null);
+  if (cfgCandidate) {
     try {
-      const discovered = await discoverRenderedSite(urls[0], flags.site);
-      urls.splice(0, urls.length, ...discovered);
-    } catch (e) {
-      console.error(e.message || String(e));
-      console.error('Scan could not run. This is not a Clean score.');
+      loadedConfig = parseSlopRc(readFileSync(cfgCandidate, 'utf8'));
+    } catch (e: any) {
+      console.error(`Invalid ${cfgCandidate}: ${e.message || String(e)}`);
       process.exit(2);
     }
   }
-  if (flags.a11y) {
-    try {
-      await loadAxeSource();
-    } catch (e) {
-      console.error(e.message || String(e));
-      process.exit(2);
-    }
-  }
-  const results = [];
-  const attemptCount = flags.runs || 1;
-  for (const url of urls) {
-    if (flags.site && results.length > 0) {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-    }
-    const attempts = [];
-    for (let attempt = 0; attempt < attemptCount; attempt++) {
-      if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 200));
-      try {
-        const scanOpts: ScanOptions = {
-          screenshot: flags.screenshot,
-          preset: flags.preset,
-          axes: flags.axes,
-          api: flags.api,
-          timeout: flags.timeout || undefined,
-          includeSystem: flags.initDesignMd || flags.initTokens || undefined,
-          a11y: flags.a11y || undefined,
-        };
-        if (flags.designMd && !flags.remote) {
-          const loaded = await loadDesignMd(flags.designMd, url);
-          if (loaded) scanOpts.designMd = loaded.text;
-          else if (!machineOutput)
-            console.error(
-              `${C.grey}No DESIGN.md found for ${url} (auto) — skipping the system axis.${C.reset}`
-            );
-        } else if (flags.designMd && flags.remote) {
-          scanOpts.designMd = flags.designMd;
+
+  const staticServers: Array<{ close: () => Promise<void> }> = [];
+  try {
+    for (let i = 0; i < urls.length; i++) {
+      if (isLocalTarget(urls[i])) {
+        if (flags.remote) {
+          console.error('Local build paths cannot be scanned with --remote.');
+          process.exit(2);
         }
-        const r = flags.remote ? await scanRemote(url, scanOpts) : await scanUrl(url, scanOpts);
-        if (flags.aeo) {
-          try {
-            r.aeo = flags.remote
-              ? await aeoRemote(url, { api: flags.api })
-              : await runAeoChecks(url, { timeoutMs: 12000 });
-          } catch (e) {
-            r.aeo = { error: e.message };
-          }
-        }
-        if (!r.blocked && !r.error && flags.preset !== 'full') {
-          const axes = [...flags.axes];
-          if (flags.aeo) axes.push('aeo');
-          if (flags.designMd || r.system) axes.push('system');
-          const coverage = presetCoverage(flags.preset, axes);
-          if (coverage.warning) {
-            r.presetWarning = coverage.warning;
-            r.presetNotApplied = coverage.notApplied;
-          }
-        }
-        attempts.push({ result: r, thrown: false });
-      } catch (err) {
-        attempts.push({
-          result: stampScanResult({ url, error: err.message }),
-          thrown: true,
-        });
-      }
-    }
-    const last = attempts[attempts.length - 1];
-    const host = last.result;
-    if (attemptCount > 1) {
-      host.runSummary = aggregateRuns(
-        attempts.map((item) => item.result),
-        flags.aggregate || 'median'
-      );
-      if (!machineOutput) {
-        const summary = host.runSummary;
-        if (summary.ok) {
-          console.error(
-            `Runs ${summary.runs}: ${summary.method} score ${summary.aggregatedScore} (spread ${summary.spread}). The page score is the last run.`
-          );
+        const srv = await startStaticTargetServer(urls[i]);
+        staticServers.push(srv);
+        if (flags.site && urls.length === 1) {
+          const cap = flags.site;
+          urls.splice(0, 1, ...srv.urls.slice(0, cap));
+          break;
         } else {
-          console.error(summary.message);
+          urls[i] = srv.url;
         }
       }
     }
-    results.push(host);
-    if (!machineOutput) {
-      if (last.thrown) {
-        console.error(`\n${C.red}${C.bold}✗ ${url}${C.reset}`);
-        console.error(`  ${C.red}${host.error}${C.reset}\n`);
-      } else {
-        renderPretty(host);
-        if (host.system) renderSystem(host.system);
-        if (host.aeo && !host.aeo.error) renderAeo(host.aeo);
-        else if (host.aeo && host.aeo.error)
-          console.log(`  ${C.yellow}⚠ AEO check failed: ${host.aeo.error}${C.reset}\n`);
+
+    if (flags.siteCopy) {
+      if (urls.length !== 1) {
+        console.error('--site-copy needs one http(s) URL.');
+        process.exit(2);
+      }
+      const outcome = await siteCopyReport(urls[0], flags.siteCopy);
+      if (!outcome.ok) {
+        console.error(outcome.message);
+        process.exit(2);
+      }
+      const report = outcome.report;
+      const line =
+        report.status === 'ok'
+          ? `Site copy: ${report.score}/100 ${report.tier}. Qualifying pages: ${report.qualifyingPages}. Rendered: false. Pre-2022 Heavy rate: unmeasured.`
+          : `Site copy: ${report.status} (${report.qualifyingPages} qualifying, ${report.requiredPages} required). No site score. Rendered: false. Pre-2022 Heavy rate: unmeasured.`;
+      console.log(flags.json || flags.format === 'json' ? JSON.stringify(report, null, 2) : line);
+      process.exit(0);
+    }
+    if (flags.site && staticServers.length === 0) {
+      if (urls.length !== 1) {
+        console.error('--site needs one http(s) URL.');
+        process.exit(2);
+      }
+      try {
+        const discovered = await discoverRenderedSite(urls[0], flags.site);
+        urls.splice(0, urls.length, ...discovered);
+      } catch (e) {
+        console.error(e.message || String(e));
+        console.error('Scan could not run. This is not a Clean score.');
+        process.exit(2);
       }
     }
-  }
-  if (flags.saveBaseline) {
-    if (urls.length !== 1) {
-      console.error('--save-baseline needs one URL.');
-      process.exit(2);
-    }
-    try {
-      writeBaseline(flags.saveBaseline, results[0]);
-      if (!machineOutput) console.error(`Saved baseline ${flags.saveBaseline}.`);
-    } catch (e) {
-      console.error(e.message || String(e));
-      process.exit(2);
-    }
-  }
-  if (flags.initDesignMd) {
-    const docs = results.map((r) => {
-      if (r.error || r.blocked) return `# Error scanning ${r.url}: ${r.error || r.code}`;
-      let host = 'Site';
+    if (flags.a11y) {
       try {
-        host = new URL(r.finalUrl || r.url).hostname.replace(/^www\./, '');
-      } catch {}
-      return generateDesignMd(r.systemContext || {}, {
-        name: r.title || host,
-        url: r.finalUrl || r.url,
+        await loadAxeSource();
+      } catch (e) {
+        console.error(e.message || String(e));
+        process.exit(2);
+      }
+    }
+    const results = [];
+    const attemptCount = flags.runs || 1;
+    for (const url of urls) {
+      if (flags.site && results.length > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
+      const attempts = [];
+      for (let attempt = 0; attempt < attemptCount; attempt++) {
+        if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 200));
+        try {
+          const urlCfg = loadedConfig ? resolveSlopConfigForUrl(loadedConfig, url) : null;
+          const effectivePreset =
+            flags.preset !== 'full' ? flags.preset : urlCfg?.preset || flags.preset;
+          const effectiveAxes =
+            flags.axes.length > 1 ? flags.axes : (urlCfg?.axes as string[]) || flags.axes;
+          const scanOpts: ScanOptions = {
+            screenshot: flags.screenshot,
+            annotateScreenshot: flags.annotateScreenshot,
+            preset: effectivePreset,
+            axes: effectiveAxes,
+            api: flags.api,
+            timeout: flags.timeout || undefined,
+            includeSystem:
+              flags.initDesignMd || flags.initTokens || Boolean(flags.refFile) || undefined,
+            a11y: flags.a11y || undefined,
+            experimental: flags.experimental || undefined,
+            config: loadedConfig || undefined,
+            only: flags.only || undefined,
+            skip: flags.skip || undefined,
+            noInlineIgnores: flags.noInlineIgnores || undefined,
+          };
+          const designMdInput = flags.designMd || flags.refFile || urlCfg?.designMd || null;
+          if (designMdInput && !flags.remote) {
+            const loaded = await loadDesignMd(designMdInput, url);
+            if (loaded) scanOpts.designMd = loaded.text;
+            else if (!machineOutput)
+              console.error(
+                `${C.grey}No DESIGN.md found for ${url} (auto) — skipping the system axis.${C.reset}`
+              );
+          } else if (designMdInput && flags.remote) {
+            scanOpts.designMd = designMdInput;
+          }
+          const r = flags.remote ? await scanRemote(url, scanOpts) : await scanUrl(url, scanOpts);
+          if (flags.aeo) {
+            try {
+              r.aeo = flags.remote
+                ? await aeoRemote(url, { api: flags.api })
+                : await runAeoChecks(url, {
+                    timeoutMs: 12000,
+                    renderedWords:
+                      typeof r.renderedWords === 'number' ? r.renderedWords : undefined,
+                  });
+            } catch (e) {
+              r.aeo = { error: e.message };
+            }
+          }
+          if (!r.blocked && !r.error && flags.preset !== 'full') {
+            const axes = [...flags.axes];
+            if (flags.aeo) axes.push('aeo');
+            if (flags.designMd || r.system) axes.push('system');
+            const coverage = presetCoverage(flags.preset, axes);
+            if (coverage.warning) {
+              r.presetWarning = coverage.warning;
+              r.presetNotApplied = coverage.notApplied;
+            }
+          }
+          attempts.push({ result: r, thrown: false });
+        } catch (err) {
+          attempts.push({
+            result: stampScanResult({ url, error: err.message }),
+            thrown: true,
+          });
+        }
+      }
+      const last = attempts[attempts.length - 1];
+      const host = last.result;
+      if (attemptCount > 1) {
+        host.runSummary = aggregateRuns(
+          attempts.map((item) => item.result),
+          flags.aggregate || 'median'
+        );
+        if (!machineOutput) {
+          const summary = host.runSummary;
+          if (summary.ok) {
+            console.error(
+              `Runs ${summary.runs}: ${summary.method} score ${summary.aggregatedScore} (spread ${summary.spread}). The page score is the last run.`
+            );
+          } else {
+            console.error(summary.message);
+          }
+        }
+      }
+      results.push(host);
+      if (!machineOutput) {
+        if (last.thrown) {
+          console.error(`\n${C.red}${C.bold}✗ ${url}${C.reset}`);
+          console.error(`  ${C.red}${host.error}${C.reset}\n`);
+        } else {
+          renderPretty(host);
+          if (host.system) renderSystem(host.system);
+          if (host.aeo && !host.aeo.error) renderAeo(host.aeo);
+          else if (host.aeo && host.aeo.error)
+            console.log(`  ${C.yellow}⚠ AEO check failed: ${host.aeo.error}${C.reset}\n`);
+        }
+      }
+    }
+    if (flags.saveBaseline) {
+      if (urls.length !== 1) {
+        console.error('--save-baseline needs one URL.');
+        process.exit(2);
+      }
+      try {
+        writeBaseline(flags.saveBaseline, results[0]);
+        if (!machineOutput) console.error(`Saved baseline ${flags.saveBaseline}.`);
+      } catch (e) {
+        console.error(e.message || String(e));
+        process.exit(2);
+      }
+    }
+    if (flags.initDesignMd) {
+      const docs = results.map((r) => {
+        if (r.error || r.blocked) return `# Error scanning ${r.url}: ${r.error || r.code}`;
+        let host = 'Site';
+        try {
+          host = new URL(r.finalUrl || r.url).hostname.replace(/^www\./, '');
+        } catch {}
+        return generateDesignMd(r.systemContext || {}, {
+          name: r.title || host,
+          url: r.finalUrl || r.url,
+        });
       });
-    });
-    console.log(docs.join('\n\n'));
-  } else if (flags.initTokens) {
-    const docs = results.map((r) => {
-      if (r.error || r.blocked) return { url: r.url, error: r.error || r.code };
-      let host = 'Site';
-      try {
-        host = new URL(r.finalUrl || r.url).hostname.replace(/^www\./, '');
-      } catch {}
-      return extractDtcgTokens(r.systemContext || {}, { name: r.title || host });
-    });
-    console.log(JSON.stringify(docs.length === 1 ? docs[0] : docs, null, 2));
-  } else if (flags.brief) {
-    const lists = results.map((r) => buildAvoidList(r));
-    console.log(lists.join('\n\n'));
-  } else if (flags.fixPrompt) {
-    const prompts = results.map((r) =>
-      r.error || r.blocked
-        ? `# Cannot build fix prompt for ${r.url}\n\n${r.error || r.code}`
-        : buildFixPrompt(r)
-    );
-    console.log(prompts.join('\n\n---\n\n'));
-  } else if (flags.format) {
-    if (flags.format === 'json' && flags.site) {
-      console.log(
-        JSON.stringify(
-          {
+      console.log(docs.join('\n\n'));
+    } else if (flags.initTokens) {
+      const docs = results.map((r) => {
+        if (r.error || r.blocked) return { url: r.url, error: r.error || r.code };
+        let host = 'Site';
+        try {
+          host = new URL(r.finalUrl || r.url).hostname.replace(/^www\./, '');
+        } catch {}
+        return extractDtcgTokens(r.systemContext || {}, { name: r.title || host });
+      });
+      const serialized = JSON.stringify(docs.length === 1 ? docs[0] : docs, null, 2);
+      if (flags.extractTokensOut) {
+        writeFileSync(flags.extractTokensOut, `${serialized}\n`);
+        if (!flags.json) console.error(`Wrote DTCG tokens to ${flags.extractTokensOut}.`);
+      } else {
+        console.log(serialized);
+      }
+    } else if (flags.brief) {
+      const lists = results.map((r) => buildAvoidList(r));
+      console.log(lists.join('\n\n'));
+    } else if (flags.fixPrompt) {
+      const prompts = results.map((r) =>
+        r.error || r.blocked
+          ? `# Cannot build fix prompt for ${r.url}\n\n${r.error || r.code}`
+          : buildFixPrompt(r)
+      );
+      console.log(prompts.join('\n\n---\n\n'));
+    } else if (flags.format) {
+      if (flags.format === 'json' && flags.site) {
+        console.log(
+          JSON.stringify(
+            {
+              definitionsVersion: DEFINITIONS_VERSION,
+              site: siteSummaryDocument(results),
+              pages: results,
+            },
+            null,
+            2
+          )
+        );
+      } else {
+        const payload = results.length === 1 ? results[0] : results;
+        console.log(formatScanDocument(stampScanResult(payload), flags.format));
+        if (flags.site) console.error(formatSiteSummary(siteSummaryDocument(results)));
+      }
+    } else if (flags.sarif) {
+      console.log(JSON.stringify(buildSarifReport(results), null, 2));
+    } else if (flags.json) {
+      const payload = flags.site
+        ? {
             definitionsVersion: DEFINITIONS_VERSION,
             site: siteSummaryDocument(results),
             pages: results,
-          },
-          null,
-          2
-        )
-      );
-    } else {
-      const payload = results.length === 1 ? results[0] : results;
-      console.log(formatScanDocument(stampScanResult(payload), flags.format));
-      if (flags.site) console.error(formatSiteSummary(siteSummaryDocument(results)));
+          }
+        : results.length === 1
+          ? results[0]
+          : results;
+      console.log(JSON.stringify(stampScanResult(payload), null, 2));
+    } else if (flags.site) {
+      console.log(formatSiteSummary(siteSummaryDocument(results)));
     }
-  } else if (flags.sarif) {
-    console.log(JSON.stringify(buildSarifReport(results), null, 2));
-  } else if (flags.json) {
-    const payload = flags.site
-      ? {
-          definitionsVersion: DEFINITIONS_VERSION,
-          site: siteSummaryDocument(results),
-          pages: results,
+
+    // ── CI gate (--fail-on / --fail-under) ──────────────────────────────────────
+    // 0 scored, 1 over the gate, 2 could not scan. An unscannable page wins over
+    // the gate so an outage is never reported as a finding or as Clean.
+    const exitCode = exitCodeForScanResults(results, {
+      failOn: flags.failOn,
+      failUnderScore: flags.failUnderScore,
+    });
+    let compareExit = 0;
+    if (flags.compareTo && !flags.compareCurrent) {
+      let baseline;
+      try {
+        baseline = readJsonFile(flags.compareTo);
+      } catch (e) {
+        console.error(e.message || String(e));
+        console.error('Scan could not run. This is not a Clean score.');
+        process.exit(2);
+      }
+      for (const result of results) {
+        const report = compareScans(baseline, result, { maxDelta: flags.maxDelta });
+        if (!report.comparable) {
+          console.error(report.error || report.text);
+          compareExit = 2;
+          continue;
         }
-      : results.length === 1
-        ? results[0]
-        : results;
-    console.log(JSON.stringify(stampScanResult(payload), null, 2));
-  } else if (flags.site) {
-    console.log(formatSiteSummary(siteSummaryDocument(results)));
-  }
-
-  // ── CI gate (--fail-on / --fail-under) ──────────────────────────────────────
-  // 0 scored, 1 over the gate, 2 could not scan. An unscannable page wins over
-  // the gate so an outage is never reported as a finding or as Clean.
-  const exitCode = exitCodeForScanResults(results, {
-    failOn: flags.failOn,
-    failUnderScore: flags.failUnderScore,
-  });
-  let compareExit = 0;
-  if (flags.compareTo && !flags.compareCurrent) {
-    let baseline;
-    try {
-      baseline = readJsonFile(flags.compareTo);
-    } catch (e) {
-      console.error(e.message || String(e));
-      console.error('Scan could not run. This is not a Clean score.');
-      process.exit(2);
-    }
-    for (const result of results) {
-      const report = compareScans(baseline, result, { maxDelta: flags.maxDelta });
-      if (!report.comparable) {
-        console.error(report.error || report.text);
-        compareExit = 2;
-        continue;
-      }
-      const line = flags.json ? JSON.stringify(report, null, 2) : report.text;
-      if (machineOutput) console.error(line);
-      else console.log(line);
-      if (flags.failOnRegression && report.regression) compareExit = Math.max(compareExit, 1);
-    }
-  }
-  const finalExit = compareExit === 2 || exitCode === 2 ? 2 : Math.max(exitCode, compareExit);
-
-  // Summary if multiple URLs
-  if (urls.length > 1 && !machineOutput) {
-    console.log(`${C.bold}━━━ Summary ━━━${C.reset}`);
-    for (const r of results) {
-      if (r.blocked) {
-        console.log(
-          `  ${C.yellow}⚠ blocked${C.reset}  ${C.grey}${r.code.padEnd(20)}${C.reset}  ${r.url}`
-        );
-      } else if (r.error) {
-        console.log(`  ${C.red}error${C.reset}  ${r.url}`);
-      } else {
-        const sumScore = r.axes && r.axes.copy ? r.unifiedScore : r.score;
-        const sumTier = r.axes && r.axes.copy ? r.unifiedTier : r.tier;
-        const sts = tierStyle(sumTier);
-        console.log(
-          `  ${emoji(sumTier)} ${sts}${sumTier.padEnd(6)}${C.reset}  ` +
-            `score ${C.bold}${String(sumScore).padStart(3)}${C.reset}/100  ` +
-            `${String(r.patternsFlagged).padStart(2)}/${r.patternsTotal} patterns  ` +
-            `${C.grey}${r.url}${C.reset}`
-        );
+        const line = flags.json ? JSON.stringify(report, null, 2) : report.text;
+        if (machineOutput) console.error(line);
+        else console.log(line);
+        if (flags.failOnRegression && report.regression) compareExit = Math.max(compareExit, 1);
       }
     }
-    console.log();
-  }
+    const finalExit = compareExit === 2 || exitCode === 2 ? 2 : Math.max(exitCode, compareExit);
 
-  // Tell the user why we're failing (only when gating + actually failing, and
-  // not in machine-output mode where stdout must stay a clean document).
-  if (exitCode === 2) {
-    console.error(`${C.red}${C.bold}✗ Scan could not run. This is not a Clean score.${C.reset}`);
-  } else if (flags.failOn && exitCode === 1 && !machineOutput) {
-    console.error(
-      `${C.red}${C.bold}✗ --fail-on ${flags.failOn.toLowerCase()}: one or more pages failed the gate.${C.reset}`
-    );
-  } else if (flags.failUnderScore != null && exitCode === 1 && !machineOutput) {
-    console.error(
-      `${C.red}${C.bold}✗ --fail-under ${flags.failUnderLabel}: one or more pages failed the gate.${C.reset}`
-    );
+    // Summary if multiple URLs
+    if (urls.length > 1 && !machineOutput) {
+      console.log(`${C.bold}━━━ Summary ━━━${C.reset}`);
+      for (const r of results) {
+        if (r.blocked) {
+          console.log(
+            `  ${C.yellow}⚠ blocked${C.reset}  ${C.grey}${r.code.padEnd(20)}${C.reset}  ${r.url}`
+          );
+        } else if (r.error) {
+          console.log(`  ${C.red}error${C.reset}  ${r.url}`);
+        } else {
+          const sumScore = r.axes && r.axes.copy ? r.unifiedScore : r.score;
+          const sumTier = r.axes && r.axes.copy ? r.unifiedTier : r.tier;
+          const sts = tierStyle(sumTier);
+          console.log(
+            `  ${emoji(sumTier)} ${sts}${sumTier.padEnd(6)}${C.reset}  ` +
+              `score ${C.bold}${String(sumScore).padStart(3)}${C.reset}/100  ` +
+              `${String(r.patternsFlagged).padStart(2)}/${r.patternsTotal} patterns  ` +
+              `${C.grey}${r.url}${C.reset}`
+          );
+        }
+      }
+      console.log();
+    }
+
+    // Tell the user why we're failing (only when gating + actually failing, and
+    // not in machine-output mode where stdout must stay a clean document).
+    if (exitCode === 2) {
+      console.error(`${C.red}${C.bold}✗ Scan could not run. This is not a Clean score.${C.reset}`);
+    } else if (flags.failOn && exitCode === 1 && !machineOutput) {
+      console.error(
+        `${C.red}${C.bold}✗ --fail-on ${flags.failOn.toLowerCase()}: one or more pages failed the gate.${C.reset}`
+      );
+    } else if (flags.failUnderScore != null && exitCode === 1 && !machineOutput) {
+      console.error(
+        `${C.red}${C.bold}✗ --fail-under ${flags.failUnderLabel}: one or more pages failed the gate.${C.reset}`
+      );
+    }
+    process.exit(finalExit);
+  } finally {
+    for (const srv of staticServers) {
+      await srv.close().catch(() => {});
+    }
   }
-  process.exit(finalExit);
 })().catch((e) => {
   console.error(e);
   process.exit(2);
