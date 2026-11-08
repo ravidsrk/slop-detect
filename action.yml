@@ -121,35 +121,14 @@ runs:
   steps:
     - id: scan
       shell: bash
-      run: |
-        if [ "${INPUT_MODE}" = "local" ]; then
-          TARGET="${INPUT_STATIC_DIR:-$INPUT_URL}"
-          SARIF_OUT="${INPUT_SARIF}"
-          ARGS=("$TARGET" "--preset" "$INPUT_PRESET")
-          if [ -n "$INPUT_FAIL_UNDER" ]; then
-            ARGS+=("--fail-under" "$INPUT_FAIL_UNDER")
-          fi
-          if [ -n "$INPUT_BASELINE_URL" ]; then
-            ARGS+=("--baseline" "$INPUT_BASELINE_URL")
-          fi
-          if [ "$INPUT_FAIL_ON_REGRESSION" = "true" ]; then
-            ARGS+=("--fail-on-regression")
-          fi
-          if [ -n "$SARIF_OUT" ]; then
-            npx --yes slop-detect "${ARGS[@]}" --sarif > "$SARIF_OUT"
-            echo "sarif-file=$SARIF_OUT" >> "$GITHUB_OUTPUT"
-          else
-            npx --yes slop-detect "${ARGS[@]}" --format github
-          fi
-        else
-          node "${{ github.action_path }}/packages/action/scan.mjs"
-        fi
+      run: node "${{ github.action_path }}/packages/action/scan.mjs"
       env:
         INPUT_URL: ${{ inputs.url }}
         INPUT_MODE: ${{ inputs.mode }}
         INPUT_STATIC_DIR: ${{ inputs.static-dir }}
         INPUT_BASELINE_URL: ${{ inputs.baseline-url }}
         INPUT_FAIL_ON_REGRESSION: ${{ inputs.fail-on-regression }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
         INPUT_FAIL_UNDER: ${{ inputs.fail-under }}
         INPUT_API_BASE: ${{ inputs.api-base }}
         INPUT_AXES: ${{ inputs.axes }}
@@ -160,10 +139,11 @@ runs:
         INPUT_SHARE: ${{ inputs.share }}
         INPUT_COMMENT: ${{ inputs.comment }}
         INPUT_SARIF: ${{ inputs.sarif }}
+        INPUT_UPLOAD_SARIF: ${{ inputs.upload-sarif }}
         GITHUB_TOKEN: ${{ inputs.github-token }}
     - name: Upload SARIF to GitHub Code Scanning
-      if: ${{ inputs.upload-sarif == 'true' && inputs.sarif != '' }}
+      if: ${{ inputs.upload-sarif == 'true' && steps.scan.outputs.sarif-file != '' }}
       uses: github/codeql-action/upload-sarif@v3
       with:
-        sarif_file: ${{ inputs.sarif }}
+        sarif_file: ${{ steps.scan.outputs.sarif-file }}
         category: slop-detect/${{ inputs.url }}

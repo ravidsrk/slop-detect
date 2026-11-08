@@ -169,7 +169,7 @@ Copy slop:
 ```
 
 - **Scored copy tells** include **buzzword density** (`leverage`/`seamless`/`robust`/`elevate`), **em-dash overload**, **"not just X, it's Y" antithesis**, **filler openers**, **formulaic closers**, **rule-of-three tricolons**, **"whether you're X or Y"**, **emoji bullet headers**, and **fake-bold Unicode math characters** (`fake_bold_math_alnum`).
-- **Review copy rules (`weight: 0`)** flag leaked chatbot DOM attributes (`data-start`/`data-end`), `utm_source=chatgpt.com` links, unfilled `[Insert ...]` placeholders, and Monroe et al. Fightin' Words log-odds vocabulary.
+- **Review copy rules (`weight: 0`)** flag leaked chatbot citation markup (`oaicite`, `turn0search1`, `[cite: 1]`, `<grok-card>`), `utm_source=chatgpt.com` links, unfilled `[Insert ...]` placeholders, and Monroe et al. Fightin' Words log-odds vocabulary.
 - **Backward compatibility:** Top-level `score`, `grade`, and `patterns` remain **design-only**. Multi-axis adds `axes.{design,copy}` plus `unifiedScore` and `unifiedTier`.
 
 ---

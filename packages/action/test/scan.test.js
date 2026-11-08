@@ -4,8 +4,10 @@ import {
   PULL_REQUEST_TARGET_NOTICE,
   buildScanPayload,
   emitPatternWarnings,
+  evaluateThreshold,
   reportBody,
   scanAeo,
+  scanLocal,
 } from '../scan.mjs';
 
 const realWrite = process.stdout.write.bind(process.stdout);
@@ -142,4 +144,18 @@ test('scanAeo emits a ::warning when the AEO API is unreachable', async () => {
   ).resolves.toBeNull();
   expect(captured).toContain('::warning title=AEO audit skipped::');
   expect(captured).toContain('ECONNREFUSED');
+});
+
+test('evaluateThreshold enforces fail-on tier gates (mild, heavy) and exports scanLocal', () => {
+  expect(typeof scanLocal).toBe('function');
+  expect(evaluateThreshold({ score: 32, tier: 'Heavy', grade: 'D' }, '', 'heavy').passed).toBe(
+    false
+  );
+  expect(evaluateThreshold({ score: 16, tier: 'Mild', grade: 'B-' }, '', 'heavy').passed).toBe(
+    true
+  );
+  expect(evaluateThreshold({ score: 16, tier: 'Mild', grade: 'B-' }, '', 'mild').passed).toBe(
+    false
+  );
+  expect(evaluateThreshold({ score: 4, tier: 'Clean', grade: 'A' }, '', 'mild').passed).toBe(true);
 });

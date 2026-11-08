@@ -9,7 +9,9 @@
 // summary → (in a PR) upsert a sticky comment → apply the fail-under gate and
 // exit non-zero if the page is too sloppy.
 
-import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildActionSarif } from './sarif.mjs';
 
@@ -165,6 +167,41 @@ async function scan(apiBase, url, opts = {}) {
   return data;
 }
 
+// ---------------------------------------------------------------------------
+// Scan via local headless Chromium CLI (mode: local).
+// ---------------------------------------------------------------------------
+export function scanLocal(target, opts = {}) {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const monoCli = join(here, '../cli/dist/bin/slop.js');
+  const args = [target, '--format', 'json'];
+  const preset = String(opts.preset || 'full').trim();
+  if (preset && preset !== 'full') args.push('--preset', preset);
+  const rawAxes = String(opts.axes || '').trim();
+  if (rawAxes === 'all' || rawAxes.includes('copy')) args.push('--copy');
+  if (rawAxes.includes('craft')) args.push('--craft');
+  if (opts.designMd) {
+    args.push('--design-md', opts.designMd === 'true' ? 'auto' : String(opts.designMd));
+  }
+  if (opts.aeo) args.push('--aeo');
+
+  const cmd = existsSync(monoCli) ? process.execPath : 'npx';
+  const cmdArgs = existsSync(monoCli) ? [monoCli, ...args] : ['--yes', 'slop-detect', ...args];
+  const proc = spawnSync(cmd, cmdArgs, { encoding: 'utf8', timeout: 180000 });
+  if (proc.error) {
+    die(`Local CLI scan failed to launch: ${proc.error.message}`);
+  }
+  let data;
+  try {
+    data = JSON.parse(proc.stdout || '');
+  } catch {
+    die(`Local CLI scan returned non-JSON output (exit ${proc.status}): ${(proc.stderr || proc.stdout || '').trim()}`);
+  }
+  if (data?.error || typeof data?.score !== 'number') {
+    die(`Local CLI scan failed: ${data?.error || 'missing numeric score'}`);
+  }
+  return data;
+}
+
 // AEO is a separate, optional audit. Its failure must not abort the design
 // scan, but a requested audit that silently vanishes from the report is
 // misleading — so every failure path emits a ::warning and returns null.
@@ -240,6 +277,26 @@ export function evaluateThreshold(result, failUnder, failOn = '') {
     }
     if (raw === '') {
       return { passed: true, mode: 'drift', reason: 'No DESIGN.md drift detected.' };
+    }
+  }
+
+  if (rawFailOn === 'heavy' || rawFailOn === 'mild') {
+    const tier = String(result?.unifiedTier || result?.tier || '');
+    const breached =
+      rawFailOn === 'heavy' ? tier === 'Heavy' : tier === 'Heavy' || tier === 'Mild';
+    if (breached) {
+      return {
+        passed: false,
+        mode: 'tier',
+        reason: `Tier ${tier} breached fail-on="${rawFailOn}".`,
+      };
+    }
+    if (raw === '') {
+      return {
+        passed: true,
+        mode: 'tier',
+        reason: `Tier ${tier} is within fail-on="${rawFailOn}".`,
+      };
     }
   }
 
@@ -451,6 +508,10 @@ async function upsertStickyComment(token, repo, prNumber, body) {
 // ---------------------------------------------------------------------------
 async function main() {
   const url = (process.env.INPUT_URL || '').trim();
+  const mode = (process.env.INPUT_MODE || 'api').trim().toLowerCase();
+  const staticDir = (process.env.INPUT_STATIC_DIR || '').trim();
+  const baselineUrl = (process.env.INPUT_BASELINE_URL || '').trim();
+  const failOnRegression = (process.env.INPUT_FAIL_ON_REGRESSION || 'false').trim() === 'true';
   const failUnder = process.env.INPUT_FAIL_UNDER || '';
   const failOn = process.env.INPUT_FAIL_ON || '';
   const apiBase = (process.env.INPUT_API_BASE || 'https://slop-detect.com').trim();
@@ -461,17 +522,25 @@ async function main() {
   const apiKey = (process.env.INPUT_API_KEY || process.env.SLOP_API_KEY || '').trim();
   const share = (process.env.INPUT_SHARE || 'true').trim() !== 'false';
   const commentEnabled = (process.env.INPUT_COMMENT || 'true').trim() === 'true';
+  const uploadSarif = (process.env.INPUT_UPLOAD_SARIF || 'false').trim() === 'true';
   const token = process.env.GITHUB_TOKEN || '';
 
-  if (!url) die('Input "url" is required.');
+  const target = mode === 'local' && staticDir ? staticDir : url;
+  if (!target) die('Input "url" (or "static-dir" in local mode) is required.');
 
   noticeIfPullRequestTarget();
 
-  log(`Scanning ${url} via ${apiBase} …`);
-  const result = await scan(apiBase, url, { axes, preset, designMd, apiKey, share });
-  if (aeoEnabled) {
-    const aeo = await scanAeo(apiBase, url, { apiKey });
-    if (aeo) result.aeo = aeo;
+  let result;
+  if (mode === 'local') {
+    log(`Scanning ${target} locally via headless Chromium …`);
+    result = scanLocal(target, { axes, preset, designMd, aeo: aeoEnabled });
+  } else {
+    log(`Scanning ${url} via ${apiBase} …`);
+    result = await scan(apiBase, url, { axes, preset, designMd, apiKey, share });
+    if (aeoEnabled) {
+      const aeo = await scanAeo(apiBase, url, { apiKey });
+      if (aeo) result.aeo = aeo;
+    }
   }
   const resultUrl =
     result.resultUrl || (result.id ? `${apiBase.replace(/\/+$/, '')}/r/${result.id}` : '');
@@ -491,12 +560,25 @@ async function main() {
   setOutput('result-url', resultUrl);
 
   // Evaluate the gate before writing the report so the report reflects pass/fail.
-  const gate = evaluateThreshold(result, failUnder, failOn);
+  let gate = evaluateThreshold(result, failUnder, failOn);
+  if (gate.passed && baselineUrl && failOnRegression) {
+    const baseline =
+      mode === 'local'
+        ? scanLocal(baselineUrl, { axes, preset, designMd, aeo: aeoEnabled })
+        : await scan(apiBase, baselineUrl, { axes, preset, designMd, apiKey, share: false });
+    if (result.score > baseline.score) {
+      gate = {
+        passed: false,
+        mode: 'regression',
+        reason: `Score regressed from ${baseline.score}/100 (baseline) to ${result.score}/100.`,
+      };
+    }
+  }
 
   // Job summary — same markdown as the comment but without the sticky marker.
   writeSummary(`${reportBody(apiBase, result, gate, { withMarker: false })}\n`);
 
-  const sarifPath = (process.env.INPUT_SARIF || '').trim();
+  const sarifPath = (process.env.INPUT_SARIF || (uploadSarif ? 'slop-detect.sarif' : '')).trim();
   if (sarifPath) {
     writeFileSync(sarifPath, `${JSON.stringify(buildActionSarif([result]), null, 2)}\n`);
     setOutput('sarif-file', sarifPath);
