@@ -72,11 +72,19 @@ async function session(
 export async function run(ctx: Ctx) {
   // Fail fast on direct runs (`bun run s4` builds first; raw bun does not).
   ctx.assert(existsSync(BIN), `MCP build missing at ${BIN} — run: bun run build`);
-  await ctx.step('happy: tools/list exposes the 4 tools', async () => {
+  await ctx.step('happy: tools/list exposes the 7 tools', async () => {
     const out = await session(ctx, [{ method: 'tools/list' }]);
     const tools = out.get(1)?.result?.tools ?? [];
     const names = tools.map((t: any) => t.name).sort();
-    for (const name of ['check_aeo', 'check_design_system', 'fix_prompt', 'scan_page']) {
+    for (const name of [
+      'check_aeo',
+      'check_design_system',
+      'diff_design_md',
+      'extract_design_system',
+      'fix_prompt',
+      'lint_design_md',
+      'scan_page',
+    ]) {
       ctx.assert(names.includes(name), `tool ${name} listed (got ${names.join(',')})`);
     }
   });

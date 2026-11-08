@@ -146,6 +146,11 @@ runs:
       run: node "${{ github.action_path }}/scan.mjs"
       env:
         INPUT_URL: ${{ inputs.url }}
+        INPUT_MODE: ${{ inputs.mode }}
+        INPUT_STATIC_DIR: ${{ inputs.static-dir }}
+        INPUT_BASELINE_URL: ${{ inputs.baseline-url }}
+        INPUT_FAIL_ON_REGRESSION: ${{ inputs.fail-on-regression }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
         INPUT_FAIL_UNDER: ${{ inputs.fail-under }}
         INPUT_API_BASE: ${{ inputs.api-base }}
         INPUT_AXES: ${{ inputs.axes }}
@@ -156,4 +161,11 @@ runs:
         INPUT_SHARE: ${{ inputs.share }}
         INPUT_COMMENT: ${{ inputs.comment }}
         INPUT_SARIF: ${{ inputs.sarif }}
+        INPUT_UPLOAD_SARIF: ${{ inputs.upload-sarif }}
         GITHUB_TOKEN: ${{ inputs.github-token }}
+    - name: Upload SARIF to GitHub Code Scanning
+      if: ${{ inputs.upload-sarif == 'true' && steps.scan.outputs.sarif-file != '' }}
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ steps.scan.outputs.sarif-file }}
+        category: slop-detect/${{ inputs.url }}

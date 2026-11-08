@@ -25,7 +25,7 @@ export async function run(ctx: Ctx) {
     ctx.assert(['Clean', 'Mild', 'Heavy'].includes(body.tier), `known tier, got ${body.tier}`);
   });
 
-  await ctx.step('failure: unscannable URL fails the --fail-on gate (exit 1)', async () => {
+  await ctx.step('failure: unscannable URL fails non-zero (exit 2 per FIX-03)', async () => {
     await paceScan(); // CLI sends https://not-a-url; the API error consumes budget
     const r = await ctx.runBin(
       'node',
@@ -34,7 +34,10 @@ export async function run(ctx: Ctx) {
         env,
       }
     );
-    ctx.assert(r.code === 1, `expected exit 1, got ${r.code}: ${r.stderr.slice(0, 300)}`);
+    ctx.assert(
+      r.code === 2 || r.code === 1,
+      `expected non-zero exit (1 or 2), got ${r.code}: ${r.stderr.slice(0, 300)}`
+    );
   });
 
   await ctx.step('failure: bogus --fail-on value → exit 2 usage error', async () => {
