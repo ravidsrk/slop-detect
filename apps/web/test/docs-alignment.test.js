@@ -10,7 +10,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url)); // apps/web/test
-const DOCS_ROOT = path.join(HERE, '..', '..', '..', 'docs'); // repo/docs
+const DOCS_ROOT = path.join(HERE, '..', '..', '..', 'docs', 'operations'); // repo/docs/operations
 const FUNCTIONS_ROOT = path.join(HERE, '..', 'functions'); // apps/web/functions
 
 function walk(dir, out = []) {
@@ -121,7 +121,7 @@ test('every workflow referenced in the ops docs exists', () => {
   const workflows = [...new Set([...bodies.matchAll(/([a-z0-9-]+\.yml)/g)].map((m) => m[1]))];
   expect(workflows.length).toBeGreaterThan(0);
   for (const w of workflows) {
-    const p = path.join(DOCS_ROOT, '..', '.github', 'workflows', w);
+    const p = path.join(DOCS_ROOT, '..', '..', '.github', 'workflows', w);
     expect(fs.existsSync(p), `ops docs reference missing workflow ${w}`).toBe(true);
   }
 });
@@ -148,4 +148,39 @@ test('every .md link in the ops docs resolves to a file', () => {
     }
   }
   expect(checked).toBeGreaterThan(0);
+});
+
+test('every relative link in developer docs (README.md, CONTRIBUTING.md, docs/*.md, docs/operations/*.md) resolves on disk', () => {
+  const repoRoot = path.join(HERE, '..', '..', '..');
+  const devDocsDir = path.join(repoRoot, 'docs');
+  const mdFiles = [
+    path.join(repoRoot, 'README.md'),
+    path.join(repoRoot, 'CONTRIBUTING.md'),
+    ...fs
+      .readdirSync(devDocsDir)
+      .filter((f) => f.endsWith('.md'))
+      .map((f) => path.join(devDocsDir, f)),
+    ...fs
+      .readdirSync(DOCS_ROOT)
+      .filter((f) => f.endsWith('.md'))
+      .map((f) => path.join(DOCS_ROOT, f)),
+  ];
+  let checked = 0;
+  for (const file of mdFiles) {
+    const dir = path.dirname(file);
+    const body = fs.readFileSync(file, 'utf8');
+    for (const m of body.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)) {
+      const rawTarget = m[1].trim();
+      if (/^(https?:|#|mailto:|cursor:)/.test(rawTarget)) continue;
+      const cleanTarget = rawTarget.split('#')[0];
+      if (!cleanTarget) continue;
+      const resolved = path.resolve(dir, cleanTarget);
+      expect(
+        fs.existsSync(resolved),
+        `${path.relative(repoRoot, file)} links to missing ${rawTarget}`
+      ).toBe(true);
+      checked++;
+    }
+  }
+  expect(checked).toBeGreaterThan(30);
 });

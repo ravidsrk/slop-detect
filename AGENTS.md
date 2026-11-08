@@ -128,7 +128,7 @@ concise addition to this file so the next agent doesn't relearn it.
 ## Learned (2026-09 completion run)
 
 - E2E verification: `bun run s4 -- --target <url>` runs the stranger-test suite
-  (`scripts/s4/`, see `docs/REHEARSAL.md`). No-origin callers get 3 scan-bucket
+  (`scripts/s4/`, see `docs/operations/REHEARSAL.md`). No-origin callers get 3 scan-bucket
   hits/60s and every hit resets the counter TTL — `lib.paceScan()` already
   mirrors this; don't re-tune it from the "6/min" shorthand.
 - Against localhost, set `S4_SEED_URL` to a public, scannable page (not

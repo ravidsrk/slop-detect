@@ -85,7 +85,26 @@ npx slop-detect https://your-site.com --remote
 # Agent Skill: drop into Claude Code / Cursor / Copilot / Codex / Junie
 git clone --depth 1 https://github.com/ravidsrk/slop-detect /tmp/sd \
   && cp -r /tmp/sd/skills/slop-detect ~/.claude/skills/
+
+# One-command project bootstrap (writes MCP + Agent Skill + optional PostToolUse hooks)
+npx slop-detect init
 ```
+
+## Developer Documentation Hub
+
+All developer guides live in [**`docs/`**](docs/README.md):
+
+| Guide | What You'll Learn |
+| --- | --- |
+| [**5-Minute Quickstart (`docs/GETTING_STARTED.md`)**](docs/GETTING_STARTED.md) | Run your first scan, read the 5-axis scorecard, generate a fix prompt, and bootstrap your repo (`slop-detect init`) |
+| [**Complete CLI Guide (`docs/CLI_GUIDE.md`)**](docs/CLI_GUIDE.md) | All CLI flags, batch URL tables, static HTML directories (`--copy-dir`), site crawls (`--site`), SARIF/JUnit/GitLab/agent outputs, and baseline ratcheting |
+| [**AI Agents, MCP & IDE Plugins (`docs/AGENT_INTEGRATIONS.md`)**](docs/AGENT_INTEGRATIONS.md) | Connect Claude Code, Cursor, Windsurf, Copilot, Codex, and remote Streamable HTTP MCP (`https://slop-detect.com/mcp`) |
+| [**Generator & Builder Recipes**](docs/GENERATOR_RECIPES.md) | Pair Slop Detector with [Anthropic `frontend-design`, Stitch, Cursor & Impeccable](docs/GENERATOR_RECIPES.md) or [Lovable, v0, claude.ai & ChatGPT](docs/BUILDER_RECIPES.md) |
+| [**CI/CD, Deploy Gates, Lighthouse & Vale (`docs/CI_AND_DEPLOY_GATES.md`)**](docs/CI_AND_DEPLOY_GATES.md) | GitHub Action (`api` & `local` modes + SARIF upload), [Vercel & Netlify gates](docs/DEPLOY_GATES.md), Lighthouse plugin, and Vale prose linting |
+| [**Design Systems (`docs/DESIGN_SYSTEMS.md`)**](docs/DESIGN_SYSTEMS.md) | Author, bootstrap (`--init-tokens`), lint (`--lint-design-md`), diff (`--diff-design-md`), and enforce `DESIGN.md` & W3C DTCG `2025.10` `tokens.json` |
+| [**AEO & Agent Readiness (`docs/AEO_GUIDE.md`)**](docs/AEO_GUIDE.md) | Pass all 16 AEO checks: RFC 9309 `robots.txt` search vs. training split, `/llms.txt`, `.md` twins, ARD discovery, and `--emit-aeo-fixes` |
+| [**Programmatic SDK & REST API (`docs/SDK_AND_API.md`)**](docs/SDK_AND_API.md) | Embed `slop-detect-core` in Playwright/Puppeteer/Workers, compile declarative rules, or call the [public HTTP API (`apps/web/API.md`)](apps/web/API.md) |
+| [**Architecture, Scoring Spec & Calibration (`docs/ARCHITECTURE.md`)**](docs/ARCHITECTURE.md) | How page-eval serialization, OKLab perceptual color, Fightin' Words log-odds, Craft Floor, [`spec/`](spec/README.md), and [`CALIBRATION.md`](CALIBRATION.md) work |
 
 ## Share & embed
 
@@ -299,16 +318,23 @@ Higher is better: `Eligible` (≥80) · `Partially Eligible` (≥50) · `Restric
 ```
 slop-detect/
 ├── packages/
-│   ├── core/    @slop-detect/core   ← pure detection engine (Node, Workers, browser)
-│   ├── cli/     slop-detect         ← Playwright runner for terminal + CI
-│   ├── mcp/     slop-detect-mcp     ← Model Context Protocol server for agents
-│   └── action/                      ← GitHub Action wrapper (not on npm)
+│   ├── core/                            ← pure 5-axis detection engine (npm: slop-detect-core)
+│   ├── cli/                             ← Playwright runner, static auditor & reporters (npm: slop-detect)
+│   ├── mcp/                             ← Model Context Protocol server (npm: slop-detect-mcp)
+│   ├── action/                          ← Composite GitHub Action (api + local Chromium + SARIF)
+│   ├── netlify-plugin-slop-detect/      ← Netlify onPostBuild deploy gate plugin
+│   └── lighthouse-plugin-slop-copy/     ← Lighthouse copy + HTML AEO plugin
 ├── apps/
-│   └── web/     slop-detect-web     ← Cloudflare Pages app powering slop-detect.com
+│   └── web/                             ← Cloudflare Pages app, REST API (/api/*) & remote MCP (/mcp)
+├── docs/                                ← Developer guides, generator/builder recipes & ops runbooks
+├── skills/slop-detect/                  ← Portable agentskills.io skill for 20+ coding agents
+├── plugins/slop-detect/                 ← Claude Code & Cursor marketplace plugin manifests
+├── styles/SlopDetect/                   ← Vale prose linter rules exported from COPY_PATTERNS
 ├── examples/
-│   ├── astro-blog/                  ← Astro 5 reference integration
-│   └── nextjs-app-router/           ← Next 15 reference integration
-└── spec/                            ← versioned pattern + AEO + conformance spec
+│   ├── astro-blog/                      ← Astro 5 reference integration
+│   └── nextjs-app-router/               ← Next 15 reference integration
+├── schemas/                             ← JSON Schema v1 (scan-result.v1.json)
+└── spec/                                ← Versioned pattern, copy, system, AEO & conformance specs
 ```
 
 A bun + turborepo monorepo. `core` is the single source of truth for the 45 design
@@ -333,13 +359,13 @@ bun run web:dev                          # http://localhost:8788
 
 End-to-end verification against your local stack (needs a public seed URL,
 since the SSRF guard rejects loopback scan targets — see
-[docs/REHEARSAL.md](docs/REHEARSAL.md) for local / preview / production targets):
+[docs/operations/REHEARSAL.md](docs/operations/REHEARSAL.md) for local / preview / production targets):
 
 ```bash
 S4_SEED_URL=https://slop-detect.com/ bun run s4 -- --target http://localhost:8788
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full contributor guide, including how to propose a 28th pattern or improve a fix recipe.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full contributor guide, including how to propose a new pattern or improve a fix recipe.
 
 ## The "fix prompt" feature
 
@@ -396,10 +422,11 @@ See [ROADMAP.md](ROADMAP.md) for the full strategic plan. The engine now carries
 - [x] **MCP server** (`slop-detect-mcp`) with `scan_page`, `check_aeo`, `check_design_system`, and `fix_prompt`
 - [x] **Public REST API** with key-based rate-limit tiers ([API.md](apps/web/API.md))
 - [x] **Declarative rule format** + named presets (`strict` / `marketing` / `minimal`)
-- [x] **27-rule design catalogue**: Krebs (#1–14) + slop-detect additions (#15–16) + 2026.07 tells + Impeccable typography/contrast rules
-- [x] **Multi-axis slop score**: design + copy axes, unified score, both-axis fix prompts
-- [x] **System axis (`DESIGN.md` compliance)**: per-site token drift check + daily monitor alerts
-- [x] **AEO axis (8 checks)**: crawler access, `robots.txt`, `noindex`, `/llms.txt`, `.md` twin, `Link rel="alternate"`, `Vary: Accept`
+- [x] **45-rule design catalogue (`definitions@2026.11`)**: Krebs (#1–14) + slop-detect additions + Impeccable typography/contrast rules + 2026 review rules
+- [x] **Multi-axis slop score**: design (45 rules) + copy (26 rules) + orthogonal craft floor (11 checks)
+- [x] **System axis (`DESIGN.md` & W3C DTCG `2025.10` compliance)**: 9 live DOM token drift checks + declared waivers + static linter/differ
+- [x] **AEO axis (16 checks)**: RFC 9309 `robots.txt` search vs. training split, edge WAF detection, `html.serverTextCoverage`, `/llms.txt`, `.md` twin, `Link rel="alternate"`, `Vary: Accept`, ARD discovery
+- [x] **Stateless Streamable HTTP MCP (`/mcp`) & MCP Apps (`ui://slop-detect/scorecard.html`)**: 7 tools for local and remote coding agents
 - [x] **Agency dashboard (`/dashboard`)**: magic-link sign-in, multi-domain telemetry, GDPR/DPDP self-serve export & erase
 - [ ] Community rule registry + web rule authoring UI
 - [ ] AI-builder provenance signal ("likely built with v0 / Lovable / Bolt")

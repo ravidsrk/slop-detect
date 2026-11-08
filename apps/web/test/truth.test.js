@@ -237,7 +237,7 @@ test('"daily sweep" claims pin the full config-dependent contract', () => {
   expect(workflow).toMatch(/\[\s*-z\s*"\$CRON_SECRET"\s*\]/);
   expect(workflow).toMatch(/vars\.MONITORING_ENABLED == 'true'/);
   expect(workflow).toMatch(/::error::CRON_SECRET not set/);
-  const runbooks = fs.readFileSync(path.join(ROOT, 'docs', 'RUNBOOKS.md'), 'utf8');
+  const runbooks = fs.readFileSync(path.join(ROOT, 'docs', 'operations', 'RUNBOOKS.md'), 'utf8');
   expect(runbooks).toMatch(/monitor-sweep\.yml/);
   expect(runbooks).toMatch(/alerts can't fire if the sweep never runs/);
 });
