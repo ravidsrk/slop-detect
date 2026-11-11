@@ -169,27 +169,72 @@ jobs:
       - name: Resolve publish mode
         id: mode
         run: |
+          VER="$(node -p "require('./packages/core/package.json').version")"
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" != "false" ]; then
+            echo "dry=true" >> "$GITHUB_OUTPUT"
             echo "args=--dry-run" >> "$GITHUB_OUTPUT"
+            echo "core_args=--dry-run" >> "$GITHUB_OUTPUT"
             echo "Manual dry-run: packing verified, nothing will be published."
           else
+            echo "dry=false" >> "$GITHUB_OUTPUT"
             echo "args=--provenance" >> "$GITHUB_OUTPUT"
+            # Note: packages/core is @slop-detect/core in git and renamed to
+            # slop-detect-core by prepack; npm's async SLSA provenance verifier
+            # drops uploads whose tarball package name differs from git's
+            # package.json, so core publishes via NPM_TOKEN without --provenance.
+            echo "core_args=" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Publish slop-detect-core
-        run: npm publish ./tarballs/slop-detect-core-*.tgz --access public ${{ steps.mode.outputs.args }}
+        run: |
+          if [ "${{ steps.mode.outputs.dry }}" = "false" ] && curl -fsSL "https://registry.npmjs.org/slop-detect-core/${{ steps.mode.outputs.version }}" >/dev/null 2>&1; then
+            echo "slop-detect-core@${{ steps.mode.outputs.version }} already live on npm — skipping."
+          else
+            npm publish ./tarballs/slop-detect-core-*.tgz --access public ${{ steps.mode.outputs.core_args }}
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish slop-detect (CLI)
-        run: npm publish ./tarballs/slop-detect-[0-9]*.tgz --access public ${{ steps.mode.outputs.args }}
+        run: |
+          if [ "${{ steps.mode.outputs.dry }}" = "false" ] && curl -fsSL "https://registry.npmjs.org/slop-detect/${{ steps.mode.outputs.version }}" >/dev/null 2>&1; then
+            echo "slop-detect@${{ steps.mode.outputs.version }} already live on npm — skipping."
+          else
+            npm publish ./tarballs/slop-detect-[0-9]*.tgz --access public ${{ steps.mode.outputs.args }}
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish slop-detect-mcp
-        run: npm publish ./tarballs/slop-detect-mcp-*.tgz --access public ${{ steps.mode.outputs.args }}
+        run: |
+          if [ "${{ steps.mode.outputs.dry }}" = "false" ] && curl -fsSL "https://registry.npmjs.org/slop-detect-mcp/${{ steps.mode.outputs.version }}" >/dev/null 2>&1; then
+            echo "slop-detect-mcp@${{ steps.mode.outputs.version }} already live on npm — skipping."
+          else
+            npm publish ./tarballs/slop-detect-mcp-*.tgz --access public ${{ steps.mode.outputs.args }}
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Verify all three packages are live on npm
+        if: steps.mode.outputs.dry == 'false'
+        run: |
+          VER="${{ steps.mode.outputs.version }}"
+          for pkg in slop-detect-core slop-detect slop-detect-mcp; do
+            ok=0
+            for attempt in $(seq 1 24); do
+              if curl -fsSL "https://registry.npmjs.org/$pkg/$VER" >/dev/null 2>&1; then
+                echo "Verified live on npm: $pkg@$VER"
+                ok=1
+                break
+              fi
+              sleep 5
+            done
+            if [ "$ok" -ne 1 ]; then
+              echo "::error::$pkg@$VER did not appear on registry.npmjs.org within 120s after publish."
+              exit 1
+            fi
+          done
 
       - name: Create GitHub Release and update floating major tag
         if: startsWith(github.ref, 'refs/tags/v') && (github.event_name != 'workflow_dispatch' || inputs.dry_run == false)
