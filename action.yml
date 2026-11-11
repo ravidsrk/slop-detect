@@ -1,8 +1,8 @@
 # Slop Detect — GitHub Marketplace composite Action (root manifest).
 #
 # Mirrors packages/action/action.yml at the repository root so the repository
-# is directly listable on the GitHub Actions Marketplace (`uses: ravidsrk/slop-detect@v0.8.0`)
-# while keeping `uses: ravidsrk/slop-detect/packages/action@v0.8.0` working.
+# is directly listable on the GitHub Actions Marketplace (`uses: ravidsrk/slop-detect@v0.9.0`)
+# while keeping `uses: ravidsrk/slop-detect/packages/action@v0.9.0` working.
 name: 'Slop Detect — Design & AEO Gate'
 description: 'Score a landing page against default-template design and copy patterns, DESIGN.md compliance, and AEO readiness.'
 author: 'Ravindra Kumar'

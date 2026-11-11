@@ -4,7 +4,7 @@ description: Score any landing page against the versioned design-slop fingerprin
 license: MIT
 metadata:
   author: ravidsrk
-  version: "0.8.0"
+  version: "0.9.0"
   homepage: "https://slop-detect.com"
   repository: "https://github.com/ravidsrk/slop-detect"
 compatibility: Runs offline by default via the local slop-detect CLI (Playwright Chromium) or slop-detect-mcp --local with zero external data egress. Optional hosted API mode (slop-detect.com/api/scan) sends only the target URL.

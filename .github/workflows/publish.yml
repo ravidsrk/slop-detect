@@ -40,7 +40,7 @@ on:
         default: true
 
 permissions:
-  contents: read
+  contents: write # GitHub Release + Vale rules asset
   id-token: write # npm --provenance
 
 concurrency:
@@ -133,14 +133,27 @@ jobs:
           done
           ls -la tarballs
           for t in tarballs/*.tgz; do
-            if tar -xzOf "$t" package/package.json | grep -q 'workspace:'; then
-              echo "::error::$t still contains a workspace: dependency — refusing to publish an uninstallable package."
-              exit 1
-            fi
+            tar -xzOf "$t" package/package.json | node -e '
+              const fs = require("fs");
+              const pkg = JSON.parse(fs.readFileSync(0, "utf8"));
+              for (const field of ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"]) {
+                for (const [k, v] of Object.entries(pkg[field] || {})) {
+                  if (String(v).startsWith("workspace:")) {
+                    console.error(`::error::${process.argv[1]} has unresolved workspace dependency ${field}.${k}=${v}`);
+                    process.exit(1);
+                  }
+                  if (field !== "devDependencies" && k === "@slop-detect/core") {
+                    console.error(`::error::${process.argv[1]} has unpublished scoped ${field}.${k} (expected slop-detect-core)`);
+                    process.exit(1);
+                  }
+                }
+              }
+            ' "$t"
           done
+          (cd styles && zip -rq "$GITHUB_WORKSPACE/tarballs/SlopDetect.zip" SlopDetect)
 
-      # Smoke the packed CLI before publishing: install the tarballs in a clean
-      # dir (core tarball satisfies the CLI's dependency) and run the binary.
+      # Smoke the packed CLI, core, and MCP server before publishing: install the
+      # tarballs in a clean dir and verify all three packages load cleanly.
       - name: Install-smoke the packed tarballs
         run: |
           SMOKE="$(mktemp -d)"
@@ -148,7 +161,10 @@ jobs:
           npm init -y >/dev/null
           npm install --no-audit --no-fund "$GITHUB_WORKSPACE"/tarballs/*.tgz
           ./node_modules/.bin/slop-detect --help >/dev/null
-          echo "packed CLI installs and runs"
+          ./node_modules/.bin/slop-detect --version
+          node -e 'import("slop-detect-core").then((m) => { if (!m.PATTERNS?.length) process.exit(1); })'
+          node -e 'import("slop-detect-mcp").then((m) => { if (!m.TOOLS?.length) process.exit(1); })'
+          echo "packed core, CLI, and MCP install and run"
 
       - name: Resolve publish mode
         id: mode
@@ -174,6 +190,34 @@ jobs:
         run: npm publish tarballs/slop-detect-mcp-*.tgz --access public ${{ steps.mode.outputs.args }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release and update floating major tag
+        if: startsWith(github.ref, 'refs/tags/v') && (github.event_name != 'workflow_dispatch' || inputs.dry_run == false)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          if ! gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            NOTES_FILE="$(mktemp)"
+            node -e '
+              const fs = require("fs");
+              const ver = process.env.TAG_NAME;
+              const cl = fs.readFileSync("CHANGELOG.md", "utf8");
+              const esc = ver.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+              const m = cl.match(new RegExp(`^## ${esc}[^\\n]*\\n([\\s\\S]*?)(?=\\n## |$)`, "m"));
+              fs.writeFileSync(process.argv[1], m ? m[1].trim() + "\n" : `Release ${ver}\n`);
+            ' "$NOTES_FILE"
+            gh release create "$TAG_NAME" tarballs/SlopDetect.zip \
+              --title "$TAG_NAME" \
+              --notes-file "$NOTES_FILE"
+          fi
+          MAJOR_TAG="$(echo "$TAG_NAME" | sed -E 's/^(v[0-9]+)\..*$/\1/')"
+          if [ -n "$MAJOR_TAG" ] && [ "$MAJOR_TAG" != "$TAG_NAME" ]; then
+            git config user.name "Ravindra Kumar"
+            git config user.email "ravidsrk@gmail.com"
+            git tag -f "$MAJOR_TAG" "$GITHUB_SHA"
+            git push origin "refs/tags/$MAJOR_TAG" --force
+          fi
 
       - name: Publish slop-detect-mcp to Official MCP Registry
         if: (github.event_name != 'workflow_dispatch' || inputs.dry_run == false) && env.MCP_REGISTRY_ENABLED == 'true'

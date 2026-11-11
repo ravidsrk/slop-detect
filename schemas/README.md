@@ -8,7 +8,7 @@
 
 CLI `--json` prints one document, or an array when several URLs were passed. `POST /api/scan` and `POST /api/aeo` return one document. MCP `scan_page` and `check_aeo` return the same document as `structuredContent`.
 
-`schemaVersion` is the schema major. It is not a package version and it does not change Clean, Mild, or Heavy. Package versions stay 0.8.0. This file does not freeze a v1.0 product release.
+`schemaVersion` is the schema major. It is not a package version and it does not change Clean, Mild, or Heavy. Current package version is `0.9.0`. This file does not freeze a v1.0 product release.
 
 A breaking change (a removed field, a narrower type or enum, a new required property, or `additionalProperties: false` where the previous schema was open) renames the file to `scan-result.v2.json` and bumps `$id`. Adding an optional property stays on v1. `schemas/check-schema-compat.mjs` compares the file with `origin/main`.
 

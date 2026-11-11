@@ -2,7 +2,7 @@
 
 > Pure four-axis detection engine for AI-design-slop patterns, LLM copy tells, `DESIGN.md` system compliance, and AEO crawler readiness. Runtime-agnostic — runs in Node, Cloudflare Workers, or the browser.
 
-This is the heart of [`slop-detect`](https://github.com/ravidsrk/slop-detect). It exports the rule definitions (45 design patterns, 26 copy patterns, 16 AEO checks, 9 `DESIGN.md` checks, and 11 craft-floor checks as of `definitions@2026.11`), the scoring functions, remediation prompt builder, and the DOM-side page evaluation script — without ever touching a browser directly. You bring the runner; this package brings the rules. Weight 0 review rules add no points. Craft never feeds Clean / Mild / Heavy. The npm package version stays 0.8.0.
+This is the heart of [`slop-detect`](https://github.com/ravidsrk/slop-detect). It exports the rule definitions (45 design patterns, 26 copy patterns, 16 AEO checks, 9 `DESIGN.md` checks, and 11 craft-floor checks as of `definitions@2026.11`), the scoring functions, remediation prompt builder, and the DOM-side page evaluation script — without ever touching a browser directly. You bring the runner; this package brings the rules. Weight 0 review rules add no points. Craft never feeds Clean / Mild / Heavy.
 
 > **Package name:** published to npm as **`slop-detect-core`**. Inside this monorepo the workspace is named `@slop-detect/core`; that scoped name is not published to npm.
 

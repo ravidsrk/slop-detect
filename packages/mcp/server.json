@@ -3,7 +3,7 @@
   "name": "com.slop-detect/slop-detect",
   "title": "Slop Detector",
   "description": "Scan landing pages across design, copy, DESIGN.md token compliance, craft floor, and AEO eligibility.",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "repository": {
     "url": "https://github.com/ravidsrk/slop-detect",
     "source": "github",
@@ -13,7 +13,7 @@
     {
       "registryType": "npm",
       "identifier": "slop-detect-mcp",
-      "version": "0.8.0",
+      "version": "0.9.0",
       "transport": {
         "type": "stdio"
       }

@@ -308,7 +308,7 @@ See [**`docs/AGENT_INTEGRATIONS.md`**](docs/AGENT_INTEGRATIONS.md), [**`docs/GEN
 [`ravidsrk/slop-detect`](packages/action) scans a deploy-preview URL (`mode: api`) or a local static build (`mode: local`), posts a **sticky PR comment** with the grade and triggered patterns, uploads **SARIF 2.1.0** findings to GitHub Code Scanning, and fails the check when slop creeps above your threshold:
 
 ```yaml
-- uses: ravidsrk/slop-detect@v0.8.0
+- uses: ravidsrk/slop-detect@v0.9.0
   with:
     url: ${{ steps.preview.outputs.url }} # Vercel / Netlify / Cloudflare preview URL
     axes: 'design,copy'

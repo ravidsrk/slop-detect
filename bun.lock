@@ -23,7 +23,7 @@
     },
     "apps/web": {
       "name": "slop-detect-web",
-      "version": "0.8.0",
+      "version": "0.9.0",
       "dependencies": {
         "@cloudflare/puppeteer": "^1.4.0",
         "@slop-detect/core": "*",
@@ -61,7 +61,7 @@
     },
     "packages/cli": {
       "name": "slop-detect",
-      "version": "0.8.0",
+      "version": "0.9.0",
       "bin": {
         "slop": "./dist/bin/slop.js",
         "slop-detect": "./dist/bin/slop.js",
@@ -75,11 +75,11 @@
     },
     "packages/core": {
       "name": "@slop-detect/core",
-      "version": "0.8.0",
+      "version": "0.9.0",
     },
     "packages/mcp": {
       "name": "slop-detect-mcp",
-      "version": "0.8.0",
+      "version": "0.9.0",
       "bin": {
         "slop-detect-mcp": "./dist/bin/server.js",
       },

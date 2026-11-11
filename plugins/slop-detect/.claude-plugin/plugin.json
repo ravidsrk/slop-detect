@@ -1,6 +1,6 @@
 {
   "name": "slop-detect",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Deterministic landing-page auditor across design patterns, copy tells, DESIGN.md token compliance, craft floor, and AEO eligibility.",
   "author": {
     "name": "Ravindra Kumar",

@@ -5,7 +5,7 @@
 
 import { test, expect } from 'vitest';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,6 +13,9 @@ import { fileURLToPath } from 'node:url';
 // The CLI is built to dist/; spawn the built binary (this test is an integration
 // check of the shipped artifact, run under plain node). `pretest` builds first.
 const BIN = fileURLToPath(new URL('../dist/bin/slop.js', import.meta.url));
+const PKG_VERSION = JSON.parse(
+  readFileSync(new URL('../package.json', import.meta.url), 'utf8')
+).version;
 
 function run(args) {
   return spawnSync('node', [BIN, ...args], { encoding: 'utf8' });
@@ -94,10 +97,11 @@ test('--timeout with --remote exits 2 before any scan', () => {
 });
 
 test('--version and -V exit 0 and print version + definitions version', () => {
+  const esc = PKG_VERSION.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   for (const flag of ['--version', '-V']) {
     const r = run([flag]);
     expect(r.status).toBe(0);
-    expect(r.stdout).toMatch(/^slop-detect 0\.8\.0 \(defs 2026\.\d+\)/);
+    expect(r.stdout).toMatch(new RegExp(`^slop-detect ${esc} \\(defs 2026\\.\\d+\\)`));
   }
 });
 

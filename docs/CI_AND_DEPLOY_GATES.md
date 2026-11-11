@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Audit Preview URL
-        uses: ravidsrk/slop-detect@v0.8.0
+        uses: ravidsrk/slop-detect@v0.9.0
         with:
           url: ${{ env.PREVIEW_URL }}
           axes: 'design,copy'
@@ -62,7 +62,7 @@ jobs:
       - run: npm ci && npm run build
 
       - name: Run Slop Detect Locally & Upload SARIF
-        uses: ravidsrk/slop-detect@v0.8.0
+        uses: ravidsrk/slop-detect@v0.9.0
         with:
           mode: 'local'
           static-dir: './dist'
@@ -79,7 +79,7 @@ Compare the PR preview against production so existing pages never get worse:
 
 ```yaml
       - name: Ratchet Against Production Baseline
-        uses: ravidsrk/slop-detect@v0.8.0
+        uses: ravidsrk/slop-detect@v0.9.0
         with:
           url: ${{ steps.preview.outputs.url }}
           baseline-url: 'https://your-production-site.com'

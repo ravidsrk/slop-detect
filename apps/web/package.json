@@ -1,13 +1,14 @@
 {
   "name": "slop-detect-web",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "private": true,
   "description": "Cloudflare Pages app for slop-detect.com — web UI + /api/scan + /api/fix-prompt.",
   "type": "module",
   "license": "MIT",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "dev": "wrangler pages dev public",
+    "predev": "bun run --cwd ../.. --filter @slop-detect/core build",
+    "dev": "wrangler pages dev public --inspector-port 0",
     "deploy": "wrangler pages deploy public --project-name=slop-detector --commit-dirty=true",
     "test": "vitest run",
     "test:watch": "vitest",
