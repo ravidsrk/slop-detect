@@ -23,6 +23,7 @@ jobs:
         with:
           bun-version: 1.4.2
       - run: bun install
+      - run: bun run --filter @slop-detect/core build
       - name: Run calibration
         env:
           SLOP_API_KEY: ${{ secrets.SLOP_API_KEY }}

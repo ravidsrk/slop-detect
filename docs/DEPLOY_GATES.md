@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run Slop Detect on Vercel Preview
-        uses: ravidsrk/slop-detect@v0.8.0
+        uses: ravidsrk/slop-detect@v0.9.0
         with:
           url: ${{ github.event.deployment_status.target_url }}
           axes: 'design,copy'

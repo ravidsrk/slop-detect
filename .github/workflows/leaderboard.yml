@@ -44,8 +44,8 @@ jobs:
             exit 0
           fi
           BR="bot/leaderboard-$(date -u +%Y%m%d)-${{ github.run_id }}"
-          git config user.name "slop-detect-bot"
-          git config user.email "bot@users.noreply.github.com"
+          git config user.name "Ravindra Kumar"
+          git config user.email "ravidsrk@gmail.com"
           git checkout -b "$BR"
           git add apps/web/public/leaderboard.json
           git commit -m "data: refresh leaderboard dataset"

@@ -6,6 +6,6 @@ LABEL org.opencontainers.image.licenses="MIT"
 
 WORKDIR /app
 
-RUN npm install -g --no-audit --no-fund slop-detect-mcp@0.8.0
+RUN npm install -g --no-audit --no-fund slop-detect-mcp@0.9.0
 
 ENTRYPOINT ["slop-detect-mcp"]

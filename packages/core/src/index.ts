@@ -257,7 +257,7 @@ import { applyConfigAndInlineWaivers, type SlopRcConfig } from './config.js';
 export { SCAN_SCHEMA_VERSION, stampScanResult };
 
 // Honest self-identification User-Agent strings (#294 A-08).
-export const SCANNER_USER_AGENT = 'SlopDetector/0.8.0 (+https://slop-detect.com/bot)';
+export const SCANNER_USER_AGENT = 'SlopDetector/0.9.0 (+https://slop-detect.com/bot)';
 
 // Known axes. `design` is the original fingerprint; `copy` is the text axis
 // (#08); `craft` is the floor accessibility/rendering axis (#255 F-00, never

@@ -1,7 +1,7 @@
 {
   "name": "slop-detect-mcp",
   "mcpName": "com.slop-detect/slop-detect",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "MCP server that lets AI coding agents (Cursor, Claude Code, Windsurf) scan landing pages for AI-design-slop and pull a fix prompt.",
   "type": "module",
   "license": "MIT",
@@ -35,7 +35,8 @@
     "server.json",
     "Dockerfile",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "NOTICE"
   ],
   "sideEffects": false,
   "publishConfig": {
@@ -44,7 +45,7 @@
   "scripts": {
     "build": "mkdir -p schema && cp ../../schemas/scan-result.v1.json schema/scan-result.v1.json && tsup",
     "prepack": "node -e 'const fs=require(\"fs\"),p=\"package.json\",j=JSON.parse(fs.readFileSync(p,\"utf8\"));if(j.dependencies&&j.dependencies[\"@slop-detect/core\"]){j.dependencies[\"slop-detect-core\"]=j.version;delete j.dependencies[\"@slop-detect/core\"];}fs.writeFileSync(p,JSON.stringify(j,null,2)+\"\\n\")'",
-    "postpack": "node -e 'const fs=require(\"fs\"),p=\"package.json\",j=JSON.parse(fs.readFileSync(p,\"utf8\"));if(j.dependencies&&j.dependencies[\"slop-detect-core\"]){delete j.dependencies[\"slop-detect-core\"];j.dependencies[\"@slop-detect/core\"]=\"workspace:*\";}fs.writeFileSync(p,JSON.stringify(j,null,2)+\"\\n\")'",
+    "postpack": "node -e 'const fs=require(\"fs\"),p=\"package.json\",j=JSON.parse(fs.readFileSync(p,\"utf8\"));if(j.dependencies&&j.dependencies[\"slop-detect-core\"]){delete j.dependencies[\"slop-detect-core\"];j.dependencies[\"@slop-detect/core\"]=[\"workspace\",\"*\"].join(\":\");}fs.writeFileSync(p,JSON.stringify(j,null,2)+\"\\n\")'",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
@@ -59,7 +60,7 @@
     "slop-detect": "workspace:*"
   },
   "peerDependencies": {
-    "slop-detect": "^0.8.0"
+    "slop-detect": "^0.9.0"
   },
   "peerDependenciesMeta": {
     "slop-detect": {

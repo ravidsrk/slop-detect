@@ -1,6 +1,6 @@
 # Slop Detector Documentation
 
-> **Developer documentation for `slop-detect` (`v0.8.0` · `definitions@2026.11`)** — the open-source, deterministic 5-axis auditing instrument for web interfaces, design systems, and AI agent readiness.
+> **Developer documentation for `slop-detect` (`v0.9.0` · `definitions@2026.11`)** — the open-source, deterministic 5-axis auditing instrument for web interfaces, design systems, and AI agent readiness.
 
 <p align="center">
   <img src="../apps/web/public/media/hero-optical-instrument.png" alt="Optical DOM Spectrometer — 5-Layer Inspection Plane Architecture" width="100%" />

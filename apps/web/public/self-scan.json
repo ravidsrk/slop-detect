@@ -2114,7 +2114,7 @@
       "width": 1280,
       "height": 800
     },
-    "userAgent": "SlopDetector/0.8.0 (+https://slop-detect.com/bot)",
+    "userAgent": "SlopDetector/0.9.0 (+https://slop-detect.com/bot)",
     "chromium": "158.0.8127.18"
   },
   "craft": {
