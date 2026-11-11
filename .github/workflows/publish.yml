@@ -31,7 +31,7 @@ name: publish
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*.*.*'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -177,17 +177,17 @@ jobs:
           fi
 
       - name: Publish slop-detect-core
-        run: npm publish tarballs/slop-detect-core-*.tgz --access public ${{ steps.mode.outputs.args }}
+        run: npm publish ./tarballs/slop-detect-core-*.tgz --access public ${{ steps.mode.outputs.args }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish slop-detect (CLI)
-        run: npm publish tarballs/slop-detect-[0-9]*.tgz --access public ${{ steps.mode.outputs.args }}
+        run: npm publish ./tarballs/slop-detect-[0-9]*.tgz --access public ${{ steps.mode.outputs.args }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish slop-detect-mcp
-        run: npm publish tarballs/slop-detect-mcp-*.tgz --access public ${{ steps.mode.outputs.args }}
+        run: npm publish ./tarballs/slop-detect-mcp-*.tgz --access public ${{ steps.mode.outputs.args }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -207,7 +207,7 @@ jobs:
               const m = cl.match(new RegExp(`^## ${esc}[^\\n]*\\n([\\s\\S]*?)(?=\\n## |$)`, "m"));
               fs.writeFileSync(process.argv[1], m ? m[1].trim() + "\n" : `Release ${ver}\n`);
             ' "$NOTES_FILE"
-            gh release create "$TAG_NAME" tarballs/SlopDetect.zip \
+            gh release create "$TAG_NAME" ./tarballs/SlopDetect.zip \
               --title "$TAG_NAME" \
               --notes-file "$NOTES_FILE"
           fi
