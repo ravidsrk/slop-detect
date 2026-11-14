@@ -795,6 +795,12 @@ test('DESIGN.md fetch stream-caps oversized bodies without buffering past 200KB'
   const r = await res.json();
   expect(r.system).toBeTruthy();
   expect(r.system.source).toBe('https://acme.example.com/DESIGN.md');
+  // The observed tokens come back too: MCP extract_design_system needs them.
+  expect(r.systemContext).toEqual({
+    fontFamilies: ['Inter'],
+    colors: ['#111111'],
+    borderRadius: ['8px'],
+  });
   expect(sent).toBeLessThan(oversized);
 
   fetchSpy.mockRestore();

@@ -700,6 +700,11 @@
           "system": {
             "type": "object",
             "description": "Present when designMd was set. Alignment with the site's OWN design system - higher is better; NOT folded into the slop score. Keys: declared, score, tier, checks, drift[], source."
+          },
+          "systemContext": {
+            "type": "object",
+            "description": "Present when designMd was set: the colours, typography, radii and spacing the page rendered (observed tokens). Used to generate a starter DESIGN.md or tokens.json; never stored with the shareable result.",
+            "additionalProperties": true
           }
         }
       },
