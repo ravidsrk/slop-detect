@@ -1,5 +1,5 @@
 {
-  "description": "Run a local Slop Detector scan after UI file edits when SLOP_LOCAL_URL is configured.",
+  "description": "After UI edits and before Claude stops, scan the local dev server named by SLOP_LOCAL_URL or .slop/local-url and report only new findings. Does nothing until one of them is set.",
   "hooks": {
     "PostToolUse": [
       {
@@ -7,7 +7,19 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/../../packages/mcp/hooks/scan-local.mjs\""
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.mjs\"",
+            "timeout": 180
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.mjs\"",
+            "timeout": 180
           }
         ]
       }

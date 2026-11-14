@@ -44,11 +44,11 @@ test('formatSystem renders score, tier, drift items, and the polarity reminder',
       drift: [{ id: 'fonts.declared', message: 'font(s) in use but not in the system: inter' }],
     },
   });
-  expect(out).toMatch(/55\/100/);
-  expect(out).toMatch(/HIGHER is better/);
-  expect(out).toMatch(/Drifting/);
-  expect(out).toMatch(/inter \(fonts\.declared\)/);
-  expect(out).toMatch(/not a verdict/i);
+  expect(out).toMatch(/55\/100 · Drifting/);
+  expect(out).toMatch(/higher is better/);
+  expect(out).toMatch(/fonts\.declared: font\(s\) in use but not in the system: inter/);
+  expect(out).toMatch(/contestable checks/);
+  expect(out).not.toMatch(/Raw JSON/);
 });
 
 test('formatSystem explains the no-system state with how to fix it', () => {
@@ -58,6 +58,6 @@ test('formatSystem explains the no-system state with how to fix it', () => {
       message: 'No parseable DESIGN.md tokens — nothing to check against.',
     },
   });
-  expect(out).toMatch(/NO SYSTEM DECLARED/);
+  expect(out).toMatch(/no system declared/);
   expect(out).toMatch(/publish a DESIGN\.md/);
 });

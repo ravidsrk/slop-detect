@@ -26,7 +26,8 @@
     }
   },
   "bin": {
-    "slop-detect-mcp": "./dist/bin/server.js"
+    "slop-detect-mcp": "./dist/bin/server.js",
+    "slop-detect-hook": "./hooks/scan-regression.mjs"
   },
   "files": [
     "dist",
@@ -47,6 +48,7 @@
     "prepack": "node -e 'const fs=require(\"fs\"),p=\"package.json\",j=JSON.parse(fs.readFileSync(p,\"utf8\"));if(j.dependencies&&j.dependencies[\"@slop-detect/core\"]){j.dependencies[\"slop-detect-core\"]=j.version;delete j.dependencies[\"@slop-detect/core\"];}fs.writeFileSync(p,JSON.stringify(j,null,2)+\"\\n\")'",
     "postpack": "node -e 'const fs=require(\"fs\"),p=\"package.json\",j=JSON.parse(fs.readFileSync(p,\"utf8\"));if(j.dependencies&&j.dependencies[\"slop-detect-core\"]){delete j.dependencies[\"slop-detect-core\"];j.dependencies[\"@slop-detect/core\"]=[\"workspace\",\"*\"].join(\":\");}fs.writeFileSync(p,JSON.stringify(j,null,2)+\"\\n\")'",
     "test": "vitest run",
+    "test:golden": "RUN_GOLDEN=1 vitest run test/local.test.js",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist .turbo",

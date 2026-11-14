@@ -12,7 +12,7 @@ compatibility: Runs offline by default via the local slop-detect CLI (Playwright
 
 # slop-detect
 
-Score any landing page against the versioned telemetry engine (`definitions@2026.11`). The offline CLI (`npx slop-detect <url>`) and local MCP server (`npx -y slop-detect-mcp --local`) are the default local runners and keep all scanning on this machine with zero data egress. Only when you explicitly call the hosted HTTP API (`POST https://slop-detect.com/api/scan`) does data leave the machine, and only the target URL (plus optional axis/preset flags) is transmitted. Live pattern counts and rule lifecycle metadata are served dynamically from `GET https://slop-detect.com/api/patterns` (and MCP resource `slop://spec/patterns`).
+Score any landing page against the versioned telemetry engine (`definitions@2026.11`). The offline CLI (`npx slop-detect <url>`) and local MCP server (`npx -y -p slop-detect -p slop-detect-mcp slop-detect-mcp --local`) are the default local runners and keep all scanning on this machine with zero data egress. Only when you explicitly call the hosted HTTP API (`POST https://slop-detect.com/api/scan`) does data leave the machine, and only the target URL (plus optional axis/preset flags) is transmitted. Live pattern counts and rule lifecycle metadata are served dynamically from `GET https://slop-detect.com/api/patterns` (and MCP resource `slop://spec/patterns`).
 
 1. **Design Axis** — deterministic live-DOM inspection of computed styles in headless Chromium against default-template patterns. Weight 0 review rules add no points.
 2. **Copy Axis** — density-calibrated text and paste-artifact analysis. Weight 0 review rules add no points.
@@ -158,24 +158,24 @@ npx slop-detect https://example.com --fix-prompt > fix.md
 
 ### 2. MCP Server (`slop-detect-mcp`)
 
-Exposes tools (`scan_page`, `check_aeo`, `check_design_system`, `fix_prompt`, `lint_design_md`, `diff_design_md`), workflow prompts (`audit_landing_page`, `deslop_and_verify`), and spec resources (`slop://spec/patterns`, `slop://spec/design-md-template`, `slop://spec/aeo`) directly to MCP-capable agents:
+Exposes tools (`scan_page`, `check_aeo`, `check_design_system`, `fix_prompt`, `lint_design_md`, `diff_design_md`, `extract_design_system`), workflow prompts (`audit_landing_page`, `deslop_and_verify`, `refactor_to_design_system`), and spec resources (`slop://spec/patterns`, `slop://spec/design-md-template`, `slop://spec/aeo`) directly to MCP-capable agents. The hosted endpoint `https://slop-detect.com/mcp` serves the same tools and arguments:
 
 ```bash
-npx -y slop-detect-mcp --local
+npx -y -p slop-detect -p slop-detect-mcp slop-detect-mcp --local
 npx -y slop-detect-mcp
 ```
 
-`--local` scores `localhost`, `file://`, and remote URLs locally with Playwright and does not call slop-detect.com. It needs the `slop-detect` package installed. Without `--local`, the server calls the hosted API for public `https://` URLs. `packages/mcp/hooks/scan-local.mjs` is the matching Claude Code PostToolUse / Stop command. Set `SLOP_LOCAL_URL` to the dev server.
+`--local` scores `localhost`, `file://`, and remote URLs locally with Playwright and does not call slop-detect.com. It needs the `slop-detect` package, which is why the command names it with `-p`. Without `--local`, the server calls the hosted API for public `https://` URLs. Results are short summaries; reuse a scan by passing its `scan_id` (or the triggered pattern IDs) to `fix_prompt` instead of scanning again. `slop-detect-hook` (`npx -y -p slop-detect -p slop-detect-mcp slop-detect-hook`) is the matching Claude Code PostToolUse / Stop hook: set `SLOP_LOCAL_URL` or `.slop/local-url` to the dev server and it reports only new findings.
 
 ### 3. Hosted HTTP API (optional — zero install for public URLs; sends only target URL)
 
-Data egress notice: calling `https://slop-detect.com/api/*` transmits only the target `url` and scan options (`axes`, `preset`, `designMd`) to the public scanner. Never send private or localhost URLs to the hosted API; use the offline CLI or `--local` MCP mode instead.
+Data egress notice: calling `https://slop-detect.com/api/*` transmits only the target `url` and scan options (`axes`, `preset`, `designMd`) to the public scanner. Without `"share": false` the result also gets a public permalink and a per-domain history entry; the MCP servers always send `share: false`. Never send private or localhost URLs to the hosted API; use the offline CLI or `--local` MCP mode instead.
 
 ```bash
 # Multi-axis scan (design + copy + optional DESIGN.md system check)
 curl -s -X POST -H 'Content-Type: application/json' \
   https://slop-detect.com/api/scan \
-  -d '{"url":"https://example.com","axes":["design","copy"],"designMd":true}'
+  -d '{"url":"https://example.com","axes":["design","copy"],"designMd":true,"share":false}'
 
 # AEO crawler & citation readiness audit
 curl -s -X POST -H 'Content-Type: application/json' \

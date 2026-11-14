@@ -67,7 +67,7 @@
       "id": "neg-3-private-localhost-remote-mcp",
       "prompt": "Use the hosted Slop Detector server to scan http://localhost:3000.",
       "expectedTool": "scan_page",
-      "expectedBehavior": "Rejects or warns that private/loopback URLs cannot be fetched by the remote https://slop-detect.com/mcp endpoint (SSRF guard) and instructs the user to run `npx slop-detect http://localhost:3000` or `npx -y slop-detect-mcp --local`."
+      "expectedBehavior": "Rejects or warns that private/loopback URLs cannot be fetched by the remote https://slop-detect.com/mcp endpoint (SSRF guard) and instructs the user to run `npx slop-detect http://localhost:3000` or `npx -y -p slop-detect -p slop-detect-mcp slop-detect-mcp --local`."
     }
   ]
 }

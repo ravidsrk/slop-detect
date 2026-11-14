@@ -85,7 +85,7 @@ export {
   HUMAN_TYPICALITY_REFERENCE,
   computeDesignTypicality,
 } from './calibration.js';
-export { FIXES, buildFixPrompt, formatEvidence } from './fixes.js';
+export { FIXES, FIX_PROMPT_PASSING_LIST_CAP, buildFixPrompt, formatEvidence } from './fixes.js';
 export {
   AVOID_LIST_WORD_CAP,
   countWords,
@@ -93,6 +93,8 @@ export {
   triggeredPatterns,
   firstSample,
   buildAvoidList,
+  buildGenericAvoidList,
+  buildAvoidListFromPatterns,
   diffScanFindings,
   regressionAgainstBaseline,
   compareScans,
@@ -256,8 +258,52 @@ import { applyConfigAndInlineWaivers, type SlopRcConfig } from './config.js';
 
 export { SCAN_SCHEMA_VERSION, stampScanResult };
 
+export { SLOP_DETECT_VERSION } from './version.js';
+export {
+  MCP_TOOL_NAMES,
+  MCP_TOOLS,
+  MCP_PROMPTS,
+  MCP_PROMPT_ALIASES,
+  MCP_SERVER_INSTRUCTIONS,
+  MCP_LOCAL_SERVER_COMMAND,
+  MCP_ICONS,
+  MCP_PRESET_IDS,
+  MCP_SCAN_AXES,
+  MCP_EXTRACT_FORMATS,
+  MCP_DETAIL_LEVELS,
+  isMcpToolName,
+  mcpUnknownToolMessage,
+  validateMcpToolArguments,
+  renderMcpPrompt,
+  type McpToolName,
+  type McpToolDefinition,
+  type McpArgsResult,
+} from './mcp-tools.js';
+export {
+  MCP_CALIBRATION_URL,
+  MCP_SUMMARY_PATTERN_LIMIT,
+  isMcpScanFailure,
+  formatScanFailure,
+  formatScanSummary,
+  scanTriggeredIds,
+  compactScanResult,
+  formatAeoSummary,
+  compactAeoReport,
+  formatSystemSummary,
+  systemStructured,
+  formatDesignMdLint,
+  formatDesignMdDiff,
+  patternsOnlyResult,
+  buildMcpFixPrompt,
+  buildMcpDesignSystem,
+  observedTokensOf,
+  hostnameLabel,
+  type FixPromptSource,
+} from './mcp-format.js';
+import { SLOP_DETECT_VERSION } from './version.js';
+
 // Honest self-identification User-Agent strings (#294 A-08).
-export const SCANNER_USER_AGENT = 'SlopDetector/0.9.0 (+https://slop-detect.com/bot)';
+export const SCANNER_USER_AGENT = `SlopDetector/${SLOP_DETECT_VERSION} (+https://slop-detect.com/bot)`;
 
 // Known axes. `design` is the original fingerprint; `copy` is the text axis
 // (#08); `craft` is the floor accessibility/rendering axis (#255 F-00, never

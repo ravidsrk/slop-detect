@@ -1,5 +1,7 @@
 # Copy axis: deterministic (zero-LLM) detection of AI "slop" in landing-page copy: 2024–2026 evidence, failure modes, calibration
 
+> **Snapshot, not maintained.** Research notes written in October 2026 for roadmap v4. Counts, file paths, line numbers and status describe the code at that time; check the code, [`ROADMAP.md`](../../../ROADMAP.md) and the open issues for the current state.
+
 Verification tags: **[V]** = opened and read in this session (2026-10-19). **[S]** = secondary source only (search snippet, a quote in another outlet, or a citation inside Wikipedia). **[NV]** = could not verify. The web-search budget ran out near the end of the session, so a few final checks were not run. They are listed under Gaps. The shipped Copy patterns referenced below were read directly from `packages/core/src/copyPatterns.ts` in this repo.
 
 ## 1. What do the 2025–2026 papers that define or measure "slop" find, and which of their metrics are deterministic and computable on a 300–1,500-word landing page?

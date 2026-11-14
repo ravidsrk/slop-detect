@@ -40,8 +40,10 @@ page matches many default-template patterns, not that it is bad.
 - CLI: `npx slop-detect <url>`; add `--aeo` for the AEO axis, `--design-md auto`
   for the system axis, `--fail-on heavy` to gate CI, `--remote` to scan via the
   API with no local browser.
-- MCP server `slop-detect-mcp`: tools `scan_page`, `check_aeo`,
-  `check_design_system`, `fix_prompt`, `lint_design_md`, `diff_design_md`.
+- MCP server `slop-detect-mcp` (npm, stdio) and https://slop-detect.com/mcp
+  (hosted, same contract): tools `scan_page`, `check_aeo`, `check_design_system`,
+  `fix_prompt`, `lint_design_md`, `diff_design_md`, `extract_design_system`. For
+  localhost: `npx -y -p slop-detect -p slop-detect-mcp slop-detect-mcp --local`.
 
 ## Axes
 

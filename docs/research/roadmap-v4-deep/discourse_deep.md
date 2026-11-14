@@ -1,5 +1,7 @@
 # Practitioner discourse, deep pass: Aug–Oct 2026
 
+> **Snapshot, not maintained.** Research notes written in October 2026 for roadmap v4. Counts, file paths, line numbers and status describe the code at that time; check the code, [`ROADMAP.md`](../../../ROADMAP.md) and the open issues for the current state.
+
 Research date: 2026-10-20. This file extends `../roadmap-v4/practitioner_discourse_x_hn.md` and `../roadmap-v4/x_reddit_discourse.md`. It covers only items those files lack, which I checked by grepping both files for every HN item ID, URL and handle used below. Where an item confirms or contradicts a v4 finding, the v4 item ID (D-xx, C-xx, K-xx, A-xx, S-xx, FIX-xx) is named.
 
 ## Method and tags

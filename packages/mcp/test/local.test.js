@@ -93,7 +93,7 @@ test('local mode scans with the injected runner and does not call the hosted API
   expect(scan.isError).toBeFalsy();
   expect(scan.structuredContent.schemaVersion).toBe(1);
   expect(scan.structuredContent.score).toBe(4);
-  expect(scan.content[0].text).toMatch(/Score: 4\/100/);
+  expect(scan.content[0].text).toMatch(/Design: 4\/100/);
   expect(seen[0].url).toBe('http://127.0.0.1:4321/');
   expect(seen[0].opts.designMd).toBeUndefined();
 
@@ -179,7 +179,7 @@ test('local pattern resource comes from the engine and does not fetch', async ()
   expect(called).toBe(false);
 });
 
-function runHook(command, env) {
+function runHook(command, env, stdin) {
   const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
   return new Promise((resolve, reject) => {
     const child = spawn(command, { cwd: repoRoot, env, shell: true });
@@ -193,6 +193,7 @@ function runHook(command, env) {
     child.stderr.on('data', (chunk) => {
       stderr += chunk;
     });
+    if (stdin !== undefined) child.stdin.end(stdin);
     const timer = setTimeout(() => {
       child.kill('SIGKILL');
       reject(new Error(`hook scan timed out\n${stderr}`));
@@ -208,7 +209,7 @@ function runHook(command, env) {
   });
 }
 
-test('the Claude Code hook fixture refuses to invent a score when it cannot scan', async () => {
+test('the Claude Code hook recipe stays silent until a URL is set, and never claims a score', async () => {
   const hook = JSON.parse(
     readFileSync(fileURLToPath(new URL('../hooks/claude-code.json', import.meta.url)), 'utf8')
   );
@@ -220,15 +221,25 @@ test('the Claude Code hook fixture refuses to invent a score when it cannot scan
   }
   expect(hook.hooks.PostToolUse).toBeTruthy();
   expect(hook.hooks.Stop).toBeTruthy();
-  expect(new Set(commands)).toEqual(new Set(['node packages/mcp/hooks/scan-local.mjs']));
+  expect(new Set(commands)).toEqual(new Set(['node packages/mcp/hooks/scan-regression.mjs']));
 
   const env = { ...process.env };
   delete env.SLOP_LOCAL_URL;
-  const missing = await runHook(commands[0], env);
-  expect(missing.status).toBe(2);
-  expect(missing.stderr).toMatch(/not a Clean score/);
-  expect(missing.stderr).not.toMatch(/slop-detect\.com\/api\//);
-  expect(missing.stdout.trim()).toBe('');
+  // As a hook (JSON on stdin) with no URL configured: exit 0, nothing printed.
+  const asHook = await runHook(
+    commands[0],
+    env,
+    JSON.stringify({ hook_event_name: 'Stop', stop_hook_active: false, cwd: '/nonexistent-dir' })
+  );
+  expect(asHook.status).toBe(0);
+  expect(asHook.stdout.trim()).toBe('');
+  expect(asHook.stderr.trim()).toBe('');
+  // From a terminal (no hook JSON): the CLI exit code still says it could not run.
+  const manual = await runHook(commands[0], env);
+  expect(manual.status).toBe(2);
+  expect(manual.stderr).toMatch(/not a Clean score/);
+  expect(manual.stderr).not.toMatch(/slop-detect\.com\/api\//);
+  expect(manual.stdout.trim()).toBe('');
 });
 
 // Real Chromium is installed in the smoke-cli job (playwright install --with-deps).

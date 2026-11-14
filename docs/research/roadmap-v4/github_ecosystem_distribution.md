@@ -1,5 +1,7 @@
 # GitHub / open-source ecosystem, competitive landscape and developer-distribution channels for Slop Detector (state as of 2026-10-19)
 
+> **Snapshot, not maintained.** Research notes written in October 2026 for roadmap v4. Counts, file paths, line numbers and status describe the code at that time; check the code, [`ROADMAP.md`](../../../ROADMAP.md) and the open issues for the current state.
+
 Legend for every finding:
 - **[V]** = verified by opening the primary source on 2026-10-19 (GitHub REST API or README via `gh api`, official docs page, release notes, package-registry API).
 - **[S]** = secondary source only (search-result summary, third-party blog or press).

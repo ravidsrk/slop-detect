@@ -4,10 +4,11 @@
 // so clients probing either `/.well-known/mcp/server-card.json` or
 // `/mcp/server-card` receive identical discovery metadata.
 
-import { DEFINITIONS_VERSION } from '@slop-detect/core';
+import { DEFINITIONS_VERSION, MCP_TOOLS, SLOP_DETECT_VERSION } from '@slop-detect/core';
 
 export const MCP_PROTOCOL_VERSION = '2025-11-25';
-export const MCP_SERVER_VERSION = '0.8.0';
+// One product version for the npm packages and the hosted app (#361).
+export const MCP_SERVER_VERSION = SLOP_DETECT_VERSION;
 export const MCP_TOOL_TTL_MS = 300000;
 export const MCP_SCORECARD_URI = 'ui://slop-detect/scorecard.html';
 export const MCP_SCORECARD_MIME = 'text/html;profile=mcp-app';
@@ -71,57 +72,15 @@ export function buildServerCard() {
         },
       },
     },
-    tools: [
-      {
-        name: 'scan_page',
-        description:
-          'Scan a URL and return its design, copy, and craft scores (0–100), tier (Clean / Mild / Heavy), and triggered pattern breakdown.',
-        ttlMs: MCP_TOOL_TTL_MS,
-        cacheScope: 'public',
-      },
-      {
-        name: 'check_aeo',
-        description:
-          'Run the 16-check AEO (AI Engine Optimization) audit on a URL: robots.txt, llms.txt, JSON-LD, SSR, headings, tables, FAQ, canonical, meta, sitemap, freshness, crawl trap,llms-full, agent discovery, content signal, and answer unit.',
-        ttlMs: MCP_TOOL_TTL_MS,
-        cacheScope: 'public',
-      },
-      {
-        name: 'check_design_system',
-        description:
-          'Check whether a live URL honors its declared DESIGN.md or W3C DTCG 2025.10 tokens.json design system.',
-        ttlMs: MCP_TOOL_TTL_MS,
-        cacheScope: 'public',
-      },
-      {
-        name: 'fix_prompt',
-        description:
-          'Generate a ready-to-paste CSS/HTML refactor prompt and upfront avoid-list from a URL or triggered pattern list.',
-        ttlMs: MCP_TOOL_TTL_MS,
-        cacheScope: 'public',
-      },
-      {
-        name: 'lint_design_md',
-        description:
-          'Statically lint a DESIGN.md document for broken token references, WCAG AA component contrast (< 4.5:1), orphaned tokens, and specVersion mismatches.',
-        ttlMs: MCP_TOOL_TTL_MS,
-        cacheScope: 'public',
-      },
-      {
-        name: 'diff_design_md',
-        description:
-          'Compute a structured token diff (added, removed, changed, breaking) between two DESIGN.md revisions.',
-        ttlMs: MCP_TOOL_TTL_MS,
-        cacheScope: 'public',
-      },
-      {
-        name: 'extract_design_system',
-        description:
-          'Extract observed DOM tokens or a live URL into a starter DESIGN.md and W3C DTCG 2025.10 tokens.json.',
-        ttlMs: MCP_TOOL_TTL_MS,
-        cacheScope: 'public',
-      },
-    ],
+    // Generated from the shared tool registry so the card can't drift from
+    // what tools/list serves.
+    tools: MCP_TOOLS.map((tool) => ({
+      name: tool.name,
+      title: tool.title,
+      description: tool.description,
+      ttlMs: MCP_TOOL_TTL_MS,
+      cacheScope: 'public',
+    })),
     resources: [
       {
         uri: MCP_SCORECARD_URI,
@@ -147,7 +106,7 @@ export function buildServerCard() {
         uri: 'slop://spec/aeo',
         name: 'AEO Check Catalogue',
         mimeType: 'application/json',
-        description: 'Versioned 16-check AEO catalogue with weights, severities, and descriptions.',
+        description: 'Versioned AEO check catalogue with weights, severities, and descriptions.',
       },
     ],
   };

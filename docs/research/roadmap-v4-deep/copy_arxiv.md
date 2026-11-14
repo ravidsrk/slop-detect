@@ -1,5 +1,7 @@
 # Copy axis, deep pass: academic and technical evidence usable deterministically on short marketing copy (2025 to Oct 2026)
 
+> **Snapshot, not maintained.** Research notes written in October 2026 for roadmap v4. Counts, file paths, line numbers and status describe the code at that time; check the code, [`ROADMAP.md`](../../../ROADMAP.md) and the open issues for the current state.
+
 Research date: 2026-10-20. Scope: work that is new relative to `docs/research/roadmap-v4/copy_axis_text_slop.md` (v4 copy notes) and `citation_audit.md`, with priority on Jul to Oct 2026.
 
 **Tags.**

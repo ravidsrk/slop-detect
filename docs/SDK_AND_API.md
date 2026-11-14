@@ -127,7 +127,7 @@ For complete request/response schemas, authentication headers (`Authorization: B
 
 | Method & Path | Description |
 | --- | --- |
-| `POST /api/scan` | Run headless Chromium scan. Body: `{ url, axes?: ["design","copy"], designMd?: true \| string, preset?: "full" \| "strict" \| "marketing" \| "minimal", screenshot?: boolean }`. |
+| `POST /api/scan` | Run headless Chromium scan. Body: `{ url, axes?: ["design","copy"], designMd?: true \| string, preset?: "full" \| "strict" \| "marketing" \| "minimal" \| "editorial" \| "devtool", screenshot?: boolean, share?: boolean }`. `share: false` skips the public permalink and per-domain history (the MCP servers always send it). |
 | `POST /api/aeo` | Run the 16-check AEO readiness audit. Body: `{ url }`. |
 | `POST /api/fix-prompt` | Generate a markdown remediation prompt from `{ url }` or an existing `{ result }`. |
 | `GET /api/patterns` | Live rule catalogue (`PATTERNS`, `COPY_PATTERNS`, `AEO_CHECKS`, `SYSTEM_CHECKS`, `CRAFT_CHECKS`, `DEFINITIONS_VERSION`). |

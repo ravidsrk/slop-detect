@@ -1,5 +1,7 @@
 # Design axis, academic sources: deep pass beyond the v4 notes (2026-10-20)
 
+> **Snapshot, not maintained.** Research notes written in October 2026 for roadmap v4. Counts, file paths, line numbers and status describe the code at that time; check the code, [`ROADMAP.md`](../../../ROADMAP.md) and the open issues for the current state.
+
 Scope: arXiv, CHI, UIST, ASE, W4A and related venues on AI-generated UI and web front-ends, homogenization, computational aesthetics, accessibility defects in LLM pages, UI critique, detection of machine-generated web content, and how to calibrate heuristic detectors. This pass builds on `docs/research/roadmap-v4/design_axis_ui_evidence.md` (the "v4 notes") and `REPORT.md`, and does not repeat them.
 
 Integrity conventions:

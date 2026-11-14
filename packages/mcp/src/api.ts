@@ -22,26 +22,47 @@ export class ApiError extends Error {
   }
 }
 
-// Turn a non-200 response into a human-readable ApiError. We try to pull the
-// API's `{error}` / `{message}` field but fall back to raw text — the goal is a
-// message an agent can act on, never a stack trace.
+// Turn a non-200 response into a short ApiError an agent can act on: what
+// failed, why, and what to do next. The API's own `message` (not just its
+// error code), `retryAfter` and `hint` are kept (#360); never a stack trace.
+const LOCAL_MODE_TIP =
+  'For localhost or unlimited scans, run the npm server in local mode: npx -y -p slop-detect -p slop-detect-mcp slop-detect-mcp --local';
+
 async function toApiError(res) {
   let body = '';
-  let detail = '';
+  let json = null;
   try {
     body = await res.text();
-    const json = JSON.parse(body);
-    detail = json.error || json.message || '';
+    json = JSON.parse(body);
   } catch {
-    // Non-JSON body (HTML error page, plain text) — keep the raw text as detail.
-    detail = body.slice(0, 300);
+    // Non-JSON body (HTML error page, plain text): keep a short raw excerpt.
   }
+  const detail = String(
+    (json && (json.message || json.error)) || body.replace(/\s+/g, ' ').trim()
+  ).slice(0, 300);
+  const hint = json && json.hint ? ` ${String(json.hint).slice(0, 300)}` : '';
 
   if (res.status === 429) {
+    const header =
+      res.headers && typeof res.headers.get === 'function' ? res.headers.get('retry-after') : null;
+    const retryAfter = Number((json && json.retryAfter) || header) || 0;
     return new ApiError(
-      `Rate limited by slop-detect.com (HTTP 429)${detail ? `: ${detail}` : ''}. ` +
-        'Wait a bit before scanning again — the API limits requests per IP.',
+      `slop-detect.com rate limit (HTTP 429)${detail ? `: ${detail}` : ''}. ` +
+        (retryAfter ? `Retry in ${retryAfter}s. ` : 'Wait a minute before scanning again. ') +
+        LOCAL_MODE_TIP,
       { status: 429, body }
+    );
+  }
+  if (res.status === 422) {
+    return new ApiError(
+      `slop-detect.com could not score the page (HTTP 422)${detail ? `: ${detail}` : ''}.${hint} This is not a Clean result.`,
+      { status: 422, body }
+    );
+  }
+  if (res.status === 400) {
+    return new ApiError(
+      `slop-detect.com rejected the request (HTTP 400)${detail ? `: ${detail}` : ''}.${hint}`,
+      { status: 400, body }
     );
   }
   if (res.status === 502) {
@@ -53,7 +74,10 @@ async function toApiError(res) {
   }
   return new ApiError(
     `slop-detect.com returned HTTP ${res.status}${detail ? `: ${detail}` : ''}.`,
-    { status: res.status, body }
+    {
+      status: res.status,
+      body,
+    }
   );
 }
 
@@ -93,7 +117,9 @@ export interface ScanPageOptions {
 
 // POST {url, ...opts} to /api/scan and return the parsed JSON result.
 export async function scanPage(url: string, opts: ScanPageOptions = {}) {
-  const payload: Record<string, any> = { url };
+  // share:false: agent scans never mint a public permalink or a per-domain
+  // history entry (#363).
+  const payload: Record<string, any> = { url, share: false };
   if (Array.isArray(opts.axes) && opts.axes.length > 0) payload.axes = opts.axes;
   if (typeof opts.preset === 'string' && opts.preset) payload.preset = opts.preset;
   if (opts.designMd !== undefined && opts.designMd !== null && opts.designMd !== '') {
@@ -133,7 +159,7 @@ export async function checkAeo(url: string) {
   const res = await fetchWithTimeout(`${apiBase()}/api/aeo`, {
     method: 'POST',
     headers: apiHeaders(),
-    body: JSON.stringify({ url }),
+    body: JSON.stringify({ url, share: false }),
   });
   if (!res.ok) throw await toApiError(res);
   return res.json();
@@ -143,7 +169,7 @@ export async function checkAeo(url: string) {
 // The endpoint returns text/plain by default; we never request JSON because the
 // raw prompt is exactly what we want to hand back to the agent.
 export async function fixPrompt(url: string, opts: ScanPageOptions = {}) {
-  const payload: Record<string, any> = { url };
+  const payload: Record<string, any> = { url, share: false };
   if (Array.isArray(opts.axes) && opts.axes.length > 0) payload.axes = opts.axes;
   if (typeof opts.preset === 'string' && opts.preset) payload.preset = opts.preset;
   if (opts.designMd !== undefined && opts.designMd !== null && opts.designMd !== '') {

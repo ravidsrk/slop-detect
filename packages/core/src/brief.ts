@@ -1,6 +1,9 @@
 // Short avoid list and before/after diff (W-07). Additive to buildFixPrompt.
 // The long remediation prompt stays the default. This text is at most 120 words.
 
+import { PATTERNS } from './patterns.js';
+import { COPY_PATTERNS } from './copyPatterns.js';
+
 export const AVOID_LIST_WORD_CAP = 120;
 
 export function countWords(text: string): number {
@@ -86,6 +89,50 @@ export function buildAvoidList(result: any): string {
     if (countWords(bare) <= AVOID_LIST_WORD_CAP) return bare;
   }
   return samples.map((row) => row.id).join('\n');
+}
+
+// Scored patterns (weight > 0) that are live, heaviest first. Review and
+// retired rows add no points, so a generic avoid list leaves them out.
+function scoredCatalogue(): any[] {
+  return [...(PATTERNS as any[]), ...(COPY_PATTERNS as any[])]
+    .filter((p) => p && p.weight > 0 && p.status !== 'retired' && p.status !== 'review')
+    .sort((a, b) => b.weight - a.weight);
+}
+
+function fitWords(intro: string, rows: string[], outro: string): string {
+  const kept: string[] = [];
+  for (const row of rows) {
+    const candidate = [intro, ...kept, row, outro].join('\n');
+    if (countWords(candidate) > AVOID_LIST_WORD_CAP) break;
+    kept.push(row);
+  }
+  return [intro, ...kept, outro].join('\n');
+}
+
+// Avoid list with no scan: the heaviest scored patterns, for a page that
+// hasn't been built yet. At most AVOID_LIST_WORD_CAP words.
+export function buildGenericAvoidList(): string {
+  const intro =
+    'Generic avoid list (no page scanned). When building the page, avoid these default-template patterns:';
+  const rows = scoredCatalogue().map((p) => `- ${p.id}: ${p.short || p.label}`);
+  return fitWords(intro, rows, 'Scan the page after building it.');
+}
+
+// Avoid list from pattern IDs alone (no score). Unknown IDs are kept as-is so
+// a newer catalogue entry still reaches the agent.
+export function buildAvoidListFromPatterns(ids: string[]): string {
+  const known = new Map(
+    [...(PATTERNS as any[]), ...(COPY_PATTERNS as any[])].map((p) => [p.id, p])
+  );
+  const unique = [...new Set((ids || []).map((id) => String(id).trim()).filter(Boolean))];
+  if (!unique.length) return buildGenericAvoidList();
+  const intro = `Avoid list for ${unique.length} pattern ID${unique.length === 1 ? '' : 's'} (built without a scan, so there is no score).`;
+  const rows = unique.map((id) => {
+    const entry = known.get(id);
+    const label = entry ? clip(String(entry.short || entry.label || id), 40) : id;
+    return `Do not use ${id} ("${label}").`;
+  });
+  return fitWords(intro, rows, 'Re-scan after the edit.');
 }
 
 function matchedKitIds(result: any): string[] {

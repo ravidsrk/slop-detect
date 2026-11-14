@@ -21,14 +21,19 @@ npx slop-detect <url> --aeo        # AEO axis
 npx slop-detect <url> --fail-on heavy   # CI gate (non-zero exit on Heavy)
 ```
 
-Or the HTTP API (no auth required):
+Or the HTTP API (no auth required; `"share": false` keeps the result off the public permalink and per-domain history):
 
 ```bash
 curl -X POST https://slop-detect.com/api/scan \
-  -H 'content-type: application/json' -d '{"url":"https://example.com"}'
+  -H 'content-type: application/json' -d '{"url":"https://example.com","share":false}'
 ```
 
-Or the MCP server (`npx -y slop-detect-mcp`): tools `scan_page`, `check_aeo`, `check_design_system`, `fix_prompt`. For `localhost` and `file://`, start it with `--local` so the scan stays on this machine and does not call the hosted API.
+Or the MCP server: `npx -y slop-detect-mcp` (hosted API) or, for `localhost` and `file://`,
+`npx -y -p slop-detect -p slop-detect-mcp slop-detect-mcp --local` (the `slop-detect`
+Playwright runner is an optional peer, so name it). Tools: `scan_page`, `check_aeo`,
+`check_design_system`, `fix_prompt`, `lint_design_md`, `diff_design_md`,
+`extract_design_system`. The contract lives in `packages/core/src/mcp-tools.ts` and is shared
+by the npm server and `https://slop-detect.com/mcp`.
 
 - Read the pattern count from `GET /api/patterns` — **never hardcode it.**
 - OpenAPI spec: https://slop-detect.com/openapi.json
@@ -62,10 +67,14 @@ Bun + Turborepo handles all task orchestration; turbo's `dependsOn: ["^build"]`
 takes care of inter-package build order.
 
 ```bash
-bun install               # workspace + lockfile
+bun install               # workspace + lockfile (CI uses --frozen-lockfile)
+bun run verify            # format:check + lint + typecheck + build + test: what CI checks (~40 s)
 bun run typecheck         # turbo run typecheck — every package
+bun run lint              # turbo run lint — eslint, every package
 bun run build             # turbo run build — tsup across the publishable libs
-bun run test              # turbo run test — vitest across every package
+bun run test              # turbo run test — vitest; skips the real-Chromium tests
+bun run test:golden       # the real-Chromium detector tests (RUN_GOLDEN=1), ~40 s
+bun run smoke:mcp-npx     # packs the packages and runs the plugin's npx MCP + hook commands
 bun run format            # prettier --write
 bun run format:check      # prettier --check
 ```
@@ -77,10 +86,12 @@ bun run --filter @slop-detect/core build
 bun run --filter slop-detect test
 ```
 
-Page-eval template literal note: the `ctx` object is built identically in
-`apps/web/functions/api/scan.ts` and `packages/cli/src/detector.ts`. Prettier/tsc
-don't parse code inside the `page.evaluate(...)` string — always run `bun run test`,
-which exercises both runners end-to-end.
+Page-eval note: both runners (`apps/web/functions/api/scan.ts` and
+`packages/cli/src/detector.ts`) get their browser script from `buildPageScript` in
+`packages/core/src/page-script.ts`, which serializes the pattern extractors into one
+`page.evaluate(...)` string. Prettier and tsc can't see inside that string, and
+`bun run test` skips the real-Chromium tests — after touching page-eval code, run
+`bun run test:golden` (CI runs it in the "Smoke test CLI" job).
 
 ## Conventions
 
@@ -92,7 +103,9 @@ which exercises both runners end-to-end.
 - AEO polarity is inverted vs slop: higher AEO is better, lower slop is better.
 - Publish order when core changes: `slop-detect-core` (npm name of the
   `@slop-detect/core` workspace — the scoped name is not on npm) → `slop-detect`
-  (CLI) → `slop-detect-mcp`. `apps/web` deploys to Cloudflare Pages on tag.
+  (CLI) → `slop-detect-mcp`, on a `v*.*.*` tag. `apps/web` deploys to Cloudflare
+  Pages after every green `ci` run on `main` (and on `v*` tags), so merging to main
+  ships production.
 - The whole brand is deliberately anti-slop: dark, monospace, no gradients/glow/purple.
 
 ## Roadmap and issues
@@ -116,7 +129,7 @@ which exercises both runners end-to-end.
   all read the count from the engine — don't duplicate it.
 - Update `spec/patterns.md` (and `spec/config.json`) to match — the spec is the
   contract downstream tools read.
-- Run `bun run test` (format/typecheck won't catch page-eval issues).
+- Run `bun run test` and `bun run test:golden` (format/typecheck won't catch page-eval issues).
 - If you bump `core`, the version stays in sync across cli/mcp via changesets +
   `workspace:*` dep links; no manual version edits needed across packages.
 
@@ -131,9 +144,10 @@ concise addition to this file so the next agent doesn't relearn it.
   (`scripts/s4/`, see `docs/operations/REHEARSAL.md`). No-origin callers get 3 scan-bucket
   hits/60s and every hit resets the counter TTL — `lib.paceScan()` already
   mirrors this; don't re-tune it from the "6/min" shorthand.
-- Against localhost, set `S4_SEED_URL` to a public, scannable page (not
-  `example.com` — it 422s as an empty page): the default seed (the target
-  homepage) is loopback and the SSRF guard rejects it by design.
+- Against localhost, set `S4_SEED_URL` to a public page with real content: the
+  default seed (the target homepage) is loopback and the SSRF guard rejects it by
+  design. Near-empty pages such as `example.com` score nothing useful and can trip
+  the empty-page guard (422).
 - Local `wrangler pages dev` scans for real (local Chromium, first scan
   downloads it). Page-eval polyfills must derive bundler-helper names from
   serialized source (`esbuildNamePolyfills`) — dev bundles dedup `__name` to

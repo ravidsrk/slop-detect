@@ -5,11 +5,10 @@
 
 import {
   AEO_CHECKS,
-  buildAvoidList,
-  buildFixPrompt,
   COPY_PATTERNS,
   CRAFT_CHECKS,
   DEFINITIONS_VERSION,
+  MCP_LOCAL_SERVER_COMMAND,
   PATTERNS,
   PRESETS,
   runAeoChecks,
@@ -98,10 +97,12 @@ export function isHostedApiUrl(raw: string) {
   }
 }
 
+// `slop-detect` is an optional peer, so a bare `npx -y slop-detect-mcp` never
+// installs it (#357). Say exactly which command works.
 export function localScannerMissingMessage(detail: string) {
   return (
-    'Local scanning needs the optional slop-detect package (Playwright). ' +
-    `Install it beside slop-detect-mcp, then start with --local. (${detail})`
+    'Local scanning needs the optional slop-detect package (Playwright) installed next to slop-detect-mcp. ' +
+    `Start the server with: ${MCP_LOCAL_SERVER_COMMAND} (or add both packages to your project). (${detail})`
   );
 }
 
@@ -220,14 +221,4 @@ export async function localAeo(url: string) {
     );
   }
   return stampScanResult(await runAeoChecks(url, { fetchImpl: guardedFetch as typeof fetch }));
-}
-
-export async function localFixPrompt(url: string, opts: LocalScanOptions = {}) {
-  const result = await localScan(url, opts);
-  if (!result || result.blocked || result.error || typeof result.score !== 'number') {
-    const reason = result && result.error ? result.error : 'The page produced no score.';
-    throw new Error(`Scan could not run. This is not a Clean score. ${reason}`);
-  }
-  if (opts.brief) return buildAvoidList(result);
-  return buildFixPrompt(result);
 }

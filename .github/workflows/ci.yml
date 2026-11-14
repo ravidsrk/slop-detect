@@ -15,7 +15,8 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: 1.4.2
-      - run: bun install
+      # --frozen-lockfile: a stale bun.lock fails CI instead of being rewritten.
+      - run: bun install --frozen-lockfile
       - name: Prettier (format check)
         run: bun run format:check
       - name: ESLint (correctness)
@@ -29,7 +30,8 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: 1.4.2
-      - run: bun install
+      # --frozen-lockfile: a stale bun.lock fails CI instead of being rewritten.
+      - run: bun install --frozen-lockfile
       - run: bun run typecheck
 
   test:
@@ -40,7 +42,8 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: 1.4.2
-      - run: bun install
+      # --frozen-lockfile: a stale bun.lock fails CI instead of being rewritten.
+      - run: bun install --frozen-lockfile
       - run: bun run build
       - run: bun run test
       - name: Scan-result schema compatibility
@@ -56,7 +59,8 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: 1.4.2
-      - run: bun install
+      # --frozen-lockfile: a stale bun.lock fails CI instead of being rewritten.
+      - run: bun install --frozen-lockfile
       - name: Build CLI + core
         run: bun run --filter @slop-detect/core build && bun run --filter slop-detect build
       - name: Install Playwright Chromium
@@ -65,12 +69,16 @@ jobs:
         run: bunx --package playwright@1.65.0 playwright install --with-deps chromium
       - name: Golden detector tests (real Chromium)
         env:
-          RUN_GOLDEN: 1
           # Chromium was installed above — skip the CLI's lazy installer.
           SKIP_PLAYWRIGHT_DOWNLOAD: 1
-        run: |
-          cd packages/cli
-          bunx vitest run test/golden.test.js test/fonts-ready.test.js test/engine-pin.test.js test/modal-trap.test.js test/pattern-coverage.test.js
+        # Same command contributors run locally (bun run test:golden), minus the
+        # build the previous step already did.
+        run: bun run --filter slop-detect-mcp build && bun run --filter slop-detect --filter slop-detect-mcp test:golden
+      - name: Plugin and init npx commands scan with nothing installed (#357)
+        env:
+          SKIP_PLAYWRIGHT_DOWNLOAD: 1
+        run: node scripts/smoke-mcp-npx.mjs
+
       - name: Serve local clean fixture
         run: |
           cd packages/cli/test/fixtures

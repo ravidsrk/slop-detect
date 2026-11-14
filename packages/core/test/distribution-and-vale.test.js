@@ -69,12 +69,31 @@ describe('R-01, R-02, R-03, R-05, R-06, R-08, R-09..R-14, W-05, K-04 distributio
     expect(claudePlugin.mcpServers).toBe('./.mcp.json');
     expect(claudePlugin.hooks).toBe('./hooks/hooks.json');
 
+    // #357: `slop-detect` (Playwright) is an optional peer, so npx must be told
+    // to install it next to slop-detect-mcp or every local scan fails.
     const mcpJson = readJson('plugins/slop-detect/.mcp.json');
-    expect(mcpJson.mcpServers['slop-detect'].args).toContain('--local');
+    const args = mcpJson.mcpServers['slop-detect'].args;
+    expect(args).toContain('--local');
+    expect(args.join(' ')).toContain('-p slop-detect -p slop-detect-mcp slop-detect-mcp');
 
+    // #359: Claude Code copies a marketplace plugin into its cache on its own,
+    // so every hook command must resolve inside plugins/slop-detect/.
     const hooksJson = readJson('plugins/slop-detect/hooks/hooks.json');
     expect(hooksJson.hooks.PostToolUse[0].matcher).toBe('Write|Edit|MultiEdit');
-    expect(hooksJson.hooks.PostToolUse[0].hooks[0].command).toContain('scan-local.mjs');
+    expect(hooksJson.hooks.Stop).toBeTruthy();
+    const pluginRoot = path.resolve(ROOT, 'plugins/slop-detect');
+    for (const groups of Object.values(hooksJson.hooks)) {
+      for (const group of groups) {
+        for (const hook of group.hooks) {
+          expect(hook.command).not.toContain('..');
+          const match = hook.command.match(/\$\{CLAUDE_PLUGIN_ROOT\}([^"\s]+)/);
+          expect(match, hook.command).not.toBeNull();
+          const target = path.resolve(pluginRoot, `.${match[1]}`);
+          expect(target.startsWith(pluginRoot + path.sep)).toBe(true);
+          expect(fs.existsSync(target), target).toBe(true);
+        }
+      }
+    }
 
     const rootSkill = readText('skills/slop-detect/SKILL.md');
     const pluginSkill = readText('plugins/slop-detect/skills/slop-detect/SKILL.md');

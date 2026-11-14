@@ -22,37 +22,47 @@
   "transport": {
     "type": "stdio",
     "command": "npx",
-    "args": ["-y", "slop-detect-mcp"],
+    "args": [
+      "-y",
+      "slop-detect-mcp"
+    ],
     "notes": "Local stdio MCP server (npm: slop-detect-mcp) or zero-install remote Streamable HTTP endpoint at https://slop-detect.com/mcp."
   },
   "tools": [
     {
       "name": "scan_page",
-      "description": "Score a URL against the default-template design fingerprint (optionally the copy and DESIGN.md axes). Returns score, tier, grade, and triggered patterns."
+      "title": "Scan Page for Default-Template Patterns",
+      "description": "Score a landing page against the versioned default-template pattern catalogue. The design axis inspects computed CSS and DOM in headless Chromium; add the copy axis for prose tells, the craft axis for a separate defect floor, and design_md_url to also score compliance with the site's DESIGN.md. Use it when the user asks whether a page looks generic or templated, wants a slop score, or before and after UI changes. Returns a short summary: score 0–100 (lower is better; Clean 0–9, Mild 10–27, Heavy 28+), tier, grade, and only the triggered patterns with their IDs, weights and evidence. Each call runs a real browser scan (about 5–30 seconds); hosted scans are rate limited per IP. localhost and file:// URLs need the npm server started with --local. Results are not published anywhere. Scores measure overlap with common template defaults, not who or what made the page. Not for crawler or AI-engine readiness (check_aeo) or for linting a DESIGN.md file (lint_design_md). Next step: fix_prompt with the scan_id (npm server) or the triggered pattern IDs."
     },
     {
       "name": "check_aeo",
-      "description": "Score technical eligibility for AI search and user-action crawlers (robots.txt RFC 9309, snippet controls, server-rendered prose, markdown twin, llms.txt). Higher is better."
+      "title": "Check AEO Crawler & Citation Readiness",
+      "description": "Check whether search engines and AI answer engines can fetch, parse and cite a page, using static HTTP checks (no browser): reachability, edge access, robots.txt search rules, indexability, AI preview controls, server-rendered text coverage, a Markdown twin, llms.txt and more. Use it when the user asks whether ChatGPT, Claude, Perplexity or search crawlers can read or cite their site. Returns a 0–100 score where higher is better, a tier (Eligible 80+, Partially Eligible 50–79, Restricted below 50) and the failed checks. Takes a few seconds. The scanner uses its own user agent and doesn't impersonate vendor crawlers, so a site that blocks unknown bots can score lower than real crawlers would see it. localhost needs the npm server started with --local; file:// pages can't be checked. Not for visual or copy quality (scan_page)."
     },
     {
       "name": "check_design_system",
-      "description": "Check whether a page honors its own declared design system (a DESIGN.md file). Returns a 0-100 compliance score (higher is better) plus named drift: undeclared fonts, off-palette CTA colors, off-scale radii."
+      "title": "Check DESIGN.md System Compliance",
+      "description": "Check whether a live page follows its own declared design system: a DESIGN.md (Google Labs format) or a W3C DTCG tokens.json. Use it before shipping UI changes on a site that publishes a DESIGN.md, to catch fonts, CTA and surface colours, and radii that drift from the declared tokens. Returns a 0–100 compliance score where higher is better (Aligned 80+, Drifting 50–79, Off-system below 50) and the named drift signals; if the site declares no system it says so instead of scoring. Runs a browser scan (about 5–30 seconds) unless scan_id points at an earlier scan_page result that included design_md_url. If you already called scan_page with design_md_url, its response already contains this result. Unlike scan_page, it judges the page against the site's own tokens, not against template defaults."
     },
     {
       "name": "fix_prompt",
-      "description": "Build a ready-to-paste prompt or concise <=120-word avoid brief instructing a coding agent how to de-slop a page."
+      "title": "Build Remediation Prompt",
+      "description": "Build a copy-paste remediation prompt for a coding agent: for each triggered pattern, what was found, why it reads as a template default, the fix, alternatives and a hard rule, plus the heaviest currently-passing patterns not to introduce. Use it after scan_page when the user wants the findings fixed. Reuse the scan you already have: pass scan_id (npm server) or patterns (the triggered pattern IDs from scan_page). Pass url only when there is no scan yet; that runs a new browser scan (about 5–30 seconds). brief: true returns a short avoid list (at most 120 words) instead; with no url, scan_id or patterns it returns a generic avoid list for a page that has not been built yet. Returns text only; it doesn't edit files."
     },
     {
       "name": "lint_design_md",
-      "description": "Statically lint a DESIGN.md document for broken token references, component contrast below 4.5:1, orphaned palette tokens, and specVersion issues."
+      "title": "Lint a DESIGN.md File",
+      "description": "Statically lint DESIGN.md text: broken token references, component contrast below WCAG 4.5:1, orphaned palette tokens, and a specVersion other than alpha. Use it while writing or editing a DESIGN.md. Local and instant: it doesn't fetch a page and doesn't change any score. Pass the document text, not a path or URL (read the file first). Returns valid or invalid, error and warning counts, and each issue with its rule ID and token path."
     },
     {
       "name": "diff_design_md",
-      "description": "Diff two DESIGN.md documents and report added, removed, and changed tokens."
+      "title": "Diff Two DESIGN.md Files",
+      "description": "Compare two DESIGN.md documents token by token and list added, removed and changed tokens; a removed or changed token is breaking. Use it when reviewing a change to a DESIGN.md. Local and instant: it doesn't fetch or rescore a page. Pass both documents as text (read the files first)."
     },
     {
       "name": "extract_design_system",
-      "description": "Extract a starter DESIGN.md and DTCG 2025.10 tokens.json from a scanned page or system context."
+      "title": "Extract DESIGN.md & DTCG Tokens from a Page",
+      "description": "Reverse-engineer a starter design system from a live page: the colours, typography, radii, shadows and spacing it renders become a Google Labs DESIGN.md and/or a W3C DTCG 2025.10 tokens.json. Use it to bootstrap a DESIGN.md for a site that has none. Runs a browser scan of url (about 5–30 seconds) unless you pass scan_id (an earlier scan_page made with design_md_url; npm server only) or observed tokens. The output describes what the page renders today, not a recommended palette; review it before publishing. Returns the document text; it doesn't write files."
     }
   ],
   "resources": [
@@ -80,11 +90,15 @@
   "prompts": [
     {
       "name": "audit_landing_page",
-      "description": "Run a full 4-axis audit (Design + Copy + DESIGN.md System Compliance + AEO Eligibility) on a URL."
+      "description": "Run the design, copy and AEO checks on a URL (plus DESIGN.md compliance when the site has one) and write a prioritized report."
     },
     {
       "name": "deslop_and_verify",
-      "description": "Closed-loop workflow: scan a page, generate a remediation prompt, apply fixes, and re-verify."
+      "description": "Build the fix prompt for a page, apply the fixes in the codebase, then re-scan where the changes run to confirm the result."
+    },
+    {
+      "name": "refactor_to_design_system",
+      "description": "Check a page against its DESIGN.md, fix the drifting components, and re-check."
     }
   ],
   "documentation": "https://slop-detect.com/llms.txt",

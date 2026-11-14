@@ -27,11 +27,13 @@ slop-detect/
 │   │       ├── system.ts                ← 9 DESIGN.md & W3C DTCG 2025.10 compliance checks
 │   │       ├── aeo.ts                   ← 16 AEO checks (RFC 9309 robots, SSR coverage, .md twins, ARD)
 │   │       ├── color.ts                 ← CSS Color 4 parser & OKLab ΔE perceptual distance
-│   │       ├── page-eval.ts             ← Self-contained browser evaluation script builder
+│   │       ├── page-script.ts           ← Self-contained browser evaluation script builder
 │   │       ├── result-assembly.ts       ← Multi-axis score assembly & schema v1 stamping
-│   │       └── fixes.ts                 ← Per-pattern remediation recipes & fix-prompt generator
+│   │       ├── fixes.ts                 ← Per-pattern remediation recipes & fix-prompt generator
+│   │       ├── mcp-tools.ts             ← Shared MCP tool contract (names, schemas, prompts)
+│   │       └── mcp-format.ts            ← Shared MCP result summaries & compact results
 │   ├── cli/                             ← Playwright runner, static HTML scanner & reporters
-│   ├── mcp/                             ← Stdio + local MCP server & Claude/Cursor PostToolUse hooks
+│   ├── mcp/                             ← Stdio + local MCP server & agent hooks (slop-detect-hook)
 │   ├── action/                          ← Composite GitHub Action (API + local Chromium + SARIF)
 │   ├── netlify-plugin-slop-detect/      ← Netlify onPostBuild deploy gate
 │   └── lighthouse-plugin-slop-copy/     ← Lighthouse copy + HTML AEO plugin
@@ -48,7 +50,7 @@ slop-detect/
 Static HTML/CSS linters miss what the user actually sees: Tailwind utility classes, CSS variables (`var(--primary)`), `oklch()` / `color-mix()` expressions, webfont fallbacks, and runtime DOM layout (`getBoundingClientRect()`).
 
 1. **Page Settle Contract (`runner-wait.ts`)**: Both the Playwright CLI (`packages/cli/src/detector.ts`) and Cloudflare Browser Rendering (`apps/web/functions/api/scan.ts`) open the page in a `1280×800` viewport, wait for `domcontentloaded`, await `document.fonts.ready`, trigger intersection observers, and settle animations.
-2. **Self-Contained Serialization (`buildPageEvaluateScript`)**: `packages/core/src/page-eval.ts` serializes color helpers (`createColorHelpers`), visibility helpers (`createVisibilityHelpers`), bundler-helper polyfills (`esbuildNamePolyfills`), and each pattern's `extract(ctx)` function into a single self-contained IIFE executed via `page.evaluate(...)`.
+2. **Self-Contained Serialization (`buildPageScript`)**: `packages/core/src/page-script.ts` serializes color helpers (`createColorHelpers`), visibility helpers (`createVisibilityHelpers`), bundler-helper polyfills (`esbuildNamePolyfills`), and each pattern's `extract(ctx)` function into a single self-contained IIFE executed via `page.evaluate(...)`. Both runners call it (`buildPageEvaluateScript` in `packages/core/src/index.ts` is a thin wrapper with the older signature).
 3. **Pure Assembly (`assembleScanResult`)**: The browser returns a JSON-serializable signal bundle (`signals`, `textContext`, `craftContext`, `systemContext`, `blockedContext`). `assembleScanResult` runs outside the browser to compute scores, tiers, letter grades, verdicts, and schema-stamped results.
 
 ---

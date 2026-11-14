@@ -18,17 +18,35 @@ import {
   SYSTEM_CHECKS,
   AEO_CHECKS,
   DEFINITIONS_VERSION,
+  MCP_ICONS,
+  MCP_PROMPTS,
+  MCP_SERVER_INSTRUCTIONS,
+  MCP_TOOLS,
   buildFixPrompt,
-  buildAvoidList,
-  lintDesignMd,
+  buildMcpDesignSystem,
+  buildMcpFixPrompt,
+  compactAeoReport,
+  compactScanResult,
   diffDesignMd,
-  generateDesignMd,
-  extractDtcgTokens,
+  formatAeoSummary,
+  formatDesignMdDiff,
+  formatDesignMdLint,
+  formatScanFailure,
+  formatScanSummary,
+  formatSystemSummary,
+  hostnameLabel,
+  isMcpScanFailure,
+  isMcpToolName,
+  lintDesignMd,
+  mcpUnknownToolMessage,
+  observedTokensOf,
+  renderMcpPrompt,
+  systemStructured,
+  validateMcpToolArguments,
 } from '@slop-detect/core';
 import { validateScanUrl } from './_ssrf.js';
 import { onRequestPost as scanOnRequestPost } from './api/scan.js';
 import { onRequestPost as aeoOnRequestPost } from './api/aeo.js';
-import { onRequestPost as fixPromptOnRequestPost } from './api/fix-prompt.js';
 import {
   buildServerCard,
   DETERMINISTIC_TOOL_ORDER,
@@ -405,262 +423,29 @@ export function renderScorecardHtml(initialData?: Record<string, any>): string {
 </html>`;
 }
 
-// ── Deterministic Tool Definitions (R-04 #320) ───────────────────────────────
-const TOOL_DEFINITIONS_MAP: Record<string, any> = {
-  scan_page: {
-    name: 'scan_page',
-    title: 'Scan Landing Page for Default-Template Patterns',
-    description:
-      'Scan a live URL with headless Chromium and score it against the design, copy, and craft pattern catalogue (0–100; Clean 0–9, Mild 10–27, Heavy 28+).',
-    ttlMs: MCP_TOOL_TTL_MS,
-    cacheScope: 'public',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        url: {
-          type: 'string',
-          description: 'Public http:// or https:// URL to scan.',
-        },
-        preset: {
-          type: 'string',
-          enum: ['full', 'nextjs', 'astro', 'tailwind', 'shadcn'],
-          description: 'Optional framework preset.',
-        },
-        axes: {
-          oneOf: [
-            { type: 'string', enum: ['all'] },
-            {
-              type: 'array',
-              items: { type: 'string', enum: ['design', 'copy', 'craft'] },
-            },
-          ],
-          description: 'Axes to evaluate (defaults to all).',
-        },
-      },
-      required: ['url'],
-    },
-    annotations: {
-      title: 'Scan Landing Page',
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: true,
-    },
-    _meta: {
-      ttlMs: MCP_TOOL_TTL_MS,
-      cacheScope: 'public',
-      ui: { resourceUri: MCP_SCORECARD_URI },
-    },
-  },
-  check_aeo: {
-    name: 'check_aeo',
-    title: 'Check AEO (AI Engine Optimization) Readiness',
-    description:
-      'Run the 16-check AEO static HTTP audit on a URL (higher score = better AI-engine answerability).',
-    ttlMs: MCP_TOOL_TTL_MS,
-    cacheScope: 'public',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        url: {
-          type: 'string',
-          description: 'Public http:// or https:// URL to audit.',
-        },
-      },
-      required: ['url'],
-    },
-    annotations: {
-      title: 'Check AEO Readiness',
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: true,
-    },
-    _meta: {
-      ttlMs: MCP_TOOL_TTL_MS,
-      cacheScope: 'public',
-      ui: { resourceUri: MCP_SCORECARD_URI },
-    },
-  },
-  check_design_system: {
-    name: 'check_design_system',
-    title: 'Check DESIGN.md / DTCG Design System Compliance',
-    description:
-      'Audit whether a live URL honors its declared DESIGN.md or W3C DTCG 2025.10 tokens.json design system.',
-    ttlMs: MCP_TOOL_TTL_MS,
-    cacheScope: 'public',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        url: {
-          type: 'string',
-          description: 'Public http:// or https:// URL to audit.',
-        },
-        designMd: {
-          oneOf: [{ type: 'boolean' }, { type: 'string' }],
-          description:
-            'Pass true to discover <origin>/DESIGN.md automatically, or pass a public URL to a DESIGN.md file.',
-        },
-      },
-      required: ['url'],
-    },
-    annotations: {
-      title: 'Check Design System Compliance',
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: true,
-    },
-    _meta: {
-      ttlMs: MCP_TOOL_TTL_MS,
-      cacheScope: 'public',
-      ui: { resourceUri: MCP_SCORECARD_URI },
-    },
-  },
-  fix_prompt: {
-    name: 'fix_prompt',
-    title: 'Generate CSS & Copy Refactor Prompt',
-    description:
-      'Build a ready-to-paste refactor prompt and upfront avoid-list from a URL or triggered pattern list.',
-    ttlMs: MCP_TOOL_TTL_MS,
-    cacheScope: 'public',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        url: {
-          type: 'string',
-          description: 'Optional public URL to scan and generate fixes for.',
-        },
-        patterns: {
-          type: 'array',
-          description: 'Optional array of pattern results or pattern IDs.',
-          items: {
-            oneOf: [{ type: 'string' }, { type: 'object' }],
-          },
-        },
-        mode: {
-          type: 'string',
-          enum: ['fix', 'avoid'],
-          description: 'Return targeted fix prompt ("fix") or upfront avoid-list ("avoid").',
-        },
-      },
-    },
-    annotations: {
-      title: 'Generate Fix Prompt',
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-    _meta: {
-      ttlMs: MCP_TOOL_TTL_MS,
-      cacheScope: 'public',
-    },
-  },
-  lint_design_md: {
-    name: 'lint_design_md',
-    title: 'Lint DESIGN.md Token File',
-    description:
-      'Statically lint a DESIGN.md document for broken token references, WCAG AA component contrast (< 4.5:1), orphaned tokens, and specVersion mismatches.',
-    ttlMs: MCP_TOOL_TTL_MS,
-    cacheScope: 'public',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        content: {
-          type: 'string',
-          description:
-            'Raw markdown content of DESIGN.md (with YAML front matter or ```yaml block).',
-        },
-      },
-      required: ['content'],
-    },
-    annotations: {
-      title: 'Lint DESIGN.md',
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-    _meta: {
-      ttlMs: MCP_TOOL_TTL_MS,
-      cacheScope: 'public',
-    },
-  },
-  diff_design_md: {
-    name: 'diff_design_md',
-    title: 'Diff Two DESIGN.md Token Files',
-    description:
-      'Compute a structured token diff (added, removed, changed, breaking) between two DESIGN.md revisions.',
-    ttlMs: MCP_TOOL_TTL_MS,
-    cacheScope: 'public',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        base: {
-          type: 'string',
-          description: 'Base (before) DESIGN.md content.',
-        },
-        head: {
-          type: 'string',
-          description: 'Head (after) DESIGN.md content.',
-        },
-      },
-      required: ['base', 'head'],
-    },
-    annotations: {
-      title: 'Diff DESIGN.md',
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-    _meta: {
-      ttlMs: MCP_TOOL_TTL_MS,
-      cacheScope: 'public',
-    },
-  },
-  extract_design_system: {
-    name: 'extract_design_system',
-    title: 'Extract DESIGN.md & W3C DTCG 2025.10 Tokens',
-    description:
-      'Generate a starter DESIGN.md and W3C DTCG 2025.10 tokens.json from observed DOM tokens or a public URL.',
-    ttlMs: MCP_TOOL_TTL_MS,
-    cacheScope: 'public',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        url: {
-          type: 'string',
-          description: 'Optional public URL to attribute or extract tokens from.',
-        },
-        name: {
-          type: 'string',
-          description: 'Optional design system name.',
-        },
-        observed: {
-          type: 'object',
-          description:
-            'Optional observed token snapshot ({ surface, headings, ctas, fonts, radii }).',
-        },
-      },
-    },
-    annotations: {
-      title: 'Extract Design System',
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-    _meta: {
-      ttlMs: MCP_TOOL_TTL_MS,
-      cacheScope: 'public',
-    },
-  },
-};
+// ── Tools (R-04 #320, #361) ──────────────────────────────────────────────────
+// The tool contract comes from @slop-detect/core, shared with the npm server,
+// so the two can't drift apart. This endpoint adds cache hints and the MCP Apps
+// score card on top. It is stateless: it keeps no scans, so scan_id handles
+// (npm server only) are refused with a pointer to `patterns`.
+const UI_TOOLS = new Set(['scan_page', 'check_aeo', 'check_design_system']);
 
 export function getDeterministicTools() {
-  return DETERMINISTIC_TOOL_ORDER.map((name) => TOOL_DEFINITIONS_MAP[name]);
+  const byName = new Map(MCP_TOOLS.map((tool) => [tool.name, tool]));
+  return DETERMINISTIC_TOOL_ORDER.map((name) => {
+    const tool = byName.get(name)!;
+    return {
+      ...tool,
+      icons: MCP_ICONS,
+      ttlMs: MCP_TOOL_TTL_MS,
+      cacheScope: 'public',
+      _meta: {
+        ttlMs: MCP_TOOL_TTL_MS,
+        cacheScope: 'public',
+        ...(UI_TOOLS.has(name) ? { ui: { resourceUri: MCP_SCORECARD_URI } } : {}),
+      },
+    };
+  });
 }
 
 const RESOURCES_LIST = [
@@ -688,45 +473,22 @@ const RESOURCES_LIST = [
     uri: 'slop://spec/aeo',
     name: 'AEO Check Catalogue',
     mimeType: 'application/json',
-    description: 'Versioned 16-check AEO catalogue with weights, severities, and descriptions.',
+    description: 'Versioned AEO check catalogue with weights, severities, and descriptions.',
   },
 ];
 
-const PROMPTS_LIST = [
-  {
-    name: 'audit-landing-page',
-    description:
-      'Run a full default-template pattern and AEO audit on a URL and propose surgical CSS and copy fixes.',
-    arguments: [
-      {
-        name: 'url',
-        description: 'Public URL of the landing page to audit.',
-        required: true,
-      },
-    ],
-  },
-  {
-    name: 'refactor-to-design-system',
-    description:
-      'Audit a page against its DESIGN.md token contract and rewrite drifting components.',
-    arguments: [
-      {
-        name: 'url',
-        description: 'Public URL of the page to check.',
-        required: true,
-      },
-    ],
-  },
-];
+const PROMPTS_LIST = MCP_PROMPTS.map((prompt) => ({ ...prompt, icons: MCP_ICONS }));
 
 // ── Per-IP KV rate limiter for network-bound MCP tool calls ──────────────────
-async function checkMcpRateLimit(request: Request, env: any, toolName: string): Promise<boolean> {
+async function checkMcpRateLimit(
+  request: Request,
+  env: any,
+  bucket: 'scan' | 'aeo'
+): Promise<boolean> {
   if (!env?.RESULTS || typeof env.RESULTS.get !== 'function') return true;
   const ip = request.headers?.get?.('CF-Connecting-IP') || 'anon';
-  const isScan =
-    toolName === 'scan_page' || toolName === 'check_design_system' || toolName === 'fix_prompt';
-  const limit = isScan ? 6 : 30;
-  const key = `rl:mcp:${isScan ? 'scan' : 'aeo'}:${ip}`;
+  const limit = bucket === 'scan' ? 6 : 30;
+  const key = `rl:mcp:${bucket}:${ip}`;
   try {
     const cur = parseInt((await env.RESULTS.get(key)) || '0', 10);
     if (cur >= limit) return false;
@@ -738,273 +500,223 @@ async function checkMcpRateLimit(request: Request, env: any, toolName: string): 
 }
 
 // ── Tool Execution ───────────────────────────────────────────────────────────
-async function executeToolCall(
-  name: string,
-  rawArgs: Record<string, any>,
-  ctx: { request: Request; env: any; waitUntil?: any }
-) {
-  const args = rawArgs && typeof rawArgs === 'object' ? rawArgs : {};
+type ToolCtx = { request: Request; env: any; waitUntil?: any };
 
+const RATE_LIMITED =
+  'Rate limit exceeded on the hosted endpoint (6 browser scans per minute per IP). Retry in 60s, or run the npm server locally for unlimited scans: npx -y -p slop-detect -p slop-detect-mcp slop-detect-mcp --local';
+const SCAN_ID_REMOTE =
+  'scan_id handles are kept only by the npm server; this hosted endpoint is stateless and keeps no scans. Pass patterns (the triggered pattern IDs from scan_page) or url instead.';
+
+function okResult(text: string, structuredContent?: unknown, meta?: Record<string, any>) {
+  const result: Record<string, any> = { content: [{ type: 'text', text }], isError: false };
+  if (structuredContent !== undefined) result.structuredContent = structuredContent;
+  if (meta) result._meta = meta;
+  return result;
+}
+
+function errorResult(text: string) {
+  return { content: [{ type: 'text', text }], isError: true };
+}
+
+function blockedUrlMessage(url: string, error: string) {
+  return `Invalid or blocked URL ${JSON.stringify(url)}: ${error}. The hosted endpoint only scans public http(s) pages; for localhost or private URLs run the npm server locally: npx -y -p slop-detect -p slop-detect-mcp slop-detect-mcp --local`;
+}
+
+function designMdBody(value: string | undefined): string | boolean | undefined {
+  if (!value) return undefined;
+  return value === 'auto' ? true : value;
+}
+
+async function runHostedScan(ctx: ToolCtx, body: Record<string, any>) {
+  const subReq = new Request('https://slop-detect.com/api/scan', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    // share:false: agent scans never mint a public permalink (#363).
+    body: JSON.stringify({ ...body, share: false }),
+  });
+  const res = await scanOnRequestPost({
+    request: subReq,
+    env: ctx.env || {},
+    waitUntil: ctx.waitUntil,
+  } as any);
+  let payload: any;
+  try {
+    payload = await res.json();
+  } catch {
+    payload = { error: `The scanner returned a non-JSON response (HTTP ${res.status}).` };
+  }
+  if (!res.ok && payload && !payload.error) payload.error = `Scan failed (HTTP ${res.status}).`;
+  return payload;
+}
+
+// Validate a URL argument and spend one rate-limit token. Returns an error
+// result to send back, or null to proceed.
+async function admitUrl(ctx: ToolCtx, url: string, bucket: 'scan' | 'aeo', extraUrl?: unknown) {
+  const checked = validateScanUrl(url);
+  if (checked.error) return { error: errorResult(blockedUrlMessage(url, checked.error)) };
+  if (typeof extraUrl === 'string' && extraUrl !== 'auto') {
+    const dm = validateScanUrl(extraUrl);
+    if (dm.error) return { error: errorResult(blockedUrlMessage(extraUrl, dm.error)) };
+  }
+  if (!(await checkMcpRateLimit(ctx.request, ctx.env, bucket))) {
+    return { error: errorResult(RATE_LIMITED) };
+  }
+  return { url: checked.url as string };
+}
+
+async function executeToolCall(name: string, args: Record<string, any>, ctx: ToolCtx) {
   if (name === 'lint_design_md') {
-    const content = typeof args.content === 'string' ? args.content : String(args.text ?? '');
-    const report = lintDesignMd(content);
-    const summary = report.valid
-      ? `DESIGN.md valid (specVersion: ${report.specVersion}, ${report.warnings.length} warning(s)).`
-      : `DESIGN.md invalid: ${report.errors.length} error(s), ${report.warnings.length} warning(s).\n` +
-        report.issues.map((i) => `- [${i.severity}] ${i.ruleId}: ${i.message}`).join('\n');
-    return {
-      content: [{ type: 'text', text: summary }],
-      structuredContent: report,
-    };
+    const report = lintDesignMd(args.design_md);
+    return okResult(formatDesignMdLint(report), report);
   }
 
   if (name === 'diff_design_md') {
-    const base = typeof args.base === 'string' ? args.base : String(args.before ?? '');
-    const head = typeof args.head === 'string' ? args.head : String(args.after ?? '');
-    const diff = diffDesignMd(base, head);
-    const summary = [
-      `DESIGN.md token diff — breaking: ${diff.breaking ? 'YES' : 'no'}`,
-      `Added (${diff.added.length}): ${diff.added.map((a) => a.path).join(', ') || 'none'}`,
-      `Removed (${diff.removed.length}): ${diff.removed.map((r) => r.path).join(', ') || 'none'}`,
-      `Changed (${diff.changed.length}): ${diff.changed.map((c) => `${c.path} (${c.before} -> ${c.after})`).join(', ') || 'none'}`,
-    ].join('\n');
-    return {
-      content: [{ type: 'text', text: summary }],
-      structuredContent: diff,
-    };
+    const diff = diffDesignMd(args.base_design_md, args.head_design_md);
+    return okResult(formatDesignMdDiff(diff), diff);
   }
 
-  if (name === 'extract_design_system') {
-    if (args.url !== undefined) {
-      const checked = validateScanUrl(args.url);
-      if (checked.error) {
-        return {
-          isError: true,
-          content: [{ type: 'text', text: `Invalid or blocked URL: ${checked.error}` }],
-          structuredContent: { error: checked.error, status: checked.status },
-        };
-      }
-    }
-    const sysName =
-      typeof args.name === 'string' && args.name.trim() ? args.name.trim() : 'Site Design System';
-    const observed = args.observed && typeof args.observed === 'object' ? args.observed : {};
-    const designMd = generateDesignMd(observed, { name: sysName, url: args.url });
-    const dtcgTokens = extractDtcgTokens(observed, { name: sysName });
-    return {
-      content: [
-        {
-          type: 'text',
-          text: `${designMd}\n\`\`\`json\n${JSON.stringify(dtcgTokens, null, 2)}\n\`\`\``,
-        },
-      ],
-      structuredContent: {
-        designMd,
-        dtcgTokens,
-      },
-    };
-  }
-
-  if (name === 'fix_prompt') {
-    if (args.mode === 'avoid' && !args.url && !args.patterns) {
-      const avoid = buildAvoidList({});
-      return {
-        content: [{ type: 'text', text: avoid }],
-        structuredContent: { prompt: avoid, mode: 'avoid' },
-      };
-    }
-    if (Array.isArray(args.patterns) && !args.url) {
-      const normalized = args.patterns.map((item: any) => {
-        if (typeof item === 'string') {
-          const found =
-            PATTERNS.find((p) => p.id === item) || COPY_PATTERNS.find((p) => p.id === item);
-          return {
-            id: item,
-            label: found?.label || item,
-            weight: found?.weight || 3,
-            triggered: true,
-            detail: found?.short || found?.label || '',
-          };
-        }
-        return item;
-      });
-      const prompt = buildFixPrompt({ url: 'page', patterns: normalized });
-      return {
-        content: [{ type: 'text', text: prompt }],
-        structuredContent: { prompt, mode: 'fix', triggeredCount: normalized.length },
-      };
-    }
-    if (args.url !== undefined) {
-      const checked = validateScanUrl(args.url);
-      if (checked.error) {
-        return {
-          isError: true,
-          content: [{ type: 'text', text: `Invalid or blocked URL: ${checked.error}` }],
-          structuredContent: { error: checked.error, status: checked.status },
-        };
-      }
-      if (!(await checkMcpRateLimit(ctx.request, ctx.env, name))) {
-        return {
-          isError: true,
-          content: [{ type: 'text', text: 'Rate limit exceeded. Retry in 60s.' }],
-          structuredContent: { error: 'Rate limit exceeded', status: 429 },
-        };
-      }
-      const subReq = new Request('https://slop-detect.com/api/fix-prompt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: checked.url, mode: args.mode || 'fix' }),
-      });
-      const res = await fixPromptOnRequestPost({
-        request: subReq,
-        env: ctx.env || {},
-        waitUntil: ctx.waitUntil,
-      } as any);
-      const payload = (await res.json()) as Record<string, any>;
-      if (!res.ok) {
-        return {
-          isError: true,
-          content: [{ type: 'text', text: payload.error || `Fix prompt failed (${res.status})` }],
-          structuredContent: payload,
-        };
-      }
-      return {
-        content: [{ type: 'text', text: payload.prompt || JSON.stringify(payload) }],
-        structuredContent: payload,
-      };
-    }
-    const avoid = buildAvoidList({});
-    return {
-      content: [{ type: 'text', text: avoid }],
-      structuredContent: { prompt: avoid, mode: 'avoid' },
-    };
+  if (name === 'scan_page') {
+    const admitted = await admitUrl(ctx, args.url, 'scan', args.design_md_url);
+    if (admitted.error) return admitted.error;
+    const payload = await runHostedScan(ctx, {
+      url: admitted.url,
+      preset: args.preset || 'full',
+      axes: args.axes || ['design'],
+      ...(args.design_md_url ? { designMd: designMdBody(args.design_md_url) } : {}),
+    });
+    if (isMcpScanFailure(payload)) return errorResult(formatScanFailure(payload, admitted.url));
+    const structured =
+      args.detail === 'full' ? { ...payload, detail: 'full' } : compactScanResult(payload);
+    return okResult(formatScanSummary(payload), structured, {
+      ui: { resourceUri: MCP_SCORECARD_URI },
+    });
   }
 
   if (name === 'check_aeo') {
-    const checked = validateScanUrl(args.url);
-    if (checked.error) {
-      return {
-        isError: true,
-        content: [{ type: 'text', text: `Invalid or blocked URL: ${checked.error}` }],
-        structuredContent: { error: checked.error, status: checked.status },
-      };
-    }
-    if (!(await checkMcpRateLimit(ctx.request, ctx.env, name))) {
-      return {
-        isError: true,
-        content: [{ type: 'text', text: 'Rate limit exceeded. Retry in 60s.' }],
-        structuredContent: { error: 'Rate limit exceeded', status: 429 },
-      };
-    }
+    const admitted = await admitUrl(ctx, args.url, 'aeo');
+    if (admitted.error) return admitted.error;
     const subReq = new Request('https://slop-detect.com/api/aeo', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: checked.url, share: false }),
+      body: JSON.stringify({ url: admitted.url, share: false }),
     });
     const res = await aeoOnRequestPost({
       request: subReq,
       env: ctx.env || {},
       waitUntil: ctx.waitUntil,
     } as any);
-    const payload = (await res.json()) as Record<string, any>;
-    if (!res.ok) {
-      return {
-        isError: true,
-        content: [{ type: 'text', text: payload.error || `AEO audit failed (${res.status})` }],
-        structuredContent: payload,
-      };
+    let payload: any;
+    try {
+      payload = await res.json();
+    } catch {
+      payload = { error: `The AEO audit returned a non-JSON response (HTTP ${res.status}).` };
     }
-    const failed = Array.isArray(payload.checks)
-      ? payload.checks.filter((c: any) => !c.passed)
-      : [];
-    const textSummary = [
-      `AEO Score for ${payload.url || checked.url}: ${payload.score}/100 (${payload.tier}) [uncalibrated beta]`,
-      failed.length
-        ? `Failed checks (${failed.length}):\n` +
-          failed.map((c: any) => `- ${c.id} (${c.severity}): ${c.detail || c.label}`).join('\n')
-        : 'All 16 AEO checks passed.',
-    ].join('\n');
-    return {
-      content: [{ type: 'text', text: textSummary }],
-      structuredContent: payload,
-      _meta: { ui: { resourceUri: MCP_SCORECARD_URI } },
-    };
-  }
-
-  if (name === 'scan_page' || name === 'check_design_system') {
-    const checked = validateScanUrl(args.url);
-    if (checked.error) {
-      return {
-        isError: true,
-        content: [{ type: 'text', text: `Invalid or blocked URL: ${checked.error}` }],
-        structuredContent: { error: checked.error, status: checked.status },
-      };
+    if (!res.ok || typeof payload?.score !== 'number') {
+      return errorResult(
+        `AEO audit could not run for ${admitted.url}: ${payload?.error || `HTTP ${res.status}`}.`
+      );
     }
-    if (typeof args.designMd === 'string') {
-      const dmChecked = validateScanUrl(args.designMd);
-      if (dmChecked.error) {
-        return {
-          isError: true,
-          content: [{ type: 'text', text: `Invalid designMd URL: ${dmChecked.error}` }],
-          structuredContent: { error: dmChecked.error, status: dmChecked.status },
-        };
-      }
-    }
-    if (!(await checkMcpRateLimit(ctx.request, ctx.env, name))) {
-      return {
-        isError: true,
-        content: [{ type: 'text', text: 'Rate limit exceeded. Retry in 60s.' }],
-        structuredContent: { error: 'Rate limit exceeded', status: 429 },
-      };
-    }
-    const scanBody: Record<string, any> = {
-      url: checked.url,
-      preset: args.preset || 'full',
-      axes: args.axes || 'all',
-      share: false,
-    };
-    if (name === 'check_design_system') {
-      scanBody.designMd = args.designMd ?? true;
-    }
-    const subReq = new Request('https://slop-detect.com/api/scan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(scanBody),
+    return okResult(formatAeoSummary(payload), compactAeoReport(payload), {
+      ui: { resourceUri: MCP_SCORECARD_URI },
     });
-    const res = await scanOnRequestPost({
-      request: subReq,
-      env: ctx.env || {},
-      waitUntil: ctx.waitUntil,
-    } as any);
-    const payload = (await res.json()) as Record<string, any>;
-    if (!res.ok) {
-      return {
-        isError: true,
-        content: [{ type: 'text', text: payload.error || `Scan failed (${res.status})` }],
-        structuredContent: payload,
-      };
-    }
-    const triggered = Array.isArray(payload.patterns)
-      ? payload.patterns.filter((p: any) => p && p.triggered && !p.waived)
-      : [];
-    const textSummary = [
-      `Slop Score for ${payload.url || checked.url}: ${payload.score}/100 (${payload.tier}) [uncalibrated beta]`,
-      `Page matches ${triggered.length} default-template patterns.`,
-      ...triggered.map((p: any) => `- ${p.id} (weight ${p.weight}): ${p.detail || p.label}`),
-    ].join('\n');
-    return {
-      content: [{ type: 'text', text: textSummary }],
-      structuredContent: payload,
-      _meta: { ui: { resourceUri: MCP_SCORECARD_URI } },
-    };
   }
 
-  return null;
+  if (name === 'check_design_system') {
+    if (!args.url) return errorResult(SCAN_ID_REMOTE);
+    const admitted = await admitUrl(ctx, args.url, 'scan', args.design_md_url);
+    if (admitted.error) return admitted.error;
+    const payload = await runHostedScan(ctx, {
+      url: admitted.url,
+      preset: 'full',
+      axes: ['design'],
+      designMd: designMdBody(args.design_md_url) ?? true,
+    });
+    if (isMcpScanFailure(payload)) return errorResult(formatScanFailure(payload, admitted.url));
+    return okResult(formatSystemSummary(payload), systemStructured(payload), {
+      ui: { resourceUri: MCP_SCORECARD_URI },
+    });
+  }
+
+  if (name === 'fix_prompt') {
+    if (args.patterns) {
+      const out = buildMcpFixPrompt({ patterns: args.patterns, brief: args.brief });
+      return okResult(out.text, out.structured);
+    }
+    if (args.url) {
+      const admitted = await admitUrl(ctx, args.url, 'scan', args.design_md_url);
+      if (admitted.error) return admitted.error;
+      const payload = await runHostedScan(ctx, {
+        url: admitted.url,
+        preset: args.preset || 'full',
+        axes: args.axes || ['design'],
+        ...(args.design_md_url ? { designMd: designMdBody(args.design_md_url) } : {}),
+      });
+      if (isMcpScanFailure(payload)) return errorResult(formatScanFailure(payload, admitted.url));
+      const out = buildMcpFixPrompt({ result: payload, brief: args.brief });
+      return okResult(out.text, out.structured);
+    }
+    if (args.scan_id) return errorResult(SCAN_ID_REMOTE);
+    const out = buildMcpFixPrompt({ brief: true });
+    return okResult(out.text, out.structured);
+  }
+
+  if (name === 'extract_design_system') {
+    if (args.observed) {
+      const out = buildMcpDesignSystem({
+        observed: args.observed,
+        name: args.name,
+        url: args.url,
+        format: args.format,
+      });
+      return okResult(out.text, out.structured);
+    }
+    if (!args.url) return errorResult(SCAN_ID_REMOTE);
+    const admitted = await admitUrl(ctx, args.url, 'scan');
+    if (admitted.error) return admitted.error;
+    const payload = await runHostedScan(ctx, {
+      url: admitted.url,
+      preset: 'full',
+      axes: ['design'],
+      designMd: true,
+    });
+    if (isMcpScanFailure(payload)) return errorResult(formatScanFailure(payload, admitted.url));
+    const observed = observedTokensOf(payload);
+    if (!observed) {
+      return errorResult(
+        `The scan of ${payload.finalUrl || admitted.url} returned no observed design tokens, so there is nothing to extract.`
+      );
+    }
+    const out = buildMcpDesignSystem({
+      observed,
+      name:
+        args.name || payload.title || hostnameLabel(payload.finalUrl || admitted.url) || undefined,
+      url: payload.finalUrl || admitted.url,
+      format: args.format,
+    });
+    return okResult(out.text, out.structured);
+  }
+
+  return errorResult(mcpUnknownToolMessage(name));
+}
+
+// Validate, run, and never let an exception escape as an HTTP 500.
+async function callTool(name: string, rawArgs: unknown, ctx: ToolCtx) {
+  const checked = validateMcpToolArguments(name, rawArgs);
+  if (checked.ok === false) return errorResult((checked as { message: string }).message);
+  try {
+    return await executeToolCall(name, (checked as { args: Record<string, any> }).args, ctx);
+  } catch (err) {
+    const message = err && (err as Error).message ? (err as Error).message : String(err);
+    return errorResult(
+      `${name} failed on the hosted endpoint: ${message.split('\n')[0].slice(0, 200)}`
+    );
+  }
 }
 
 // ── JSON-RPC 2.0 Dispatcher ──────────────────────────────────────────────────
 async function dispatchRpc(
   rpc: Record<string, any>,
-  ctx: { request: Request; env: any; waitUntil?: any }
+  ctx: ToolCtx
 ): Promise<{ response: Record<string, any> | null; method: string; toolName?: string }> {
   if (!rpc || typeof rpc !== 'object' || rpc.jsonrpc !== '2.0' || typeof rpc.method !== 'string') {
     return {
@@ -1050,8 +762,7 @@ async function dispatchRpc(
             version: MCP_SERVER_VERSION,
             definitionsVersion: DEFINITIONS_VERSION,
           },
-          instructions:
-            'Use scan_page to score a live URL against the default-template pattern catalogue (design, copy, craft axes). Use check_aeo to audit AI-engine answerability. Use check_design_system, lint_design_md, diff_design_md, or extract_design_system to validate or generate DESIGN.md and W3C DTCG 2025.10 token files. Use fix_prompt to generate a targeted CSS/copy refactor prompt.',
+          instructions: MCP_SERVER_INSTRUCTIONS,
         },
       },
     };
@@ -1206,74 +917,41 @@ async function dispatchRpc(
   }
 
   if (method === 'prompts/get') {
-    const promptName = params.name;
-    const targetUrl = params.arguments?.url || '<url>';
-    if (promptName === 'audit-landing-page') {
+    const promptName = String(params.name ?? '');
+    const rendered = renderMcpPrompt(promptName, params.arguments || {});
+    if (!rendered) {
       return {
         method,
         response: {
           jsonrpc: '2.0',
           id,
-          result: {
-            description: PROMPTS_LIST[0].description,
-            messages: [
-              {
-                role: 'user',
-                content: {
-                  type: 'text',
-                  text: `Audit ${targetUrl} with scan_page and check_aeo, then generate a surgical refactor plan with fix_prompt.`,
-                },
-              },
-            ],
-          },
-        },
-      };
-    }
-    if (promptName === 'refactor-to-design-system') {
-      return {
-        method,
-        response: {
-          jsonrpc: '2.0',
-          id,
-          result: {
-            description: PROMPTS_LIST[1].description,
-            messages: [
-              {
-                role: 'user',
-                content: {
-                  type: 'text',
-                  text: `Check ${targetUrl} against its DESIGN.md with check_design_system and resolve any drifting tokens.`,
-                },
-              },
-            ],
+          error: {
+            code: -32602,
+            message: `Unknown prompt: ${promptName}. Available prompts: ${PROMPTS_LIST.map((p) => p.name).join(', ')}.`,
           },
         },
       };
     }
     return {
       method,
-      response: {
-        jsonrpc: '2.0',
-        id,
-        error: { code: -32602, message: `Unknown prompt: ${String(promptName)}` },
-      },
+      response: { jsonrpc: '2.0', id, result: rendered },
     };
   }
 
   if (method === 'tools/call') {
     const toolName = typeof params.name === 'string' ? params.name : '';
-    if (!DETERMINISTIC_TOOL_ORDER.includes(toolName as any)) {
+    if (!isMcpToolName(toolName)) {
       return {
         method,
         toolName,
         response: {
           jsonrpc: '2.0',
           id,
-          error: { code: -32602, message: `Unknown tool: ${toolName}` },
+          error: { code: -32602, message: mcpUnknownToolMessage(toolName) },
         },
       };
     }
-    const result = await executeToolCall(toolName, params.arguments || {}, ctx);
+    const result = await callTool(toolName, params.arguments, ctx);
     return {
       method,
       toolName,
@@ -1293,6 +971,26 @@ async function dispatchRpc(
       error: { code: -32601, message: `Method not found: ${method}` },
     },
   };
+}
+
+// A thrown error must still come back as JSON-RPC, never an HTML 500.
+async function safeDispatch(
+  rpc: any,
+  ctx: ToolCtx
+): Promise<{ response: Record<string, any> | null; method: string; toolName?: string }> {
+  try {
+    return await dispatchRpc(rpc, ctx);
+  } catch (err) {
+    const message = err && (err as Error).message ? (err as Error).message : String(err);
+    return {
+      method: typeof rpc?.method === 'string' ? rpc.method : 'invalid',
+      response: {
+        jsonrpc: '2.0',
+        id: rpc?.id ?? null,
+        error: { code: -32603, message: `Internal error: ${message.split('\n')[0].slice(0, 200)}` },
+      },
+    };
+  }
 }
 
 export async function onRequestOptions() {
@@ -1374,7 +1072,7 @@ export async function onRequestPost(ctx: { request: Request; env?: any; waitUnti
     }
     const results = await Promise.all(
       payload.map((item) =>
-        dispatchRpc(item, { request: ctx.request, env: ctx.env || {}, waitUntil: ctx.waitUntil })
+        safeDispatch(item, { request: ctx.request, env: ctx.env || {}, waitUntil: ctx.waitUntil })
       )
     );
     const responses = results.map((r) => r.response).filter(Boolean);
@@ -1399,7 +1097,7 @@ export async function onRequestPost(ctx: { request: Request; env?: any; waitUnti
     });
   }
 
-  const { response, method, toolName } = await dispatchRpc(payload, {
+  const { response, method, toolName } = await safeDispatch(payload, {
     request: ctx.request,
     env: ctx.env || {},
     waitUntil: ctx.waitUntil,

@@ -1,5 +1,7 @@
 # GitHub ecosystem, competitors and distribution (deep pass, 2026-10-20)
 
+> **Snapshot, not maintained.** Research notes written in October 2026 for roadmap v4. Counts, file paths, line numbers and status describe the code at that time; check the code, [`ROADMAP.md`](../../../ROADMAP.md) and the open issues for the current state.
+
 This pass builds on `docs/research/roadmap-v4/github_ecosystem_distribution.md` (retrieved 2026-10-19) and `REPORT.md` (R-01 to R-09, W-01 to W-05, S-01 to S-06). It does not repeat that work. It refreshes the numbers, closes the gaps that file listed (Impeccable's live-URL capability, Glama mechanics, skills.sh install counts), and adds tools and needs that appeared between July and October 2026.
 
 **Legend**

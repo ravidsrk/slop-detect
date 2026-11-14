@@ -207,6 +207,7 @@ components:
           name: 'extract_design_system',
           arguments: {
             name: 'Extracted Co',
+            format: 'both',
             observed: {
               surface: '#F6F4EE',
               headings: [{ color: '#181815', fontFamily: 'IBM Plex Mono' }],

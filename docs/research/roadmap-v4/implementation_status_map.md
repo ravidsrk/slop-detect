@@ -1,131 +1,14 @@
 # Implementation status map: codebase vs roadmap v3 items (read-only code investigation, 2026-10-19)
 
+> **Snapshot, not maintained.** Research notes written in October 2026 for roadmap v4. Counts, file paths, line numbers and status describe the code at that time; check the code, [`ROADMAP.md`](../../../ROADMAP.md) and the open issues for the current state.
+
 > Produced by a read-only codebase investigation of the slop-detect worktree at commit d37e91c (main). It maps what is already shipped, partially implemented, or missing for each roadmap v3 item (#196-#213), plus defects found in shipped code. File/line references are to that commit.
-
-## Investigation brief
-
-Very thorough, READ-ONLY codebase investigation. Work only in the git worktree at /home/repos/users/mDn3vRscxATUnCmKRdQLXELIVrl1/ffa263b3-eb3d-4ac9-96d8-7baa3bb156d2/.worktrees/7b63e35f-114a-4e8f-a5c1-9e1026b5c6b0 using absolute paths (do not cd into the original repo root). Do NOT modify, commit, checkout, switch branches, stash, or delete anything — use only read commands such as git log / git diff / git show / git branch, cat, grep, find.
-
-Context: Slop Detector is a Bun + Turborepo monorepo (packages/core = scoring engine, packages/cli = Playwright CLI `slop-detect`, packages/mcp = MCP server, packages/action = GitHub composite action, apps/web = Cloudflare Pages site + Functions API, spec/ = versioned scoring spec). The worktree is on origin/main at d37e91c (v0.8.0, DEFINITIONS_VERSION 2026.09). There are 18 open roadmap issues #196–#213; their full bodies are in /tmp/roadmap-v4/issue-196.json … /tmp/roadmap-v4/issue-213.json (JSON, text in the "body" field; read with `jq -r .body`).
-
-Produce an implementation-status map:
-
-1. For each issue #196–#213, determine whether any part is already implemented on main — cite file:line evidence — or exists on an unmerged branch. Inspect these local branches read-only with `git log --oneline main..<branch> | head`, `git diff --stat main...<branch> | tail -40`, and `git show <branch>:<path>` where needed: feat/0.9-modernize, ws/aeo, ws/fingerprint, ws/mcp, ws/platform, subagent-AEO-v2-Engineer-self-65ab541f, subagent-Fingerprint-2026-Engineer-self-61457a67, subagent-MCP-Distribution-Engineer-self-e18215e6, subagent-Platform-Modernization-Engineer-self-8d8a3ab4, workspace/4bf6cb7d-draft, workspace/686b7e09-complete-product-review-and-launch-plann, workspace/7b63e35f-conduct-comprehensive-app-audit-and-rede, workspace/971b605d-draft, completion/roadmap-v3, completion/roadmap-v3-fixes. For each branch report: commits ahead of main, a one-line summary of what it contains, whether it is merged / superseded / stale / has unique unmerged work, and which roadmap issue(s) it relates to.
-
-2. Report these facts with file:line evidence:
-   a. npm publishing: .github/workflows/publish.yml (and any other release workflows) — NPM_TOKEN vs OIDC trusted publishing, `--provenance`, `permissions: id-token: write`, npm CLI version; changesets config; package names/versions in packages/*/package.json (core is published as `slop-detect-core` via prepack/postpack — confirm how).
-   b. MCP: does packages/mcp have an MCP Registry `server.json` and `mcpName` in package.json? Which tools/resources/prompts exist, which @modelcontextprotocol/sdk version, transports (stdio/HTTP)? Is there a /.well-known/mcp.json on apps/web?
-   c. `skills/` directory: contents and format (Agent Skills SKILL.md frontmatter?), any Claude Code plugin manifest (.claude-plugin/).
-   d. CLI features: flags supported (look at the CLI arg parser) — SARIF output? JSON schema? --preset? compare/diff/baseline? multi-page crawl or sitemap? static directory scanning? screenshot output? exit codes / --fail-on.
-   e. packages/core/src/presets.ts content and how presets affect scoring; packages/core/src/verdict.ts and rules.ts scoring/weights/tier model; any confidence or co-occurrence logic.
-   f. Copy axis: how copy text is extracted (which DOM text, min length, language detection, non-English handling) — packages/core/src/copyPatterns.ts and text.ts.
-   g. AEO: exact logic summary of each of the 8 checks in packages/core/src/aeo.ts — which user-agents are probed, the AI-bot list used for robots.txt, how llms.txt is validated (any HTML soft-404 rejection?), markdown twin detection, whether training vs search bots are separated, any Content-Signal / JSON-LD / agent-card handling.
-   h. DESIGN.md axis: packages/core/src/system.ts — supported DESIGN.md format, color distance method (sRGB? Oklab?), tolerance, any DTCG tokens.json support.
-   i. Calibration: CALIBRATION.md and VALIDATION.md — current corpus size, labeling method, metrics reported, any pre-2022 human baseline; assets-raw/ or scripts/ calibration data (leaderboard.json size).
-   j. spec/ contents and versioning (spec/config.json fields), conformance suite.
-   k. apps/web: list of routes/functions (apps/web/functions/**), watch/monitoring features, webhooks, rate limits, any i18n.
-   l. Tests: layout and rough counts (vitest files per package), e2e fixtures.
-
-3. List concrete gaps or inconsistencies you notice (docs claiming features that don't exist, pattern counts that disagree across README/spec/AGENTS.md/web UI, stale definitions versions, roadmap items that are already done, ROADMAP.md statements that are inaccurate).
-
-Return a structured report (aim for under ~1,800 words) with file:line citations. Be precise; say "not found" rather than guessing.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ## Findings
 
 # Implementation-status map: Slop Detector roadmap issues #196–#213 (origin/main d37e91c)
 
-All paths are relative to `/home/repos/users/mDn3vRscxATUnCmKRdQLXELIVrl1/ffa263b3-eb3d-4ac9-96d8-7baa3bb156d2/.worktrees/7b63e35f-114a-4e8f-a5c1-9e1026b5c6b0/`.
+All paths are relative to the repository root at commit `d37e91c`.
 
 **Caveat:** local `main` is cdd58e1 (2026-09-16), which is 8 commits behind origin/main d37e91c (= HEAD). Because of that, `main..<branch>` overstates how far ahead each branch is. Below, ahead/behind counts are against origin/main, with the count against local main in brackets.
 

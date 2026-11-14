@@ -7,7 +7,13 @@
 //
 // Any other request falls through to next() — the static index.html SPA.
 
-import { PATTERNS, COPY_PATTERNS, AEO_CHECKS, DEFINITIONS_VERSION } from '@slop-detect/core';
+import {
+  PATTERNS,
+  COPY_PATTERNS,
+  AEO_CHECKS,
+  DEFINITIONS_VERSION,
+  SLOP_DETECT_VERSION,
+} from '@slop-detect/core';
 
 const ORIGIN = 'https://slop-detect.com';
 
@@ -19,7 +25,7 @@ function agentView() {
     url: ORIGIN,
     license: 'MIT',
     repository: 'https://github.com/ravidsrk/slop-detect',
-    version: '0.8.0',
+    version: SLOP_DETECT_VERSION,
     catalogue: {
       definitionsVersion: DEFINITIONS_VERSION,
       patternCount: PATTERNS.length,

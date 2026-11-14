@@ -1,5 +1,7 @@
 # AEO axis: deep follow-up to roadmap v4 (status as of 2026-10-20)
 
+> **Snapshot, not maintained.** Research notes written in October 2026 for roadmap v4. Counts, file paths, line numbers and status describe the code at that time; check the code, [`ROADMAP.md`](../../../ROADMAP.md) and the open issues for the current state.
+
 **Scope.** This note follows up on `docs/research/roadmap-v4/REPORT.md` (AEO section A-01..A-08, FIX-13..FIX-17) and `docs/research/roadmap-v4/aeo_geo_agent_web.md`, both dated 2026-10-19. It does not repeat them. It covers four things:
 - gaps those notes listed as open;
 - primary sources updated between July and October 2026;

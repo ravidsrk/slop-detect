@@ -1,5 +1,7 @@
 # X (Twitter) and Reddit practitioner discourse, 2025-01-01 to 2026-10-19: AI design and copy tells, detector criticism, AEO and llms.txt evidence, tool reception, and second-order slop
 
+> **Snapshot, not maintained.** Research notes written in October 2026 for roadmap v4. Counts, file paths, line numbers and status describe the code at that time; check the code, [`ROADMAP.md`](../../../ROADMAP.md) and the open issues for the current state.
+
 Research date: 2026-10-19. These notes extend `practitioner_discourse_x_hn.md`, which verified only two X posts and could not reach Reddit. They cover only what that file lacked, plus confirmations and contradictions of it.
 
 **Method.** Every X post below was retrieved through the Scrape Creators X post scraper. The search endpoint returns the same full post object, with text, timestamp and counts, as the single-tweet endpoint. Long-form X Articles came back with their full article body. Every Reddit post and comment was retrieved through the Scrape Creators Reddit search or post-comments scrapers, and LinkedIn and Bluesky through their scrapers. Hacker News items come from the free Algolia and Firebase APIs.

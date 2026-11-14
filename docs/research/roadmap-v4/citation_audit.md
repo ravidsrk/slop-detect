@@ -1,5 +1,7 @@
 # Citation & Quantitative-Claim Audit of Slop Detector Roadmap v3 (ROADMAP.md §2–§3, issues #196–#213)
 
+> **Snapshot, not maintained.** Research notes written in October 2026 for roadmap v4. Counts, file paths, line numbers and status describe the code at that time; check the code, [`ROADMAP.md`](../../../ROADMAP.md) and the open issues for the current state.
+
 ## Q1. Which citations are VERIFIED exactly, which need CORRECTION, which are UNVERIFIABLE, and which appear FABRICATED?
 
 ### Takeaway

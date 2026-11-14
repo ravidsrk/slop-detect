@@ -387,6 +387,10 @@ export async function onRequestPost({ request, env, waitUntil }) {
       result.system = scoreSystemCompliance(parsedMd, data.systemContext);
       result.system.source = mdText ? mdUrl : null;
       if (parsedMd) Object.assign(result, applyDeclaredDesignWaivers(result, parsedMd));
+      // The observed tokens, as the CLI returns them: MCP extract_design_system
+      // turns them into a starter DESIGN.md / tokens.json (#361). Not persisted:
+      // slimResult() keeps only the scored fields.
+      if (data.systemContext) result.systemContext = data.systemContext;
     }
 
     // A non-full preset filters design patterns only. fullScore is that
