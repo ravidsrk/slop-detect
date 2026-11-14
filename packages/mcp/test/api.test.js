@@ -27,12 +27,37 @@ test('scanPage returns parsed JSON on success', async () => {
   expect(r.tier).toBe('Mild');
 });
 
-test('429 maps to a rate-limit ApiError', async () => {
-  global.fetch = async () => jsonRes({ error: 'rate_limited' }, { ok: false, status: 429 });
+test('429 maps to a rate-limit ApiError with the API message and retry time', async () => {
+  global.fetch = async () =>
+    jsonRes(
+      {
+        error: 'rate_limited',
+        message: 'Too many requests. Limit is 3/min per IP.',
+        retryAfter: 60,
+      },
+      { ok: false, status: 429 }
+    );
   await expect(scanPage('https://x.com')).rejects.toSatisfy((e) => {
     expect(e).toBeInstanceOf(ApiError);
     expect(e.status).toBe(429);
-    expect(e.message).toMatch(/Rate limited/);
+    expect(e.message).toMatch(/rate limit \(HTTP 429\)/);
+    expect(e.message).toMatch(/Limit is 3\/min per IP/);
+    expect(e.message).toMatch(/Retry in 60s/);
+    return true;
+  });
+});
+
+test('422 keeps the reason and hint and says it is not a Clean result', async () => {
+  global.fetch = async () =>
+    jsonRes(
+      { error: 'Sparse DOM.', code: 'empty_page', hint: 'Try a public marketing URL.' },
+      { ok: false, status: 422 }
+    );
+  await expect(scanPage('https://x.com')).rejects.toSatisfy((e) => {
+    expect(e.status).toBe(422);
+    expect(e.message).toMatch(/Sparse DOM\./);
+    expect(e.message).toMatch(/Try a public marketing URL\./);
+    expect(e.message).toMatch(/not a Clean result/);
     return true;
   });
 });

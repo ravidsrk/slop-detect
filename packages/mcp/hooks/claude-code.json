@@ -6,7 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node packages/mcp/hooks/scan-local.mjs"
+            "command": "node packages/mcp/hooks/scan-regression.mjs",
+            "timeout": 180
           }
         ]
       }
@@ -16,7 +17,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node packages/mcp/hooks/scan-local.mjs"
+            "command": "node packages/mcp/hooks/scan-regression.mjs",
+            "timeout": 180
           }
         ]
       }
