@@ -1,5 +1,7 @@
 # Code status audit: roadmap v4 items vs the actual code
 
+> **Snapshot, not maintained.** Research notes written in October 2026 for roadmap v4. Counts, file paths, line numbers and status describe the code at that time; check the code, [`ROADMAP.md`](../../../ROADMAP.md) and the open issues for the current state.
+
 Audit date: 2026-10-20. Read-only.
 
 **Baselines**

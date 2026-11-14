@@ -1,5 +1,7 @@
 # Roadmap v4: earn trust before adding tells
 
+> **Snapshot, not maintained.** Research notes written in October 2026 for roadmap v4. Counts, file paths, line numbers and status describe the code at that time; check the code, [`ROADMAP.md`](../../../ROADMAP.md) and the open issues for the current state.
+
 Slop Detector's roadmap v4 should reverse v3's priorities. It should first fix what the shipped engine measures wrongly, then prove calibration, and only then add tells, which should enter at zero weight and earn points through measured lift. The v3 roadmap cites 21 real arXiv papers, but this audit of its 123 claims found **16 fabricated and 38 needing correction**. The fabrications include invented metrics (SCS/CRR/RLI), a sentence-length threshold lifted from an unrelated table cell, a Mind2Web "85–95% noise" figure that does not exist, and vocabulary tiers that Kobak's own data contradict. Six of v3's fourteen `research:backed` issues therefore lose that label or must be re-scoped, while #203, #204 and #206 survive with mechanical fixes. The shipped v0.8.0 engine has bigger problems than missing tells:
 - Its two heaviest AEO checks, worth 45 of 100 points, impersonate OpenAI's *training* crawler, pass AWS WAF challenge pages, penalise legitimate training opt-outs and read a failed robots.txt fetch as "allow all".
 - Tailwind v4's `oklch()` colours fall through to exact-string matching.

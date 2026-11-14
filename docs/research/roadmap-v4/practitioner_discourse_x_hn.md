@@ -1,5 +1,7 @@
 # Practitioner discourse (X, Hacker News, Reddit, blogs), 2025–2026: AI design and copy slop, slop detectors, AEO and llms.txt
 
+> **Snapshot, not maintained.** Research notes written in October 2026 for roadmap v4. Counts, file paths, line numbers and status describe the code at that time; check the code, [`ROADMAP.md`](../../../ROADMAP.md) and the open issues for the current state.
+
 Research date: 2026-10-19. HN points and comment counts are as of that date, pulled from the HN Algolia and Firebase APIs.
 
 Verification tags used below:

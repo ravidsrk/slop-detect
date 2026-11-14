@@ -292,7 +292,7 @@ Plus cross-cutting guidance (*"don't replace one slop pattern with another"*, *"
 
 | Agent Environment | Recommended Connection | Notes |
 | --- | --- | --- |
-| **Local `localhost` / `file://` dev** | `npx -y slop-detect-mcp --local` | Uses local Playwright (requires `slop-detect` installed); zero network egress |
+| **Local `localhost` / `file://` dev** | `npx -y -p slop-detect -p slop-detect-mcp slop-detect-mcp --local` | Uses local Playwright via the `slop-detect` runner (named with `-p` because it's an optional peer); zero network egress |
 | **Public URLs from Desktop IDEs** | `npx -y slop-detect-mcp` | Zero browser install; delegates to `https://slop-detect.com/api/*` |
 | **Cloud & Web Builders (`v0`, `Lovable`, `claude.ai`, `ChatGPT`)** | `https://slop-detect.com/mcp` | Stateless Streamable HTTP MCP (`2025-11-25`) + inline `ui://slop-detect/scorecard.html` MCP App cards |
 | **Portable Agent Skill (20+ agents)** | [`skills/slop-detect/SKILL.md`](skills/slop-detect/SKILL.md) | Follows [agentskills.io](https://agentskills.io) for Claude Code, Cursor, Copilot, Gemini CLI, Codex, Roo Code & Junie |

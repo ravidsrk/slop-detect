@@ -15,7 +15,7 @@ It implements both the **2026-07-28 stateless MCP specification** (`server/disco
 | Target URL | Which MCP Server to Use | Why |
 | --- | --- | --- |
 | Public `https://` preview (`*.lovable.app`, `*.vercel.app`, `*.netlify.app`, `*.pages.dev`) | Remote MCP: `https://slop-detect.com/mcp` | The hosted Cloudflare Worker opens the public URL in headless Chromium. |
-| `http://localhost:*`, `http://127.0.0.1:*`, `file://`, or private VPN preview | Local stdio MCP: `npx -y slop-detect-mcp --local` | The remote server enforces a strict SSRF guard and rejects loopback/private IPs (`422`). `--local` runs Playwright on your machine with zero data egress. |
+| `http://localhost:*`, `http://127.0.0.1:*`, `file://`, or private VPN preview | Local stdio MCP: `npx -y -p slop-detect -p slop-detect-mcp slop-detect-mcp --local` | The remote server enforces a strict SSRF guard and rejects loopback/private IPs (`422`). `--local` runs Playwright on your machine with zero data egress. |
 
 ---
 

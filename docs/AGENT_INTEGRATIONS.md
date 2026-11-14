@@ -12,13 +12,13 @@ Slop Detector is designed to run **inside your coding agent's loop** so Claude C
 
 | Environment | Target URLs | Recommended Setup |
 | --- | --- | --- |
-| **Claude Code / Cursor / Windsurf (Local Dev)** | `http://localhost:*`, `file://`, AND public URLs | `npx slop-detect init` or `npx -y slop-detect-mcp --local` |
+| **Claude Code / Cursor / Windsurf (Local Dev)** | `http://localhost:*`, `file://`, AND public URLs | `npx slop-detect init` or `npx -y -p slop-detect -p slop-detect-mcp slop-detect-mcp --local` |
 | **Claude Code / Cursor / Windsurf (Zero-Install)** | Public `https://` URLs & deploy previews | `npx -y slop-detect-mcp` (calls `https://slop-detect.com/api/*`) |
 | **Web / Cloud Agents (`v0`, `Lovable`, `claude.ai`, `ChatGPT`)** | Public `https://` preview URLs (`*.vercel.app`, `*.lovable.app`) | Remote Streamable HTTP MCP: `https://slop-detect.com/mcp` |
 | **Any [agentskills.io](https://agentskills.io)-compatible agent (20+ IDEs)** | Local or public URLs | Copy [`skills/slop-detect/SKILL.md`](../skills/slop-detect/SKILL.md) into `.claude/skills/` or `.cursor/skills/` |
 
 > [!WARNING]
-> **Localhost vs. Remote MCP:** The hosted API (`https://slop-detect.com/api/*` and `https://slop-detect.com/mcp`) enforces a strict SSRF guard and rejects `localhost`, `127.0.0.1`, and private network IPs (`422`). To scan `http://localhost:3000` or `file://`, always run the CLI or start `slop-detect-mcp` with `--local` (`SLOP_DETECT_LOCAL=1`).
+> **Localhost vs. Remote MCP:** The hosted API (`https://slop-detect.com/api/*` and `https://slop-detect.com/mcp`) enforces a strict SSRF guard and rejects `localhost`, `127.0.0.1`, and private network IPs (`422`). To scan `http://localhost:3000` or `file://`, always run the CLI or the npm server in local mode: `npx -y -p slop-detect -p slop-detect-mcp slop-detect-mcp --local` (the `slop-detect` Playwright runner is an optional peer, so name it).
 
 ---
 
@@ -31,27 +31,32 @@ npx slop-detect init
 ```
 
 This creates or merges:
-1. `.mcp.json` / `.cursor/mcp.json` — registers `slop-detect-mcp`
-2. `.claude/settings.local.json` / `.cursor/hooks.json` — wires `packages/mcp/hooks/scan-local.mjs` as a post-edit hook (pass `--no-hooks` to skip hooks)
-3. `.claude/skills/slop-detect/SKILL.md` — installs the portable Agent Skill
+1. `.mcp.json` — registers `slop-detect-mcp --local` with the `slop-detect` runner
+2. `.claude/settings.local.json` / `.cursor/hooks.json` / `.codex/hooks.json` — wires `slop-detect-hook` (`npx -y -p slop-detect -p slop-detect-mcp slop-detect-hook`) as a PostToolUse + Stop hook (pass `--no-hooks` to skip hooks)
+3. `.slop/local-url` — the dev-server URL, when init can tell it from `package.json` (Astro, Next, Vite, SvelteKit, …) or you pass `--local-url`
+4. `.claude/skills/slop-detect/SKILL.md` — installs the portable Agent Skill
+
+The hook does nothing until a URL is set. Then it reports only new findings: when the score rises or a new pattern appears it exits 2 and Claude sees the message (Stop is blocked once so the agent can fix it). A scan that can't run never blocks; on Stop it shows you a note instead.
 
 ---
 
 ## 3. MCP Server (`slop-detect-mcp` & `https://slop-detect.com/mcp`)
 
-Both the stdio package ([`packages/mcp`](../packages/mcp)) and the stateless Streamable HTTP endpoint (`https://slop-detect.com/mcp`) expose **7 tools** and **1 MCP App UI resource**:
+Both the stdio package ([`packages/mcp`](../packages/mcp)) and the stateless Streamable HTTP endpoint (`https://slop-detect.com/mcp`) serve the same 7 tools from one contract ([`packages/core/src/mcp-tools.ts`](../packages/core/src/mcp-tools.ts)): same names, arguments and descriptions. Results are short summaries with compact structured content. Only the npm server keeps scans in memory, so `scan_id` works there; on the hosted endpoint pass the triggered `patterns` instead.
 
 ### Available MCP Tools
 
 | Tool Name | Arguments | What It Returns |
 | --- | --- | --- |
-| `scan_page` | `{ url, axes?: ["design","copy"], preset? }` | Full 0–100 score (`Clean`/`Mild`/`Heavy`), letter grade, triggered pattern evidence, and shareable permalink (`structuredContent` + text). |
-| `check_aeo` | `{ url }` | 16-check Answer Engine Optimization audit (`Eligible` / `Partially Eligible` / `Restricted`). |
-| `check_design_system` | `{ url, design_md_url? }` | Checks live DOM compliance against `<origin>/DESIGN.md` or a custom `DESIGN.md` URL (`Aligned` / `Drifting` / `Off-system`). |
-| `fix_prompt` | `{ url }` | Generates a copy-paste remediation prompt scoped to the page's heaviest triggered tells. |
-| `lint_design_md` | `{ design_md }` | Static lint of `DESIGN.md` prose/frontmatter (broken token refs, contrast < 4.5:1, orphaned tokens). No network call. |
+| `scan_page` | `{ url, axes?, preset?, design_md_url?, detail? }` | 0–100 score (`Clean`/`Mild`/`Heavy`), grade, and only the triggered patterns with evidence. `axes` adds `copy`/`craft`; `design_md_url` adds DESIGN.md compliance; `detail: "full"` returns the whole document. Never published. |
+| `check_aeo` | `{ url }` | Answer Engine Optimization audit (`Eligible` / `Partially Eligible` / `Restricted`) with the failed checks. |
+| `check_design_system` | `{ url?, design_md_url?, scan_id? }` | Live DOM compliance against `<origin>/DESIGN.md` or a custom `DESIGN.md` URL (`Aligned` / `Drifting` / `Off-system`). |
+| `fix_prompt` | `{ url?, scan_id?, patterns?, axes?, preset?, design_md_url?, brief? }` | Copy-paste remediation prompt. Reuse a scan with `scan_id` (npm server) or `patterns`; `brief: true` gives a 120-word avoid list (generic when no page is given). |
+| `lint_design_md` | `{ design_md }` | Static lint of `DESIGN.md` front matter (broken token refs, contrast < 4.5:1, orphaned tokens). No network call. |
 | `diff_design_md` | `{ base_design_md, head_design_md }` | Token-level diff between two `DESIGN.md` files; flags breaking removals or value shifts. |
-| `extract_design_system` | `{ url?, observed?, format?: "design-md" \| "dtcg" }` | Extracts a Google Labs `DESIGN.md` or W3C DTCG `2025.10` `tokens.json` from a live URL or observed DOM payload. |
+| `extract_design_system` | `{ url?, scan_id?, observed?, name?, format?: "design_md" \| "dtcg" \| "both" }` | Starter Google Labs `DESIGN.md` and/or W3C DTCG `2025.10` `tokens.json` from what a live page renders (or `observed` tokens). |
+
+Missing or misspelled arguments return an error naming the field; older names (`content`, `base`/`head`, `designMd`, `copy: true`, `mode: "avoid"`) are still accepted.
 
 ### Interactive MCP App Resource (`ui://slop-detect/scorecard.html`)
 
@@ -76,11 +81,11 @@ Clients supporting the MCP Apps extension (`text/html;profile=mcp-app`) render a
 claude mcp add slop-detect -- npx -y slop-detect-mcp
 
 # Localhost dev servers (uses local Playwright via slop-detect)
-claude mcp add slop-detect -- npx -y slop-detect-mcp --local
+claude mcp add slop-detect -- npx -y -p slop-detect -p slop-detect-mcp slop-detect-mcp --local
 ```
 
-**Option 3: Automatic PostToolUse Hook (`scan-local.mjs`)**
-When editing frontend files against a running dev server (`http://localhost:3000`), wire [`packages/mcp/hooks/claude-code.json`](../packages/mcp/hooks/claude-code.json) into `.claude/settings.local.json`:
+**Option 3: Regression hook (`slop-detect-hook`)**
+`npx slop-detect init` writes this for you. To wire it by hand, set the dev-server URL (`SLOP_LOCAL_URL` or `.slop/local-url`) and add to `.claude/settings.local.json`:
 ```json
 {
   "hooks": {
@@ -90,7 +95,19 @@ When editing frontend files against a running dev server (`http://localhost:3000
         "hooks": [
           {
             "type": "command",
-            "command": "SLOP_LOCAL_URL=http://localhost:3000 node node_modules/slop-detect-mcp/hooks/scan-local.mjs"
+            "command": "npx -y -p slop-detect -p slop-detect-mcp slop-detect-hook",
+            "timeout": 180
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx -y -p slop-detect -p slop-detect-mcp slop-detect-hook",
+            "timeout": 180
           }
         ]
       }
@@ -107,7 +124,7 @@ Add to `.cursor/mcp.json`:
   "mcpServers": {
     "slop-detect": {
       "command": "npx",
-      "args": ["-y", "slop-detect-mcp", "--local"]
+      "args": ["-y", "-p", "slop-detect", "-p", "slop-detect-mcp", "slop-detect-mcp", "--local"]
     }
   }
 }

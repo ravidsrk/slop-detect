@@ -6,7 +6,7 @@ Thanks for considering a contribution. The whole detection engine is small enoug
 
 1. Fork → branch → PR.
 2. New patterns and fix-recipe improvements are the most welcome contributions.
-3. Run `bun run format:check`, `bun run typecheck`, and `bun run test` before pushing — CI runs the same.
+3. Run `bun run verify` (format check, lint, typecheck, build, test) before pushing — CI runs the same. After touching page-eval code, also run `bun run test:golden` (real Chromium).
 4. Be kind in issues and PRs. The code we're auditing was written by people too.
 
 ## Setup
@@ -165,18 +165,23 @@ Avoid:
 ## Testing your changes
 
 ```bash
-# 1) Format + typecheck
-bun run format:check   # or `bun run format` to auto-fix
-bun run typecheck      # turbo across every package
+# 1) Everything CI checks, in one command (~40 s)
+bun run verify         # format:check + lint + typecheck + build + test
 
-# 2) Build + test (turbo handles dependency order)
+#    or step by step
+bun run format:check   # or `bun run format` to auto-fix
+bun run lint           # eslint across every package
+bun run typecheck      # turbo across every package
 bun run build          # tsup across the publishable libs
-bun run test           # vitest, every package
+bun run test           # vitest, every package (skips the real-Chromium tests)
+
+# 2) Real-Chromium detector tests (RUN_GOLDEN=1) — run after page-eval changes
+bun run test:golden
 
 # 3) Run the CLI against a known-bad and known-good URL
 bun run --filter slop-detect scan https://www.aura.build         # should be Heavy
 bun run --filter slop-detect scan https://news.ycombinator.com   # should be Clean
-bun run --filter slop-detect scan https://example.com -- --copy  # design + copy axes
+bun run --filter slop-detect scan https://news.ycombinator.com -- --copy  # design + copy axes
 
 # 4) Run the web app locally (scans work; first scan downloads a browser):
 bun run web:dev
@@ -184,7 +189,7 @@ bun run web:dev
 
 ## Pull request checklist
 
-- [ ] `bun run format:check`, `bun run typecheck`, `bun run test` all pass
+- [ ] `bun run verify` passes (and `bun run test:golden` if you touched page-eval code)
 - [ ] You ran the CLI against ≥2 URLs and confirmed your change behaves as expected
 - [ ] If you added a pattern: ≥10 real-world examples in the PR description AND `spec/patterns.md` updated
 - [ ] If you changed a fix recipe: a before/after comparison of the generated prompt

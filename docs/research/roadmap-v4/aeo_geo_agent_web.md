@@ -1,5 +1,7 @@
 # AEO / GEO and the agent-ready web: evidence base and standards landscape, 2024–2026 (status as of 2026-10-19)
 
+> **Snapshot, not maintained.** Research notes written in October 2026 for roadmap v4. Counts, file paths, line numbers and status describe the code at that time; check the code, [`ROADMAP.md`](../../../ROADMAP.md) and the open issues for the current state.
+
 How these notes were made:
 - Research ran on 2026-10-19 (today). The lead researcher and six delegated research sub-agents fetched the sources. Each verification label below records what was actually opened in this session.
 - **[V]** means verified: the page was opened and the number or quote taken from its text. Pages were read through a fetch tool that summarises and paraphrases, so re-check exact strings (UA versions, header names) before hardcoding them.

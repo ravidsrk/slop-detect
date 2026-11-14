@@ -1,5 +1,7 @@
 # Design axis (Axis 01) and DESIGN.md system axis (Axis 03): research evidence for Slop Detector roadmap v4
 
+> **Snapshot, not maintained.** Research notes written in October 2026 for roadmap v4. Counts, file paths, line numbers and status describe the code at that time; check the code, [`ROADMAP.md`](../../../ROADMAP.md) and the open issues for the current state.
+
 Status as of 2026-10-19. These notes complete the interrupted design-axis research. They synthesize the seven staged sub-reports (`/tmp/roadmap-v4/design-subreports/01`–`07`), apply the corrections in `citation_audit.md`, and use the code facts in `implementation_status_map.md`. The repo was read at commit `d37e91c` and not modified. Load-bearing items were re-verified in this session.
 
 **Verification tags (used on every bullet):**
