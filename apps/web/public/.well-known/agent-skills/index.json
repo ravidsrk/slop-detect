@@ -10,7 +10,7 @@
       "type": "skill-md",
       "description": "Score any landing page against the versioned design-slop fingerprint, copy axis, DESIGN.md system compliance, and AEO readiness, then generate a fix prompt.",
       "url": "https://raw.githubusercontent.com/ravidsrk/slop-detect/main/skills/slop-detect/SKILL.md",
-      "digest": "sha256:4d310546fe9c4d6cd3fdf996169007b8030a575f8e1eba31041fefe31a6f42ed",
+      "digest": "sha256:2dd6e168b52c6175e923b34cac47fdd0600613cb4b22a087f1a8b701bfccf1d7",
       "license": "MIT",
       "homepage": "https://slop-detect.com",
       "repository": "https://github.com/ravidsrk/slop-detect"

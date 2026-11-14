@@ -234,7 +234,7 @@ Tools: `scan_page`, `check_aeo`, `check_design_system`, `fix_prompt`.
 ## 10 · CI gate · GitHub Action
 
 ```yaml
-- uses: ravidsrk/slop-detect@v0.9.0
+- uses: ravidsrk/slop-detect@v0.9.1
   with:
     url: ${{ steps.preview.outputs.url }}
     fail-under: 'B'

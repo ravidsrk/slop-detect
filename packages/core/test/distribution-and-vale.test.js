@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { generateValeStyleFiles } from '../../../scripts/export-vale.mjs';
+import { releaseNotes } from '../../../scripts/release-notes.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..', '..');
@@ -54,6 +55,24 @@ describe('R-01, R-02, R-03, R-05, R-06, R-08, R-09..R-14, W-05, K-04 distributio
     const publishYml = readText('.github/workflows/publish.yml');
     expect(publishYml).toContain('Publish slop-detect-mcp to Official MCP Registry');
     expect(publishYml).toContain('mcp-publisher publish');
+  });
+
+  it('the GitHub Release body is the CHANGELOG section for the tag, not empty', () => {
+    // The v0.9.0 release shipped with an empty body: the old inline regex
+    // stopped at the blank line under the heading.
+    const tag = `v${readJson('package.json').version}`;
+    const notes = releaseNotes(readText('CHANGELOG.md'), tag);
+    expect(notes.length).toBeGreaterThan(200);
+    expect(notes).not.toMatch(/^## /m);
+    expect(readText('.github/workflows/publish.yml')).toContain(
+      'node scripts/release-notes.mjs "$TAG_NAME" > "$NOTES_FILE"'
+    );
+
+    const changelog =
+      '# Changelog\n\n## v1.0.10 — later\n\nten\n\n## v1.0.1 — fix\n\n### Fixed\n\none\n';
+    expect(releaseNotes(changelog, 'v1.0.1')).toBe('### Fixed\n\none');
+    expect(releaseNotes(changelog, 'v1.0.10')).toBe('ten');
+    expect(releaseNotes(changelog, 'v1.0.0')).toBe('');
   });
 
   it('R-01 & R-03: validates Claude Code marketplace, plugin manifest, hooks, and SKILL.md frontmatter/parity', () => {
