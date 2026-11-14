@@ -492,9 +492,24 @@ export const FIXES = {
 // LLM from re-discovering the problem and possibly fixing the wrong thing.
 // Returns null when there's no useful evidence to surface.
 // ─────────────────────────────────────────────────────────────────────────────
+// Evidence samples are strings for most patterns and small objects for a few
+// (e.g. purple_accent's { tag, bg }). Render objects by their fields instead of
+// "[object Object]".
+function sampleText(sample) {
+  if (sample == null) return '';
+  if (typeof sample !== 'object') return String(sample);
+  for (const key of ['text', 'value', 'sample']) {
+    if (typeof sample[key] === 'string') return sample[key];
+  }
+  const parts = Object.entries(sample)
+    .filter(([, value]) => value != null && typeof value !== 'object')
+    .map(([key, value]) => `${key} ${value}`);
+  return parts.length ? parts.join(', ') : JSON.stringify(sample);
+}
+
 function fmtList(arr, n = 3) {
   if (!Array.isArray(arr) || arr.length === 0) return null;
-  const slice = arr.slice(0, n).map((s) => `"${String(s).slice(0, 60)}"`);
+  const slice = arr.slice(0, n).map((s) => `"${sampleText(s).slice(0, 60)}"`);
   return slice.join(', ') + (arr.length > n ? `, … (+${arr.length - n} more)` : '');
 }
 
@@ -752,7 +767,23 @@ export function formatEvidence(pattern) {
 // ─────────────────────────────────────────────────────────────────────────────
 const CLEAN_THRESHOLD = 10;
 
-// Build the assembled fix prompt from a scan result.
+// How many currently-passing patterns the prompt names explicitly. The rest are
+// summarised in one line: a 70-item prohibition list buries the actual fixes.
+export const FIX_PROMPT_PASSING_LIST_CAP = 8;
+
+const CATALOGUE_POINTER =
+  'the full catalogue is at https://slop-detect.com/api/patterns (MCP resource `slop://spec/patterns`)';
+
+function knownUrl(result) {
+  const raw = result && (result.finalUrl || result.url);
+  if (typeof raw !== 'string' || !raw.trim() || raw === 'page') return null;
+  return raw.trim();
+}
+
+// Build the assembled fix prompt from a scan result. `result` can also be a
+// pattern-only object ({ patterns: [...] }) when the caller has the triggered
+// pattern IDs but no scan; score and tier lines are then left out instead of
+// printing "undefined".
 export function buildFixPrompt(result) {
   // Design patterns are at result.patterns. When the copy axis was scored,
   // merge its patterns in too so the fix prompt covers BOTH axes (#08).
@@ -762,6 +793,11 @@ export function buildFixPrompt(result) {
   const triggered = allPatterns.filter((p) => p.triggered && !p.waived);
   const passing = allPatterns.filter((p) => !p.triggered);
   const totalCount = allPatterns.length;
+  const scoreKnown = typeof result.score === 'number' && Number.isFinite(result.score);
+  const tierLabel = typeof result.tier === 'string' && result.tier ? result.tier : null;
+  const isClean = scoreKnown && result.score < CLEAN_THRESHOLD;
+  const url = knownUrl(result);
+  const rescanTarget = url || '<url>';
 
   const systemDrift =
     (result.system && Array.isArray(result.system.drift) && result.system.drift) || [];
@@ -772,34 +808,56 @@ export function buildFixPrompt(result) {
       : []);
 
   if (triggered.length === 0 && systemDrift.length === 0 && aeoFailed.length === 0) {
-    return `Your landing page (${result.url}) scored ${result.score}/100 — tier "${result.tier}" — and triggered 0 of ${totalCount} slop patterns. There's nothing to fix on the slop dimension. Move on to conversion or content quality.`;
+    if (!scoreKnown) {
+      return `No triggered patterns were provided, so there's nothing to fix yet. Scan the page first (MCP \`scan_page\`, or \`npx slop-detect ${rescanTarget}\`) and build the prompt from that result.`;
+    }
+    return `Your landing page (${url || 'this page'}) scored ${result.score}/100${tierLabel ? ` — tier "${tierLabel}"` : ''} — and triggered 0 of ${totalCount} slop patterns. There's nothing to fix on the slop dimension. Move on to conversion or content quality.`;
   }
 
-  const url = result.finalUrl || result.url;
   const h1FontIsSlop = triggered.find((p) => p.id === 'slop_fonts')?.evidence?.heroIsSlop === true;
+  const axesNote = copyPatterns.length ? ' (design + copy axes)' : '';
+
+  let intro;
+  if (!scoreKnown) {
+    intro = `This prompt was built from ${triggered.length} pattern ID${triggered.length === 1 ? '' : 's'} without a page scan, so there's no score yet. Address each pattern below, then scan the page to confirm.`;
+  } else if (isClean) {
+    intro = `Your landing page scores **${result.score}/100** on the Slop Detector${tierLabel ? ` — tier **${tierLabel}**` : ''}, which is already under the Clean threshold (< ${CLEAN_THRESHOLD}). It still matches **${triggered.length} of ${totalCount}** default-template patterns${axesNote}. Treat the items below as optional polish, not required fixes, and don't trade them for a riskier redesign.`;
+  } else {
+    intro = `Your landing page scored **${result.score}/100** on the Slop Detector${tierLabel ? ` — tier **${tierLabel}**` : ''} — triggering **${triggered.length} of ${totalCount}** slop patterns${axesNote}. The goal of this prompt is to reduce that score to **< ${CLEAN_THRESHOLD} (Clean tier)** by addressing each triggered pattern with specific, opinionated remediation.`;
+  }
+
+  const contextLines = [
+    `- URL: ${url || '(not scanned)'}`,
+    result.title ? `- Title: ${result.title}` : null,
+    result.h1 ? `- H1: "${result.h1}"` : null,
+    result.h1Font
+      ? `- H1 font: ${result.h1Font}${h1FontIsSlop ? ' ⚠️ on the slop list' : ' ✓ not on the slop list — **keep this font**'}`
+      : null,
+  ].filter(Boolean);
 
   const header = `# Landing page slop fix prompt
 
-Your landing page scored **${result.score}/100** on the Slop Detector — tier **${result.tier}** — triggering **${triggered.length} of ${totalCount}** slop patterns${copyPatterns.length ? ' (design + copy axes)' : ''}. The goal of this prompt is to reduce that score to **< ${CLEAN_THRESHOLD} (Clean tier)** by addressing each triggered pattern with specific, opinionated remediation.
+${intro}
 
 ## Page context
-- URL: ${url}
-- Title: ${result.title || '(no title)'}${result.h1 ? `\n- H1: "${result.h1}"` : ''}${result.h1Font ? `\n- H1 font: ${result.h1Font}${h1FontIsSlop ? ' ⚠️ on the slop list' : ' ✓ not on the slop list — **keep this font**'}` : ''}
+${contextLines.join('\n')}
 
-## Issues to fix (in priority order — highest weight first)
+## ${isClean ? 'Optional polish' : 'Issues to fix'} (in priority order — highest weight first)
 `;
 
-  const sorted = triggered.slice().sort((a, b) => b.weight - a.weight);
+  const sorted = triggered.slice().sort((a, b) => (b.weight || 0) - (a.weight || 0));
   const issues = sorted.length
     ? sorted
         .map((p, i) => {
           const fix = FIXES[p.id];
+          const label = p.label || p.id;
+          const weight = typeof p.weight === 'number' ? p.weight : '?';
           if (!fix)
-            return `### ${i + 1}. ${p.label} (+${p.weight})\n_No fix recipe available for this pattern._`;
+            return `### ${i + 1}. ${label} (+${weight})\n_No fix recipe available for this pattern._`;
           const alts = fix.alternatives.map((a) => `   - ${a}`).join('\n');
           const evidence = formatEvidence(p);
           const evidenceBlock = evidence ? `\n**What we found on YOUR page:**\n${evidence}\n` : '';
-          return `### ${i + 1}. ${p.label}  *(weight: +${p.weight})*
+          return `### ${i + 1}. ${label}  *(weight: +${weight})*
 ${evidenceBlock}
 **Why this reads as AI-slop:**
 ${fix.problem}
@@ -830,24 +888,40 @@ ${alts}
         .join('\n')
     : '';
 
-  // Anti-regression: list patterns that currently pass so the LLM doesn't
-  // "fix" the page by introducing one of them (very common: removing the
-  // icon-card grid and replacing it with a gradient-text hero).
-  const passingList = passing
-    .slice()
-    .sort((a, b) => b.weight - a.weight)
-    .map((p) => `- **${p.label}** — currently passing. Do not introduce this pattern.`)
-    .join('\n');
+  // Anti-regression: name the heaviest patterns that currently pass so the
+  // agent doesn't "fix" the page by introducing one of them (very common:
+  // removing the icon-card grid and replacing it with a gradient-text hero).
+  const passingSorted = passing.slice().sort((a, b) => (b.weight || 0) - (a.weight || 0));
+  const named = passingSorted.slice(0, FIX_PROMPT_PASSING_LIST_CAP);
+  const remaining = passingSorted.length - named.length;
+  let passingSection;
+  if (passingSorted.length) {
+    const lines = named.map((p) => `- **${p.label || p.id}** (\`${p.id}\`)`).join('\n');
+    const more = remaining
+      ? `\n- …and ${remaining} more currently-passing pattern${remaining === 1 ? '' : 's'} (${CATALOGUE_POINTER}).`
+      : '';
+    passingSection = `## Currently passing — do NOT introduce these patterns
+
+${passingSorted.length} pattern${passingSorted.length === 1 ? ' is' : 's are'} not triggered on your page right now. Any change that introduces one raises the score. The heaviest ones:
+
+${lines}${more}`;
+  } else {
+    passingSection = `## Don't introduce new patterns
+
+This prompt only knows the patterns listed above. Don't add other default-template patterns while fixing them (${CATALOGUE_POINTER}).`;
+  }
+
+  const passingRule = isClean
+    ? `✅ **Passing**: the score stays \`< ${CLEAN_THRESHOLD}\`, no currently-passing pattern is introduced, and the items you polished no longer trigger.
+❌ **Failing**: the score rises to ${CLEAN_THRESHOLD} or more, OR any previously-passing pattern now triggers.`
+    : `✅ **Passing**: \`score < ${CLEAN_THRESHOLD}\` AND none of the ${triggered.length} pattern${triggered.length === 1 ? '' : 's'} above still trigger${triggered.length === 1 ? 's' : ''}.
+❌ **Failing**: score didn't drop below ${CLEAN_THRESHOLD}, OR any previously-passing pattern now triggers.`;
 
   const footer = `
 
 ---
 
-## Currently passing — do NOT introduce these patterns
-
-The following ${passing.length} patterns are not triggered on your page right now. Any fix that introduces one of them will RAISE your score and is unacceptable.
-
-${passingList}
+${passingSection}
 
 ---
 
@@ -861,18 +935,12 @@ ${passingList}
 
 ## Acceptance criterion
 
-After your changes, rescan with:
+After your changes, scan the page again where your changes are actually running:
 
-\`\`\`bash
-curl -sX POST https://slop-detect.com/api/scan \\
-  -H 'content-type: application/json' \\
-  -d '{"url":"${url}"}' | jq '{score, tier, patternsFlagged, triggered: [.patterns[] | select(.triggered) | .id]}'
-\`\`\`
+- MCP: call \`scan_page\` on the page. For a local dev server, run the npm server with \`--local\`; a deployed URL only shows your changes after you deploy.
+- CLI: \`npx slop-detect ${rescanTarget}\` (scans locally in headless Chromium and works for localhost).
 
-Or open https://slop-detect.com and paste the URL.
-
-✅ **Passing**: \`score < ${CLEAN_THRESHOLD}\` AND none of the ${triggered.length} patterns above still trigger.
-❌ **Failing**: score didn't drop below ${CLEAN_THRESHOLD}, OR any previously-passing pattern now triggers.
+${passingRule}
 
 ## Output format
 
