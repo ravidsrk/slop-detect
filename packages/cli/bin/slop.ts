@@ -64,7 +64,7 @@ import {
   writeBaseline,
 } from '../src/offline.js';
 
-const CLI_VERSION = '0.9.0';
+const CLI_VERSION = '0.9.1';
 const args = process.argv.slice(2);
 const urls = [];
 const flags = {

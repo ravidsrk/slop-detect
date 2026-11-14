@@ -244,14 +244,7 @@ jobs:
         run: |
           if ! gh release view "$TAG_NAME" >/dev/null 2>&1; then
             NOTES_FILE="$(mktemp)"
-            node -e '
-              const fs = require("fs");
-              const ver = process.env.TAG_NAME;
-              const cl = fs.readFileSync("CHANGELOG.md", "utf8");
-              const esc = ver.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-              const m = cl.match(new RegExp(`^## ${esc}[^\\n]*\\n([\\s\\S]*?)(?=\\n## |$)`, "m"));
-              fs.writeFileSync(process.argv[1], m ? m[1].trim() + "\n" : `Release ${ver}\n`);
-            ' "$NOTES_FILE"
+            node scripts/release-notes.mjs "$TAG_NAME" > "$NOTES_FILE"
             gh release create "$TAG_NAME" ./tarballs/SlopDetect.zip \
               --title "$TAG_NAME" \
               --notes-file "$NOTES_FILE"

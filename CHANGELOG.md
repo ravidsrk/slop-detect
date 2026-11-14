@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased — agent-facing fixes (#357–#365)
+## v0.9.1 — agent-facing fixes (#357–#365) (2026-11-14)
 
-No engine or scoring change: `DEFINITIONS_VERSION` stays `2026.11` and every score is the same. These fixes change what agents read back from the MCP tools and hooks.
+No engine or scoring change: `DEFINITIONS_VERSION` stays `2026.11` and every score is the same. Published npm packages (`slop-detect-core`, `slop-detect`, `slop-detect-mcp`) bump to `0.9.1`. These fixes change what agents read back from the MCP tools and hooks.
 
 - **`npx` local mode works.** `slop-detect` (Playwright) is an optional peer of `slop-detect-mcp`, so a bare `npx -y slop-detect-mcp --local` never installed it and every local scan failed. The Claude Code plugin, `slop-detect init` and the docs now run `npx -y -p slop-detect -p slop-detect-mcp slop-detect-mcp --local`, the error message names that command, and CI runs the plugin's exact command against packed tarballs (#357).
 - **MCP results are summaries.** Tool text no longer appends the pretty-printed scan JSON: a copy-axis scan was about 100,000 characters and is now under 4,000. Structured content keeps the schema-required fields plus the triggered patterns; `detail: "full"` and `slop://scan/<scan_id>` return the whole document. `fix_prompt`, `check_design_system` and `extract_design_system` reuse a scan through `scan_id` (npm server) or `patterns` instead of scanning again (#358).
@@ -13,6 +13,7 @@ No engine or scoring change: `DEFINITIONS_VERSION` stays `2026.11` and every sco
 - **Agent scans are private.** The npm server sends `share: false` on every hosted call, so agent scans no longer mint public permalinks or per-domain history while the tools say they are read-only (#363).
 - **Fix prompts fit the page.** A page that is already Clean gets optional polish instead of a "< 10" goal it already meets; a prompt built from pattern IDs leaves out the score lines instead of printing "undefined"; the passing-pattern list is capped at 8; re-scan steps are local-first. Object evidence samples no longer print as `[object Object]` (#364).
 - **Docs cleanup.** Research notes are marked as dated snapshots and the pasted agent brief is gone. ARCHITECTURE.md, SDK-V2.md, llms.txt, SKILL.md, the marketplace version and the skill digest match the code, and a test keeps them there (#365).
+- **Release notes.** `publish.yml` now takes the GitHub Release body from `scripts/release-notes.mjs`, which returns the CHANGELOG section for the tag. The old inline regex stopped at the blank line under the heading, so the v0.9.0 release shipped with an empty body.
 
 ## v0.9.0 — definitions@2026.11 engine, 5-axis telemetry, remote & local MCP, CI gates (2026-11-11)
 
