@@ -170,14 +170,30 @@ test('init is idempotent, refuses a home-directory scope, and honors --no-hooks'
   expect(existsSync(join(dir, '.github/workflows/slop-detect.yml'))).toBe(true);
   expect(existsSync(join(dir, '.codex/hooks.json'))).toBe(false);
   const settings = readFileSync(join(dir, '.claude/settings.local.json'), 'utf8');
-  expect(settings).toMatch(/scan-regression\.mjs/);
-  expect(settings.match(/scan-regression\.mjs/g)).toHaveLength(2);
+  expect(settings).toMatch(/slop-detect-hook/);
+  expect(settings.match(/slop-detect-hook/g)).toHaveLength(2);
+  // No package.json in the temp dir: no URL is guessed, and init says how to set one.
+  expect(existsSync(join(dir, '.slop/local-url'))).toBe(false);
+  expect(first.stdout).toMatch(/No dev-server URL detected/);
 
   const second = run(['init', '--dir', dir, '--providers', 'claude,cursor', '--ci', 'github']);
   expect(second.status).toBe(0);
   expect(second.stdout).toMatch(/wrote 0 file/);
   const again = readFileSync(join(dir, '.claude/settings.local.json'), 'utf8');
-  expect(again.match(/scan-regression\.mjs/g)).toHaveLength(2);
+  expect(again.match(/slop-detect-hook/g)).toHaveLength(2);
+
+  const withUrl = mkdtempSync(join(tmpdir(), 'slop-init-url-'));
+  const explicit = run([
+    'init',
+    '--dir',
+    withUrl,
+    '--providers',
+    'claude',
+    '--local-url',
+    'http://127.0.0.1:8080/',
+  ]);
+  expect(explicit.status).toBe(0);
+  expect(readFileSync(join(withUrl, '.slop/local-url'), 'utf8')).toBe('http://127.0.0.1:8080/\n');
 
   const quiet = mkdtempSync(join(tmpdir(), 'slop-init-quiet-'));
   const noHooks = run(['init', '--dir', quiet, '--no-hooks']);

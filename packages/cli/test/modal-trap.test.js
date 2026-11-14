@@ -71,6 +71,10 @@ test(
         await page.waitForSelector('#fixPromptBtn');
         await page.click('#fixPromptBtn');
         await page.waitForSelector('#modalBg.show');
+        // The opener stays disabled until the prompt fetch settles, and Escape
+        // before that returns focus to #go by design. Wait so the focus-return
+        // check below doesn't race the fetch under load.
+        await page.waitForFunction(() => !document.getElementById('fixPromptBtn').disabled);
 
         const activeId = () =>
           page.evaluate(() => document.activeElement && document.activeElement.id);

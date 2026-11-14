@@ -42,7 +42,12 @@ import {
   evaluateSkillBenchmark,
   formatBenchTsv,
 } from '@slop-detect/core';
-import { applyInitPlan, parseProviders, planInitFiles } from '../src/init-project.js';
+import {
+  applyInitPlan,
+  detectLocalUrl,
+  parseProviders,
+  planInitFiles,
+} from '../src/init-project.js';
 import {
   avoidListWithinCap,
   diffSavedScans,
@@ -106,6 +111,7 @@ const flags = {
   initCi: null as string | null,
   noHooks: false,
   initDir: null as string | null,
+  initLocalUrl: null as string | null,
   experimental: false,
   annotateScreenshot: null as string | null,
   only: null as string[] | null,
@@ -446,7 +452,9 @@ for (let i = 0; i < args.length; i++) {
   } else if (a === '--ci' || a.startsWith('--ci=')) {
     flags.initCi = a.startsWith('--ci=') ? a.slice('--ci='.length) : args[++i];
   } else if (a === '--no-hooks') flags.noHooks = true;
-  else if (a === '--dir' || a.startsWith('--dir=')) {
+  else if (a === '--local-url' || a.startsWith('--local-url=')) {
+    flags.initLocalUrl = a.startsWith('--local-url=') ? a.slice('--local-url='.length) : args[++i];
+  } else if (a === '--dir' || a.startsWith('--dir=')) {
     flags.initDir = a.startsWith('--dir=') ? a.slice('--dir='.length) : args[++i];
   } else if (a === '--help' || a === '-h') {
     help();
@@ -549,13 +557,15 @@ if (flags.init) {
   }
   try {
     const providers = parseProviders(flags.initProviders || undefined);
+    const dir = flags.initDir || process.cwd();
+    const localUrl = (flags.initLocalUrl || '').trim() || detectLocalUrl(dir);
     const files = planInitFiles({
       providers,
       scope: flags.initScope,
       ci: flags.initCi,
       hooks: !flags.noHooks,
+      localUrl: localUrl || undefined,
     });
-    const dir = flags.initDir || process.cwd();
     const wrote = applyInitPlan(dir, files);
     console.log(
       `init wrote ${wrote.written.length} file(s), left ${wrote.unchanged.length} unchanged, skipped ${wrote.skipped.length}.`
@@ -563,6 +573,11 @@ if (flags.init) {
     for (const path of wrote.written) console.log(`  wrote ${path}`);
     for (const path of wrote.unchanged) console.log(`  unchanged ${path}`);
     for (const path of wrote.skipped) console.log(`  skipped ${path}`);
+    if (!flags.noHooks && !localUrl) {
+      console.log(
+        'No dev-server URL detected. Pass --local-url, set SLOP_LOCAL_URL, or write .slop/local-url (for example http://127.0.0.1:3000/). Until then the hooks do nothing.'
+      );
+    }
     process.exit(0);
   } catch (e) {
     console.error(e.message || String(e));
@@ -796,8 +811,10 @@ Options:
                       Write starter robots.txt, llms.txt, ard.json, and link
                       headers. No model. Not a live mirror of ai.robots.txt.
   init                Write project skill, MCP, and hook files (--dir, --providers,
-                      --scope=project, --no-hooks, --ci github). Not a registry
-                      submission. Does not write outside --dir or the project.
+                      --scope=project, --no-hooks, --ci github, --local-url).
+                      The dev-server URL is detected from package.json when
+                      --local-url is absent. Not a registry submission. Does not
+                      write outside --dir or the project.
   --init-design-md    Extract live DOM tokens and generate a starter DESIGN.md
   --init-tokens       Extract live DOM tokens and write a DTCG tokens.json
   --lint-design-md <file>

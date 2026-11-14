@@ -40,6 +40,7 @@
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
+    "test:golden": "RUN_GOLDEN=1 vitest run test/golden.test.js test/fonts-ready.test.js test/engine-pin.test.js test/modal-trap.test.js test/pattern-coverage.test.js",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist .turbo",
