@@ -188,11 +188,20 @@ export async function measureMobileReflowOnPage(page: any): Promise<any> {
     throw new Error('viewport resize is not available');
   };
   let measured: any = unknown('mobile reflow did not run');
+  let gotValidMeasurement = false;
   try {
     await resize(MOBILE_REFLOW_VIEWPORT.width, MOBILE_REFLOW_VIEWPORT.height);
     if (!page || typeof page.evaluate !== 'function') {
       measured = unknown('mobile reflow could not evaluate');
     } else {
+      // Wait for media-query/layout settle after viewport resize
+      try {
+        await page.evaluate(
+          'new Promise((r) => (typeof requestAnimationFrame === "function" ? requestAnimationFrame(() => requestAnimationFrame(r)) : setTimeout(r, 16)))'
+        );
+      } catch {
+        // non-fatal on minimal mocks
+      }
       const result = await page.evaluate(buildMobileReflowScript());
       if (!result || result.error || result.status === 'unknown') {
         measured = {
@@ -202,6 +211,7 @@ export async function measureMobileReflowOnPage(page: any): Promise<any> {
         };
       } else {
         measured = result;
+        gotValidMeasurement = true;
       }
     }
   } catch (e: any) {
@@ -210,7 +220,9 @@ export async function measureMobileReflowOnPage(page: any): Promise<any> {
     try {
       await resize(DESKTOP_SCAN_VIEWPORT.width, DESKTOP_SCAN_VIEWPORT.height);
     } catch (e: any) {
-      measured = unknown(e?.message || 'desktop viewport could not be restored');
+      if (!gotValidMeasurement) {
+        measured = unknown(e?.message || 'desktop viewport could not be restored');
+      }
     }
   }
   return measured;
@@ -218,6 +230,7 @@ export async function measureMobileReflowOnPage(page: any): Promise<any> {
 
 export function buildPageScript(opts: BuildPageScriptOptions = {}): string {
   const patternList = Array.isArray(opts.patterns) ? opts.patterns : PATTERNS;
+  const runExperimental = Boolean(opts.includeExperimental || opts.experimental);
   const patternCalls = patternList
     .map(
       (p) => `
@@ -238,14 +251,16 @@ export function buildPageScript(opts: BuildPageScriptOptions = {}): string {
     }`
   ).join('\n');
 
-  const experimentalCalls = EXPERIMENTAL_DESIGN_WATCHLIST.map(
-    (w) => `
+  const experimentalCalls = runExperimental
+    ? EXPERIMENTAL_DESIGN_WATCHLIST.map(
+        (w) => `
     try {
       experimentalSignals[${JSON.stringify(w.id)}] = (${w.extract!.toString()})(ctx);
     } catch (e) {
       experimentalSignals[${JSON.stringify(w.id)}] = { triggered: false, error: e.message };
     }`
-  ).join('\n');
+      ).join('\n')
+    : '';
 
   const serialized = [
     patternCalls,
@@ -287,8 +302,51 @@ export function buildPageScript(opts: BuildPageScriptOptions = {}): string {
       if (visHelpers.isVisible(el)) { h1 = el; break; }
     }
 
+    const cssEsc = (s) => {
+      if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') return CSS.escape(s);
+      return String(s).replace(/([^a-zA-Z0-9_-])/g, '\\\\$1');
+    };
+    const toCssSelector = (el) => {
+      if (!el || !el.tagName) return 'body';
+      const tag = el.tagName.toLowerCase();
+      if (el.id) return tag + '#' + cssEsc(el.id);
+      const classes = typeof el.className === 'string'
+        ? el.className.trim().split(/\\s+/).filter(Boolean).slice(0, 2).map(cssEsc)
+        : [];
+      const base = classes.length ? tag + '.' + classes.join('.') : tag;
+      const parent = el.parentElement;
+      if (parent && parent.tagName && parent.tagName !== 'BODY' && parent.tagName !== 'HTML') {
+        const pTag = parent.tagName.toLowerCase();
+        const pPrefix = parent.id ? pTag + '#' + cssEsc(parent.id) + ' > ' : '';
+        return pPrefix + base;
+      }
+      return base;
+    };
+    const toLoc = (el) => {
+      if (!el || typeof el.getBoundingClientRect !== 'function') return null;
+      const r = el.getBoundingClientRect();
+      if (!r || r.width <= 0 || r.height <= 0) return null;
+      return {
+        selector: toCssSelector(el),
+        rect: {
+          x: Math.round(r.x ?? r.left ?? 0),
+          y: Math.round(r.y ?? r.top ?? 0),
+          width: Math.round(r.width),
+          height: Math.round(r.height)
+        }
+      };
+    };
+    const addLoc = (arr, el, max = 5) => {
+      if (!Array.isArray(arr) || arr.length >= max) return;
+      const l = toLoc(el);
+      if (!l) return;
+      if (!arr.some((x) => x.selector === l.selector && x.rect.y === l.rect.y && x.rect.x === l.rect.x)) {
+        arr.push(l);
+      }
+    };
+
     const ctx = {
-      visible, h1,
+      visible, h1, toLoc, addLoc, toCssSelector,
       parseColor: colorHelpers.parseColor,
       parseColorRaw: colorHelpers.parseColorRaw,
       rgbToHsl: colorHelpers.rgbToHsl,
@@ -315,57 +373,27 @@ export function buildPageScript(opts: BuildPageScriptOptions = {}): string {
     const signals = {};
     ${patternCalls}
 
-    // #208: Attach per-pattern DOM locations (selector + rect, capped at 5) for every triggered pattern.
-    const toCssSelector = (el) => {
-      if (!el || !el.tagName) return 'body';
-      const tag = el.tagName.toLowerCase();
-      if (el.id) return tag + '#' + el.id;
-      const cls = typeof el.className === 'string'
-        ? el.className.trim().split(/\\s+/).filter(Boolean).slice(0, 2).join('.')
-        : '';
-      return cls ? tag + '.' + cls : tag;
-    };
-    const toLoc = (el) => {
-      if (!el || typeof el.getBoundingClientRect !== 'function') return null;
-      const r = el.getBoundingClientRect();
-      if (!r || r.width <= 0 || r.height <= 0) return null;
-      return {
-        selector: toCssSelector(el),
-        rect: {
-          x: Math.round(r.x ?? r.left ?? 0),
-          y: Math.round(r.y ?? r.top ?? 0),
-          width: Math.round(r.width),
-          height: Math.round(r.height)
-        }
-      };
-    };
+    // #208: Normalize real per-pattern DOM locations (never fabricate arbitrary visible[0..4] selectors).
     for (const [pid, sig] of Object.entries(signals)) {
-      if (!sig || !sig.triggered || Array.isArray(sig.locations)) continue;
+      if (!sig || !sig.triggered) continue;
+      if (Array.isArray(sig.locations)) {
+        sig.locations = sig.locations.slice(0, 5);
+        continue;
+      }
       const locs = [];
       if (Array.isArray(sig.nodeIds) && sig.nodeIds.length > 0) {
         for (const nid of sig.nodeIds) {
-          const el = document.querySelector('[data-slop-node-id="' + nid + '"]');
-          const l = toLoc(el);
-          if (l) locs.push(l);
+          try {
+            const el = document.querySelector('[data-slop-node-id="' + cssEsc(nid) + '"]');
+            const l = toLoc(el);
+            if (l) locs.push(l);
+          } catch {}
           if (locs.length >= 5) break;
         }
       }
-      if (locs.length === 0) {
-        const candidates = [];
-        if (/hero|font|gradient_text|mono_heading/.test(pid) && h1) candidates.push(h1);
-        for (const el of visible) {
-          if (candidates.length >= 5) break;
-          if (/button|cta|purple/.test(pid) && !/^(A|BUTTON)$/.test(el.tagName)) continue;
-          if (/heading|eyebrow|hero/.test(pid) && !/^H[1-6]$/.test(el.tagName)) continue;
-          candidates.push(el);
-        }
-        if (candidates.length === 0 && h1) candidates.push(h1);
-        if (candidates.length === 0 && visible.length > 0) candidates.push(visible[0]);
-        for (const el of candidates) {
-          const l = toLoc(el);
-          if (l) locs.push(l);
-          if (locs.length >= 5) break;
-        }
+      if (locs.length === 0 && /hero|slop_fonts|gradient_text|mono_heading/.test(pid) && h1) {
+        const l = toLoc(h1);
+        if (l) locs.push(l);
       }
       sig.locations = locs.slice(0, 5);
     }

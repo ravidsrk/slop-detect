@@ -532,7 +532,8 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
         let g = 0;
         while (cur && g++ < 25) {
           const cs = getComputedStyle(cur);
-          if (/^(auto|scroll|hidden|clip)$/i.test(cs.overflowX || '')) return true;
+          // Only intentionally scrollable containers (overflow-x: auto|scroll), not body/html overflow-x: hidden
+          if (/^(auto|scroll)$/i.test(cs.overflowX || '')) return true;
           if (cs.scrollSnapType && cs.scrollSnapType !== 'none') return true;
           if (/marquee/i.test(cur.className || '') || /marquee/i.test(cs.animationName || '')) {
             return true;
@@ -937,11 +938,7 @@ export const CRAFT_CHECKS: CraftCheckMeta[] = [
           el.hasAttribute('data-state') ||
           Boolean(el.closest('form'));
 
-        const isDead =
-          (el.tagName === 'A' && isPlaceholder && !hasInteractiveAttr) ||
-          (el.tagName !== 'A' &&
-            !hasInteractiveAttr &&
-            el.getAttribute('data-dead-cta') === 'true');
+        const isDead = el.tagName === 'A' && isPlaceholder && !hasInteractiveAttr;
 
         if (isDead) {
           deadCount++;
@@ -1237,7 +1234,7 @@ export function scoreCraft(
     return {
       axis: 'craft' as const,
       evidence: [],
-      score: 100,
+      score: null,
       maxScore: 100,
       earnedWeight: 0,
       applicableWeight: 0,
@@ -1309,7 +1306,7 @@ export function scoreCraft(
   const score =
     applicableWeight > 0
       ? Math.max(0, Math.min(100, Math.round((earnedWeight / applicableWeight) * 100)))
-      : 100;
+      : null;
   const coverage =
     applicableCount > 0 ? Math.round((measuredCount / applicableCount) * 100) / 100 : 1;
   const failed = checks.filter((c) => c.status === 'fail');

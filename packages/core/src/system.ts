@@ -6,7 +6,14 @@
 //    YAML front matter between `---` fences OR a ```yaml ... ``` fenced block.
 // 2. W3C Design Tokens Community Group (DTCG) Format Module 2025.10 (`tokens.json`).
 
-import { parseColor, deltaEOklab, contrastRatio, isPurple, isDark } from './color.js';
+import {
+  parseColor,
+  parseColorRaw,
+  deltaEOklab,
+  contrastRatio,
+  isPurple,
+  isDark,
+} from './color.js';
 import { scorePatterns } from './design-score.js';
 
 export const DESIGN_MD_SPEC_VERSION = 'alpha';
@@ -48,10 +55,14 @@ function parseYamlSubset(src: string): Record<string, any> {
       stack.push({ indent, node: child });
       continue;
     }
-    const q = value.match(/^(['"])(.*?)\1/);
-    if (q) value = q[2];
+    const dq = value.match(/^"((?:[^"\\]|\\.)*)"/);
+    const sq = !dq ? value.match(/^'((?:[^']|'')*)'/) : null;
+    if (dq) value = dq[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+    else if (sq) value = sq[1].replace(/''/g, "'");
     else {
-      const c = value.search(/\s#/);
+      const c = value.search(
+        /\s#(?!([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})(?:\s|$))/
+      );
       if (c >= 0) value = value.slice(0, c).trim();
     }
     parent[key] = value;
@@ -260,7 +271,10 @@ function bestColorComparison(
   let bestToken: string | null = null;
   for (const tok of palette) {
     const cmp = compareSystemColors(tok, observedStr);
-    if (cmp.deltaE < best.deltaE) {
+    if (
+      cmp.deltaE < best.deltaE ||
+      (cmp.deltaE === best.deltaE && cmp.deltaAlpha < best.deltaAlpha)
+    ) {
       best = cmp;
       bestToken = tok;
     }
@@ -1140,10 +1154,10 @@ export function stripTransparentShadowLayers(rawShadow: string): string[] {
       return false;
     }
     const cMatch = layer.match(
-      /(?:rgba?\([^)]+\)|#[0-9a-fA-F]{3,8}|oklch\([^)]+\)|oklab\([^)]+\))/i
+      /(?:(?:rgba?|hsla?|oklch|oklab|lab|lch|hwb|color)\([^)]+\)|#[0-9a-fA-F]{3,8})/i
     );
     if (cMatch) {
-      const col = parseColor(cMatch[0]);
+      const col = parseColorRaw(cMatch[0]);
       if (col && (col.a ?? 1) <= 0.001) return false;
     }
     return true;
@@ -1686,12 +1700,9 @@ export function applyDesignSystemWaivers(scanResult: Record<string, any>, parsed
         return { ...p, waived: true, status: 'review' };
       }
     }
-    if (
-      (p.id === 'slop_fonts' || p.id === 'centered_hero' || p.id === 'display_mono_heading') &&
-      tokens.fonts.length > 0
-    ) {
+    if ((p.id === 'slop_fonts' || p.id === 'display_mono_heading') && tokens.fonts.length > 0) {
       const heroFam = primaryFamily(p.evidence?.heroFam || p.evidence?.family || '');
-      const matchingFont = tokens.fonts.find((f) => (heroFam ? f === heroFam : true));
+      const matchingFont = heroFam ? tokens.fonts.find((f) => f === heroFam) : undefined;
       if (matchingFont) {
         waivedPatterns.push({
           id: p.id,
@@ -2322,10 +2333,32 @@ export function generateDesignMd(
     : [];
   const radiusKeys = ['sm', 'md', 'lg', 'xl', '2xl', '3xl'];
 
+  // Pick an accessible textColor for button-primary so generated DESIGN.md passes lintDesignMd (>= 4.5:1)
+  const parsedPrimary = parseColor(primaryCta);
+  const parsedSurface = parseColor(surfaceHex);
+  const parsedHeading = parseColor(headingHex);
+  let buttonTextRef = '"{colors.surface}"';
+  let onPrimaryHex: string | null = null;
+  if (parsedPrimary) {
+    const surfaceCr = parsedSurface ? contrastRatio(parsedSurface, parsedPrimary) : 0;
+    const headingCr = parsedHeading ? contrastRatio(parsedHeading, parsedPrimary) : 0;
+    if (surfaceCr >= 4.5) {
+      buttonTextRef = '"{colors.surface}"';
+    } else if (headingCr >= 4.5) {
+      buttonTextRef = '"{colors.ink}"';
+    } else {
+      const whiteCr = contrastRatio(parseColor('#FFFFFF'), parsedPrimary);
+      const blackCr = contrastRatio(parseColor('#181815'), parsedPrimary);
+      onPrimaryHex = whiteCr >= blackCr ? '#FFFFFF' : '#181815';
+      buttonTextRef = '"{colors.onPrimary}"';
+    }
+  }
+
   const colorLines = [
     `  surface: "${surfaceHex}"`,
     `  ink: "${headingHex}"`,
     `  primary: "${primaryCta}"`,
+    ...(onPrimaryHex ? [`  onPrimary: "${onPrimaryHex}"`] : []),
     ...ctaHexes.slice(1).map((hx, idx) => `  accent_${idx + 1}: "${hx}"`),
     ...extraHeadingHexes.map((hx, idx) => `  ink_${idx + 2}: "${hx}"`),
   ];
@@ -2342,18 +2375,36 @@ export function generateDesignMd(
     (r, i) => `  ${radiusKeys[i] || `r${i + 1}`}: ${r}px`
   );
 
+  const spacings = Array.isArray(obs.spacings)
+    ? [
+        ...new Set<number>(
+          obs.spacings
+            .map((s: number) => Math.round(Number(s)))
+            .filter((s: number) => Number.isFinite(s) && s > 0)
+        ),
+      ].sort((a, b) => a - b)
+    : [];
+  const spacingKeys = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'];
+  const spacingBlock = spacings.length
+    ? `\nspacing:\n${spacings
+        .slice(0, 12)
+        .map((s, i) => `  ${spacingKeys[i] || `s${i + 1}`}: ${s}px`)
+        .join('\n')}`
+    : '';
+
   return `---
 name: "${name.replace(/"/g, '\\"')}"
+specVersion: "${DESIGN_MD_SPEC_VERSION}"
 colors:
 ${colorLines.join('\n')}
 typography:
 ${typoLines.join('\n')}
 rounded:
-${roundedLines.join('\n')}
+${roundedLines.join('\n')}${spacingBlock}
 components:
   button-primary:
     backgroundColor: "{colors.primary}"
-    textColor: "{colors.surface}"
+    textColor: ${buttonTextRef}
 ---
 
 # ${name} — Design System (\`DESIGN.md\`)

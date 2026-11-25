@@ -34,23 +34,43 @@ export function triggeredPatterns(result: any): any[] {
   return out;
 }
 
+function formatSampleValue(item: unknown): string {
+  if (item == null) return '';
+  if (typeof item !== 'object') return String(item).trim();
+  const obj = item as Record<string, unknown>;
+  for (const key of ['text', 'sample', 'value']) {
+    if (typeof obj[key] === 'string' && obj[key].trim()) return obj[key].trim();
+  }
+  if (typeof obj.initials === 'string') {
+    return obj.size ? `${obj.initials} (${obj.size}px)` : obj.initials;
+  }
+  if (typeof obj.tag === 'string' && typeof obj.bg === 'string') {
+    return `${obj.tag} ${obj.bg}`;
+  }
+  if (typeof obj.fg === 'string' && typeof obj.bg === 'string') {
+    return `${obj.fg} on ${obj.bg}${obj.ratio ? ` (${obj.ratio}:1)` : ''}`;
+  }
+  const parts = Object.entries(obj)
+    .filter(([, v]) => v != null && typeof v !== 'object')
+    .slice(0, 3)
+    .map(([k, v]) => `${k}=${v}`);
+  return parts.join(' ');
+}
+
 export function firstSample(pattern: any): string {
   const evidence = pattern?.evidence || {};
-  const candidates: unknown[] = [];
+  const candidates: string[] = [];
   if (Array.isArray(evidence.samples) && evidence.samples.length)
-    candidates.push(evidence.samples[0]);
+    candidates.push(formatSampleValue(evidence.samples[0]));
   if (typeof evidence.sample === 'string') candidates.push(evidence.sample);
   if (Array.isArray(evidence.matches) && evidence.matches.length) {
     const match = evidence.matches[0];
-    candidates.push(typeof match === 'string' ? match : match?.text || match?.sample);
+    candidates.push(formatSampleValue(match));
   }
   if (typeof evidence.text === 'string') candidates.push(evidence.text);
   if (typeof evidence.value === 'string') candidates.push(evidence.value);
   const raw =
-    candidates.find((item) => String(item || '').trim()) ||
-    pattern?.label ||
-    pattern?.id ||
-    'sample';
+    candidates.find((item) => item && item.trim()) || pattern?.label || pattern?.id || 'sample';
   return String(raw).replace(/\s+/g, ' ').trim();
 }
 
@@ -224,18 +244,24 @@ export function compareScans(
       text: 'Scan could not run. This is not a Clean score.',
     };
   }
-  const beforeIds = triggeredPatterns(baseline).map((pattern) => String(pattern.id));
-  const afterIds = triggeredPatterns(current).map((pattern) => String(pattern.id));
+  const isScoredPattern = (p: any) => p?.status !== 'review' && p?.weight !== 0;
+  const beforeTriggered = triggeredPatterns(baseline);
+  const afterTriggered = triggeredPatterns(current);
+  const beforeIds = beforeTriggered.map((pattern) => String(pattern.id));
+  const afterIds = afterTriggered.map((pattern) => String(pattern.id));
   const beforeSet = new Set(beforeIds);
   const afterSet = new Set(afterIds);
   const patternsResolved = beforeIds.filter((id) => !afterSet.has(id));
   const patternsAdded = afterIds.filter((id) => !beforeSet.has(id));
+  const scoredPatternsAdded = afterTriggered
+    .filter((p) => isScoredPattern(p) && !beforeSet.has(String(p.id)))
+    .map((p) => String(p.id));
   const delta = current.score - baseline.score;
   const beforeCopy = axisScore(baseline, 'copy');
   const afterCopy = axisScore(current, 'copy');
   const copyDelta = beforeCopy == null || afterCopy == null ? null : afterCopy - beforeCopy;
   const maxDelta = Number.isInteger(opts.maxDelta) ? (opts.maxDelta as number) : 0;
-  const regression = delta > maxDelta || patternsAdded.length > 0;
+  const regression = delta > maxDelta || scoredPatternsAdded.length > 0;
   const environmentDiff =
     JSON.stringify(baseline.environment || null) !== JSON.stringify(current.environment || null);
   const parts = [
@@ -282,7 +308,9 @@ export function regressionAgainstBaseline(
       text: `Definitions ${baseline.definitionsVersion} → ${current.definitionsVersion}. This is a rescore, not a regression.`,
     };
   }
-  const patterns = triggeredPatterns(current).map((pattern) => String(pattern.id));
+  const patterns = triggeredPatterns(current)
+    .filter((p) => p?.status !== 'review' && p?.weight !== 0)
+    .map((pattern) => String(pattern.id));
   if (!baseline || typeof baseline.score !== 'number') {
     return { establish: true, silent: true, worse: false, text: '' };
   }

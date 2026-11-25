@@ -34,11 +34,8 @@ test('a font waiver recomputes the capped score instead of subtracting original 
   expect(raw.score).toBe(14);
   const waived = applyDesignSystemWaivers({ ...raw, patterns }, parseDesignMd(FONT_MD));
   expect(waived.rawScore).toBe(14);
-  expect(waived.score).toBe(6);
-  expect(waived.waivedPatterns.map((item) => item.id).sort()).toEqual([
-    'centered_hero',
-    'slop_fonts',
-  ]);
+  expect(waived.score).toBe(10);
+  expect(waived.waivedPatterns.map((item) => item.id).sort()).toEqual(['slop_fonts']);
 });
 
 test('a declared color waives only the observed surface or accent', () => {
@@ -452,4 +449,30 @@ test('static HTML copy keeps links and image sources', () => {
   expect(report.artifactFindings.map((finding) => finding.patternId)).toEqual(
     expect.arrayContaining(['ai_referral_utm_links', 'structural_fake_social_proof'])
   );
+});
+
+test('buildFixPrompt includes craft floor defects alongside design/copy/system/AEO', () => {
+  const prompt = buildFixPrompt({
+    url: 'https://example.com',
+    score: 0,
+    tier: 'Clean',
+    patterns: [],
+    axes: {
+      craft: {
+        score: 80,
+        checks: [
+          {
+            id: 'dead_interactive_cta',
+            label: 'Dead placeholder CTA link',
+            triggered: true,
+            status: 'fail',
+            evidence: { samples: ['Get started'] },
+          },
+        ],
+      },
+    },
+  });
+  expect(prompt).toContain('Craft floor defects (80/100)');
+  expect(prompt).toContain('`dead_interactive_cta`');
+  expect(prompt).toContain('Get started');
 });
