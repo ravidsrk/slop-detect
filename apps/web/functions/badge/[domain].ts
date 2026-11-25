@@ -8,15 +8,27 @@
 // Embed:
 //   [![slop](https://slop-detect.com/badge/example.com.svg)](https://slop-detect.com)
 
-import { getLatestForDomain, getWatch, isEmailVerifiedListing, BADGE_TTL } from '../_shared.js';
+import {
+  getLatestForDomain,
+  getWatch,
+  isEmailVerifiedListing,
+  normalizeDomain,
+  BADGE_TTL,
+} from '../_shared.js';
 import { badgeSvg } from '../_badge.js';
 
 export async function onRequestGet({ params, env }) {
-  let domain = String(params.domain || '')
-    .replace(/\.svg$/i, '')
-    .replace(/^www\./, '')
-    .toLowerCase()
-    .slice(0, 253);
+  const raw = String(params.domain || '').replace(/\.svg$/i, '');
+  const domain = normalizeDomain(raw);
+  if (!domain) {
+    return new Response(badgeSvg('invalid', null, {}), {
+      status: 400,
+      headers: {
+        'Content-Type': 'image/svg+xml; charset=utf-8',
+        'Cache-Control': 'no-store',
+      },
+    });
+  }
 
   const [slim, watch] = await Promise.all([
     getLatestForDomain(env.RESULTS, domain).catch(() => null),

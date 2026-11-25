@@ -22,7 +22,13 @@
 
 import { raw } from 'hono/html';
 import { listWatchesByEmail, consumeDashboardToken, deferFlowBump } from './_shared.js';
-import { signSession, sessionEmail, sessionCookie, clearSessionCookie } from './_session.js';
+import {
+  signSession,
+  sessionEmail,
+  sessionCookie,
+  clearSessionCookie,
+  isForeignOrigin,
+} from './_session.js';
 import { BRAND_FONTS_HEAD, BRAND_CSS } from './_brand.js';
 import { UI_CSS, Nav, Footer, SectionLedger, LetterAvatar } from './_ui.js';
 import { tierText } from './_theme.js';
@@ -41,8 +47,15 @@ const DASH_CSS = `
     font-family:var(--mono);font-size:13px;color:var(--text-4);margin:18px 0 2px}
   .dash-bar b{color:var(--text);font-weight:500}
   .dash-bar .att{color:var(--heavy-text)}
-  .dash-signout{color:var(--text-4);border-bottom:1px solid var(--border-btn);padding-bottom:1px}
+  .dash-signout{font-family:var(--mono);font-size:13px;color:var(--text-4);background:transparent;border:0;border-bottom:1px solid var(--border-btn);padding:0 0 1px;cursor:pointer}
   .dash-signout:hover{color:var(--text);border-color:var(--text)}
+  .dash-add{margin-top:24px;padding:16px;border:1px solid var(--border);border-radius:6px;background:var(--panel)}
+  .dash-add-h{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px}
+  .dash-add-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .dash-add-in{flex:1 1 200px;font-family:var(--mono);font-size:13px;padding:8px 10px;border:1px solid var(--border-btn);border-radius:3px;background:var(--bg);color:var(--text)}
+  .dash-add-chk{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12px;color:var(--text-3);cursor:pointer}
+  .dash-add-go{font-family:var(--mono);font-size:12px;padding:8px 14px;border:0;border-radius:3px;background:var(--text);color:#F4F5F2;cursor:pointer}
+  .dash-add-go:hover{background:var(--clean-text)}
 
   /* login: the ScanInput row, email variant (no https:// prefix) */
   .scan-login{max-width:440px;margin-top:6px}
@@ -125,6 +138,25 @@ const ERASE_SCRIPT = `
       if(r.ok)window.location.href='/dashboard?logout=1';
       else{eb.disabled=false;eb.textContent='erase my data';}
     }catch(_){eb.disabled=false;eb.textContent='erase my data';}
+  });}
+  const af=document.getElementById('dashAddForm'),am=document.getElementById('dashAddMsg');
+  if(af&&am){af.addEventListener('submit',async(e)=>{e.preventDefault();
+    const dom=(document.getElementById('dashAddDom')?.value||'').trim();
+    const hook=(document.getElementById('dashAddHook')?.value||'').trim();
+    const sys=!!document.getElementById('dashAddSys')?.checked;
+    const em=af.getAttribute('data-email')||'';
+    if(!dom)return;
+    am.className='dash-msg mono show';am.textContent='Adding monitor…';
+    try{
+      const body={domain:dom,email:em,system:sys};
+      if(hook)body.webhookUrl=hook;
+      const r=await fetch('/api/watch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      const d=await r.json();
+      if(!r.ok)throw new Error(d.error||d.message||('HTTP '+r.status));
+      am.className='dash-msg mono show ok';
+      am.textContent='✓ Added '+d.domain+(d.verified?' (active)':' (check inbox to confirm)')+'. Reloading…';
+      setTimeout(()=>window.location.reload(),900);
+    }catch(err){am.className='dash-msg mono show err';am.textContent='✗ '+err.message;}
   });}
 `;
 
@@ -297,9 +329,11 @@ function DashboardView({ origin, email, watches }) {
             </>
           ) : null}
         </span>
-        <a class="dash-signout" href={`${origin}/dashboard?logout=1`}>
-          sign out
-        </a>
+        <form method="post" action={`${origin}/dashboard?logout=1`} style="display:inline">
+          <button type="submit" class="dash-signout">
+            sign out
+          </button>
+        </form>
       </div>
       {watches.length ? (
         <>
@@ -337,11 +371,42 @@ function DashboardView({ origin, email, watches }) {
           </ul>
         </>
       ) : (
-        <p class="dash-empty">
-          No monitored domains on this address yet.{' '}
-          <a href={`${origin}/#monitor`}>Add the first one</a>.
-        </p>
+        <p class="dash-empty">No monitored domains on this address yet. Add the first one below.</p>
       )}
+      <form class="dash-add" id="dashAddForm" data-email={email}>
+        <div class="dash-add-h">Add a domain to monitor</div>
+        <div class="dash-add-row">
+          <label class="sr-only" for="dashAddDom">
+            Domain
+          </label>
+          <input
+            id="dashAddDom"
+            class="dash-add-in"
+            type="text"
+            placeholder="your-site.com"
+            spellcheck="false"
+            required
+          />
+          <label class="sr-only" for="dashAddHook">
+            Optional HTTPS webhook URL
+          </label>
+          <input
+            id="dashAddHook"
+            class="dash-add-in"
+            type="url"
+            placeholder="https://hooks.example.com/slop (optional webhook)"
+            spellcheck="false"
+          />
+          <label class="dash-add-chk">
+            <input id="dashAddSys" type="checkbox" checked />
+            <span>DESIGN.md drift</span>
+          </label>
+          <button type="submit" class="dash-add-go">
+            Monitor domain
+          </button>
+        </div>
+        <p class="dash-msg mono" id="dashAddMsg" role="status" aria-live="polite" />
+      </form>
       <div class="dash-rights">
         <span>Data rights (GDPR / DPDP): self-serve export or immediate erasure</span>
         <div class="dash-rights-actions">
@@ -366,6 +431,64 @@ function DashboardView({ origin, email, watches }) {
   );
 }
 
+function isPrefetch(request) {
+  const hdrs = request?.headers;
+  if (!hdrs || typeof hdrs.get !== 'function') return false;
+  const purpose = (
+    hdrs.get('sec-purpose') ||
+    hdrs.get('purpose') ||
+    hdrs.get('x-purpose') ||
+    hdrs.get('x-moz') ||
+    ''
+  ).toLowerCase();
+  return purpose.includes('prefetch') || purpose.includes('preview');
+}
+
+async function exchangeMagicToken(origin, token, env, waitUntil) {
+  const email = env.RESULTS ? await consumeDashboardToken(env.RESULTS, token) : null;
+  if (!email) {
+    return page(
+      origin,
+      'Link expired',
+      <LoginView
+        origin={origin}
+        note="That sign-in link has expired or was already used. Request a fresh one."
+      />
+    );
+  }
+  const session = await signSession(email, env.SESSION_SECRET);
+  deferFlowBump(env, 'dashboard', 'session_minted', 1, waitUntil);
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: `${origin}/dashboard`,
+      'Set-Cookie': sessionCookie(session),
+      'Cache-Control': 'no-store',
+    },
+  });
+}
+
+export async function onRequestPost({ request, env, waitUntil }) {
+  const url = new URL(request.url);
+  const origin = url.origin;
+  if (!env.SESSION_SECRET) {
+    return page(origin, 'Dashboard', <NotConfiguredView />, { status: 503 });
+  }
+  if (isForeignOrigin(request)) {
+    return new Response('Forbidden', { status: 403 });
+  }
+  if (url.searchParams.get('logout') === '1') {
+    return page(origin, 'Signed out', <LoginView origin={origin} note="" />, {
+      headers: { 'Set-Cookie': clearSessionCookie() },
+    });
+  }
+  const token = url.searchParams.get('token');
+  if (token) {
+    return exchangeMagicToken(origin, token, env, waitUntil);
+  }
+  return new Response(null, { status: 303, headers: { Location: `${origin}/dashboard` } });
+}
+
 export async function onRequestGet({ request, env, waitUntil }) {
   const url = new URL(request.url);
   const origin = url.origin;
@@ -384,30 +507,28 @@ export async function onRequestGet({ request, env, waitUntil }) {
   }
 
   // Magic-link exchange: burn the token, mint the session, land clean (the
-  // redirect strips the token from the URL/history).
+  // redirect strips the token from the URL/history). Never burn on prefetches.
   const token = url.searchParams.get('token');
   if (token) {
-    const email = env.RESULTS ? await consumeDashboardToken(env.RESULTS, token) : null;
-    if (!email) {
+    if (isPrefetch(request)) {
       return page(
         origin,
-        'Link expired',
-        <LoginView
-          origin={origin}
-          note="That sign-in link has expired or was already used. Request a fresh one."
-        />
+        'Confirm sign-in',
+        <main class="dash-wrap" id="main">
+          <div class="dash-head">
+            <SectionLedger label="dashboard" />
+            <h1 class="dash-h">Continue to your dashboard</h1>
+          </div>
+          <p class="dash-sub lead">Click below to complete sign-in with your magic link.</p>
+          <form method="post" action={`${origin}/dashboard?token=${encodeURIComponent(token)}`}>
+            <button type="submit" class="dash-add-go" style="margin-top:18px">
+              Sign in to dashboard →
+            </button>
+          </form>
+        </main>
       );
     }
-    const session = await signSession(email, env.SESSION_SECRET);
-    deferFlowBump(env, 'dashboard', 'session_minted', 1, waitUntil);
-    return new Response(null, {
-      status: 302,
-      headers: {
-        Location: `${origin}/dashboard`,
-        'Set-Cookie': sessionCookie(session),
-        'Cache-Control': 'no-store',
-      },
-    });
+    return exchangeMagicToken(origin, token, env, waitUntil);
   }
 
   // Cookie session.

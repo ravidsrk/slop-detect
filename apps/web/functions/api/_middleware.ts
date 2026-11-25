@@ -148,9 +148,10 @@ async function resolveApiKey(kv, apiKey, cache) {
 // Merge a key record onto its tier defaults. A key may override the tier's
 // per-minute limits; it inherits turnstile-bypass from the tier.
 function effectiveTier(record) {
-  const base = TIERS[record.tier] || TIERS.free;
+  const hasTier = record && typeof record.tier === 'string' && Object.hasOwn(TIERS, record.tier);
+  const base = hasTier ? TIERS[record.tier] : TIERS.free;
   return {
-    tier: record.tier in TIERS ? record.tier : 'free',
+    tier: hasTier ? record.tier : 'free',
     scanPerMin: Number.isFinite(record.scanPerMin) ? record.scanPerMin : base.scanPerMin,
     fixPerMin: Number.isFinite(record.fixPerMin) ? record.fixPerMin : base.fixPerMin,
     turnstile: base.turnstile,
@@ -257,8 +258,9 @@ async function checkRateLimit(kv, bucket, route, limit) {
 
   // Per-isolate ceiling on the happy path: KV get→put is not atomic, so
   // concurrent requests in one isolate can all read the same stale count.
+  let memN = 0;
   if (isScan) {
-    const memN = memIncrement(key);
+    memN = memIncrement(key);
     if (memN > limit) return { ok: false, used: memN, limit, degraded: false };
   }
 
@@ -271,10 +273,9 @@ async function checkRateLimit(kv, bucket, route, limit) {
     /* handled below */
   }
 
-  // If the write failed on the scan route, also tick the in-memory ceiling so a
-  // KV that reads-but-can't-write (e.g. quota exhausted) still can't be abused.
+  // If the write failed on the scan route, enforce the tighter degraded ceiling
+  // using the already-incremented in-memory counter (avoid double counting).
   if (!kvWriteOk && isScan) {
-    const memN = memIncrement(key);
     const ceiling = Math.min(SCAN_FALLBACK_CEILING, limit);
     if (memN > ceiling) return { ok: false, used: memN, limit: ceiling, degraded: true };
     return { ok: true, used: memN, limit: ceiling, degraded: true };
@@ -391,7 +392,7 @@ export async function onRequest(context) {
   // caller could forge a fresh IP per request to evade the per-IP rate-limit.
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
 
-  const route = url.pathname.replace(/^\/api\//, '');
+  const route = url.pathname.replace(/^\/api\//, '').replace(/\/+$/, '');
 
   // ── Effective route for gating ───────────────────────────────────────────────
   // /api/fix-prompt has two modes: { result } (cheap, assemble-only) and { url }
@@ -400,6 +401,9 @@ export async function onRequest(context) {
   // fix-prompt's looser limits (20/min, no Turnstile) to drive the expensive
   // browser, fully bypassing the scan gate. So when fix-prompt carries a `url`,
   // we gate it AS a scan: same limit, same shared rate bucket, same Turnstile.
+  // If an oversized/chunked /api/fix-prompt body skipped the peek, stamp
+  // X-Slop-FixPrompt-Mode: cheap on the forwarded request so fix-prompt.ts
+  // refuses { url } mode rather than allowing an ungated browser scan bypass.
   let effectiveRoute = route;
   if (route === 'fix-prompt' && peeked && peeked.url && !peeked.result) effectiveRoute = 'scan';
   if (route === 'scan' && peeked && peeked.share === false) opsOptOut = true;
@@ -475,7 +479,9 @@ export async function onRequest(context) {
         ? trusted
           ? SCAN_LIMIT_PER_MIN
           : Math.max(2, Math.floor(SCAN_LIMIT_PER_MIN / 2))
-        : FIXPROMPT_LIMIT_PER_MIN;
+        : route === 'email/webhook'
+          ? 120
+          : FIXPROMPT_LIMIT_PER_MIN;
     bucket = ip;
     tierLabel = 'anonymous';
   }
@@ -623,9 +629,17 @@ export async function onRequest(context) {
 
   // A handler that throws (instead of returning a Response) would otherwise
   // surface as a bare platform 500 with no request ID — trace it instead.
+  // For /api/fix-prompt, record whether the middleware admitted it as scan-gated
+  // or cheap-only so fix-prompt.ts can reject oversized/chunked { url } bypasses.
+  let handlerReq = fwdRequest;
+  if (route === 'fix-prompt' && fwdRequest instanceof Request) {
+    const h = new Headers(fwdRequest.headers);
+    h.set('X-Slop-FixPrompt-Mode', effectiveRoute === 'scan' ? 'scan' : 'cheap');
+    handlerReq = new Request(fwdRequest, { headers: h });
+  }
   let res;
   try {
-    res = await next(fwdRequest);
+    res = await next(handlerReq);
   } catch (err) {
     return tracedFailure(
       env,

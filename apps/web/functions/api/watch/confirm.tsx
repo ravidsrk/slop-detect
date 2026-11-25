@@ -106,7 +106,20 @@ function page({
   });
 }
 
-export async function onRequestGet({ request, env, waitUntil }) {
+function isPrefetchRequest(request) {
+  const hdrs = request?.headers;
+  if (!hdrs || typeof hdrs.get !== 'function') return false;
+  const purpose = (
+    hdrs.get('sec-purpose') ||
+    hdrs.get('purpose') ||
+    hdrs.get('x-purpose') ||
+    hdrs.get('x-moz') ||
+    ''
+  ).toLowerCase();
+  return purpose.includes('prefetch') || purpose.includes('preview');
+}
+
+async function performConfirm({ request, env, waitUntil }) {
   if (!env.RESULTS)
     return page({
       title: 'Unavailable',
@@ -223,8 +236,8 @@ export async function onRequestGet({ request, env, waitUntil }) {
     body: (
       <>
         <p class="confirm-body">
-          <strong>{domain}</strong> is now monitored. We email you only when its AI-design-slop
-          score regresses, never on a schedule.
+          <strong>{domain}</strong> is now monitored. We email you only when its slop score or
+          DESIGN.md alignment regresses, never on a schedule.
         </p>
         <p class="confirm-next">
           Stop anytime: POST <code>{'{ unsubscribe: true }'}</code> with your email to{' '}
@@ -234,4 +247,36 @@ export async function onRequestGet({ request, env, waitUntil }) {
     ),
     action: { href: '/dashboard', label: 'Your monitored domains' },
   });
+}
+
+export async function onRequestGet({ request, env, waitUntil }) {
+  // Never burn single-use verification tokens on browser/mail-scanner prefetches.
+  if (isPrefetchRequest(request)) {
+    const token = new URL(request.url).searchParams.get('token') || '';
+    return page({
+      title: 'Confirm monitoring',
+      status: 200,
+      ledger: { tag: 'monitoring', label: 'double opt-in' },
+      heading: 'Confirm monitoring',
+      tone: 'warn',
+      state: 'awaiting confirmation',
+      body: (
+        <>
+          <p class="confirm-body">Click below to confirm email alerts for this domain monitor.</p>
+          <form method="post" action={`/api/watch/confirm?token=${encodeURIComponent(token)}`}>
+            <div class="confirm-actions">
+              <button type="submit" class="btn btn-outline">
+                Confirm email alerts
+              </button>
+            </div>
+          </form>
+        </>
+      ),
+    });
+  }
+  return performConfirm({ request, env, waitUntil });
+}
+
+export async function onRequestPost({ request, env, waitUntil }) {
+  return performConfirm({ request, env, waitUntil });
 }

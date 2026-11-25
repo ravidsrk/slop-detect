@@ -412,7 +412,10 @@ function ogMemDecrement(ip) {
   cur.count -= 1;
 }
 export async function ogRenderAllowed(kv, ip) {
-  if (ogMemIncrement(ip) > OG_RENDER_LIMIT) return false;
+  if (ogMemIncrement(ip) > OG_RENDER_LIMIT) {
+    ogMemDecrement(ip);
+    return false;
+  }
   if (!kv) return true;
   try {
     const key = `rl:ogrender:${ip || 'unknown'}`;
@@ -750,6 +753,7 @@ export const OPS_ROUTES = new Set([
   'fix-prompt',
   'watch',
   'sites',
+  'opt-in',
   'dashboard',
   'cron',
   'email',

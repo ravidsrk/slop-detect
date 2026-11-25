@@ -45,9 +45,10 @@ export async function onRequestGet({ params, env, request }) {
   }
 
   let browser;
+  let page;
   try {
     ({ browser } = await acquireBrowser(env.BROWSER));
-    const page = await browser.newPage();
+    page = await browser.newPage();
     await page.setViewport({ width: 1200, height: 630, deviceScaleFactor: 1 });
     await page.setContent(cardHtml(slim), { waitUntil: 'networkidle0', timeout: 15000 });
     // The card now uses web fonts (Newsreader + JetBrains Mono); wait for them to
@@ -71,6 +72,11 @@ export async function onRequestGet({ params, env, request }) {
   } catch (_) {
     return Response.redirect(new URL('/og.png', request.url).toString(), 302);
   } finally {
+    try {
+      await page?.close?.();
+    } catch {
+      /* tab already closed */
+    }
     await releaseBrowser(browser);
   }
 }

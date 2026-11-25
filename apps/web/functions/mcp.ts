@@ -45,6 +45,7 @@ import {
   validateMcpToolArguments,
 } from '@slop-detect/core';
 import { validateScanUrl } from './_ssrf.js';
+import { isScanDisabled } from './_browser.js';
 import { onRequestPost as scanOnRequestPost } from './api/scan.js';
 import { onRequestPost as aeoOnRequestPost } from './api/aeo.js';
 import {
@@ -132,6 +133,17 @@ export function renderScorecardHtml(initialData?: Record<string, any>): string {
         ? buildFixPrompt({ url, score, tier, patterns: data.patterns })
         : 'No default-template patterns triggered.';
 
+  const formatDetail = (p: any): string => {
+    const d = p?.detail ?? p?.evidence;
+    if (typeof d === 'string') return d;
+    if (d && typeof d === 'object') {
+      const sel =
+        Array.isArray(p?.locations) && p.locations[0]?.selector ? p.locations[0].selector : '';
+      return sel ? `${sel} — ${JSON.stringify(d).slice(0, 120)}` : JSON.stringify(d).slice(0, 140);
+    }
+    return '';
+  };
+
   const rowsHtml =
     triggered.length > 0
       ? triggered
@@ -140,7 +152,7 @@ export function renderScorecardHtml(initialData?: Record<string, any>): string {
           <td><code>${escapeHtml(p.id)}</code></td>
           <td>${escapeHtml(p.label || p.id)}</td>
           <td class="num">${escapeHtml(p.weight ?? 0)}</td>
-          <td>${escapeHtml(p.detail || '')}</td>
+          <td>${escapeHtml(formatDetail(p))}</td>
         </tr>`
           )
           .join('\n')
@@ -156,7 +168,7 @@ export function renderScorecardHtml(initialData?: Record<string, any>): string {
       id: p.id,
       label: p.label || p.id,
       weight: p.weight ?? 0,
-      detail: p.detail || '',
+      detail: formatDetail(p),
     })),
     fixPrompt: fixPromptText,
   }).replace(/</g, '\\u003c');
@@ -361,36 +373,76 @@ export function renderScorecardHtml(initialData?: Record<string, any>): string {
       var state = ${serializedInitial};
       var btn = document.getElementById('sc-copy-fix');
       var statusEl = document.getElementById('sc-status');
+      function stringifyDetail(val) {
+        if (val == null) return '';
+        if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') {
+          return String(val);
+        }
+        try { return JSON.stringify(val).slice(0, 140); } catch (e) { return ''; }
+      }
       function hydrate(next) {
         if (!next || typeof next !== 'object') return;
         state = Object.assign({}, state, next);
         if (next.url) document.getElementById('sc-url').textContent = String(next.url);
-        if (typeof next.score === 'number') {
-          document.getElementById('sc-score').textContent = next.score + ' / 100';
+        var scoreVal = typeof next.score === 'number'
+          ? next.score
+          : next.system && typeof next.system.score === 'number'
+            ? next.system.score
+            : null;
+        if (scoreVal !== null) {
+          document.getElementById('sc-score').textContent = scoreVal + ' / 100';
         }
-        if (next.tier) document.getElementById('sc-tier').textContent = String(next.tier);
-        var trig = Array.isArray(next.patterns)
-          ? next.patterns.filter(function (p) { return p && p.triggered && !p.waived; })
-          : Array.isArray(next.triggered) ? next.triggered : null;
-        if (trig) {
-          document.getElementById('sc-pattern-count').textContent = String(trig.length);
+        var tierVal = next.tier || (next.system && next.system.tier) || '';
+        if (tierVal) document.getElementById('sc-tier').textContent = String(tierVal);
+        var isAeo = Array.isArray(next.checks) && !Array.isArray(next.patterns) && !Array.isArray(next.triggered);
+        var isSystem = Boolean(next.system && !Array.isArray(next.patterns) && !Array.isArray(next.triggered));
+        var verdictEl = document.getElementById('sc-verdict');
+        var rows = null;
+        if (isAeo) {
+          var failed = next.checks.filter(function (c) { return c && c.passed === false; });
+          verdictEl.textContent = failed.length + ' failed AEO eligibility check(s) (higher score is better).';
+          rows = failed.map(function (c) {
+            return { id: c.id, label: c.label || c.id, weight: c.weight || 0, detail: c.message || c.status || '' };
+          });
+        } else if (isSystem) {
+          var drift = Array.isArray(next.system.drift) ? next.system.drift : [];
+          verdictEl.textContent = drift.length + ' DESIGN.md drift signal(s) (higher score is better).';
+          rows = drift.map(function (d) {
+            return { id: d.id || 'drift', label: d.label || d.id || 'Drift', weight: d.weight || 0, detail: d.message || stringifyDetail(d) };
+          });
+        } else {
+          var trig = Array.isArray(next.patterns)
+            ? next.patterns.filter(function (p) { return p && p.triggered && !p.waived; })
+            : Array.isArray(next.triggered) ? next.triggered : null;
+          if (trig) {
+            document.getElementById('sc-pattern-count').textContent = String(trig.length);
+            rows = trig.map(function (p) {
+              return { id: p.id, label: p.label || p.id, weight: p.weight || 0, detail: stringifyDetail(p.detail !== undefined ? p.detail : p.evidence) };
+            });
+          }
+        }
+        if (rows) {
           var tbody = document.getElementById('sc-rows');
           tbody.innerHTML = '';
-          if (trig.length === 0) {
+          if (rows.length === 0) {
             var tr = document.createElement('tr');
             var td = document.createElement('td');
             td.colSpan = 4;
             td.className = 'empty';
-            td.textContent = '0 triggered patterns — matches 0 default-template patterns.';
+            td.textContent = isAeo
+              ? 'All AEO checks passed.'
+              : isSystem
+                ? '0 DESIGN.md drift signals detected.'
+                : '0 triggered patterns — matches 0 default-template patterns.';
             tr.appendChild(td);
             tbody.appendChild(tr);
           } else {
-            trig.forEach(function (p) {
+            rows.forEach(function (p) {
               var tr = document.createElement('tr');
               ['id', 'label', 'weight', 'detail'].forEach(function (k) {
                 var td = document.createElement('td');
                 if (k === 'weight') td.className = 'num';
-                td.textContent = String(p[k] !== undefined ? p[k] : '');
+                td.textContent = stringifyDetail(p[k]);
                 tr.appendChild(td);
               });
               tbody.appendChild(tr);
@@ -409,8 +461,10 @@ export function renderScorecardHtml(initialData?: Record<string, any>): string {
         });
       }
       window.addEventListener('message', function (ev) {
+        // Only accept tool-result notifications from the embedding MCP host frame.
+        if (window.parent && window.parent !== window && ev.source !== window.parent) return;
         var msg = ev && ev.data;
-        if (!msg || typeof msg !== 'object') return;
+        if (!msg || typeof msg !== 'object' || msg.jsonrpc === undefined && !msg.method && !msg.structuredContent) return;
         if (msg.method === 'ui/notifications/tool-result' && msg.params) {
           hydrate(msg.params.structuredContent || msg.params);
         } else if (msg.structuredContent) {
@@ -479,24 +533,103 @@ const RESOURCES_LIST = [
 
 const PROMPTS_LIST = MCP_PROMPTS.map((prompt) => ({ ...prompt, icons: MCP_ICONS }));
 
-// ── Per-IP KV rate limiter for network-bound MCP tool calls ──────────────────
+// ── Per-IP fail-closed rate limiter + kill switch + daily cap for /mcp ───────
+const mcpMemCounters = new Map<string, { count: number; resetAt: number }>();
+const MCP_SCAN_FALLBACK_CEILING = 6;
+const MCP_MAX_BATCH_SIZE = 10;
+const MCP_MAX_NETWORK_TOOLS_PER_BATCH = 2;
+
+function mcpMemIncrement(key: string, windowMs = 60_000, inc = 1): number {
+  const now = Date.now();
+  if (mcpMemCounters.size > 256) {
+    for (const [k, v] of mcpMemCounters) if (now >= v.resetAt) mcpMemCounters.delete(k);
+  }
+  const cur = mcpMemCounters.get(key);
+  if (!cur || now >= cur.resetAt) {
+    const fresh = { count: inc, resetAt: now + windowMs };
+    mcpMemCounters.set(key, fresh);
+    return fresh.count;
+  }
+  cur.count += inc;
+  return cur.count;
+}
+
 async function checkMcpRateLimit(
   request: Request,
   env: any,
   bucket: 'scan' | 'aeo'
-): Promise<boolean> {
-  if (!env?.RESULTS || typeof env.RESULTS.get !== 'function') return true;
-  const ip = request.headers?.get?.('CF-Connecting-IP') || 'anon';
-  const limit = bucket === 'scan' ? 6 : 30;
-  const key = `rl:mcp:${bucket}:${ip}`;
-  try {
-    const cur = parseInt((await env.RESULTS.get(key)) || '0', 10);
-    if (cur >= limit) return false;
-    await env.RESULTS.put(key, String(cur + 1), { expirationTtl: 60 });
-  } catch {
-    // KV hiccups fail open
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (isScanDisabled(env)) {
+    return {
+      ok: false,
+      message:
+        'Scanning is temporarily paused for maintenance. Try again shortly or run locally: npx -y -p slop-detect -p slop-detect-mcp slop-detect-mcp --local',
+    };
   }
-  return true;
+  const ip = request.headers?.get?.('CF-Connecting-IP') || 'anon';
+  const limit = bucket === 'scan' ? 6 : 12;
+  const key = `rl:mcp:${bucket}:${ip}`;
+  const kv = env?.RATE_LIMIT || env?.RESULTS;
+
+  // Always enforce per-isolate memory ceiling so concurrent requests or a KV
+  // outage cannot bypass the hosted scan budget.
+  const memN = mcpMemIncrement(key, 60_000, 1);
+  if (memN > limit) {
+    return { ok: false, message: RATE_LIMITED };
+  }
+
+  if (kv && typeof kv.get === 'function' && typeof kv.put === 'function') {
+    try {
+      const cur = parseInt((await kv.get(key)) || '0', 10);
+      if (cur >= limit) return { ok: false, message: RATE_LIMITED };
+      await kv.put(key, String(cur + 1), { expirationTtl: 60 });
+    } catch {
+      if (bucket === 'scan' && memN > MCP_SCAN_FALLBACK_CEILING) {
+        return { ok: false, message: RATE_LIMITED };
+      }
+    }
+  } else if (bucket === 'scan' && memN > MCP_SCAN_FALLBACK_CEILING) {
+    return { ok: false, message: RATE_LIMITED };
+  }
+
+  // Enforce global daily cap shared with /api/scan so /mcp cannot bypass account limits.
+  const cap = parseInt(env?.SCAN_DAILY_CAP || '10000', 10);
+  if (env?.RATE_LIMIT && Number.isFinite(cap) && cap > 0) {
+    const day = new Date().toISOString().slice(0, 10);
+    const gkey = `rl:global:scan:${day}`;
+    const units = bucket === 'aeo' ? 3 : 1;
+    let used = 0;
+    try {
+      used = parseInt((await env.RATE_LIMIT.get(gkey)) || '0', 10);
+    } catch {
+      return {
+        ok: false,
+        message: 'Scanning is temporarily unavailable while capacity limits are checked.',
+      };
+    }
+    if (used >= cap) {
+      return {
+        ok: false,
+        message:
+          'Daily hosted scan capacity has been reached. Retry tomorrow or run locally: npx -y -p slop-detect -p slop-detect-mcp slop-detect-mcp --local',
+      };
+    }
+    const memGlobal = mcpMemIncrement(gkey, 86_400_000, units);
+    if (memGlobal > cap) {
+      return {
+        ok: false,
+        message:
+          'Daily hosted scan capacity has been reached. Retry tomorrow or run locally: npx -y -p slop-detect -p slop-detect-mcp slop-detect-mcp --local',
+      };
+    }
+    try {
+      await env.RATE_LIMIT.put(gkey, String(used + units), { expirationTtl: 172_800 });
+    } catch {
+      /* best-effort */
+    }
+  }
+
+  return { ok: true };
 }
 
 // ── Tool Execution ───────────────────────────────────────────────────────────
@@ -558,8 +691,9 @@ async function admitUrl(ctx: ToolCtx, url: string, bucket: 'scan' | 'aeo', extra
     const dm = validateScanUrl(extraUrl);
     if (dm.error) return { error: errorResult(blockedUrlMessage(extraUrl, dm.error)) };
   }
-  if (!(await checkMcpRateLimit(ctx.request, ctx.env, bucket))) {
-    return { error: errorResult(RATE_LIMITED) };
+  const gate = await checkMcpRateLimit(ctx.request, ctx.env, bucket);
+  if (!gate.ok) {
+    return { error: errorResult('message' in gate ? gate.message : RATE_LIMITED) };
   }
   return { url: checked.url as string };
 }
@@ -1070,11 +1204,62 @@ export async function onRequestPost(ctx: { request: Request; env?: any; waitUnti
         }
       );
     }
-    const results = await Promise.all(
-      payload.map((item) =>
-        safeDispatch(item, { request: ctx.request, env: ctx.env || {}, waitUntil: ctx.waitUntil })
-      )
-    );
+    if (payload.length > MCP_MAX_BATCH_SIZE) {
+      return new Response(
+        JSON.stringify({
+          jsonrpc: '2.0',
+          id: null,
+          error: {
+            code: -32600,
+            message: `JSON-RPC batch too large (max ${MCP_MAX_BATCH_SIZE} requests per batch).`,
+          },
+        }),
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Mcp-Protocol-Version': MCP_PROTOCOL_VERSION,
+            ...CORS_HEADERS,
+          },
+        }
+      );
+    }
+    // Execute batch items sequentially and cap network-bound tool calls so a
+    // single batch cannot launch concurrent browser floods past rate limits.
+    const NETWORK_TOOLS = new Set([
+      'scan_page',
+      'check_aeo',
+      'check_design_system',
+      'fix_prompt',
+      'extract_design_system',
+    ]);
+    let networkCalls = 0;
+    const results: Array<{ response: Record<string, any> | null }> = [];
+    for (const item of payload) {
+      const isNetCall =
+        item?.method === 'tools/call' &&
+        NETWORK_TOOLS.has(item?.params?.name) &&
+        Boolean(item?.params?.arguments?.url);
+      if (isNetCall && ++networkCalls > MCP_MAX_NETWORK_TOOLS_PER_BATCH) {
+        results.push({
+          response: {
+            jsonrpc: '2.0',
+            id: item?.id ?? null,
+            result: errorResult(
+              `Batch limit exceeded: at most ${MCP_MAX_NETWORK_TOOLS_PER_BATCH} URL scan/audit calls per JSON-RPC batch.`
+            ),
+          },
+        });
+        continue;
+      }
+      results.push(
+        await safeDispatch(item, {
+          request: ctx.request,
+          env: ctx.env || {},
+          waitUntil: ctx.waitUntil,
+        })
+      );
+    }
     const responses = results.map((r) => r.response).filter(Boolean);
     if (responses.length === 0) {
       return new Response(null, {

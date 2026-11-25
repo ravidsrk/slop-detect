@@ -18,8 +18,10 @@ import {
   putWatch,
   deferFlowBump,
   cleanupLegacyListings,
+  fetchAllowedUrl,
 } from '../../_shared.js';
 import { monitorSweep } from '../../_sweep.js';
+import { buildWatchWebhook, validateWebhookUrl } from '../../_webhook.js';
 import { sendEmail } from '../../_email.js';
 import { buildRegressionAlert, buildDriftAlert, mailFooter } from '../../_alerts.js';
 import { signUnsubscribe, unsubscribeUrl } from '../../_session.js';
@@ -46,8 +48,11 @@ export async function onRequestPost({ request, env, waitUntil }) {
   if (!env.RESULTS) return json({ error: 'storage_unavailable' }, 503);
 
   const auth = request.headers.get('Authorization') || '';
-  const presented = auth.replace(/^Bearer\s+/i, '');
-  if (!safeEqual(presented, env.CRON_SECRET)) return json({ error: 'unauthorized' }, 401);
+  const bearerMatch = auth.match(/^Bearer\s+(.+)$/i);
+  const presented = bearerMatch ? bearerMatch[1].trim() : '';
+  if (!presented || !safeEqual(presented, env.CRON_SECRET)) {
+    return json({ error: 'unauthorized' }, 401);
+  }
 
   if (!env.INTERNAL_API_KEY) {
     return json(
@@ -146,7 +151,49 @@ export async function onRequestPost({ request, env, waitUntil }) {
     });
   };
 
-  const watches = await listWatches(env.RESULTS, { limit: 1000 });
+  // Optional HTTPS webhook delivery (#335): SSRF-checked per hop, 5s timeout,
+  // auto-disabled after 5 consecutive failures inside monitorSweep.
+  const sendWebhook = async (watch, kind) => {
+    const check = validateWebhookUrl(watch?.webhookUrl);
+    if (!check.ok) return { sent: false, reason: 'invalid_webhook_url' };
+    const resultUrl = watch.lastId
+      ? `${origin}/r/${watch.lastId}`
+      : `${origin}/score/${watch.domain}`;
+    const built = buildWatchWebhook({
+      domain: watch.domain,
+      previous: {
+        score: kind === 'system_drift' ? watch.baselineSystemScore : watch.baselineScore,
+        tier: kind === 'system_drift' ? watch.baselineSystemTier : watch.baselineTier,
+      },
+      current: {
+        score: kind === 'system_drift' ? watch.lastSystemScore : watch.lastScore,
+        tier: kind === 'system_drift' ? watch.lastSystemTier : watch.lastTier,
+      },
+      permalink: resultUrl,
+    });
+    const host = new URL(check.url).hostname.toLowerCase();
+    const payload = host.includes('slack.com')
+      ? built.slack
+      : host.includes('discord.com') || host.includes('discordapp.com')
+        ? built.discord
+        : { ...built.json, kind };
+    const res = await fetchAllowedUrl(
+      check.url,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      },
+      { timeoutMs: 5000, maxHops: 2, attempts: 1 }
+    );
+    return { sent: Boolean(res && res.ok) };
+  };
+
+  // Sort oldest-checked-first so domains past `max` rotate across sweeps
+  // instead of starving lexicographically past key #50.
+  const watches = (await listWatches(env.RESULTS, { limit: 1000 })).sort((a, b) =>
+    String(a?.lastCheckedAt || '').localeCompare(String(b?.lastCheckedAt || ''))
+  );
   const summary = await monitorSweep({
     watches,
     scanDomain,
@@ -154,6 +201,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
     putWatch: (w) => putWatch(env.RESULTS, w),
     sendAlert,
     sendDriftAlert,
+    sendWebhook,
     max,
   });
 
