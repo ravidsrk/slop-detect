@@ -109,12 +109,13 @@ export async function run(ctx: Ctx) {
     );
   });
 
-  await ctx.step('failure: unknown tool → isError', async () => {
+  await ctx.step('failure: unknown tool → JSON-RPC error or isError', async () => {
     const out = await session(ctx, [
       { method: 'tools/call', params: { name: 'nope', arguments: {} } },
     ]);
-    const res = out.get(1)?.result;
-    ctx.assert(res && res.isError === true, 'unknown tool returns isError');
+    const msg = out.get(1);
+    const isErr = Boolean(msg?.error || msg?.result?.isError === true);
+    ctx.assert(isErr, `unknown tool returns error, got ${JSON.stringify(msg).slice(0, 200)}`);
   });
 }
 

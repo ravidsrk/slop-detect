@@ -1,7 +1,7 @@
 # slop-detect
 
-> **Score any landing page against the versioned design-slop fingerprint, copy axis, `DESIGN.md` system compliance, craft floor, and AEO readiness — then keep it clean.**
-> Audit live pages in real headless Chromium, verify rendered tokens against your own `DESIGN.md`, check if AI answer engines can read and cite your site, and generate a copy-paste remediation prompt for your coding agent. Monitor a domain and get alerted when it drifts.
+> **Score any landing page against the versioned design-slop fingerprint, copy axis, `DESIGN.md` system compliance, craft floor, and AEO crawler eligibility — then keep it clean.**
+> Audit live pages in real headless Chromium, verify rendered tokens against your own `DESIGN.md`, check technical eligibility for AI search crawlers (`robots.txt`, indexability, server HTML text, Markdown twins), and generate a copy-paste remediation prompt for your coding agent. Monitor a domain and get alerted when it drifts.
 
 <p>
   <a href="https://github.com/ravidsrk/slop-detect/actions"><img alt="CI" src="https://github.com/ravidsrk/slop-detect/workflows/ci/badge.svg" /></a>
@@ -81,11 +81,18 @@ All surfaces run the **exact same engine** (45 design patterns, 26 copy patterns
 # 1. Web UI (fastest interactive X-Ray workbench)
 open https://slop-detect.com
 
-# 2. Terminal CLI (runs real headless Chromium locally)
+# 2. One-command 5-axis verification gate (design + copy + craft + auto DESIGN.md + baseline)
+npx slop-detect verify http://localhost:3000
+
+# 3. Bootstrap MCP + coding-agent hooks + CI, then verify local setup
+npx slop-detect init --providers claude,cursor --ci github
+npx slop-detect doctor
+
+# 4. Terminal CLI (single URL or multi-axis)
 npx slop-detect https://your-site.com
 npx slop-detect https://your-site.com --copy --craft --aeo --design-md auto
 
-# 3. Terminal CLI without a local browser (delegates to the hosted API — zero Playwright install)
+# 5. Terminal CLI without a local browser (delegates to the hosted API — zero Playwright install)
 npx slop-detect https://your-site.com --copy --remote
 
 # 4. One-command project bootstrap (writes MCP config + Agent Skill + optional PostToolUse hooks)
@@ -214,7 +221,7 @@ Pass `--craft` to run **11 orthogonal engineering and accessibility hygiene chec
 slop-detect https://your-site.com --craft
 ```
 
-The craft floor checks **WCAG contrast minimums** (`craft.contrastMinimum`), **interactive tap target sizes** (`craft.tapTargetSize`), **`prefers-reduced-motion` media query coverage** (`craft.reducedMotionRespect`), **tabular numerals on numeric tables/tickers** (`craft.tabularNumerals`), **intrinsic `width`/`height` on images** (`craft.imageDimensions`), **focus-ring preservation** (`craft.focusRingVisible`), **heading hierarchy** (`craft.headingHierarchy`), **body line length (`45–85ch`)**, and **dark-mode `color-scheme` declaration**.
+The craft floor checks **gray text on colored fills** (`gray_on_color`), **over-tracked body copy** (`wide_body_tracking`), **viewport meta tags** (`viewport_meta_missing`), **pinch-zoom suppression** (`zoom_disabled`), **mobile reflow overflow** (`mobile_reflow_failure`), **suppressed keyboard focus indicators** (`focus_indicator_missing`), **scroll-reveal content stuck invisible** (`content_stuck_hidden`), **dead CTA controls** (`dead_cta_controls`), **`prefers-reduced-motion` support** (`reduced_motion_ignored`), **generic control labels** (`generic_control_labels`), and **forms without visible error/feedback containers** (`form_no_failure_feedback`).
 
 > **Orthogonality guarantee:** Craft floor findings are reported in `result.craft` (`0–100`, higher is better) and **never** add points to your Design or Copy slop score or alter Clean / Mild / Heavy tiers.
 
@@ -226,7 +233,7 @@ The craft floor checks **WCAG contrast minimums** (`craft.contrastMinimum`), **i
   <img src="apps/web/public/media/docs-aeo-crawler-pipeline.png" alt="AEO (Answer Engine Optimization) — agent-readable verification pipeline" width="100%" />
 </p>
 
-Can AI answer engines (`OAI-SearchBot`, `ChatGPT-User`, `Claude-SearchBot`, `PerplexityBot`, `Applebot`) fetch, parse, and cite your page without a headless browser?
+Can AI search and user-action crawlers (`OAI-SearchBot`, `ChatGPT-User`, `Claude-SearchBot`, `PerplexityBot`, `Applebot`) fetch, index, and extract readable server HTML from your page without running a headless browser?
 
 The **AEO axis** runs **16 HTTP, HTML, and discovery checks** using the transparent `SlopDetector-AEO/1.0 (+https://slop-detect.com/bot)` user-agent (never spoofing Googlebot, GPTBot, or any vendor crawler):
 
@@ -321,7 +328,7 @@ See [**`docs/AGENT_INTEGRATIONS.md`**](docs/AGENT_INTEGRATIONS.md), [**`docs/GEN
 | Integration | Location | Use Case |
 | --- | --- | --- |
 | **GitHub Action** | [`packages/action`](packages/action) / [`action.yml`](action.yml) | PR preview gate (`mode: api` or `mode: local`), sticky comments, SARIF upload, and `baseline-url` regression ratcheting |
-| **Netlify Build Plugin** | [`packages/netlify-plugin-slop-detect`](packages/netlify-plugin-slop-detect) | `onPostBuild` gate for Netlify deploys (`failOn`, `failUnderScore`, `axes`, `designMd`) |
+| **Netlify Build Plugin** | [`packages/netlify-plugin-slop-detect`](packages/netlify-plugin-slop-detect) | `onSuccess` deploy gate for Netlify deploys (`failOn`, `failUnderScore`, `axes`, `designMd`) |
 | **Lighthouse Plugin** | [`packages/lighthouse-plugin-slop-copy`](packages/lighthouse-plugin-slop-copy) | Audits Copy Slop + HTML-level AEO checks inside Lighthouse CI |
 | **Vale Prose Linter** | [`styles/SlopDetect/`](styles/SlopDetect) | Editor-time prose linting generated from `COPY_PATTERNS` via `node scripts/export-vale.mjs` |
 
@@ -424,7 +431,7 @@ slop-detect/
 │   ├── cli/                             ← Playwright runner, static auditor & reporters (npm: slop-detect)
 │   ├── mcp/                             ← Model Context Protocol server (npm: slop-detect-mcp)
 │   ├── action/                          ← Composite GitHub Action (api + local Chromium + SARIF)
-│   ├── netlify-plugin-slop-detect/      ← Netlify onPostBuild deploy gate plugin
+│   ├── netlify-plugin-slop-detect/      ← Netlify onSuccess deploy gate plugin
 │   └── lighthouse-plugin-slop-copy/     ← Lighthouse copy + HTML AEO plugin
 ├── apps/
 │   └── web/                             ← Cloudflare Pages app, REST API (/api/*) & remote MCP (/mcp)

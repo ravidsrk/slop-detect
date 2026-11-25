@@ -364,7 +364,14 @@ Disallow: /
   return new Promise((resolve) => {
     server.listen(0, '127.0.0.1', () => {
       const addr = server.address();
-      resolve({ server, port: addr.port, baseUrl: `http://127.0.0.1:${addr.port}`, designMd, cleanHtml, slopHtml });
+      resolve({
+        server,
+        port: addr.port,
+        baseUrl: `http://127.0.0.1:${addr.port}`,
+        designMd,
+        cleanHtml,
+        slopHtml,
+      });
     });
   });
 }
@@ -385,444 +392,677 @@ try {
 
   let scanResultId = null;
 
-  await step('WEB-UI', 'Homepage (/) renders hero, 5-axis controls (#url, #optCopy, #optSystem, #go), and zero JS errors', async () => {
-    const resp = await page.goto(`${WEB_BASE}/`, { waitUntil: 'domcontentloaded' });
-    assert(resp && resp.status() === 200, `Expected 200, got ${resp?.status()}`);
-    const title = await page.title();
-    assert(title.toLowerCase().includes('slop'), `Unexpected title: ${title}`);
-    assert((await page.locator('#url').count()) === 1, '#url input missing on homepage');
-    assert((await page.locator('#go').count()) === 1, '#go scan button missing on homepage');
-    assert((await page.locator('#optCopy').count()) === 1, '#optCopy checkbox missing on homepage');
-    assert((await page.locator('#optSystem').count()) === 1, '#optSystem checkbox missing on homepage');
-    assert(pageErrors.length === 0, `Page errors on /: ${pageErrors.join('; ')}`);
-    return `title="${title}"`;
-  });
-
-  await step('WEB-UI', 'Interactive browser scan on Homepage (/) submits #url + #optCopy + #optSystem and navigates to /r/:id', async () => {
-    await page.fill('#url', 'https://slop-detect.com/');
-    await page.click('summary.hero-adv-sum');
-    await page.check('#optSystem');
-    await page.click('#go');
-    await page.waitForURL(/\/r\/[a-z0-9]+/i, { timeout: 60000 });
-    const currentUrl = page.url();
-    const match = currentUrl.match(/\/r\/([a-z0-9]+)/i);
-    assert(match && match[1], `Did not navigate to /r/:id, landed on ${currentUrl}`);
-    scanResultId = match[1];
-    const bodyText = await page.locator('body').innerText();
-    assert(bodyText.includes('slop-detect.com'), 'Result page missing scanned domain');
-    assert(pageErrors.length === 0, `Page errors during interactive scan: ${pageErrors.join('; ')}`);
-    return `Redirected to /r/${scanResultId}`;
-  });
-
-  await step('WEB-API', 'POST /api/scan (multi-axis + craft + designMd) & POST /api/aeo & POST /api/fix-prompt', async () => {
-    const res = await fetch(`${WEB_BASE}/api/scan`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', origin: WEB_BASE },
-      body: JSON.stringify({
-        url: 'https://slop-detect.com/',
-        axes: ['design', 'copy'],
-        includeCraft: true,
-        designMd: true,
-      }),
-    });
-    assert(res.status === 200, `Expected 200, got ${res.status}`);
-    const body = await res.json();
-    assert(typeof body.score === 'number', 'score missing');
-    assert(body.definitionsVersion === '2026.11', `Expected 2026.11, got ${body.definitionsVersion}`);
-    assert(body.axes && body.axes.design && body.axes.copy, 'axes.design and axes.copy missing');
-
-    const aeoRes = await fetch(`${WEB_BASE}/api/aeo`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', origin: WEB_BASE },
-      body: JSON.stringify({ url: 'https://slop-detect.com/' }),
-    });
-    assert(aeoRes.status === 200, `POST /api/aeo returned ${aeoRes.status}`);
-    const aeoBody = await aeoRes.json();
-    assert(typeof aeoBody.score === 'number' && Array.isArray(aeoBody.checks), 'Invalid /api/aeo response');
-
-    const fpRes = await fetch(`${WEB_BASE}/api/fix-prompt`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', origin: WEB_BASE },
-      body: JSON.stringify({ url: 'https://slop-detect.com/' }),
-    });
-    assert(fpRes.status === 200, `POST /api/fix-prompt returned ${fpRes.status}`);
-    return `scan=${body.score}/100 (${body.tier}), aeo=${aeoBody.score}/100 (${aeoBody.tier})`;
-  });
-
-  await step('WEB-UI', 'Docs page (/docs) renders interactive catalogue with 45 design, 26 copy, 16 AEO checks', async () => {
-    pageErrors.length = 0;
-    const resp = await page.goto(`${WEB_BASE}/docs`, { waitUntil: 'domcontentloaded' });
-    assert(resp && resp.status() === 200, `Expected 200, got ${resp?.status()}`);
-    const text = await page.locator('body').innerText();
-    assert(text.includes('2026.11'), 'Docs page missing definitionsVersion 2026.11');
-    assert(pageErrors.length === 0, `Page errors on /docs: ${pageErrors.join('; ')}`);
-    return '45 design + 26 copy + 16 AEO catalogue verified';
-  });
-
-  await step('WEB-UI', 'Leaderboard (/leaderboard), Directory (/directory), Dashboard (/dashboard fail-closed 503), Brand (/brand), Blog (/blog), Bot (/bot)', async () => {
-    const routes200 = ['/leaderboard', '/directory', '/brand', '/blog', '/bot'];
-    for (const r of routes200) {
-      pageErrors.length = 0;
-      const resp = await page.goto(`${WEB_BASE}${r}`, { waitUntil: 'domcontentloaded' });
-      assert(resp && resp.status() === 200, `Route ${r} returned ${resp?.status()}`);
-      assert(pageErrors.length === 0, `Page errors on ${r}: ${pageErrors.join('; ')}`);
+  await step(
+    'WEB-UI',
+    'Homepage (/) renders hero, 5-axis controls (#url, #optCopy, #optSystem, #go), and zero JS errors',
+    async () => {
+      const resp = await page.goto(`${WEB_BASE}/`, { waitUntil: 'domcontentloaded' });
+      assert(resp && resp.status() === 200, `Expected 200, got ${resp?.status()}`);
+      const title = await page.title();
+      assert(title.toLowerCase().includes('slop'), `Unexpected title: ${title}`);
+      assert((await page.locator('#url').count()) === 1, '#url input missing on homepage');
+      assert((await page.locator('#go').count()) === 1, '#go scan button missing on homepage');
+      assert(
+        (await page.locator('#optCopy').count()) === 1,
+        '#optCopy checkbox missing on homepage'
+      );
+      assert(
+        (await page.locator('#optSystem').count()) === 1,
+        '#optSystem checkbox missing on homepage'
+      );
+      assert(pageErrors.length === 0, `Page errors on /: ${pageErrors.join('; ')}`);
+      return `title="${title}"`;
     }
-    pageErrors.length = 0;
-    const dashResp = await page.goto(`${WEB_BASE}/dashboard`, { waitUntil: 'domcontentloaded' });
-    assert(dashResp && (dashResp.status() === 200 || dashResp.status() === 503), `/dashboard returned ${dashResp?.status()}`);
-    const dashHtml = await page.content();
-    assert(/not configured|sign in/i.test(dashHtml), '/dashboard did not render expected view');
-    assert(pageErrors.length === 0, `Page errors on /dashboard: ${pageErrors.join('; ')}`);
-    return 'All 6 routes rendered cleanly with 0 JS errors';
-  });
+  );
 
-  await step('WEB-UI', 'Permalink (/r/:id), Domain Score Hub (/score/:domain), Agency Print Report (/report/:domain), OG PNG & SVG Badge', async () => {
-    assert(scanResultId, 'No scanResultId');
-    for (const r of [`/r/${scanResultId}`, '/score/slop-detect.com', '/report/slop-detect.com']) {
-      pageErrors.length = 0;
-      const resp = await page.goto(`${WEB_BASE}${r}`, { waitUntil: 'domcontentloaded' });
-      assert(resp && resp.status() === 200, `Route ${r} returned ${resp?.status()}`);
-      const html = await page.content();
-      assert(html.includes('slop-detect.com'), `Route ${r} missing domain name`);
-      assert(pageErrors.length === 0, `Page errors on ${r}: ${pageErrors.join('; ')}`);
+  await step(
+    'WEB-UI',
+    'Interactive browser scan on Homepage (/) submits #url + #optCopy + #optSystem and navigates to /r/:id',
+    async () => {
+      await page.fill('#url', 'https://slop-detect.com/');
+      await page.click('summary.hero-adv-sum');
+      await page.check('#optSystem');
+      await page.click('#go');
+      await page.waitForURL(/\/r\/[a-z0-9]+/i, { timeout: 60000 });
+      const currentUrl = page.url();
+      const match = currentUrl.match(/\/r\/([a-z0-9]+)/i);
+      assert(match && match[1], `Did not navigate to /r/:id, landed on ${currentUrl}`);
+      scanResultId = match[1];
+      const bodyText = await page.locator('body').innerText();
+      assert(bodyText.includes('slop-detect.com'), 'Result page missing scanned domain');
+      assert(
+        pageErrors.length === 0,
+        `Page errors during interactive scan: ${pageErrors.join('; ')}`
+      );
+      return `Redirected to /r/${scanResultId}`;
     }
-    const ogRes = await fetch(`${WEB_BASE}/og/${scanResultId}.png`);
-    assert(ogRes.status === 200 && (ogRes.headers.get('content-type') || '').includes('image/png'), 'OG PNG invalid');
+  );
 
-    const badgeRes = await fetch(`${WEB_BASE}/badge/slop-detect.com.svg`);
-    assert(badgeRes.status === 200 && (await badgeRes.text()).includes('<svg'), 'Badge SVG invalid');
-    return `Verified /r/${scanResultId}, /score, /report, /og.png, /badge.svg`;
-  });
+  await step(
+    'WEB-API',
+    'POST /api/scan (multi-axis + craft + designMd) & POST /api/aeo & POST /api/fix-prompt',
+    async () => {
+      const res = await fetch(`${WEB_BASE}/api/scan`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', origin: WEB_BASE },
+        body: JSON.stringify({
+          url: 'https://slop-detect.com/',
+          axes: ['design', 'copy'],
+          includeCraft: true,
+          designMd: true,
+        }),
+      });
+      assert(res.status === 200, `Expected 200, got ${res.status}`);
+      const body = await res.json();
+      assert(typeof body.score === 'number', 'score missing');
+      assert(
+        body.definitionsVersion === '2026.11',
+        `Expected 2026.11, got ${body.definitionsVersion}`
+      );
+      assert(body.axes && body.axes.design && body.axes.copy, 'axes.design and axes.copy missing');
 
-  await step('WEB-API', 'Discovery & AEO static endpoints (/.well-known/*, /robots.txt, /llms.txt, /openapi.json, /?mode=agent)', async () => {
-    const ard = await fetch(`${WEB_BASE}/.well-known/ard.json`).then((r) => r.json());
-    assert(ard.specVersion === '0.91' && ard.draft === 'draft-zahradnik-ard-00', 'ard.json missing specVersion 0.91');
+      const aeoRes = await fetch(`${WEB_BASE}/api/aeo`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', origin: WEB_BASE },
+        body: JSON.stringify({ url: 'https://slop-detect.com/' }),
+      });
+      assert(aeoRes.status === 200, `POST /api/aeo returned ${aeoRes.status}`);
+      const aeoBody = await aeoRes.json();
+      assert(
+        typeof aeoBody.score === 'number' && Array.isArray(aeoBody.checks),
+        'Invalid /api/aeo response'
+      );
 
-    const sc = await fetch(`${WEB_BASE}/.well-known/mcp/server-card.json`).then((r) => r.json());
-    assert(Array.isArray(sc.remotes) && sc.remotes[0].url === 'https://slop-detect.com/mcp', 'server-card missing remote /mcp');
+      const fpRes = await fetch(`${WEB_BASE}/api/fix-prompt`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', origin: WEB_BASE },
+        body: JSON.stringify({ url: 'https://slop-detect.com/' }),
+      });
+      assert(fpRes.status === 200, `POST /api/fix-prompt returned ${fpRes.status}`);
+      return `scan=${body.score}/100 (${body.tier}), aeo=${aeoBody.score}/100 (${aeoBody.tier})`;
+    }
+  );
 
-    const robots = await fetch(`${WEB_BASE}/robots.txt`).then((r) => r.text());
-    assert(robots.includes('OAI-SearchBot') && robots.includes('Content-Signal: ai-train=no, search=yes, ai-input=yes'), 'robots.txt missing RFC 9309 search split');
+  await step(
+    'WEB-UI',
+    'Docs page (/docs) renders interactive catalogue with 45 design, 26 copy, 16 AEO checks',
+    async () => {
+      pageErrors.length = 0;
+      const resp = await page.goto(`${WEB_BASE}/docs`, { waitUntil: 'domcontentloaded' });
+      assert(resp && resp.status() === 200, `Expected 200, got ${resp?.status()}`);
+      const text = await page.locator('body').innerText();
+      assert(text.includes('2026.11'), 'Docs page missing definitionsVersion 2026.11');
+      assert(pageErrors.length === 0, `Page errors on /docs: ${pageErrors.join('; ')}`);
+      return '45 design + 26 copy + 16 AEO catalogue verified';
+    }
+  );
 
-    const legacyMcp = await fetch(`${WEB_BASE}/.well-known/mcp.json`);
-    assert(legacyMcp.status === 404, `Expected /.well-known/mcp.json to be 404, got ${legacyMcp.status}`);
+  await step(
+    'WEB-UI',
+    'Leaderboard (/leaderboard), Directory (/directory), Dashboard (/dashboard fail-closed 503), Brand (/brand), Blog (/blog), Bot (/bot)',
+    async () => {
+      const routes200 = ['/leaderboard', '/directory', '/brand', '/blog', '/bot'];
+      for (const r of routes200) {
+        pageErrors.length = 0;
+        const resp = await page.goto(`${WEB_BASE}${r}`, { waitUntil: 'domcontentloaded' });
+        assert(resp && resp.status() === 200, `Route ${r} returned ${resp?.status()}`);
+        assert(pageErrors.length === 0, `Page errors on ${r}: ${pageErrors.join('; ')}`);
+      }
+      pageErrors.length = 0;
+      const dashResp = await page.goto(`${WEB_BASE}/dashboard`, { waitUntil: 'domcontentloaded' });
+      assert(
+        dashResp && (dashResp.status() === 200 || dashResp.status() === 503),
+        `/dashboard returned ${dashResp?.status()}`
+      );
+      const dashHtml = await page.content();
+      assert(/not configured|sign in/i.test(dashHtml), '/dashboard did not render expected view');
+      assert(pageErrors.length === 0, `Page errors on /dashboard: ${pageErrors.join('; ')}`);
+      return 'All 6 routes rendered cleanly with 0 JS errors';
+    }
+  );
 
-    const agentMode = await fetch(`${WEB_BASE}/?mode=agent`);
-    assert(agentMode.status === 200, '/?mode=agent returned non-200');
-    return 'All discovery & RFC 9309 endpoints verified';
-  });
+  await step(
+    'WEB-UI',
+    'Permalink (/r/:id), Domain Score Hub (/score/:domain), Agency Print Report (/report/:domain), OG PNG & SVG Badge',
+    async () => {
+      assert(scanResultId, 'No scanResultId');
+      for (const r of [`/r/${scanResultId}`, '/score/slop-detect.com', '/report/slop-detect.com']) {
+        pageErrors.length = 0;
+        const resp = await page.goto(`${WEB_BASE}${r}`, { waitUntil: 'domcontentloaded' });
+        assert(resp && resp.status() === 200, `Route ${r} returned ${resp?.status()}`);
+        const html = await page.content();
+        assert(html.includes('slop-detect.com'), `Route ${r} missing domain name`);
+        assert(pageErrors.length === 0, `Page errors on ${r}: ${pageErrors.join('; ')}`);
+      }
+      const ogRes = await fetch(`${WEB_BASE}/og/${scanResultId}.png`);
+      assert(
+        ogRes.status === 200 && (ogRes.headers.get('content-type') || '').includes('image/png'),
+        'OG PNG invalid'
+      );
+
+      const badgeRes = await fetch(`${WEB_BASE}/badge/slop-detect.com.svg`);
+      assert(
+        badgeRes.status === 200 && (await badgeRes.text()).includes('<svg'),
+        'Badge SVG invalid'
+      );
+      return `Verified /r/${scanResultId}, /score, /report, /og.png, /badge.svg`;
+    }
+  );
+
+  await step(
+    'WEB-API',
+    'Discovery & AEO static endpoints (/.well-known/*, /robots.txt, /llms.txt, /openapi.json, /?mode=agent)',
+    async () => {
+      const ard = await fetch(`${WEB_BASE}/.well-known/ard.json`).then((r) => r.json());
+      assert(
+        ard.specVersion === '0.91' && ard.draft === 'draft-zahradnik-ard-00',
+        'ard.json missing specVersion 0.91'
+      );
+
+      const sc = await fetch(`${WEB_BASE}/.well-known/mcp/server-card.json`).then((r) => r.json());
+      assert(
+        Array.isArray(sc.remotes) && sc.remotes[0].url === 'https://slop-detect.com/mcp',
+        'server-card missing remote /mcp'
+      );
+
+      const robots = await fetch(`${WEB_BASE}/robots.txt`).then((r) => r.text());
+      assert(
+        robots.includes('OAI-SearchBot') &&
+          robots.includes('Content-Signal: ai-train=no, search=yes, ai-input=yes'),
+        'robots.txt missing RFC 9309 search split'
+      );
+
+      const legacyMcp = await fetch(`${WEB_BASE}/.well-known/mcp.json`);
+      assert(
+        legacyMcp.status === 404,
+        `Expected /.well-known/mcp.json to be 404, got ${legacyMcp.status}`
+      );
+
+      const agentMode = await fetch(`${WEB_BASE}/?mode=agent`);
+      assert(agentMode.status === 200, '/?mode=agent returned non-200');
+      return 'All discovery & RFC 9309 endpoints verified';
+    }
+  );
 
   // =========================================================================
   // SUITE 2: LIVE STREAMABLE HTTP MCP SERVER (POST /mcp & GET /mcp/server-card)
   // =========================================================================
-  await step('REMOTE-MCP', 'GET /mcp/server-card and POST /mcp initialize + tools/list + server/discover', async () => {
-    const cardRes = await fetch(`${WEB_BASE}/mcp/server-card`);
-    assert(cardRes.status === 200, `GET /mcp/server-card returned ${cardRes.status}`);
-    assert((cardRes.headers.get('content-type') || '').includes('application/mcp-server-card+json'), 'Wrong content-type on /mcp/server-card');
+  await step(
+    'REMOTE-MCP',
+    'GET /mcp/server-card and POST /mcp initialize + tools/list + server/discover',
+    async () => {
+      const cardRes = await fetch(`${WEB_BASE}/mcp/server-card`);
+      assert(cardRes.status === 200, `GET /mcp/server-card returned ${cardRes.status}`);
+      assert(
+        (cardRes.headers.get('content-type') || '').includes('application/mcp-server-card+json'),
+        'Wrong content-type on /mcp/server-card'
+      );
 
-    const initRes = await fetch(`${WEB_BASE}/mcp`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-11-25' } }),
-    }).then((r) => r.json());
-    assert(initRes.result?.protocolVersion === '2025-11-25', 'initialize protocolVersion mismatch');
+      const initRes = await fetch(`${WEB_BASE}/mcp`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'initialize',
+          params: { protocolVersion: '2025-11-25' },
+        }),
+      }).then((r) => r.json());
+      assert(
+        initRes.result?.protocolVersion === '2025-11-25',
+        'initialize protocolVersion mismatch'
+      );
 
-    const listRes = await fetch(`${WEB_BASE}/mcp`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list' }),
-    }).then((r) => r.json());
-    const toolNames = listRes.result.tools.map((t) => t.name);
-    assert(toolNames.length === 7, `Expected 7 MCP tools, got ${toolNames.length}`);
+      const listRes = await fetch(`${WEB_BASE}/mcp`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list' }),
+      }).then((r) => r.json());
+      const toolNames = listRes.result.tools.map((t) => t.name);
+      assert(toolNames.length === 7, `Expected 7 MCP tools, got ${toolNames.length}`);
 
-    const discRes = await fetch(`${WEB_BASE}/mcp`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 3, method: 'server/discover' }),
-    }).then((r) => r.json());
-    assert(discRes.result?.tools?.length === 7, 'server/discover missing 7 tools');
-    return `7 tools: ${toolNames.join(', ')}`;
-  });
+      const discRes = await fetch(`${WEB_BASE}/mcp`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 3, method: 'server/discover' }),
+      }).then((r) => r.json());
+      assert(discRes.result?.tools?.length === 7, 'server/discover missing 7 tools');
+      return `7 tools: ${toolNames.join(', ')}`;
+    }
+  );
 
-  await step('REMOTE-MCP', 'POST /mcp resources/read (ui://slop-detect/scorecard.html) & tools/call (lint_design_md, diff_design_md, check_aeo, SSRF guard)', async () => {
-    const resRead = await fetch(`${WEB_BASE}/mcp`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 4,
-        method: 'resources/read',
-        params: { uri: 'ui://slop-detect/scorecard.html' },
-      }),
-    }).then((r) => r.json());
-    const contents = resRead.result?.contents?.[0];
-    assert(contents?.mimeType === 'text/html;profile=mcp-app', `Unexpected mimeType: ${contents?.mimeType}`);
-    assert(contents?.text?.includes('uncalibrated beta'), 'MCP App scorecard missing uncalibrated beta badge');
+  await step(
+    'REMOTE-MCP',
+    'POST /mcp resources/read (ui://slop-detect/scorecard.html) & tools/call (lint_design_md, diff_design_md, check_aeo, SSRF guard)',
+    async () => {
+      const resRead = await fetch(`${WEB_BASE}/mcp`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 4,
+          method: 'resources/read',
+          params: { uri: 'ui://slop-detect/scorecard.html' },
+        }),
+      }).then((r) => r.json());
+      const contents = resRead.result?.contents?.[0];
+      assert(
+        contents?.mimeType === 'text/html;profile=mcp-app',
+        `Unexpected mimeType: ${contents?.mimeType}`
+      );
+      assert(
+        contents?.text?.includes('uncalibrated beta'),
+        'MCP App scorecard missing uncalibrated beta badge'
+      );
 
-    const lintCall = await fetch(`${WEB_BASE}/mcp`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 5,
-        method: 'tools/call',
-        params: { name: 'lint_design_md', arguments: { content: fixture.designMd } },
-      }),
-    }).then((r) => r.json());
-    assert(!lintCall.result?.isError, 'lint_design_md returned error');
+      const lintCall = await fetch(`${WEB_BASE}/mcp`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 5,
+          method: 'tools/call',
+          params: { name: 'lint_design_md', arguments: { content: fixture.designMd } },
+        }),
+      }).then((r) => r.json());
+      assert(!lintCall.result?.isError, 'lint_design_md returned error');
 
-    const ssrfCall = await fetch(`${WEB_BASE}/mcp`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 6,
-        method: 'tools/call',
-        params: { name: 'scan_page', arguments: { url: 'http://127.0.0.1:8788/' } },
-      }),
-    }).then((r) => r.json());
-    assert(ssrfCall.result?.isError === true, 'Remote MCP failed to block loopback SSRF URL');
-    return 'MCP App resource + lint_design_md + SSRF block verified';
-  });
+      const ssrfCall = await fetch(`${WEB_BASE}/mcp`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 6,
+          method: 'tools/call',
+          params: { name: 'scan_page', arguments: { url: 'http://127.0.0.1:8788/' } },
+        }),
+      }).then((r) => r.json());
+      assert(ssrfCall.result?.isError === true, 'Remote MCP failed to block loopback SSRF URL');
+      return 'MCP App resource + lint_design_md + SSRF block verified';
+    }
+  );
 
   // =========================================================================
   // SUITE 3: REAL CLI EXECUTION AGAINST LIVE LOCAL FIXTURE SERVER
   // =========================================================================
-  await step('CLI-LIVE', 'Scan heavy-slop page (/slop.html) across Design + Copy + Craft axes', async () => {
-    const { code, stdout, stderr } = await runCmd('node', [
-      CLI_BIN,
-      `${fixture.baseUrl}/slop.html`,
-      '--copy',
-      '--craft',
-      '--format',
-      'json',
-    ]);
-    assert(code === 0, `CLI exited ${code}: ${stderr}`);
-    const data = JSON.parse(stdout);
-    assert(data.tier === 'Heavy' || data.score >= 20, `Expected high slop score on /slop.html, got ${data.score} (${data.tier})`);
-    assert(data.axes?.copy?.score > 0, `Expected copy slop > 0, got ${data.axes?.copy?.score}`);
-    const copyIds = (data.axes.copy.patterns || []).filter((p) => p.triggered).map((t) => t.id);
-    assert(copyIds.includes('chatbot_markup_leak'), 'Missed chatbot_markup_leak on /slop.html');
-    assert(copyIds.includes('ai_referral_utm_links'), 'Missed ai_referral_utm_links on /slop.html');
-    assert(copyIds.includes('unfilled_placeholders'), 'Missed unfilled_placeholders on /slop.html');
-    assert(copyIds.includes('buzzword_density'), 'Missed buzzword_density on /slop.html');
-    assert(data.craft && typeof data.craft.score === 'number', 'Craft floor missing from CLI output');
-    return `Design=${data.score}/100 (${data.tier}), Copy=${data.axes.copy.score}/100 (${data.axes.copy.tier}), Craft=${data.craft.score}/100`;
-  });
-
-  await step('CLI-LIVE', 'Scan clean bespoke page (/clean.html) with --design-md auto --aeo --craft --copy', async () => {
-    const { code, stdout, stderr } = await runCmd('node', [
-      CLI_BIN,
-      `${fixture.baseUrl}/clean.html`,
-      '--copy',
-      '--craft',
-      '--aeo',
-      '--design-md',
-      'auto',
-      '--format',
-      'json',
-    ]);
-    assert(code === 0, `CLI exited ${code}: ${stderr}`);
-    const data = JSON.parse(stdout);
-    assert(data.tier === 'Clean', `Expected Clean tier on /clean.html, got ${data.tier} (score ${data.score})`);
-    assert(data.system && data.system.score >= 80, `Expected Aligned system score >= 80, got ${data.system?.score}`);
-    assert(data.aeo && data.aeo.score >= 80, `Expected Eligible AEO score >= 80, got ${data.aeo?.score}`);
-    return `Design=${data.score}/100 (${data.tier}), System=${data.system.score}/100 (${data.system.tier}), AEO=${data.aeo.score}/100 (${data.aeo.tier})`;
-  });
-
-  await step('CLI-LIVE', 'All CLI output reporters (sarif, junit, gitlab, agent, github) + presets (strict, marketing, minimal, editorial, devtool)', async () => {
-    for (const fmt of ['sarif', 'junit', 'gitlab', 'agent', 'github']) {
-      const { code, stdout } = await runCmd('node', [CLI_BIN, `${fixture.baseUrl}/slop.html`, '--copy', '--format', fmt]);
-      assert(code === 0 && stdout.trim().length > 10, `Format ${fmt} failed`);
-      if (fmt === 'sarif') {
-        const sarif = JSON.parse(stdout);
-        assert(sarif.version === '2.1.0', 'Invalid SARIF version');
-      }
-      if (fmt === 'agent') {
-        assert(stdout.includes('→') && stdout.includes('purple_accent'), 'Invalid compact agent output');
-      }
-      if (fmt === 'github') {
-        assert(stdout.includes('::warning') || stdout.includes('::notice'), 'Invalid GitHub workflow command output');
-      }
+  await step(
+    'CLI-LIVE',
+    'Scan heavy-slop page (/slop.html) across Design + Copy + Craft axes',
+    async () => {
+      const { code, stdout, stderr } = await runCmd('node', [
+        CLI_BIN,
+        `${fixture.baseUrl}/slop.html`,
+        '--copy',
+        '--craft',
+        '--format',
+        'json',
+      ]);
+      assert(code === 0, `CLI exited ${code}: ${stderr}`);
+      const data = JSON.parse(stdout);
+      assert(
+        data.tier === 'Heavy' || data.score >= 20,
+        `Expected high slop score on /slop.html, got ${data.score} (${data.tier})`
+      );
+      assert(data.axes?.copy?.score > 0, `Expected copy slop > 0, got ${data.axes?.copy?.score}`);
+      const copyIds = (data.axes.copy.patterns || []).filter((p) => p.triggered).map((t) => t.id);
+      assert(copyIds.includes('chatbot_markup_leak'), 'Missed chatbot_markup_leak on /slop.html');
+      assert(
+        copyIds.includes('ai_referral_utm_links'),
+        'Missed ai_referral_utm_links on /slop.html'
+      );
+      assert(
+        copyIds.includes('unfilled_placeholders'),
+        'Missed unfilled_placeholders on /slop.html'
+      );
+      assert(copyIds.includes('buzzword_density'), 'Missed buzzword_density on /slop.html');
+      assert(
+        data.craft && typeof data.craft.score === 'number',
+        'Craft floor missing from CLI output'
+      );
+      return `Design=${data.score}/100 (${data.tier}), Copy=${data.axes.copy.score}/100 (${data.axes.copy.tier}), Craft=${data.craft.score}/100`;
     }
-    for (const preset of ['strict', 'marketing', 'minimal', 'editorial', 'devtool']) {
-      const { code } = await runCmd('node', [CLI_BIN, `${fixture.baseUrl}/slop.html`, '--preset', preset, '--format', 'json']);
-      assert(code === 0, `Preset ${preset} failed`);
+  );
+
+  await step(
+    'CLI-LIVE',
+    'Scan clean bespoke page (/clean.html) with --design-md auto --aeo --craft --copy',
+    async () => {
+      const { code, stdout, stderr } = await runCmd('node', [
+        CLI_BIN,
+        `${fixture.baseUrl}/clean.html`,
+        '--copy',
+        '--craft',
+        '--aeo',
+        '--design-md',
+        'auto',
+        '--format',
+        'json',
+      ]);
+      assert(code === 0, `CLI exited ${code}: ${stderr}`);
+      const data = JSON.parse(stdout);
+      assert(
+        data.tier === 'Clean',
+        `Expected Clean tier on /clean.html, got ${data.tier} (score ${data.score})`
+      );
+      assert(
+        data.system && data.system.score >= 80,
+        `Expected Aligned system score >= 80, got ${data.system?.score}`
+      );
+      assert(
+        data.aeo && data.aeo.score >= 80,
+        `Expected Eligible AEO score >= 80, got ${data.aeo?.score}`
+      );
+      return `Design=${data.score}/100 (${data.tier}), System=${data.system.score}/100 (${data.system.tier}), AEO=${data.aeo.score}/100 (${data.aeo.tier})`;
     }
-    return 'Verified sarif, junit, gitlab, agent, github + 5 presets';
-  });
+  );
 
-  await step('CLI-LIVE', 'Fix prompt (--fix-prompt), Creative Brief (--brief), and Token Bootstrap (--init-tokens)', async () => {
-    const fp = await runCmd('node', [CLI_BIN, `${fixture.baseUrl}/slop.html`, '--copy', '--fix-prompt']);
-    assert(fp.code === 0 && fp.stdout.includes('**Fix:**') && fp.stdout.includes('**Hard rule:**'), '--fix-prompt missing Fix / Hard rule sections');
-
-    const brief = await runCmd('node', [CLI_BIN, `${fixture.baseUrl}/slop.html`, '--brief']);
-    assert(brief.code === 0 && brief.stdout.length > 50, '--brief failed');
-
-    const tokens = await runCmd('node', [CLI_BIN, `${fixture.baseUrl}/clean.html`, '--init-tokens']);
-    assert(tokens.code === 0, `--init-tokens failed: ${tokens.stderr}`);
-    const dtcg = JSON.parse(tokens.stdout);
-    assert(dtcg.$schema && dtcg.colors, '--init-tokens did not return valid W3C DTCG tokens.json');
-    return 'Verified --fix-prompt, --brief, and --init-tokens (W3C DTCG 2025.10)';
-  });
-
-  await step('CLI-LIVE', 'Static HTML audit (--copy-dir), Site crawl (--site), AEO generator (--emit-aeo-fixes), DESIGN.md lint/diff, and init', async () => {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sd-e2e-'));
-    try {
-      fs.writeFileSync(path.join(tmpDir, 'index.html'), fixture.slopHtml);
-      fs.writeFileSync(path.join(tmpDir, 'DESIGN.md'), fixture.designMd);
-
-      // --copy-dir
-      const copyDirRes = await runCmd('node', [CLI_BIN, '--copy-dir', tmpDir, '--format', 'json']);
-      assert(copyDirRes.code === 0, `--copy-dir failed: ${copyDirRes.stderr}`);
-
-      // --site
-      const siteRes = await runCmd('node', [CLI_BIN, `${fixture.baseUrl}/clean.html`, '--site', '2', '--format', 'json']);
-      assert(siteRes.code === 0, `--site failed: ${siteRes.stderr}`);
-
-      // --emit-aeo-fixes
-      const aeoDir = path.join(tmpDir, 'public');
-      const emitRes = await runCmd('node', [CLI_BIN, '--emit-aeo-fixes', aeoDir, '--origin', 'https://example.com']);
-      assert(emitRes.code === 0, `--emit-aeo-fixes failed: ${emitRes.stderr}`);
-      assert(fs.existsSync(path.join(aeoDir, 'robots.txt')) && fs.existsSync(path.join(aeoDir, 'llms.txt')), 'AEO files not emitted');
-
-      // --lint-design-md
-      const lintRes = await runCmd('node', [CLI_BIN, '--lint-design-md', path.join(tmpDir, 'DESIGN.md')]);
-      assert(lintRes.code === 0 && lintRes.stdout.includes('0 errors'), `--lint-design-md failed: ${lintRes.stdout} ${lintRes.stderr}`);
-
-      // --diff-design-md (compatible addition exits 0; breaking change exits 1)
-      const headCompatible = fixture.designMd.replace('  border: "#CBD5E1"', '  border: "#CBD5E1"\n  highlight: "#E0F2FE"');
-      fs.writeFileSync(path.join(tmpDir, 'DESIGN-head.md'), headCompatible);
-      const diffRes = await runCmd('node', [CLI_BIN, '--diff-design-md', path.join(tmpDir, 'DESIGN.md'), path.join(tmpDir, 'DESIGN-head.md')]);
-      assert(diffRes.code === 0 && diffRes.stdout.includes('compatible'), `--diff-design-md failed: ${diffRes.stdout} ${diffRes.stderr}`);
-
-      // slop-detect init
-      const initDir = path.join(tmpDir, 'proj');
-      fs.mkdirSync(initDir);
-      const initRes = await runCmd('node', [CLI_BIN, 'init'], { cwd: initDir });
-      assert(initRes.code === 0, `slop-detect init failed: ${initRes.stderr}`);
-      assert(fs.existsSync(path.join(initDir, '.mcp.json')), '.mcp.json not created by slop-detect init');
-    } finally {
-      fs.rmSync(tmpDir, { recursive: true, force: true });
+  await step(
+    'CLI-LIVE',
+    'All CLI output reporters (sarif, junit, gitlab, agent, github) + presets (strict, marketing, minimal, editorial, devtool)',
+    async () => {
+      for (const fmt of ['sarif', 'junit', 'gitlab', 'agent', 'github']) {
+        const { code, stdout } = await runCmd('node', [
+          CLI_BIN,
+          `${fixture.baseUrl}/slop.html`,
+          '--copy',
+          '--format',
+          fmt,
+        ]);
+        assert(code === 0 && stdout.trim().length > 10, `Format ${fmt} failed`);
+        if (fmt === 'sarif') {
+          const sarif = JSON.parse(stdout);
+          assert(sarif.version === '2.1.0', 'Invalid SARIF version');
+        }
+        if (fmt === 'agent') {
+          assert(
+            stdout.includes('→') && stdout.includes('purple_accent'),
+            'Invalid compact agent output'
+          );
+        }
+        if (fmt === 'github') {
+          assert(
+            stdout.includes('::warning') || stdout.includes('::notice'),
+            'Invalid GitHub workflow command output'
+          );
+        }
+      }
+      for (const preset of ['strict', 'marketing', 'minimal', 'editorial', 'devtool']) {
+        const { code } = await runCmd('node', [
+          CLI_BIN,
+          `${fixture.baseUrl}/slop.html`,
+          '--preset',
+          preset,
+          '--format',
+          'json',
+        ]);
+        assert(code === 0, `Preset ${preset} failed`);
+      }
+      return 'Verified sarif, junit, gitlab, agent, github + 5 presets';
     }
-    return 'Verified --copy-dir, --site, --emit-aeo-fixes, --lint-design-md, --diff-design-md, and init';
-  });
+  );
+
+  await step(
+    'CLI-LIVE',
+    'Fix prompt (--fix-prompt), Creative Brief (--brief), and Token Bootstrap (--init-tokens)',
+    async () => {
+      const fp = await runCmd('node', [
+        CLI_BIN,
+        `${fixture.baseUrl}/slop.html`,
+        '--copy',
+        '--fix-prompt',
+      ]);
+      assert(
+        fp.code === 0 && fp.stdout.includes('**Fix:**') && fp.stdout.includes('**Hard rule:**'),
+        '--fix-prompt missing Fix / Hard rule sections'
+      );
+
+      const brief = await runCmd('node', [CLI_BIN, `${fixture.baseUrl}/slop.html`, '--brief']);
+      assert(brief.code === 0 && brief.stdout.length > 50, '--brief failed');
+
+      const tokens = await runCmd('node', [
+        CLI_BIN,
+        `${fixture.baseUrl}/clean.html`,
+        '--init-tokens',
+      ]);
+      assert(tokens.code === 0, `--init-tokens failed: ${tokens.stderr}`);
+      const dtcg = JSON.parse(tokens.stdout);
+      assert(
+        dtcg.$schema && dtcg.colors,
+        '--init-tokens did not return valid W3C DTCG tokens.json'
+      );
+      return 'Verified --fix-prompt, --brief, and --init-tokens (W3C DTCG 2025.10)';
+    }
+  );
+
+  await step(
+    'CLI-LIVE',
+    'Static HTML audit (--copy-dir), Site crawl (--site), AEO generator (--emit-aeo-fixes), DESIGN.md lint/diff, and init',
+    async () => {
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sd-e2e-'));
+      try {
+        fs.writeFileSync(path.join(tmpDir, 'index.html'), fixture.slopHtml);
+        fs.writeFileSync(path.join(tmpDir, 'DESIGN.md'), fixture.designMd);
+
+        // --copy-dir
+        const copyDirRes = await runCmd('node', [
+          CLI_BIN,
+          '--copy-dir',
+          tmpDir,
+          '--format',
+          'json',
+        ]);
+        assert(copyDirRes.code === 0, `--copy-dir failed: ${copyDirRes.stderr}`);
+
+        // --site
+        const siteRes = await runCmd('node', [
+          CLI_BIN,
+          `${fixture.baseUrl}/clean.html`,
+          '--site',
+          '2',
+          '--format',
+          'json',
+        ]);
+        assert(siteRes.code === 0, `--site failed: ${siteRes.stderr}`);
+
+        // --emit-aeo-fixes
+        const aeoDir = path.join(tmpDir, 'public');
+        const emitRes = await runCmd('node', [
+          CLI_BIN,
+          '--emit-aeo-fixes',
+          aeoDir,
+          '--origin',
+          'https://example.com',
+        ]);
+        assert(emitRes.code === 0, `--emit-aeo-fixes failed: ${emitRes.stderr}`);
+        assert(
+          fs.existsSync(path.join(aeoDir, 'robots.txt')) &&
+            fs.existsSync(path.join(aeoDir, 'llms.txt')),
+          'AEO files not emitted'
+        );
+
+        // --lint-design-md
+        const lintRes = await runCmd('node', [
+          CLI_BIN,
+          '--lint-design-md',
+          path.join(tmpDir, 'DESIGN.md'),
+        ]);
+        assert(
+          lintRes.code === 0 && lintRes.stdout.includes('0 errors'),
+          `--lint-design-md failed: ${lintRes.stdout} ${lintRes.stderr}`
+        );
+
+        // --diff-design-md (compatible addition exits 0; breaking change exits 1)
+        const headCompatible = fixture.designMd.replace(
+          '  border: "#CBD5E1"',
+          '  border: "#CBD5E1"\n  highlight: "#E0F2FE"'
+        );
+        fs.writeFileSync(path.join(tmpDir, 'DESIGN-head.md'), headCompatible);
+        const diffRes = await runCmd('node', [
+          CLI_BIN,
+          '--diff-design-md',
+          path.join(tmpDir, 'DESIGN.md'),
+          path.join(tmpDir, 'DESIGN-head.md'),
+        ]);
+        assert(
+          diffRes.code === 0 && diffRes.stdout.includes('compatible'),
+          `--diff-design-md failed: ${diffRes.stdout} ${diffRes.stderr}`
+        );
+
+        // slop-detect init
+        const initDir = path.join(tmpDir, 'proj');
+        fs.mkdirSync(initDir);
+        const initRes = await runCmd('node', [CLI_BIN, 'init'], { cwd: initDir });
+        assert(initRes.code === 0, `slop-detect init failed: ${initRes.stderr}`);
+        assert(
+          fs.existsSync(path.join(initDir, '.mcp.json')),
+          '.mcp.json not created by slop-detect init'
+        );
+      } finally {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      }
+      return 'Verified --copy-dir, --site, --emit-aeo-fixes, --lint-design-md, --diff-design-md, and init';
+    }
+  );
 
   // =========================================================================
   // SUITE 4: LOCAL STDIO MCP SERVER (slop-detect-mcp --local)
   // =========================================================================
-  await step('LOCAL-MCP', 'Stdio MCP server (--local) executes scan_page, check_aeo, check_design_system, and extract_design_system against live page', async () => {
-    const mcpChild = spawn('node', [MCP_BIN, '--local'], {
-      cwd: REPO_ROOT,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
+  await step(
+    'LOCAL-MCP',
+    'Stdio MCP server (--local) executes scan_page, check_aeo, check_design_system, and extract_design_system against live page',
+    async () => {
+      const mcpChild = spawn('node', [MCP_BIN, '--local'], {
+        cwd: REPO_ROOT,
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
 
-    const responses = new Map();
-    let buffer = '';
-    mcpChild.stdout.on('data', (chunk) => {
-      buffer += chunk.toString();
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        try {
-          const msg = JSON.parse(line);
-          if (msg.id !== undefined) responses.set(msg.id, msg);
-        } catch {}
+      const responses = new Map();
+      let buffer = '';
+      mcpChild.stdout.on('data', (chunk) => {
+        buffer += chunk.toString();
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const msg = JSON.parse(line);
+            if (msg.id !== undefined) responses.set(msg.id, msg);
+          } catch {}
+        }
+      });
+
+      const sendRpc = (id, method, params = {}) => {
+        mcpChild.stdin.write(JSON.stringify({ jsonrpc: '2.0', id, method, params }) + '\n');
+        return new Promise((resolve, reject) => {
+          const start = Date.now();
+          const timer = setInterval(() => {
+            if (responses.has(id)) {
+              clearInterval(timer);
+              resolve(responses.get(id));
+            } else if (Date.now() - start > 60000) {
+              clearInterval(timer);
+              reject(new Error(`Timeout waiting for MCP response id=${id} (${method})`));
+            }
+          }, 50);
+        });
+      };
+
+      try {
+        await sendRpc(1, 'initialize', {
+          protocolVersion: '2024-11-05',
+          capabilities: {},
+          clientInfo: { name: 'e2e-test', version: '1.0.0' },
+        });
+        const scanResp = await sendRpc(2, 'tools/call', {
+          name: 'scan_page',
+          arguments: { url: `${fixture.baseUrl}/slop.html`, axes: ['design', 'copy'] },
+        });
+        assert(!scanResp.result?.isError, `MCP scan_page failed: ${JSON.stringify(scanResp)}`);
+        assert(
+          scanResp.result?.structuredContent?.score >= 20,
+          'MCP scan_page structuredContent missing score'
+        );
+
+        const extractResp = await sendRpc(3, 'tools/call', {
+          name: 'extract_design_system',
+          arguments: { url: `${fixture.baseUrl}/clean.html` },
+        });
+        assert(!extractResp.result?.isError, 'MCP extract_design_system failed');
+      } finally {
+        mcpChild.kill();
       }
-    });
-
-    const sendRpc = (id, method, params = {}) => {
-      mcpChild.stdin.write(JSON.stringify({ jsonrpc: '2.0', id, method, params }) + '\n');
-      return new Promise((resolve, reject) => {
-        const start = Date.now();
-        const timer = setInterval(() => {
-          if (responses.has(id)) {
-            clearInterval(timer);
-            resolve(responses.get(id));
-          } else if (Date.now() - start > 60000) {
-            clearInterval(timer);
-            reject(new Error(`Timeout waiting for MCP response id=${id} (${method})`));
-          }
-        }, 50);
-      });
-    };
-
-    try {
-      await sendRpc(1, 'initialize', {
-        protocolVersion: '2024-11-05',
-        capabilities: {},
-        clientInfo: { name: 'e2e-test', version: '1.0.0' },
-      });
-      const scanResp = await sendRpc(2, 'tools/call', {
-        name: 'scan_page',
-        arguments: { url: `${fixture.baseUrl}/slop.html`, axes: ['design', 'copy'] },
-      });
-      assert(!scanResp.result?.isError, `MCP scan_page failed: ${JSON.stringify(scanResp)}`);
-      assert(scanResp.result?.structuredContent?.score >= 20, 'MCP scan_page structuredContent missing score');
-
-      const extractResp = await sendRpc(3, 'tools/call', {
-        name: 'extract_design_system',
-        arguments: { url: `${fixture.baseUrl}/clean.html` },
-      });
-      assert(!extractResp.result?.isError, 'MCP extract_design_system failed');
-    } finally {
-      mcpChild.kill();
+      return 'Stdio MCP --local verified scan_page + extract_design_system';
     }
-    return 'Stdio MCP --local verified scan_page + extract_design_system';
-  });
+  );
 
   // =========================================================================
   // SUITE 5: GITHUB ACTION, NETLIFY PLUGIN, LIGHTHOUSE PLUGIN, VALE & CALIBRATION
   // =========================================================================
-  await step('ECOSYSTEM', 'GitHub Action (local mode + SARIF), Netlify Plugin, Lighthouse Plugin, Vale Exporter, and Calibration CLI scripts', async () => {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sd-action-'));
-    try {
-      fs.writeFileSync(path.join(tmpDir, 'index.html'), fixture.cleanHtml);
-      const outFile = path.join(tmpDir, 'gh-out.txt');
-      const summaryFile = path.join(tmpDir, 'gh-summary.md');
-      fs.writeFileSync(outFile, '');
-      fs.writeFileSync(summaryFile, '');
+  await step(
+    'ECOSYSTEM',
+    'GitHub Action (local mode + SARIF), Netlify Plugin, Lighthouse Plugin, Vale Exporter, and Calibration CLI scripts',
+    async () => {
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sd-action-'));
+      try {
+        fs.writeFileSync(path.join(tmpDir, 'index.html'), fixture.cleanHtml);
+        const outFile = path.join(tmpDir, 'gh-out.txt');
+        const summaryFile = path.join(tmpDir, 'gh-summary.md');
+        fs.writeFileSync(outFile, '');
+        fs.writeFileSync(summaryFile, '');
 
-      const sarifFile = path.join(tmpDir, 'slop.sarif');
-      const actRes = await runCmd('node', [ACTION_BIN], {
-        env: {
-          INPUT_URL: `${fixture.baseUrl}/clean.html`,
-          INPUT_MODE: 'local',
-          INPUT_AXES: 'design,copy',
-          INPUT_SARIF: sarifFile,
-          INPUT_UPLOAD_SARIF: 'true',
-          GITHUB_OUTPUT: outFile,
-          GITHUB_STEP_SUMMARY: summaryFile,
-        },
-      });
-      assert(actRes.code === 0, `GitHub Action failed (${actRes.code}): ${actRes.stdout} ${actRes.stderr}`);
-      const ghOut = fs.readFileSync(outFile, 'utf8');
-      assert(ghOut.includes('tier=Clean') && ghOut.includes('sarif-file='), `Unexpected GITHUB_OUTPUT: ${ghOut}`);
-    } finally {
-      fs.rmSync(tmpDir, { recursive: true, force: true });
+        const sarifFile = path.join(tmpDir, 'slop.sarif');
+        const actRes = await runCmd('node', [ACTION_BIN], {
+          env: {
+            INPUT_URL: `${fixture.baseUrl}/clean.html`,
+            INPUT_MODE: 'local',
+            INPUT_AXES: 'design,copy',
+            INPUT_SARIF: sarifFile,
+            INPUT_UPLOAD_SARIF: 'true',
+            GITHUB_OUTPUT: outFile,
+            GITHUB_STEP_SUMMARY: summaryFile,
+          },
+        });
+        assert(
+          actRes.code === 0,
+          `GitHub Action failed (${actRes.code}): ${actRes.stdout} ${actRes.stderr}`
+        );
+        const ghOut = fs.readFileSync(outFile, 'utf8');
+        assert(
+          ghOut.includes('tier=Clean') && ghOut.includes('sarif-file='),
+          `Unexpected GITHUB_OUTPUT: ${ghOut}`
+        );
+      } finally {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      }
+
+      const valeRes = await runCmd('node', ['scripts/export-vale.mjs']);
+      assert(valeRes.code === 0, `export-vale.mjs failed: ${valeRes.stderr}`);
+
+      const logOddsRes = await runCmd('node', ['packages/cli/calibration/log-odds.mjs']);
+      assert(logOddsRes.code === 0, `log-odds.mjs failed: ${logOddsRes.stderr}`);
+
+      const craftCovRes = await runCmd('node', ['packages/cli/calibration/craft-covariate.mjs']);
+      assert(craftCovRes.code === 0, `craft-covariate.mjs failed: ${craftCovRes.stderr}`);
+
+      const lhPlugin = await import(
+        path.join(REPO_ROOT, 'packages/lighthouse-plugin-slop-copy/plugin.js')
+      );
+      assert(
+        lhPlugin.default && Array.isArray(lhPlugin.default.audits),
+        'Lighthouse plugin invalid export'
+      );
+
+      return 'Verified GitHub Action (local + SARIF), Vale exporter, log-odds, craft-covariate, and Lighthouse plugin';
     }
-
-    const valeRes = await runCmd('node', ['scripts/export-vale.mjs']);
-    assert(valeRes.code === 0, `export-vale.mjs failed: ${valeRes.stderr}`);
-
-    const logOddsRes = await runCmd('node', ['packages/cli/calibration/log-odds.mjs']);
-    assert(logOddsRes.code === 0, `log-odds.mjs failed: ${logOddsRes.stderr}`);
-
-    const craftCovRes = await runCmd('node', ['packages/cli/calibration/craft-covariate.mjs']);
-    assert(craftCovRes.code === 0, `craft-covariate.mjs failed: ${craftCovRes.stderr}`);
-
-    const lhPlugin = await import(path.join(REPO_ROOT, 'packages/lighthouse-plugin-slop-copy/plugin.js'));
-    assert(lhPlugin.default && Array.isArray(lhPlugin.default.audits), 'Lighthouse plugin invalid export');
-
-    return 'Verified GitHub Action (local + SARIF), Vale exporter, log-odds, craft-covariate, and Lighthouse plugin';
-  });
+  );
 } finally {
   await browser.close();
   fixture.server.close();
 }
 
 console.log('\n============================================================');
-console.log(`LIVE E2E SUMMARY: ${results.length - failures}/${results.length} PASSED, ${failures} FAILED`);
+console.log(
+  `LIVE E2E SUMMARY: ${results.length - failures}/${results.length} PASSED, ${failures} FAILED`
+);
 console.log('============================================================');
 if (failures > 0) process.exit(1);
