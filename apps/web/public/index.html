@@ -1,5 +1,4 @@
 <!doctype html>
-<!-- impeccable-disable italic-serif-display -- intentional editorial specimen pinned by landing.test.js -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -96,13 +95,14 @@
       "description": "Score any landing page against the AI-design fingerprint. Deterministic, weighted 0–100 slop scoring of the CSS and copy tells that Cursor, v0, Lovable and Bolt converged on, run on real headless Chromium. Ships as a web app, a CLI (npx slop-detect), and an MCP server.",
       "featureList": [
         "45-pattern deterministic design-slop fingerprint",
-        "Copy-slop axis (LLM phrasing tells)",
-        "AEO axis — can AI engines read & cite a page",
+        "Copy-slop axis (prose tells + copy-paste hygiene)",
+        "AEO axis — technical crawler eligibility (robots.txt, indexability, server HTML text, Markdown twin)",
         "System axis — DESIGN.md compliance: does a page honor its own declared design system",
+        "Craft floor — separate rendering and accessibility hygiene checks",
         "Domain monitoring waitlist — baselines recorded now, regression and design-drift email alerts (double opt-in) activate at launch",
         "Real headless Chromium (Cloudflare Browser Rendering)",
         "CLI with --fail-on for CI gating and --design-md for system checks",
-        "MCP server: scan_page, check_aeo, check_design_system, fix_prompt"
+        "MCP server: scan_page, check_aeo, check_design_system, fix_prompt, lint_design_md, diff_design_md, extract_design_system"
       ],
       "offers": {
         "@type": "Offer",
@@ -647,14 +647,49 @@
   .xray-spec-v{color:var(--text-2);line-height:1.5;word-break:break-word}
   .xray-spec-v.mono{font-family:var(--mono);font-size:12px;color:var(--text)}
 
+  /* ── 5-axis scan console, agentic workbench & inline tabs ───────────────── */
+  .scan-console-wrap{max-width:880px;margin:16px auto 0;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .scan-console-wrap .scan-console-checks{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .wb{margin:36px auto 0;background:var(--panel);border:1px solid var(--border);border-top:1.5px solid var(--text);border-radius:8px;overflow:hidden;text-align:left}
+  .wb-bar{padding:11px 16px;background:var(--bg-2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .wb-bar-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--text-4)}
+  .wb-tabs{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .wb-tab{font-family:var(--mono);font-size:12px;color:var(--text-3);background:var(--panel);border:1px solid var(--border-chip);border-radius:3px;padding:5px 10px;cursor:pointer;transition:var(--t)}
+  .wb-tab:hover{border-color:var(--text);color:var(--text)}
+  .wb-tab.active{background:var(--text);color:var(--d-text);border-color:var(--text)}
+  .wb-copy{font-family:var(--mono);font-size:12px;color:var(--text);background:var(--panel);border:1px solid var(--border-btn);border-radius:3px;padding:5px 11px;cursor:pointer;transition:var(--t)}
+  .wb-copy:hover{background:var(--text);color:var(--d-text);border-color:var(--text)}
+  .wb-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}
+  .wb-code-col{padding:18px 20px;background:var(--ink-deep);color:var(--d-text);border-right:1px solid var(--d-border);display:flex;flex-direction:column;gap:10px;min-width:0}
+  .wb-label{font-family:var(--mono);font-size:12px;color:var(--clean-dark)}
+  .wb-pre{font-family:var(--mono);font-size:12.5px;line-height:1.58;color:var(--d-text);white-space:pre-wrap;word-break:break-word;margin:0;overflow-x:auto}
+  .wb-note{font-size:13px;line-height:1.55;color:var(--d-text-2);margin-top:auto}
+  .wb-out-col{padding:18px 20px;background:var(--panel);display:flex;flex-direction:column;gap:10px;min-width:0}
+  .wb-out-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:12px;color:var(--text-4)}
+  .wb-out-pre{font-family:var(--mono);font-size:12px;line-height:1.58;color:var(--text-2);background:var(--bg);border:1px solid var(--border-2);border-radius:4px;padding:12px 14px;white-space:pre-wrap;word-break:break-word;margin:0}
+  .wb-out-meta{font-family:var(--mono);font-size:12px;color:var(--clean-text)}
+  .res-axes{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:16px 0}
+  .res-axis{padding:10px 12px;background:var(--bg);border:1px solid var(--border-2);border-radius:4px}
+  .res-axis-k{font-family:var(--mono);font-size:11.5px;color:var(--text-4)}
+  .res-axis-v{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--text);margin-top:4px;font-variant-numeric:tabular-nums}
+  .res-axis-sub{font-family:var(--mono);font-size:11.5px;color:var(--text-4);margin-top:2px}
+  .res-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:18px 0 12px;border-bottom:1px solid var(--border);padding-bottom:10px}
+  .res-tab{font-family:var(--mono);font-size:12px;color:var(--text-3);background:var(--panel);border:1px solid var(--border-chip);border-radius:3px;padding:5px 11px;cursor:pointer}
+  .res-tab.active{background:var(--text);color:var(--d-text);border-color:var(--text)}
+  .res-pane[hidden]{display:none}
+  .pat-sel{grid-column:2 / -1;font-family:var(--mono);font-size:11.5px;color:var(--clean-text);margin-top:2px;word-break:break-all}
+  .res-codebox{background:var(--ink-deep);color:var(--d-text);border-radius:4px;padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.55;white-space:pre-wrap;word-break:break-word;max-height:420px;overflow:auto}
+  .res-codebar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;font-family:var(--mono);font-size:12px;color:var(--text-4)}
+  .axes-5{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+
   /* ── scroll-choreographed reveal ────────────────────────────────────────── */
-  [data-reveal]{opacity:1;transform:none;transition:opacity 0.45s cubic-bezier(.2,.7,.2,1),transform 0.45s cubic-bezier(.2,.7,.2,1)}
-  [data-reveal]:not(.is-visible){opacity:0.92}
+  [data-reveal]{opacity:1;transform:none}
 
   /* ── responsive ─────────────────────────────────────────────────────────── */
   @media (max-width:1080px){
-    .stage-body{grid-template-columns:minmax(0,1fr)}
-    .stage-canvas-wrap{border-right:0;border-bottom:1px solid var(--border)}
+    .stage-body,.wb-grid{grid-template-columns:minmax(0,1fr)}
+    .stage-canvas-wrap,.wb-code-col{border-right:0;border-bottom:1px solid var(--border)}
+    .res-axes{grid-template-columns:repeat(2,minmax(0,1fr))}
   }
   @media (max-width:900px){
     .stage-body{grid-template-columns:minmax(0,1fr)}
@@ -702,6 +737,7 @@
         <a class="nav-link" href="/compare">compare</a>
         <a class="nav-link" href="/docs">docs</a>
         <a class="nav-link" href="/dashboard">dashboard</a>
+        <a class="nav-link" href="/brand">brand</a>
         <a class="nav-gh" href="https://github.com/ravidsrk/slop-detect" target="_blank" rel="noopener noreferrer">github ↗</a>
       </div>
     </div>
@@ -710,8 +746,8 @@
   <main>
     <!-- 2. Hero -->
     <section class="hero" id="fingerprint">
-      <p class="mono-eyebrow hero-eyebrow">the ai-design-slop fingerprint</p>
-      <h1 class="display-hero">Does your landing page look <em>generated?</em></h1>
+      <p class="mono-eyebrow hero-eyebrow">deterministic chromium auditor · DESIGN.md drift gate · mcp</p>
+      <h1 class="display-hero">Does your landing page wear a default template?</h1>
 
       <form class="scan hero-scan" id="form" role="search" aria-label="Scan a landing page URL">
         <span class="scan-prefix" aria-hidden="true">https://</span>
@@ -720,7 +756,7 @@
         <button class="scan-go" type="submit" id="go">Scan</button>
       </form>
 
-      <p class="hero-reassure">deterministic · real Chromium · ~8s</p>
+      <p class="hero-reassure">deterministic · real Chromium · 5 axes · local CLI &amp; MCP (--local) stay offline</p>
 
       <div class="examples hero-chips">
         <button type="button" class="chip" data-url="https://news.ycombinator.com"><span class="chip-dot" style="background:var(--clean)" aria-hidden="true"></span>news.ycombinator.com</button>
@@ -728,35 +764,91 @@
         <button type="button" class="chip" data-url="https://bolt.new"><span class="chip-dot" style="background:var(--heavy)" aria-hidden="true"></span>bolt.new</button>
       </div>
 
-      <details class="hero-adv">
-        <summary class="hero-adv-sum">Advanced options</summary>
-        <div class="scan-console" aria-label="Multi-axis scan configuration">
-          <div class="scan-console-checks">
-            <label class="scan-opt">
-              <input type="checkbox" id="optCopy" checked>
-              <span>+ copy axis <span class="scan-opt-tag" id="copyCountTag">(copy tells)</span></span>
-            </label>
-            <label class="scan-opt">
-              <input type="checkbox" id="optSystem">
-              <span>+ DESIGN.md <span class="scan-opt-tag">(system drift)</span></span>
-            </label>
-          </div>
-          <div class="scan-console-right">
-            <label class="scan-preset-label" for="optPreset">preset</label>
-            <select id="optPreset" class="scan-preset" aria-label="Scoring preset">
-              <option value="full">full (default)</option>
-              <option value="strict">strict (1.35x)</option>
-              <option value="marketing">marketing</option>
-              <option value="minimal">minimal (top 7)</option>
-            </select>
-          </div>
+      <div class="scan-console-wrap" aria-label="Five-axis scan configuration">
+        <div class="scan-console-checks">
+          <label class="scan-opt">
+            <input type="checkbox" id="optCopy" checked>
+            <span>+ copy <span class="scan-opt-tag" id="copyCountTag">(copy tells)</span></span>
+          </label>
+          <label class="scan-opt">
+            <input type="checkbox" id="optCraft" checked>
+            <span>+ craft floor</span>
+          </label>
+          <label class="scan-opt">
+            <input type="checkbox" id="optSystem">
+            <span>+ DESIGN.md</span>
+          </label>
+          <label class="scan-opt">
+            <input type="checkbox" id="optAeo">
+            <span>+ AEO probe</span>
+          </label>
+          <label class="scan-opt" title="Keep result off public permalinks and inspect all 5 axes inline">
+            <input type="checkbox" id="optPrivate">
+            <span>private (inline)</span>
+          </label>
         </div>
-      </details>
+        <div class="scan-console-right">
+          <label class="scan-preset-label" for="optPreset">preset</label>
+          <select id="optPreset" class="scan-preset" aria-label="Scoring preset">
+            <option value="full">full (default)</option>
+            <option value="strict">strict (weight ≥ 5)</option>
+            <option value="marketing">marketing</option>
+            <option value="minimal">minimal (top 3)</option>
+            <option value="editorial">editorial</option>
+            <option value="devtool">devtool</option>
+          </select>
+        </div>
+      </div>
 
       <div id="turnstile-host"></div>
 
       <div class="status" id="status"></div>
       <section class="result" id="result" aria-live="polite"></section>
+
+      <!-- 2a. Agentic Workflow Workbench -->
+      <div class="wb" id="agentWorkbench">
+        <div class="wb-bar">
+          <div class="wb-bar-left">
+            <span class="stage-tag">agentic edit-verify loop</span>
+            <span aria-hidden="true">·</span>
+            <div class="wb-tabs" role="tablist" aria-label="Developer integration surfaces">
+              <button type="button" class="wb-tab active" data-wb="mcp" role="tab" aria-selected="true">MCP (--local)</button>
+              <button type="button" class="wb-tab" data-wb="designmd" role="tab" aria-selected="false">DESIGN.md Gate</button>
+              <button type="button" class="wb-tab" data-wb="action" role="tab" aria-selected="false">GitHub Action</button>
+              <button type="button" class="wb-tab" data-wb="cli" role="tab" aria-selected="false">CLI (--format agent)</button>
+            </div>
+          </div>
+          <button type="button" class="wb-copy" id="wbCopyBtn">Copy snippet</button>
+        </div>
+        <div class="wb-grid">
+          <div class="wb-code-col">
+            <div class="wb-label" id="wbCodeLabel">claude code / cursor / windsurf · zero data egress</div>
+            <pre class="wb-pre" id="wbCodePre">{
+  "mcpServers": {
+    "slop-detect": {
+      "command": "npx",
+      "args": ["-y", "-p", "slop-detect", "-p", "slop-detect-mcp", "slop-detect-mcp", "--local"]
+    }
+  }
+}</pre>
+            <div class="wb-note" id="wbCodeNote">Runs headless Chromium locally against http://localhost:3000 with 7 tools: scan_page, fix_prompt, check_design_system, extract_design_system, lint_design_md, diff_design_md, and check_aeo.</div>
+          </div>
+          <div class="wb-out-col">
+            <div class="wb-out-head">
+              <span>compact selector-addressed output</span>
+              <span class="wb-out-meta">~32 tokens median</span>
+            </div>
+            <pre class="wb-out-pre" id="wbOutPre">slop_fonts h1.hero-title: Hero renders Inter → swap to your DESIGN.md display face
+purple_accent a.btn-primary: CTA fill #6366f1 (OKLCH 277°) → align with button-primary token
+unfilled_placeholders section.pricing > p: Template bracket token → replace with live tier copy
+DESIGN.md drift: 1 off-palette CTA · run fix_prompt(scan_id) for exact patches</pre>
+            <div class="wb-out-head">
+              <span>bootstrap any repo in one command</span>
+              <code>npx slop-detect init</code>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- 2b. 3D Exploded DOM Specimen & Optical Scanner Stage -->
       <div class="stage-3d" id="stage3d" data-reveal>
@@ -765,8 +857,8 @@
             <span class="stage-tag">3d optical dom specimen</span>
             <span aria-hidden="true">·</span>
             <div class="stage-specimens" role="group" aria-label="Specimen presets">
-              <button type="button" class="stage-spec-btn active" data-specimen="heavy" aria-pressed="true" title="Slop score scale (lower is better): 0–9 Clean (A+/A/A-) · 10–27 Mild (B+/B/B-/C) · 28+ Heavy (D+/D/F)">v0-starter · 48 · F</button>
-              <button type="button" class="stage-spec-btn" data-specimen="mild" aria-pressed="false" title="Slop score scale (lower is better): 0–9 Clean (A+/A/A-) · 10–27 Mild (B+/B/B-/C) · 28+ Heavy (D+/D/F)">linear-type · 16 · B</button>
+              <button type="button" class="stage-spec-btn active" data-specimen="heavy" aria-pressed="true" title="Slop score scale (lower is better): 0–9 Clean (A+/A/A-) · 10–27 Mild (B+/B/B-/C) · 28+ Heavy (D+/D/F)">starter-heavy · 44 · F</button>
+              <button type="button" class="stage-spec-btn" data-specimen="mild" aria-pressed="false" title="Slop score scale (lower is better): 0–9 Clean (A+/A/A-) · 10–27 Mild (B+/B/B-/C) · 28+ Heavy (D+/D/F)">saas-mild · 16 · B</button>
               <button type="button" class="stage-spec-btn" data-specimen="clean" aria-pressed="false" title="Slop score scale (lower is better): 0–9 Clean (A+/A/A-) · 10–27 Mild (B+/B/B-/C) · 28+ Heavy (D+/D/F)">slop-detect · 0 · A+</button>
             </div>
           </div>
@@ -787,7 +879,7 @@
           <div class="stage-2d-fallback" id="stage2dFallback" aria-label="2D layered DOM planes">
             <div class="stage-2d-layer"><div class="stage-2d-head"><span class="stage-2d-id">L05</span><span class="stage-2d-name">Copy &amp; AEO discovery</span><span class="stage-2d-status">1 flagged</span></div><div class="stage-2d-rules"><span class="stage-2d-rule"><b>+7</b> LLM buzzword &amp; em-dash prose</span></div></div>
             <div class="stage-2d-layer"><div class="stage-2d-head"><span class="stage-2d-id">L04</span><span class="stage-2d-name">Grid &amp; card geometry</span><span class="stage-2d-status">2 flagged</span></div><div class="stage-2d-rules"><span class="stage-2d-rule"><b>+4</b> 3-up icon card grid</span><span class="stage-2d-rule"><b>+6</b> 4px top accent stripe</span></div></div>
-            <div class="stage-2d-layer"><div class="stage-2d-head"><span class="stage-2d-id">L03</span><span class="stage-2d-name">CTA &amp; chromatic fill</span><span class="stage-2d-status">2 flagged</span></div><div class="stage-2d-rules"><span class="stage-2d-rule"><b>+8</b> VibeCode purple CTA</span><span class="stage-2d-rule"><b>+4</b> 28px chromatic glow</span></div></div>
+            <div class="stage-2d-layer"><div class="stage-2d-head"><span class="stage-2d-id">L03</span><span class="stage-2d-name">CTA &amp; chromatic fill</span><span class="stage-2d-status">2 flagged</span></div><div class="stage-2d-rules"><span class="stage-2d-rule"><b>+4</b> VibeCode purple CTA</span><span class="stage-2d-rule"><b>+4</b> 28px chromatic glow</span></div></div>
             <div class="stage-2d-layer"><div class="stage-2d-head"><span class="stage-2d-id">L02</span><span class="stage-2d-name">Hero typography</span><span class="stage-2d-status">3 flagged</span></div><div class="stage-2d-rules"><span class="stage-2d-rule"><b>+5</b> Eyebrow launch pill</span><span class="stage-2d-rule"><b>+8</b> Inter / Geist font stack</span><span class="stage-2d-rule"><b>+6</b> Gradient-clipped H1</span></div></div>
             <div class="stage-2d-layer"><div class="stage-2d-head"><span class="stage-2d-id">L01</span><span class="stage-2d-name">Surface &amp; backdrop</span><span class="stage-2d-status">2 flagged</span></div><div class="stage-2d-rules"><span class="stage-2d-rule"><b>+5</b> Aurora mesh blob</span><span class="stage-2d-rule"><b>+4</b> Perma-dark + grey body</span></div></div>
           </div>
@@ -802,7 +894,7 @@
               </div>
               <div class="stage-score-strip" title="Slop score scale (lower is better): 0–9 Clean (0–2 A+, 3–5 A, 6–9 A-) · 10–27 Mild (10–14 B+, 15–19 B, 20–23 B-, 24–27 C) · 28+ Heavy (28–33 D+, 34–39 D, 40–100 F)">
                 <div>
-                  <span class="stage-score" id="stageScoreNum">48</span><span class="stage-score-unit">/100</span>
+                  <span class="stage-score" id="stageScoreNum">44</span><span class="stage-score-unit">/100</span>
                 </div>
                 <span class="stage-dot-sep" aria-hidden="true">·</span>
                 <span class="stage-grade grade-Heavy" id="stageGradeBadge">F</span>
@@ -837,19 +929,19 @@
     <!-- 3. Stats strip -->
     <div class="stats" aria-label="Scan engine at a glance">
       <span id="hubStats" hidden></span>
-      <span class="stats-default">deterministic scoring on real Chromium · <b class="stats-num" id="ruleCountTag2">27</b> weighted patterns · four axes: design · copy · system · aeo</span>
+      <span class="stats-default">deterministic scoring on real Chromium · <b class="stats-num" id="ruleCountTag2">45</b> design + <b class="stats-num" id="copyCountTag2">26</b> copy rules · five axes: design · copy · system · craft · aeo</span>
     </div>
 
     <!-- 4. Leaderboard preview -->
     <section class="sec" data-reveal>
       <div class="lb-preview-head">
-        <h2 class="h2-section">The cleanest pages, by category</h2>
+        <h2 class="h2-section">Corpus preview by category</h2>
         <div class="lb-head-right">
           <span class="score-polarity-pill" title="Slop score scale (lower is better): 0–9 Clean (0–2 A+, 3–5 A, 6–9 A-) · 10–27 Mild (10–14 B+, 15–19 B, 20–23 B-, 24–27 C) · 28+ Heavy (28–33 D+, 34–39 D, 40–100 F)">Slop score · lower is better</span>
           <a class="lb-viewall" href="/leaderboard">view full leaderboard →</a>
         </div>
       </div>
-      <p class="lead lb-intro">A reproducible scan of well-known landing pages, cleanest first. Every name links to its score page, where the current run, history and live badge live.</p>
+      <p class="lead lb-intro">A reproducible scan of well-known landing pages with category averages. Individual grades stay opt-in until the domain owner verifies; every name links to its score hub.</p>
       <p class="lb-disclaimer"><span>a signal, not a verdict ·</span><span class="lb-band" style="color:var(--clean-text)"><span class="lb-band-dot" style="background:var(--clean)" aria-hidden="true"></span>0–9 A+/A/A- Clean</span><span aria-hidden="true">·</span><span class="lb-band" style="color:var(--mild-text)"><span class="lb-band-dot" style="background:var(--mild)" aria-hidden="true"></span>10–27 B+/B/B-/C Mild</span><span aria-hidden="true">·</span><span class="lb-band" style="color:var(--heavy-text)"><span class="lb-band-dot" style="background:var(--heavy)" aria-hidden="true"></span>28+ D+/D/F Heavy</span></p>
       <div class="lb-board" id="lbBoard">
         <p class="lb-empty">The board fills from the public leaderboard. <a href="/leaderboard">view it →</a></p>
@@ -866,7 +958,7 @@
         <h2 class="h2-section">Inspect the fingerprint, tell by tell</h2>
         <a class="lb-viewall" href="/docs">full pattern specification →</a>
       </div>
-      <p class="lead lb-intro">Select any CSS or copy rule below to compare the AI reflex against the flat editorial replacement and read the exact Chromium DOM query that triggers it.</p>
+      <p class="lead lb-intro">Hydrated live from <code class="mono">/api/patterns</code>. Select any CSS or copy rule below to inspect its weight, detection condition, and concrete replacement.</p>
 
       <div class="xray-wrap">
         <div class="xray-toolbar">
@@ -879,7 +971,7 @@
             <button type="button" class="xray-filter-btn" data-xray-filter="images">images</button>
             <button type="button" class="xray-filter-btn" data-xray-filter="copy">copy tells</button>
           </div>
-          <span class="xray-toolbar-note">before vs. after specimen</span>
+          <span class="xray-toolbar-note">live catalogue · before vs. after</span>
         </div>
 
         <div class="xray-grid">
@@ -888,20 +980,20 @@
             <canvas class="xray-canvas" id="patternXrayCanvas" aria-hidden="true"></canvas>
             <div class="xray-head">
               <div class="xray-title" id="xrayTitle">AI-default font stack (Inter / Geist / Space Grotesk)</div>
-              <div class="xray-meta" id="xrayMeta">FONTS · +8 PTS · SINCE 2026.03</div>
+              <div class="xray-meta" id="xrayMeta">slop_fonts · fonts · weight +8</div>
             </div>
             <div class="xray-specs">
               <div class="xray-spec-row">
                 <span class="xray-spec-k">chromium detection rule</span>
-                <code class="xray-spec-v mono" id="xrayFormula">h1/h2/body font-family matches /inter|geist|space grotesk|plus jakarta|outfit|sora/i</code>
+                <code class="xray-spec-v mono" id="xrayFormula">firstFamily in [Inter, Geist, Space Grotesk, Satoshi, Plus Jakarta, ...]</code>
               </div>
               <div class="xray-spec-row">
-                <span class="xray-spec-k">the ai reflex</span>
-                <div class="xray-spec-v" id="xrayReflex">Every Tailwind and shadcn starter ships Inter or Geist. When H1 and body share it, the page reads as unedited scaffold.</div>
+                <span class="xray-spec-k">the template reflex</span>
+                <div class="xray-spec-v" id="xrayReflex">Every Tailwind and shadcn starter ships Inter or Geist. When H1 and body share it alongside other template cues, the page reads as an unedited scaffold.</div>
               </div>
               <div class="xray-spec-row">
-                <span class="xray-spec-k">senior designer fix</span>
-                <div class="xray-spec-v" id="xrayFix">Pair a high-contrast editorial serif (Newsreader, Instrument Serif, Fraunces) with a grotesque prose face (Libre Franklin, Söhne).</div>
+                <span class="xray-spec-k">concrete fix</span>
+                <div class="xray-spec-v" id="xrayFix">Pair a deliberate display serif (Newsreader, Source Serif 4, IBM Plex Serif) with a clean grotesque prose face (Libre Franklin, IBM Plex Sans), or declare your own stack in DESIGN.md.</div>
               </div>
             </div>
           </div>
@@ -913,49 +1005,56 @@
     <section class="sec" style="padding-top:24px" data-reveal>
       <div class="section-ledger">
         <span class="ledger-tag">§ 02</span>
-        <span class="ledger-label">four axes · two polarities</span>
+        <span class="ledger-label">five axes · two polarities</span>
       </div>
       <div class="measure-head" style="margin-top:14px">
         <h2 class="h2-measure">What the score measures</h2>
-        <p class="lead measure-intro">Four axes, two polarities. Design and copy measure slop, so lower is better. System and AEO measure fit and reach, so higher is better.</p>
+        <p class="lead measure-intro">Five orthogonal axes, two polarities. Design and copy measure overlap with default templates (lower is better). System, craft, and AEO measure conformance, hygiene, and crawler eligibility (higher is better).</p>
       </div>
 
-      <div class="axes">
+      <div class="axes axes-5">
         <div class="axis">
           <div class="axis-top">
             <div class="axis-mark"><span class="axis-dot" style="background:var(--heavy)"></span>design slop</div>
             <span class="axis-polarity" style="color:var(--heavy-text)">Slop score · lower is better</span>
           </div>
-          <p class="axis-desc"><span id="ruleCountTag">27</span> weighted CSS and DOM patterns: the reflex fonts, purple CTAs, gradient headlines and glassmorphic cards generated pages converge on.</p>
+          <p class="axis-desc"><span id="ruleCountTag">45</span> deterministic CSS and DOM patterns (weight 0 review rules add 0 points): default font stacks, purple CTAs, gradient headlines, and card-wall layouts.</p>
         </div>
         <div class="axis">
           <div class="axis-top">
-            <div class="axis-mark"><span class="axis-dot" style="background:var(--mild)"></span>copy slop</div>
+            <div class="axis-mark"><span class="axis-dot" style="background:var(--mild)"></span>copy slop &amp; paste hygiene</div>
             <span class="axis-polarity" style="color:var(--mild-text)">Slop score · lower is better</span>
           </div>
-          <p class="axis-desc">Prose tells on the words: LLM buzzword clusters, em-dash overuse, exclamation inflation and "not just X, it's Y" antithesis framing.</p>
+          <p class="axis-desc"><span id="copyCountTag3">26</span> prose and hygiene checks: buzzword clusters, antithesis crutches, plus zero-taste paste artifacts (leaked chatbot markup, unfilled placeholders, hidden Unicode).</p>
         </div>
         <div class="axis">
           <div class="axis-top">
             <div class="axis-mark"><span class="axis-dot" style="background:var(--system-text)"></span>system · DESIGN.md</div>
             <span class="axis-polarity" style="color:var(--system-text)">higher is better</span>
           </div>
-          <p class="axis-desc">Token compliance against a site's own declared <code class="mono">DESIGN.md</code> fonts, palette and corner radii so bespoke brands never false-positive.</p>
+          <p class="axis-desc">Live DOM token compliance in Oklab ΔE against your declared <code class="mono">DESIGN.md</code> or DTCG <code class="mono">tokens.json</code>, automatically waiving intentional brand tokens.</p>
         </div>
         <div class="axis">
           <div class="axis-top">
-            <div class="axis-mark"><span class="axis-dot" style="background:var(--clean)"></span>aeo · agent-readable</div>
+            <div class="axis-mark"><span class="axis-dot" style="background:var(--text)"></span>craft floor</div>
+            <span class="axis-polarity" style="color:var(--text-3)">higher is better</span>
+          </div>
+          <p class="axis-desc">Separate rendering and accessibility floor (mobile reflow, focus rings, reduced motion, dead CTAs, contrast). Never alters Design or Copy tiers.</p>
+        </div>
+        <div class="axis">
+          <div class="axis-top">
+            <div class="axis-mark"><span class="axis-dot" style="background:var(--clean)"></span>aeo · crawler eligibility</div>
             <span class="axis-polarity" style="color:var(--clean-text)">higher is better</span>
           </div>
-          <p class="axis-desc">Deterministic checks verifying whether ChatGPT, Claude and Perplexity can fetch, parse and cite the page via <code class="mono">robots.txt</code>, <code class="mono">llms.txt</code> and Markdown twins.</p>
+          <p class="axis-desc"><span id="aeoCountTag">16</span> technical checks verifying search-bot access via RFC 9309 <code class="mono">robots.txt</code>, indexability, server HTML text, <code class="mono">llms.txt</code>, and Markdown twins using an honest scanner UA.</p>
         </div>
       </div>
 
       <div class="go-deeper">
         <span class="go-deeper-label">Go deeper</span>
         <div class="go-deeper-item">
-          <div class="go-deeper-title">architecture · four-axis telemetry</div>
-          <p class="go-deeper-desc">One headless Chromium pass feeds all four instruments and combines them into a deterministic grade ledger (A+ to F).</p>
+          <div class="go-deeper-title">architecture · five-axis telemetry</div>
+          <p class="go-deeper-desc">One headless Chromium pass plus plain HTTP probes feed all five instruments without mixing orthogonal axes.</p>
           <a class="go-deeper-link" href="/docs#axes">Read the spec →</a>
         </div>
         <div class="go-deeper-item">
@@ -1044,7 +1143,7 @@
         <a class="feature-card" href="/docs">
           <div>
             <h3>How the scan works</h3>
-            <p>The weighted pattern fingerprint, the four axes, and why the same page always returns the same score. Every rule runs as a deterministic DOM and computed-style query in headless Chromium — no LLM judge, no sampling jitter.</p>
+            <p>The weighted pattern fingerprint, the five axes, and why the same page always returns the same score. Every rule runs as a deterministic DOM and computed-style query in headless Chromium (no LLM judge, no sampling jitter).</p>
           </div>
           <div class="feature-foot">methodology · 8 min read →</div>
         </a>
@@ -1159,7 +1258,7 @@ const form = $('form'), urlInput = $('url'), goBtn = $('go'),
     const el = $('hubStats');
     if (!el) return;
     const gradeFor = (n) => n<=2?'A+':n<=5?'A':n<=9?'A-':n<=14?'B+':n<=19?'B':n<=23?'B-':n<=27?'C':n<=33?'D+':n<=39?'D':'F';
-    el.textContent = s.count.toLocaleString('en-US') + ' pages scanned · median score ' +
+    el.textContent = s.count.toLocaleString('en-US') + ' pages scanned · avg score ' +
       Math.round(s.avgScore) + ' · ' + gradeFor(Math.round(s.avgScore)) + ' (lower is better) · ' + s.slopShare + '% carry slop';
     el.hidden = false;
   } catch (_) {}
@@ -1172,14 +1271,79 @@ const form = $('form'), urlInput = $('url'), goBtn = $('go'),
   try {
     const res = await fetch('/api/patterns');
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    const { count, version } = await res.json();
+    const { count, copyCount, aeoCount, version } = await res.json();
 
-    const tag = $('ruleCountTag'); if (tag) tag.textContent = count;
-    const tag2 = $('ruleCountTag2'); if (tag2) tag2.textContent = count;
+    const tag = $('ruleCountTag'); if (tag && count) tag.textContent = count;
+    const tag2 = $('ruleCountTag2'); if (tag2 && count) tag2.textContent = count;
+    const ctag = $('copyCountTag'); if (ctag && copyCount) ctag.textContent = '(' + copyCount + ' rules)';
+    const ctag2 = $('copyCountTag2'); if (ctag2 && copyCount) ctag2.textContent = copyCount;
+    const ctag3 = $('copyCountTag3'); if (ctag3 && copyCount) ctag3.textContent = copyCount;
+    const atag = $('aeoCountTag'); if (atag && aeoCount) atag.textContent = aeoCount;
     const defs = $('rulesDefs'); if (defs && version) defs.textContent = '· defs ' + version;
   } catch (_) {
     // Network/endpoint hiccup — leave the static fallback. Non-fatal for scanning.
   }
+})();
+
+// ── Agentic Workflow Workbench tabs ──────────────────────────────────────────
+(function initAgentWorkbench() {
+  const SNIPPETS = {
+    mcp: {
+      label: 'claude code / cursor / windsurf · zero data egress',
+      code: JSON.stringify({
+        mcpServers: {
+          'slop-detect': {
+            command: 'npx',
+            args: ['-y', '-p', 'slop-detect', '-p', 'slop-detect-mcp', 'slop-detect-mcp', '--local'],
+          },
+        },
+      }, null, 2),
+      note: 'Runs headless Chromium locally against http://localhost:3000 with 7 tools: scan_page, fix_prompt, check_design_system, extract_design_system, lint_design_md, diff_design_md, and check_aeo.',
+      out: 'slop_fonts h1.hero-title: Hero renders Inter → swap to your DESIGN.md display face\npurple_accent a.btn-primary: CTA fill #6366f1 (OKLCH 277°) → align with button-primary token\nunfilled_placeholders section.pricing > p: Template bracket token → replace with live tier copy\nDESIGN.md drift: 1 off-palette CTA · run fix_prompt(scan_id) for exact patches',
+    },
+    designmd: {
+      label: 'rendered-dom DESIGN.md token contract & drift gate',
+      code: '# 1) Bootstrap a DESIGN.md from your live app\nnpx slop-detect http://localhost:3000 --init-design-md > DESIGN.md\n\n# 2) Static lint (WCAG contrast >= 4.5:1, broken refs)\nnpx slop-detect --lint-design-md ./DESIGN.md\n\n# 3) Enforce rendered-DOM token compliance\nnpx slop-detect http://localhost:3000 --design-md ./DESIGN.md --fail-on drift',
+      note: 'Verifies computed fonts, Oklab ΔE colors, corner radii, and spacing against your own DESIGN.md or W3C DTCG 2025.10 tokens.json, automatically waiving declared brand choices.',
+      out: 'DESIGN.md compliance: 92/100 · Aligned (higher is better)\nWaived by DESIGN.md: purple_accent (#533AFD matches colors.primary, ΔE 0.004)\nDrift (1): CTA button.hero-cta uses 16px radius (declared scale: 2px, 4px, 8px)',
+    },
+    action: {
+      label: '.github/workflows/slop-check.yml · PR comment + SARIF',
+      code: '- uses: ravidsrk/slop-detect@v0.9.1\n  with:\n    url: ${{ steps.preview.outputs.url }}\n    axes: "design,copy,craft"\n    design-md: "auto"\n    fail-on: "heavy"\n    upload-sarif: "true"',
+      note: 'Scans deploy previews or local static dist directories (mode: local), posts one sticky PR scorecard comment, and uploads SARIF 2.1.0 annotations to GitHub Code Scanning.',
+      out: 'PR Check: PASS · Design 6/100 (Clean, A-) · Copy 0/100 (Clean)\nDESIGN.md: 96/100 (Aligned) · Craft floor: 100/100\nSARIF uploaded: 0 blocking alerts · baseline delta: -12 pts',
+    },
+    cli: {
+      label: 'local terminal & coding-agent verification',
+      code: '# One-command 5-axis gate + baseline diff (~32 tokens in agent mode)\nnpx slop-detect verify http://localhost:3000 --format agent\n\n# Bootstrap MCP + hooks + CI and verify local setup\nnpx slop-detect init --providers claude,cursor --ci github && npx slop-detect doctor',
+      note: 'verify bundles design, copy, craft, auto-detected DESIGN.md, and .slop/baseline.json regression gating. --format agent is ~270x smaller than raw JSON with exact CSS selectors.',
+      out: 'CLEAN http://localhost:3000 design=4/100 (Clean) copy=0/100 (Clean) system=96/100 (Aligned) craft=100/100',
+    },
+  };
+  const labelEl = $('wbCodeLabel'), preEl = $('wbCodePre'), noteEl = $('wbCodeNote'), outEl = $('wbOutPre'), copyBtnEl = $('wbCopyBtn');
+  if (!preEl || !copyBtnEl) return;
+  let activeKey = 'mcp';
+  document.querySelectorAll('.wb-tab[data-wb]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const key = btn.getAttribute('data-wb');
+      const spec = SNIPPETS[key];
+      if (!spec) return;
+      activeKey = key;
+      document.querySelectorAll('.wb-tab[data-wb]').forEach((b) => {
+        const on = b === btn;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      if (labelEl) labelEl.textContent = spec.label;
+      preEl.textContent = spec.code;
+      if (noteEl) noteEl.textContent = spec.note;
+      if (outEl) outEl.textContent = spec.out;
+    });
+  });
+  copyBtnEl.addEventListener('click', () => {
+    const spec = SNIPPETS[activeKey];
+    if (spec) copyToClipboard(spec.code, 'Snippet copied');
+  });
 })();
 
 // ── Leaderboard preview ──────────────────────────────────────────────────────
@@ -1304,9 +1468,16 @@ form.addEventListener('submit', async (e) => {
     window.__slopInstrument.startLiveScan(url);
   }
 
+  const axes = ['design'];
+  if ($('optCopy') && $('optCopy').checked) axes.push('copy');
+  if ($('optCraft') && $('optCraft').checked) axes.push('craft');
+  const isPrivate = !!($('optPrivate') && $('optPrivate').checked);
+  const runAeo = !!($('optAeo') && $('optAeo').checked);
+
   const scanPayload = {
     url,
-    ...($('optCopy') && $('optCopy').checked ? { axes: ['design', 'copy'] } : {}),
+    axes,
+    ...(isPrivate ? { share: false } : {}),
     ...($('optSystem') && $('optSystem').checked ? { designMd: true } : {}),
     ...($('optPreset') && $('optPreset').value && $('optPreset').value !== 'full' ? { preset: $('optPreset').value } : {})
   };
@@ -1315,7 +1486,7 @@ form.addEventListener('submit', async (e) => {
   try {
     // Grab a Turnstile token (invisible to most users).
     const token = await ensureTurnstileToken();
-    const r = await fetch('/api/scan', {
+    const scanReq = fetch('/api/scan', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1323,6 +1494,15 @@ form.addEventListener('submit', async (e) => {
       },
       body: JSON.stringify(scanPayload)
     });
+    const aeoReq = runAeo
+      ? fetch('/api/aeo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        }).then((res) => (res.ok ? res.json() : null)).catch(() => null)
+      : Promise.resolve(null);
+
+    const [r, aeoData] = await Promise.all([scanReq, aeoReq]);
     const data = await r.json();
     // Reset token after every submit (Turnstile tokens are single-use).
     turnstileToken = null;
@@ -1340,16 +1520,16 @@ form.addEventListener('submit', async (e) => {
       goBtn.textContent = 'Scan';
       return;
     }
-    if (!r.ok || data.error) throw new Error(data.error || ('HTTP ' + r.status));
-    // Design flow (Landing -> Result): a scan lands on the full per-domain Result
-    // page. When the scan persisted a shareable snapshot, navigate to its permalink
-    // (/r/<id>); only fall back to the inline result when sharing is off (no id).
-    if (data.id) {
+    if (!r.ok || data.error) throw new Error(data.message || data.error || ('HTTP ' + r.status));
+    // Design flow (Landing -> Result): when a shared scan persisted a permalink
+    // (and AEO wasn't requested inline), navigate to /r/<id>; private or inline
+    // multi-axis workbench runs render directly below the scan bar.
+    if (data.id && !isPrivate && !runAeo) {
       statusEl.textContent = 'Scan complete. Opening the result…';
       window.location.href = '/r/' + encodeURIComponent(data.id);
       return;
     }
-    render(data, Date.now() - t0);
+    render(data, Date.now() - t0, aeoData);
     statusEl.classList.remove('show');
   } catch (err) {
     statusEl.classList.add('error');
@@ -1421,28 +1601,83 @@ if (watchForm) watchForm.addEventListener('submit', async (e) => {
 
 let lastResult = null;
 
-function render(d, totalMs) {
+function render(d, totalMs, aeoData) {
   lastResult = d;
-  const triggered = d.patterns.filter(p => p.triggered);
-  const clean = d.patterns.filter(p => !p.triggered);
+  const triggeredAll = (d.patterns || []).filter(p => p.triggered && !p.waived);
+  const scoredTriggered = triggeredAll.filter(p => (p.weight || 0) > 0);
+  const reviewTriggered = triggeredAll.filter(p => !((p.weight || 0) > 0));
+  const clean = (d.patterns || []).filter(p => !p.triggered || p.waived);
+  const copyAxis = d.axes && d.axes.copy;
+  const copyTriggered = copyAxis && Array.isArray(copyAxis.patterns)
+    ? copyAxis.patterns.filter(p => p.triggered && !p.waived)
+    : [];
+  const craftAxis = d.craft || (d.axes && d.axes.craft);
+  const sysAxis = d.system;
+  const aeoAxis = aeoData || d.aeo || null;
 
-  const patHtml = (arr, kind) => arr.map(p => `
-    <div class="pat ${kind}" data-id="${p.id}">
+  const patHtml = (arr, kind) => arr.map(p => {
+    const sels = Array.isArray(p.locations) && p.locations.length
+      ? p.locations.slice(0, 2).map(l => l.selector).filter(Boolean).join(' · ')
+      : '';
+    return `
+    <div class="pat ${kind}" data-id="${escapeHtml(p.id)}">
       <span class="dot"></span>
       <span class="label">${escapeHtml(p.label)}</span>
-      <span class="weight">${kind === 'triggered' ? '+' : ''}${p.weight}</span>
-      <div class="evidence">${escapeHtml(JSON.stringify(p.evidence, null, 2))}</div>
-    </div>
-  `).join('');
+      <span class="weight">${kind === 'triggered' ? (p.weight > 0 ? '+' + p.weight : 'review') : p.weight}</span>
+      ${sels ? `<div class="pat-sel">${escapeHtml(sels)}</div>` : ''}
+      <div class="evidence">${escapeHtml(JSON.stringify(p.evidence || {}, null, 2))}</div>
+    </div>`;
+  }).join('');
 
-  const fixCta = triggered.length ? `
+  const craftFailed = craftAxis && Array.isArray(craftAxis.failed) ? craftAxis.failed : [];
+  const fixCta = (triggeredAll.length || copyTriggered.length || craftFailed.length || (sysAxis && sysAxis.drift && sysAxis.drift.length)) ? `
     <div class="fix-cta">
       <div class="fix-cta-text">
         <div class="fix-cta-title">Generate a fix prompt</div>
-        <div class="fix-cta-sub">A copy-pasteable instruction for Claude / Cursor / v0 that addresses these ${triggered.length} ${triggered.length === 1 ? 'issue' : 'issues'} specifically.</div>
+        <div class="fix-cta-sub">Copy-pasteable, selector-addressed remediation for Claude, Cursor, or v0.</div>
       </div>
       <button id="fixPromptBtn">Generate fix prompt →</button>
     </div>` : '';
+
+  const axesStrip = `
+    <div class="res-axes" aria-label="Five-axis breakdown">
+      <div class="res-axis">
+        <div class="res-axis-k">design (lower)</div>
+        <div class="res-axis-v">${d.score}/100</div>
+        <div class="res-axis-sub">${escapeHtml(d.tier || '')} · ${escapeHtml(d.grade || '')}</div>
+      </div>
+      <div class="res-axis">
+        <div class="res-axis-k">copy (lower)</div>
+        <div class="res-axis-v">${copyAxis && typeof copyAxis.score === 'number' ? copyAxis.score + '/100' : '—'}</div>
+        <div class="res-axis-sub">${copyAxis ? escapeHtml(copyAxis.tier || 'Clean') : 'not requested'}</div>
+      </div>
+      <div class="res-axis">
+        <div class="res-axis-k">DESIGN.md (higher)</div>
+        <div class="res-axis-v">${sysAxis && sysAxis.declared && typeof sysAxis.score === 'number' ? sysAxis.score + '/100' : '—'}</div>
+        <div class="res-axis-sub">${sysAxis ? (sysAxis.declared ? escapeHtml(sysAxis.tier || '') : 'none found') : 'not checked'}</div>
+      </div>
+      <div class="res-axis">
+        <div class="res-axis-k">craft floor (higher)</div>
+        <div class="res-axis-v">${craftAxis && typeof craftAxis.score === 'number' ? craftAxis.score + '/100' : '—'}</div>
+        <div class="res-axis-sub">${craftAxis && Array.isArray(craftAxis.failed) ? craftAxis.failed.length + ' defect(s)' : 'not checked'}</div>
+      </div>
+      <div class="res-axis">
+        <div class="res-axis-k">AEO (higher)</div>
+        <div class="res-axis-v">${aeoAxis && typeof aeoAxis.score === 'number' ? aeoAxis.score + '/100' : '—'}</div>
+        <div class="res-axis-sub">${aeoAxis ? escapeHtml(aeoAxis.tier || '') : 'not probed'}</div>
+      </div>
+    </div>`;
+
+  const starterDesignMd = typeof d.starterDesignMd === 'string' && d.starterDesignMd.trim()
+    ? d.starterDesignMd
+    : sysAxis && sysAxis.declared
+      ? '# Live DESIGN.md verified: ' + (sysAxis.source || 'declared') + '\n# Score: ' + sysAxis.score + '/100 (' + (sysAxis.tier || 'Aligned') + ')\n' +
+        ((sysAxis.drift && sysAxis.drift.length)
+          ? '# Drift items:\n' + sysAxis.drift.map(x => '- ' + x.id + ': ' + x.message).join('\n')
+          : '# 0 drift items detected against declared DESIGN.md tokens.')
+      : d.systemContext
+        ? '---\nname: "' + domainOf(d.finalUrl || d.url) + '"\nspecVersion: "alpha"\n# Observed live tokens (run `npx slop-detect ' + (d.finalUrl || d.url) + ' --init-design-md` for full file)\n# Fonts: ' + JSON.stringify(d.systemContext.fonts || {}) + '\n# Surface: ' + JSON.stringify(d.systemContext.surface || null) + '\n---'
+        : 'Check "+ DESIGN.md" before scanning to observe live DOM tokens or bootstrap a starter DESIGN.md:\n\nnpx slop-detect ' + (d.finalUrl || d.url) + ' --init-design-md > DESIGN.md';
 
   const scaleTip = 'Slop score scale (lower is better): 0–9 Clean (0–2 A+, 3–5 A, 6–9 A-) · 10–27 Mild (10–14 B+, 15–19 B, 20–23 B-, 24–27 C) · 28+ Heavy (28–33 D+, 34–39 D, 40–100 F)';
   resultEl.innerHTML = `
@@ -1452,7 +1687,7 @@ function render(d, totalMs) {
       ${d.h1 ? `<div class="result-h1">H1: "${escapeHtml(d.h1.slice(0,80))}${d.h1.length>80?'…':''}"</div>` : ''}
       <div class="score-row" title="${scaleTip}">
         <div>
-          <div class="score-num">${d.score}<small>/100</small> · <span class="score-grade grade-${d.tier}">${escapeHtml(d.grade || '')}</span></div>
+          <div class="score-num"><span class="score-digits">${d.score}</span><small>/100</small> · <span class="score-grade grade-${d.tier}">${escapeHtml(d.grade || '')}</span></div>
           <div class="scale-note">Slop score · lower is better · <a href="https://github.com/ravidsrk/slop-detect/blob/main/CALIBRATION.md">uncalibrated beta</a></div>
         </div>
         <div class="score-tier tier-${d.tier}">${d.tier}</div>
@@ -1460,6 +1695,7 @@ function render(d, totalMs) {
       </div>
       <div class="score-bar"><div class="score-bar-fill fill-${d.tier}" style="width:${d.score}%"></div></div>
       ${d.verdict ? `<div class="score-verdict">${escapeHtml(d.verdict)}</div>` : ''}
+      ${axesStrip}
       ${fixCta}
       ${sharePanel(d)}
       <div class="monitor-nudge">keep it clean &rarr;
@@ -1467,22 +1703,83 @@ function render(d, totalMs) {
         &middot; daily re-scan, drift alerts</div>
       ${d.resultUrl ? `<div class="monitor-nudge"><a href="/score/${escapeHtml(domainOf(d.finalUrl || d.url))}">${escapeHtml(domainOf(d.finalUrl || d.url))} score page</a> &middot; history, peer rank, live badge &rarr;</div>` : ''}
     </div>
-    ${triggered.length ? `
-      <div class="pat-section">
-        <div class="pat-label">Triggered (${triggered.length})</div>
-        <div class="pat-list">${patHtml(triggered, 'triggered')}</div>
-      </div>` : ''}
-    ${clean.length ? `
-      <div class="pat-section">
-        <div class="pat-label">Clean (${clean.length})</div>
-        <div class="pat-list">${patHtml(clean, 'clean')}</div>
-      </div>` : ''}
+    <div class="res-tabs" role="tablist" aria-label="Inline scan inspector">
+      <button type="button" class="res-tab active" data-res-tab="findings">Findings &amp; Selectors (${scoredTriggered.length + copyTriggered.length})</button>
+      <button type="button" class="res-tab" data-res-tab="designmd">DESIGN.md</button>
+      <button type="button" class="res-tab" data-res-tab="json">Raw JSON</button>
+    </div>
+    <div class="res-pane" data-res-pane="findings">
+      ${scoredTriggered.length ? `
+        <div class="pat-section">
+          <div class="pat-label">Triggered design patterns (${scoredTriggered.length})</div>
+          <div class="pat-list">${patHtml(scoredTriggered, 'triggered')}</div>
+        </div>` : ''}
+      ${copyTriggered.length ? `
+        <div class="pat-section">
+          <div class="pat-label">Triggered copy patterns (${copyTriggered.length})</div>
+          <div class="pat-list">${patHtml(copyTriggered, 'triggered')}</div>
+        </div>` : ''}
+      ${craftFailed.length ? `
+        <div class="pat-section">
+          <div class="pat-label">Craft floor defects (${craftFailed.length})</div>
+          <div class="pat-list">${patHtml(craftFailed, 'triggered')}</div>
+        </div>` : ''}
+      ${reviewTriggered.length ? `
+        <div class="pat-section">
+          <div class="pat-label">Review advisories · weight 0 (${reviewTriggered.length})</div>
+          <div class="pat-list">${patHtml(reviewTriggered, 'triggered')}</div>
+        </div>` : ''}
+      ${clean.length ? `
+        <div class="pat-section">
+          <div class="pat-label">Passing (${clean.length})</div>
+          <div class="pat-list">${patHtml(clean, 'clean')}</div>
+        </div>` : ''}
+    </div>
+    <div class="res-pane" data-res-pane="designmd" hidden>
+      <div class="res-codebar">
+        <span>${d.starterDesignMd ? 'Generated starter DESIGN.md (WCAG-checked)' : 'Observed tokens / DESIGN.md status'}</span>
+        <div style="display:flex;gap:6px">
+          ${d.starterDesignMd ? '<button type="button" class="wb-copy" id="dlDesignMdBtn">Download DESIGN.md</button>' : ''}
+          <button type="button" class="wb-copy" id="copyDesignMdBtn">Copy</button>
+        </div>
+      </div>
+      <pre class="res-codebox" id="resDesignMdPre">${escapeHtml(starterDesignMd)}</pre>
+    </div>
+    <div class="res-pane" data-res-pane="json" hidden>
+      <div class="res-codebar">
+        <span>Full scan response JSON</span>
+        <button type="button" class="wb-copy" id="copyRawJsonBtn">Copy JSON</button>
+      </div>
+      <pre class="res-codebox" id="resRawJsonPre">${escapeHtml(JSON.stringify(aeoAxis ? { ...d, aeo: aeoAxis } : d, null, 2))}</pre>
+    </div>
   `;
   resultEl.classList.add('show');
 
   resultEl.querySelectorAll('.pat').forEach(el => {
     el.addEventListener('click', () => el.classList.toggle('open'));
   });
+  resultEl.querySelectorAll('.res-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.getAttribute('data-res-tab');
+      resultEl.querySelectorAll('.res-tab').forEach(t => t.classList.toggle('active', t === tab));
+      resultEl.querySelectorAll('.res-pane').forEach(p => { p.hidden = p.getAttribute('data-res-pane') !== target; });
+    });
+  });
+  const copyDmd = document.getElementById('copyDesignMdBtn');
+  if (copyDmd) copyDmd.addEventListener('click', () => copyToClipboard(starterDesignMd, 'DESIGN.md copied'));
+  const dlDmd = document.getElementById('dlDesignMdBtn');
+  if (dlDmd) dlDmd.addEventListener('click', () => {
+    const blob = new Blob([starterDesignMd + '\n'], { type: 'text/markdown;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'DESIGN.md';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  const copyRaw = document.getElementById('copyRawJsonBtn');
+  if (copyRaw) copyRaw.addEventListener('click', () => copyToClipboard(document.getElementById('resRawJsonPre').textContent, 'JSON copied'));
 
   const fixBtn = document.getElementById('fixPromptBtn');
   if (fixBtn) fixBtn.addEventListener('click', openFixPrompt);
@@ -1735,11 +2032,21 @@ copyBtn.addEventListener('click', async () => {
 });
 
 // Deep-link prefill: /?url=... (used by the "Re-scan this page" CTA on /r/:id).
-// Runs last, after the submit handler + example chips are wired.
+// Waits briefly for Turnstile initialization so we never race a null token.
 (function prefillFromQuery() {
   try {
     const q = new URLSearchParams(location.search).get('url');
-    if (q) { urlInput.value = stripScheme(q); form.requestSubmit(); }
+    if (!q) return;
+    urlInput.value = stripScheme(q);
+    const start = Date.now();
+    const waitTurnstile = () => {
+      if (turnstileToken || turnstileWidgetId !== null || Date.now() - start >= 2500) {
+        form.requestSubmit();
+      } else {
+        setTimeout(waitTurnstile, 150);
+      }
+    };
+    waitTurnstile();
   } catch (_) {}
 })();
 </script>
@@ -1758,25 +2065,23 @@ copyBtn.addEventListener('click', async () => {
     };
     new MutationObserver(sync).observe(src, { childList: true, characterData: true, subtree: true });
   })();
-  // Count-up animation on the score number after a scan renders.
+  // Count-up animation on the score digits only (never overwrites the grade span).
   (function () {
     var resultEl = document.getElementById('result');
     if (!resultEl || !window.MutationObserver) return;
     var animate = function (el, to) {
       var dur = 600, t0 = 0;
-      var small = el.querySelector('small');
-      var suffix = small ? small.outerHTML : '';
       var step = function (ts) {
         if (!t0) t0 = ts;
         var p = Math.min((ts - t0) / dur, 1);
         var eased = 1 - Math.pow(1 - p, 3);
-        el.innerHTML = Math.round(to * eased) + suffix;
+        el.textContent = String(Math.round(to * eased));
         if (p < 1) requestAnimationFrame(step);
       };
       requestAnimationFrame(step);
     };
     new MutationObserver(function () {
-      var n = resultEl.querySelector('.score-num');
+      var n = resultEl.querySelector('.score-digits');
       if (n && !n.dataset.counted) {
         var to = parseInt(n.textContent, 10);
         if (!isNaN(to)) { n.dataset.counted = '1'; animate(n, to); }

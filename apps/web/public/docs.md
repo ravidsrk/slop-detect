@@ -1,22 +1,23 @@
 # How the scan works · slop-detect methodology
 
 > Canonical URL: https://slop-detect.com/docs
-> Definitions version: `2026.11` · 45 design rules · 26 copy rules · 16 AEO checks · 9 DESIGN.md checks · MIT
+> Definitions version: `2026.11` · 45 design rules · 26 copy rules · 11 craft checks · 16 AEO checks · 9 DESIGN.md checks · MIT
 
-`slop-detect` scores a landing page against a fixed, weighted catalogue of the CSS and copy tells that Cursor, v0, Lovable, and Bolt converged on. It runs in real headless Chromium against the page's own computed styles. Same page in, same score out: no model, no randomness, auditable, reproducible, safe to gate CI on.
+`slop-detect` verifies a rendered landing page in real headless Chromium across five orthogonal axes: default-template design patterns, copy and paste artifacts, objective craft floor checks, rendered `DESIGN.md` token compliance, and AEO technical crawler eligibility. Same page in, same report out: no model, no randomness, auditable, reproducible, safe to gate coding-agent loops and CI on.
 
 ![Optical DOM Spectrometer — 5-Plane Inspection](https://slop-detect.com/media/hero-optical-instrument.png)
 
 ---
 
-## 01 · The four axes
+## 01 · The five axes
 
 | Axis | What it measures | Polarity |
 |---|---|---|
 | **design slop** | 45 CSS/DOM tells. Weight 0 review rules add no points. | Lower is better (`0–9` Clean, `10–27` Mild, `28+` Heavy) |
-| **copy slop** | 26 prose tells on the page's own text. Weight 0 review rules add no points. | Lower is better (`0–7` Clean, `8–19` Mild, `20+` Heavy) |
-| **system · DESIGN.md** | Relative compliance against the site's own declared `DESIGN.md` tokens (colors, typography, corner radii). | Higher is better (`80–100` Aligned, `50–79` Drifting, `0–49` Off-system) |
-| **AEO · agent-readable** | 16 checks of whether a page can be fetched and read. The scanner does not impersonate vendor crawlers. | Higher is better (`80–100` Eligible, `50–79` Partially Eligible, `0–49` Restricted) |
+| **copy slop** | 26 prose and paste-artifact rules on visible text. Weight 0 review rules add no points. | Lower is better (`0–7` Clean, `8–19` Mild, `20+` Heavy) |
+| **craft floor** | 11 objective rendering, contrast, 390px reflow, media, and interaction checks. Never feeds Clean/Mild/Heavy. | Higher is better (`0–100`) |
+| **system · DESIGN.md** | Relative compliance against the site's own declared `DESIGN.md` or DTCG tokens (colors, typography, corner radii). | Higher is better (`80–100` Aligned, `50–79` Drifting, `0–49` Off-system) |
+| **AEO · agent-readable** | 16 HTTP eligibility checks of whether search and AI answer crawlers can fetch and read the page. | Higher is better (`80–100` Eligible, `50–79` Partially Eligible, `0–49` Restricted) |
 
 ![Four-axis telemetry architecture](https://slop-detect.com/media/docs-four-axes-architecture.png)
 
@@ -128,11 +129,15 @@ slop-detect https://your-site.com
 ## 03 · The CLI
 
 ```bash
+slop-detect verify [url|dir]       # one-command 5-axis gate + baseline ratchet
+slop-detect init                   # bootstrap MCP, hooks & CI for coding agents
+slop-detect doctor                 # check Node, Chromium, DESIGN.md, .sloprc & hooks
 slop-detect <url> [...urls]        # score one or many pages
-  --copy                           # also score the copy axis
-  --axes all                       # design + copy together
+  --copy --craft                   # add copy axis + craft floor checks
+  --axes all                       # design + copy + craft together
   --aeo                            # score the 16-check AEO axis
   --design-md auto                 # check against <origin>/DESIGN.md
+  --format agent                   # ~32-token selector-addressed agent output
   --preset strict                  # score a curated subset
   --remote                         # scan via the API, no local browser
   --json                           # machine-readable output
@@ -222,12 +227,15 @@ console.log(PATTERNS.length, DEFINITIONS_VERSION); // 45 2026.11
 ```json
 {
   "mcpServers": {
-    "slop-detect": { "command": "npx", "args": ["-y", "slop-detect-mcp"] }
+    "slop-detect": {
+      "command": "npx",
+      "args": ["-y", "-p", "slop-detect", "-p", "slop-detect-mcp", "slop-detect-mcp", "--local"]
+    }
   }
 }
 ```
 
-Tools: `scan_page`, `check_aeo`, `check_design_system`, `fix_prompt`.
+Tools: `scan_page`, `check_aeo`, `check_design_system`, `extract_design_system`, `fix_prompt`, `lint_design_md`, `diff_design_md`.
 
 ---
 

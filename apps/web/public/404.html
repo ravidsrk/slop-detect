@@ -3,49 +3,112 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Not found — Slop Detector</title>
+    <title>404 · Not found · slop-detect</title>
     <meta name="robots" content="noindex" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500&family=Libre+Franklin:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
     <style>
-      body {
-        font-family: Georgia, 'Times New Roman', serif;
-        background: #faf7f0;
-        color: #1c1a15;
+      :root {
+        --bg: #f4f5f2;
+        --panel: #fbfbf9;
+        --text: #181815;
+        --text-2: #3a3b33;
+        --text-4: #565750;
+        --border: #dbddd6;
+        --border-btn: #c9cbc3;
+        --clean-text: #0e6b3a;
+      }
+      * {
+        box-sizing: border-box;
         margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: 'Libre Franklin', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
         display: grid;
         place-items: center;
-        min-height: 100vh;
+        padding: 24px;
       }
       main {
-        max-width: 34rem;
-        padding: 2rem;
-        text-align: center;
+        width: 100%;
+        max-width: 540px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-top: 1.5px solid var(--text);
+        border-radius: 6px;
+        padding: 36px 32px;
       }
       .code {
-        font-family: ui-monospace, Menlo, monospace;
-        font-size: 13px;
-        letter-spacing: 0.18em;
-        text-transform: uppercase;
-        color: #6e6f63;
+        font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+        font-size: 12.5px;
+        color: var(--clean-text);
+        margin-bottom: 12px;
       }
       h1 {
-        font-size: 2.2rem;
-        margin: 0.6rem 0;
+        font-family: 'Newsreader', Georgia, serif;
+        font-weight: 500;
+        font-size: 36px;
+        line-height: 1.12;
+        letter-spacing: -0.02em;
+        margin-bottom: 14px;
       }
-      a {
-        color: #0a5c2e;
+      p {
+        font-size: 15px;
+        line-height: 1.6;
+        color: var(--text-2);
+      }
+      .links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 24px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+        font-size: 13px;
+        text-decoration: none;
+        padding: 10px 16px;
+        border-radius: 3px;
+        border: 1px solid var(--border-btn);
+        color: var(--text);
+      }
+      .btn-primary {
+        background: var(--text);
+        color: #f4f5f2;
+        border-color: var(--text);
+      }
+      .btn-primary:hover {
+        background: var(--clean-text);
+        border-color: var(--clean-text);
+      }
+      .btn:hover {
+        border-color: var(--text);
       }
     </style>
   </head>
   <body>
     <main>
-      <p class="code">404 · not found</p>
+      <p class="code">404 · route not found</p>
       <h1>That page isn&rsquo;t here.</h1>
       <p>
-        The address may have moved, or it never existed. Head back to the
-        <a href="/">scanner</a>, browse the <a href="/leaderboard">leaderboard</a>, or read the
-        <a href="/docs">methodology</a>.
+        The address may have moved, expired, or never existed. Return to the scanner workbench,
+        inspect the leaderboard, or read the methodology.
       </p>
+      <div class="links">
+        <a class="btn btn-primary" href="/">Open scanner →</a>
+        <a class="btn" href="/leaderboard">Leaderboard</a>
+        <a class="btn" href="/docs">Docs</a>
+      </div>
     </main>
   </body>
 </html>

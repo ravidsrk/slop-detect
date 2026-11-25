@@ -244,7 +244,9 @@ export function LogoLockup({ href = '/', dark = false, size = 22, label = 'slop-
 export function Nav({ origin = '', current = '', rescan = false }) {
   const links = [
     { href: '/leaderboard', label: 'leaderboard' },
+    { href: '/compare', label: 'compare' },
     { href: '/docs', label: 'docs' },
+    { href: '/dashboard', label: 'dashboard' },
     { href: '/brand', label: 'brand' },
   ];
   return (

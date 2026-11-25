@@ -1,4 +1,5 @@
 ---
+specVersion: "alpha"
 name: "slop-detect.com"
 colors:
   surface: "#F4F5F2"

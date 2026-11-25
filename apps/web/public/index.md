@@ -1,38 +1,40 @@
 # Slop Detector
 
-> Does your landing page look generated? Paste a URL, get a deterministic 0–100
-> slop score in about eight seconds: a weighted fingerprint of the CSS and copy
-> tells that Cursor, v0, Lovable and Bolt all converged on.
+> Does your landing page wear a default template? Paste a URL, get a deterministic
+> 5-axis Chromium verification report: default-template design patterns, copy/paste
+> artifacts, craft floor defects, rendered `DESIGN.md` token compliance, and AEO
+> technical crawler eligibility.
 
-Slop Detector is open source and runs on real Chromium. It ships as a web app, a
-command-line tool, and an MCP server, so humans and coding agents can both use it.
+Slop Detector is open source (MIT) and runs on real Chromium. It ships as a web
+workbench, a command-line verifier (`npx slop-detect verify`), a GitHub Action,
+and a local-first MCP server (`slop-detect-mcp --local`), so humans and coding
+agents verify the same rendered DOM.
 
-## Does your landing page look generated?
+## Why deterministic verification matters
 
-Generated pages converge. They reach for the same fonts, the same gradient hero
-text, the same glassmorphism, the same eyebrow pill and big-number stat band.
-Slop Detector measures how far a page sits along that fingerprint. Slop is a
-fingerprint, not a verdict: a high score means "this looks machine-made," not
-"this is bad." Premium sites score Mild too.
+Default templates converge on the same fonts, gradient hero text, glassmorphism,
+eyebrow pills, and big-number stat bands. Slop Detector measures how many of
+those patterns a page matches alongside its own declared `DESIGN.md` tokens and
+objective craft checks. It is a fingerprint, not an authorship verdict: a score
+never claims who wrote a page.
 
-## The fingerprint: what it measures
+## The five axes
 
-- **Type, fonts & tracking.** Geist / Inter defaults, crushed display tracking,
-  wide body tracking, flat size hierarchy.
-- **Color, gradients & glow.** Gradient hero text, gradient-heavy backgrounds,
-  aurora blobs, colored glows, vibe-purple.
-- **Layout, the convention stack.** Centered hero, eyebrow pill, glassmorphism,
-  bento grids, nested cards, icon-card rows.
-- **Copy, AI phrasing.** An optional second axis scores the words: the hedge-y,
-  em-dash-heavy register LLMs default to.
-
-## AEO axis: can AI engines read & cite this page?
-
-A complementary axis scores network readability rather than design: whether
-ChatGPT, Claude, Perplexity and Google AI Overviews can actually fetch, read and
-cite a page. It checks AI-crawler access (GPTBot gets a 2xx), robots.txt rules,
-indexability, a markdown twin, `/llms.txt`, and content-negotiation headers. Its
-score polarity is inverted relative to the slop score: higher AEO is better.
+- **Design (lower is better · Clean 0–9 · Mild 10–27 · Heavy 28+).** 45 CSS/DOM
+  rules across typography, color, layout, and effects (weight-0 review rules add
+  no points).
+- **Copy (lower is better · Clean 0–7 · Mild 8–19 · Heavy 20+).** 26 prose and
+  paste-artifact rules, including leaked chatbot citation markup, turn residue,
+  unfilled placeholders, and unrendered Markdown.
+- **Craft floor (higher is better · separate).** 11 objective rendering, WCAG
+  contrast, 390px mobile reflow, broken media, and interaction checks. Never
+  feeds Clean/Mild/Heavy.
+- **System · `DESIGN.md` (higher is better · Aligned 80+ · Drifting 50–79 · Off-system <50).**
+  Verifies live rendered DOM against your own declared `DESIGN.md` or W3C DTCG
+  tokens, automatically waiving declared brand choices.
+- **AEO · crawler eligibility (higher is better · Eligible 80+ · Partially Eligible 50–79 · Restricted <50).**
+  16 HTTP checks verifying whether search and AI answer crawlers can fetch,
+  index, and read your page without JavaScript.
 
 ## How it works
 

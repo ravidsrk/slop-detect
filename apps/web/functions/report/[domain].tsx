@@ -255,7 +255,7 @@ export async function onRequestGet({ params, request, env }) {
                   ✗
                 </span>
                 <span>{t.label || t.short || t.id}</span>
-                <span class="rw">+{t.weight}</span>
+                {claimed ? <span class="rw">+{t.weight}</span> : null}
               </li>
             ))}
           </ul>
@@ -332,7 +332,7 @@ export async function onRequestGet({ params, request, env }) {
           <LogoLockup href={`${origin}/`} />
           <div style="display:flex;gap:10px;align-items:center">
             <a class="rpt-print" href={`${origin}/score/${encodeURIComponent(domain)}`}>
-              interactive 3D hub →
+              interactive score hub →
             </a>
             <button id="rptPrint" class="rpt-print" type="button">
               print / save PDF

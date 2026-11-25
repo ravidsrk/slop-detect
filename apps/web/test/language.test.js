@@ -177,7 +177,9 @@ describe('FIX-04: no third-party grade/tier without opt-in & uncalibrated beta l
 
         // Named corpus sites (cal.com, resend.com, clerk.com, bolt.new, stripe.com, etc.)
         // must not appear with a tier or grade on any leaderboard row.
-        const rowMatches = [...html.matchAll(/<li class="lr">[\s\S]*?<\/li>/g)].map((m) => m[0]);
+        const rowMatches = [
+          ...html.matchAll(/<li class="lr(?:\s[^"]*)?"[^>]*>[\s\S]*?<\/li>/g),
+        ].map((m) => m[0]);
         expect(rowMatches.length).toBeGreaterThan(0);
         for (const rowHtml of rowMatches) {
           expect(rowHtml).toMatch(/opt-in required/i);
@@ -414,7 +416,9 @@ describe('FIX-04: no third-party grade/tier without opt-in & uncalibrated beta l
         expect(calRow, 'verified cal.com row').toBeTruthy();
         expect(calRow[0]).toMatch(/class="lr-rank"[\s\S]{0,40}·/);
         expect(calRow[0]).not.toMatch(/sr-only">#</);
-        const unverifiedRows = [...lbHtml.matchAll(/<li class="lr">[\s\S]*?<\/li>/g)]
+        const unverifiedRows = [
+          ...lbHtml.matchAll(/<li class="lr(?:\s[^"]*)?"[^>]*>[\s\S]*?<\/li>/g),
+        ]
           .map((m) => m[0])
           .filter(
             (r) => r.includes('resend.com') || r.includes('clerk.com') || r.includes('stripe.com')

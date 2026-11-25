@@ -219,7 +219,7 @@ export async function onRequestGet({ params, env, request }) {
 
         <section class="result-section">
           <div class="rs-ledger">
-            <SectionLedger tag="" label="the four axes" />
+            <SectionLedger tag="" label="the five axes" />
           </div>
           <AxisStrip slim={slim} />
         </section>
