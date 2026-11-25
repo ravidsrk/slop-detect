@@ -61,6 +61,8 @@ export interface ScanOptions {
   only?: string[];
   skip?: string[];
   noInlineIgnores?: boolean;
+  // Remote scans default to share: false (private). Opt in with --share.
+  share?: boolean;
 }
 
 export function shouldIncludeSystem(opts: ScanOptions = {}) {
@@ -150,15 +152,31 @@ async function ensureChromium() {
     if (!missingBinary) {
       throw err;
     }
-    process.stderr.write('slop-detect: first run — downloading Chromium (~150 MB, one-time)…\n');
-    const r = spawnSync('npx', ['--yes', 'playwright', 'install', 'chromium'], {
+    let pwSpec = 'playwright@1.65.0';
+    try {
+      const { readFileSync } = await import('node:fs');
+      const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+      const raw = String(pkg?.dependencies?.playwright || '').replace(/^[^0-9]*/, '');
+      if (/^\d+\.\d+\.\d+/.test(raw)) pwSpec = `playwright@${raw}`;
+    } catch {
+      // fall back to pinned minor version
+    }
+    process.stderr.write(
+      `slop-detect: first run — downloading Chromium via ${pwSpec} (~150 MB, one-time)…\n`
+    );
+    const r = spawnSync('npx', ['--yes', pwSpec, 'install', 'chromium'], {
       // Pipe stdout so a `--json` redirect never captures download progress.
-      stdio: ['ignore', 'pipe', 'inherit'],
+      stdio: ['ignore', 'pipe', 'pipe'],
+      encoding: 'utf8',
       shell: process.platform === 'win32',
     });
     if (r.status !== 0) {
+      const detail = String(r.stderr || r.stdout || '')
+        .trim()
+        .slice(0, 400);
       throw new Error(
-        'Failed to install Chromium. Run `npx playwright install chromium` manually, ' +
+        `Failed to install Chromium (${pwSpec})${detail ? `: ${detail}` : ''}. ` +
+          `Run \`npx ${pwSpec} install chromium\` manually, ` +
           'or set SKIP_PLAYWRIGHT_DOWNLOAD=1 if you have it installed elsewhere.'
       );
     }
@@ -185,7 +203,10 @@ export async function loadDesignMd(source, pageUrl) {
   if (source === 'auto') {
     const url = new URL('/DESIGN.md', pageUrl).toString();
     try {
-      const res = await fetch(url, { headers: { Accept: 'text/markdown,text/plain,*/*' } });
+      const res = await fetch(url, {
+        headers: { Accept: 'text/markdown,text/plain,*/*' },
+        signal: AbortSignal.timeout(15000),
+      });
       if (!res.ok) return null;
       return { text: await res.text(), from: url };
     } catch {
@@ -193,7 +214,7 @@ export async function loadDesignMd(source, pageUrl) {
     }
   }
   if (/^https?:\/\//i.test(source)) {
-    const res = await fetch(source);
+    const res = await fetch(source, { signal: AbortSignal.timeout(15000) });
     if (!res.ok) throw new Error(`Could not fetch DESIGN.md from ${source} (HTTP ${res.status})`);
     return { text: await res.text(), from: source };
   }
@@ -217,6 +238,7 @@ export async function scanRemote(url, opts: ScanOptions = {}) {
     preset: opts.preset || 'full',
     axes: opts.axes || ['design'],
     screenshot: !!opts.screenshot,
+    share: Boolean(opts.share),
   };
   if (opts.designMd) {
     body.designMd = opts.designMd === 'auto' ? true : opts.designMd;
@@ -227,6 +249,7 @@ export async function scanRemote(url, opts: ScanOptions = {}) {
       method: 'POST',
       headers,
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(45000),
     });
   } catch (e) {
     throw new Error(`Could not reach ${base} (${e.message}). Drop --remote to scan locally.`);
@@ -252,6 +275,7 @@ export async function aeoRemote(url, opts: ScanOptions = {}) {
       method: 'POST',
       headers,
       body: JSON.stringify({ url }),
+      signal: AbortSignal.timeout(30000),
     });
   } catch (e) {
     throw new Error(`Could not reach ${base} (${e.message}). Drop --remote to scan locally.`);
@@ -344,7 +368,7 @@ export async function scanUrl(url, opts: ScanOptions = {}) {
     // top-level score/grade/patterns stay exactly as before). Opt into copy or
     // craft via opts.axes. Craft never feeds the unified design/copy score.
     const reqAxes = normalizeAxes(opts.axes);
-    const kitMatches = evaluateDefaultKits(data.signals || {});
+    const kitMatches = evaluateDefaultKits(data.signals || {}, { preset });
 
     result = {
       url,

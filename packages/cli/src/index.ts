@@ -10,3 +10,12 @@ export {
   type ScanOptions,
 } from './detector.js';
 export { exitCodeForScanResults, type ScanExitFlags } from './exit-code.js';
+export {
+  runDoctor,
+  formatDoctorReport,
+  findProjectDesignMd,
+  detectVerifyTarget,
+  type DoctorCheck,
+  type DoctorReport,
+  type DoctorStatus,
+} from './doctor.js';

@@ -9,38 +9,42 @@
 
 let coreMod;
 try {
-  coreMod = await import('@slop-detect/core');
+  coreMod = await import('slop-detect-core');
 } catch {
-  const siteMod = await import('../core/src/site.ts');
-  const aeoMod = await import('../core/src/aeo.ts');
-  const copyMod = await import('../core/src/copyPatterns.ts');
-  coreMod = {
-    htmlToCopyInput: siteMod.htmlToCopyInput,
-    parsePreviewDirectives: aeoMod.parsePreviewDirectives,
-    detectPromptInjection: aeoMod.detectPromptInjection,
-    scoreCopy(textCtx) {
-      const ctx = textCtx || { text: '', headings: [], paragraphs: [], wordCount: 0 };
-      const patterns = copyMod.COPY_PATTERNS.map((p) => {
-        const ev = p.match(ctx);
-        const triggered = Boolean(ev?.triggered);
-        const isReview = p.weight === 0 || p.status === 'review' || p.status === 'retired';
-        return {
-          id: p.id,
-          label: p.label,
-          weight: p.weight,
-          status: triggered ? (isReview ? 'review' : 'fail') : 'pass',
-          triggered,
-          evidence: ev,
-        };
-      });
-      const score = Math.min(
-        100,
-        patterns.filter((p) => p.triggered && p.weight > 0).reduce((s, p) => s + p.weight, 0)
-      );
-      const tier = score >= 20 ? 'Heavy' : score >= 8 ? 'Mild' : 'Clean';
-      return { score, tier, patterns };
-    },
-  };
+  try {
+    coreMod = await import('@slop-detect/core');
+  } catch {
+    const siteMod = await import('../core/src/site.ts');
+    const aeoMod = await import('../core/src/aeo.ts');
+    const copyMod = await import('../core/src/copyPatterns.ts');
+    coreMod = {
+      htmlToCopyInput: siteMod.htmlToCopyInput,
+      parsePreviewDirectives: aeoMod.parsePreviewDirectives,
+      detectPromptInjection: aeoMod.detectPromptInjection,
+      scoreCopy(textCtx) {
+        const ctx = textCtx || { text: '', headings: [], paragraphs: [], wordCount: 0 };
+        const patterns = copyMod.COPY_PATTERNS.map((p) => {
+          const ev = p.match(ctx);
+          const triggered = Boolean(ev?.triggered);
+          const isReview = p.weight === 0 || p.status === 'review' || p.status === 'retired';
+          return {
+            id: p.id,
+            label: p.label,
+            weight: p.weight,
+            status: triggered ? (isReview ? 'review' : 'fail') : 'pass',
+            triggered,
+            evidence: ev,
+          };
+        });
+        const score = Math.min(
+          100,
+          patterns.filter((p) => p.triggered && p.weight > 0).reduce((s, p) => s + p.weight, 0)
+        );
+        const tier = score >= 20 ? 'Heavy' : score >= 8 ? 'Mild' : 'Clean';
+        return { score, tier, patterns };
+      },
+    };
+  }
 }
 
 const { htmlToCopyInput, scoreCopy, parsePreviewDirectives, detectPromptInjection } = coreMod;
@@ -124,12 +128,13 @@ export function evaluateLighthouseHtmlAeo(artifacts = {}) {
     ) || /<link[^>]+type=["']?text\/markdown["']?[^>]*>/i.test(html);
 
   // 4. ai.manipulation — prompt injection in HTML comments / JSON-LD / hidden elements
-  const injection = detectPromptInjection({ html, headers: {} });
-  if (injection.detected) {
+  const injection = detectPromptInjection(html, {});
+  const injectionHits = Array.isArray(injection?.findings) ? injection.findings : [];
+  if (injection?.triggered || injectionHits.length > 0) {
     findings.push({
       id: 'ai.manipulation',
       status: 'review',
-      message: `Potential prompt-injection or hidden instruction surface (${injection.hits.length} hit(s)).`,
+      message: `Potential prompt-injection or hidden instruction surface (${injectionHits.length} hit(s)).`,
     });
   }
 
@@ -143,16 +148,19 @@ export function evaluateLighthouseHtmlAeo(artifacts = {}) {
   };
 }
 
-export const SlopCopyAudit = {
-  meta: {
-    id: 'slop-copy-patterns',
-    title: 'Prose avoids default-template copy patterns',
-    failureTitle: 'Prose matches default-template copy patterns',
-    description:
-      'Checks visible page prose against the Slop Detector copy catalogue (buzzword density, antithesis constructions, filler openers, formulaic closers). Covers Copy axis only; computed-style Design rules are not evaluated.',
-    requiredArtifacts: ['MainDocumentContent'],
-  },
-  audit(artifacts) {
+export class SlopCopyAudit {
+  static get meta() {
+    return {
+      id: 'slop-copy-patterns',
+      title: 'Prose avoids default-template copy patterns',
+      failureTitle: 'Prose matches default-template copy patterns',
+      description:
+        'Checks visible page prose against the Slop Detector copy catalogue (buzzword density, antithesis constructions, filler openers, formulaic closers). Covers Copy axis only; computed-style Design rules are not evaluated.',
+      requiredArtifacts: ['MainDocumentContent'],
+    };
+  }
+
+  static audit(artifacts) {
     const { copyResult, triggered, copyLighthouseScore } = evaluateLighthouseCopy(artifacts);
     return {
       score: copyLighthouseScore,
@@ -175,19 +183,22 @@ export const SlopCopyAudit = {
         })),
       },
     };
-  },
-};
+  }
+}
 
-export const SlopChatbotArtifactsAudit = {
-  meta: {
-    id: 'slop-chatbot-artifacts',
-    title: 'No leaked chatbot citation markup, turn residue, or unfilled placeholders',
-    failureTitle: 'Page contains leaked chatbot artifacts or unfilled placeholders',
-    description:
-      'Flags leaked oaicite/attributableIndex citation tokens (C-02), assistant turn framing (C-03), unfilled template brackets (C-05), and unrendered raw Markdown (C-06).',
-    requiredArtifacts: ['MainDocumentContent'],
-  },
-  audit(artifacts) {
+export class SlopChatbotArtifactsAudit {
+  static get meta() {
+    return {
+      id: 'slop-chatbot-artifacts',
+      title: 'No leaked chatbot citation markup, turn residue, or unfilled placeholders',
+      failureTitle: 'Page contains leaked chatbot artifacts or unfilled placeholders',
+      description:
+        'Flags leaked oaicite/attributableIndex citation tokens (C-02), assistant turn framing (C-03), unfilled template brackets (C-05), and unrendered raw Markdown (C-06).',
+      requiredArtifacts: ['MainDocumentContent'],
+    };
+  }
+
+  static audit(artifacts) {
     const { artifactHits, artifactLighthouseScore } = evaluateLighthouseCopy(artifacts);
     return {
       score: artifactLighthouseScore,
@@ -209,19 +220,22 @@ export const SlopChatbotArtifactsAudit = {
         })),
       },
     };
-  },
-};
+  }
+}
 
-export const SlopHtmlAeoAudit = {
-  meta: {
-    id: 'slop-html-aeo',
-    title: 'HTML-level AEO eligibility (indexability, preview controls, manipulation hygiene)',
-    failureTitle: 'HTML directives restrict search/answer-engine snippet eligibility',
-    description:
-      'Inspects MainDocumentContent for meta robots indexability, nosnippet/max-snippet:0 preview locks, text/markdown link alternates, and hidden prompt-injection surfaces.',
-    requiredArtifacts: ['MainDocumentContent'],
-  },
-  audit(artifacts) {
+export class SlopHtmlAeoAudit {
+  static get meta() {
+    return {
+      id: 'slop-html-aeo',
+      title: 'HTML-level AEO eligibility (indexability, preview controls, manipulation hygiene)',
+      failureTitle: 'HTML directives restrict search/answer-engine snippet eligibility',
+      description:
+        'Inspects MainDocumentContent for meta robots indexability, nosnippet/max-snippet:0 preview locks, text/markdown link alternates, and hidden prompt-injection surfaces.',
+      requiredArtifacts: ['MainDocumentContent'],
+    };
+  }
+
+  static audit(artifacts) {
     const res = evaluateLighthouseHtmlAeo(artifacts);
     return {
       score: res.score,
@@ -241,8 +255,8 @@ export const SlopHtmlAeoAudit = {
         items: res.findings,
       },
     };
-  },
-};
+  }
+}
 
 export const lighthousePluginSlopCopy = {
   audits: [

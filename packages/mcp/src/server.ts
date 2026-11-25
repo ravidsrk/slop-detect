@@ -104,6 +104,61 @@ function loadScanResultSchema() {
 
 const SCAN_RESULT_SCHEMA = loadScanResultSchema();
 
+// MCP spec + @modelcontextprotocol/sdk ToolSchema require outputSchema to have
+// root `type: "object"`. Wrap the canonical scan-result.v1.json definitions so
+// every tool advertises a valid object outputSchema while preserving $id.
+const SCAN_PAGE_OUTPUT_SCHEMA = SCAN_RESULT_SCHEMA
+  ? {
+      $schema: SCAN_RESULT_SCHEMA.$schema,
+      $id: SCAN_RESULT_SCHEMA.$id,
+      type: 'object',
+      title: 'slop-detect scan_page result',
+      additionalProperties: true,
+      properties: {
+        ...(SCAN_RESULT_SCHEMA.$defs?.scoredScan?.properties || {}),
+        scanId: { type: 'string' },
+        detail: { enum: ['summary', 'full'] },
+      },
+      $defs: SCAN_RESULT_SCHEMA.$defs,
+    }
+  : {
+      type: 'object',
+      additionalProperties: true,
+      properties: {
+        schemaVersion: { type: 'number' },
+        url: { type: 'string' },
+        score: { type: 'number' },
+        tier: { type: 'string' },
+        patterns: { type: 'array' },
+        scanId: { type: 'string' },
+      },
+    };
+
+const AEO_OUTPUT_SCHEMA = SCAN_RESULT_SCHEMA
+  ? {
+      $schema: SCAN_RESULT_SCHEMA.$schema,
+      $id: SCAN_RESULT_SCHEMA.$id,
+      type: 'object',
+      title: 'slop-detect check_aeo result',
+      additionalProperties: true,
+      properties: {
+        ...(SCAN_RESULT_SCHEMA.$defs?.aeoReport?.properties || {}),
+      },
+      $defs: SCAN_RESULT_SCHEMA.$defs,
+    }
+  : {
+      type: 'object',
+      additionalProperties: true,
+      properties: {
+        schemaVersion: { type: 'number' },
+        axis: { type: 'string' },
+        url: { type: 'string' },
+        score: { type: 'number' },
+        tier: { type: 'string' },
+        checks: { type: 'array' },
+      },
+    };
+
 // Structured results for the tools that don't return a scan document. They
 // carry data, not a copy of the text, so clients that show both don't pay for
 // the same content twice (#358).
@@ -170,8 +225,8 @@ const EXTRACT_OUTPUT_SCHEMA = {
 };
 
 const OUTPUT_SCHEMAS: Record<string, any> = {
-  scan_page: SCAN_RESULT_SCHEMA,
-  check_aeo: SCAN_RESULT_SCHEMA,
+  scan_page: SCAN_PAGE_OUTPUT_SCHEMA,
+  check_aeo: AEO_OUTPUT_SCHEMA,
   check_design_system: SYSTEM_OUTPUT_SCHEMA,
   fix_prompt: FIX_OUTPUT_SCHEMA,
   lint_design_md: LINT_OUTPUT_SCHEMA,
@@ -179,20 +234,26 @@ const OUTPUT_SCHEMAS: Record<string, any> = {
   extract_design_system: EXTRACT_OUTPUT_SCHEMA,
 };
 
+const UI_TOOL_NAMES = new Set(['scan_page', 'check_aeo', 'check_design_system']);
+
 export const TOOLS = MCP_TOOLS.map((tool) => ({
   ...tool,
   icons: MCP_ICONS,
   ...(OUTPUT_SCHEMAS[tool.name] ? { outputSchema: OUTPUT_SCHEMAS[tool.name] } : {}),
+  ...(UI_TOOL_NAMES.has(tool.name)
+    ? { _meta: { ui: { resourceUri: 'ui://slop-detect/scorecard.html' } } }
+    : {}),
 }));
 
 export const PROMPTS = MCP_PROMPTS.map((prompt) => ({ ...prompt, icons: MCP_ICONS }));
 
 export const DESIGN_MD_TEMPLATE = `---
+specVersion: "alpha"
 name: "Brand Design System"
 colors:
   surface: "#F4F5F2"
   ink: "#181815"
-  primary: "#1FA85E"
+  primary: "#0E6B3A"
 typography:
   h1:
     fontFamily: "Newsreader"
@@ -326,13 +387,36 @@ export const MCP_APP_SCORECARD_HTML = `<!doctype html>
       <span class="badge">uncalibrated beta · defs ${DEFINITIONS_VERSION}</span>
     </div>
     <div class="grid">
-      <div class="cell"><div class="k">Design Axis</div><div class="v" id="design-score">matches N default patterns</div></div>
+      <div class="cell"><div class="k">Design Axis</div><div class="v" id="design-score">waiting for scan</div></div>
       <div class="cell"><div class="k">Copy Axis</div><div class="v" id="copy-score">0–100 (lower is better)</div></div>
       <div class="cell"><div class="k">System (DESIGN.md)</div><div class="v" id="system-score">0–100 (higher is better)</div></div>
       <div class="cell"><div class="k">AEO Eligibility</div><div class="v" id="aeo-score">0–100 (higher is better)</div></div>
     </div>
-    <p class="note">Measures convergence onto default template patterns (not page authorship).</p>
+    <p class="note" id="note">Waiting for scan — displays "matches N default patterns" (not page authorship).</p>
   </div>
+  <script>
+    window.addEventListener('message', (ev) => {
+      if (window.parent && ev.source !== window.parent) return;
+      const msg = ev.data;
+      if (!msg || typeof msg !== 'object') return;
+      const p = msg.params?.structuredContent || msg.result?.structuredContent || msg.structuredContent || msg.data || msg;
+      if (!p || typeof p !== 'object') return;
+      if (typeof p.score === 'number' && p.axis !== 'aeo' && p.declared === undefined) {
+        document.getElementById('design-score').textContent = p.score + '/100 · ' + (p.tier || '');
+      }
+      if (p.axes?.copy && typeof p.axes.copy.score === 'number') {
+        document.getElementById('copy-score').textContent = p.axes.copy.score + '/100 · ' + (p.axes.copy.tier || '');
+      }
+      if (p.system && p.system.declared && typeof p.system.score === 'number') {
+        document.getElementById('system-score').textContent = p.system.score + '/100 · ' + (p.system.tier || '');
+      } else if (p.declared === true && typeof p.score === 'number') {
+        document.getElementById('system-score').textContent = p.score + '/100 · ' + (p.tier || '');
+      }
+      if (p.axis === 'aeo' && typeof p.score === 'number') {
+        document.getElementById('aeo-score').textContent = p.score + '/' + (p.maxScore || 100) + ' · ' + (p.tier || '');
+      }
+    });
+  </script>
 </body>
 </html>`;
 
@@ -475,7 +559,15 @@ async function checkAeoTool(args: Record<string, any>): Promise<ToolResult> {
 async function systemTool(args: Record<string, any>): Promise<ToolResult> {
   const stored = args.scan_id ? recalledScan(args.scan_id) : null;
   if (args.scan_id && !stored && !args.url) return errorResult(unknownScanIdMessage(args.scan_id));
-  let result = stored && stored.system ? stored : null;
+  const explicitDesignMd =
+    typeof args.design_md_url === 'string' &&
+    args.design_md_url.trim() &&
+    args.design_md_url.trim() !== 'auto'
+      ? args.design_md_url.trim()
+      : null;
+  const cachedMatches =
+    stored && stored.system && (!explicitDesignMd || stored.system.source === explicitDesignMd);
+  let result = cachedMatches ? stored : null;
   let scanId = result ? args.scan_id : '';
   if (!result) {
     const url = args.url || stored?.finalUrl || stored?.url;
@@ -670,7 +762,7 @@ export async function loadResource(uri: string) {
     return {
       uri,
       mimeType: 'application/json',
-      text: JSON.stringify(catalogue, null, 2),
+      text: JSON.stringify(catalogue),
     };
   }
   if (uri === 'slop://spec/aeo') {

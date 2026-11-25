@@ -16,7 +16,8 @@ import { fileURLToPath } from 'node:url';
 
 const YEAR_RE = /\b(?:19[7-9]\d|20[0-3]\d)\b/g;
 const ISO_DATE_RE = /\b20\d\d-(?:0[1-9]|1[0-2])(?:-[0-3]\d)?\b/g;
-const CURRENCY_RE = /(?:[$€£¥]\s?\d[\d,]*(?:\.\d+)?|\b\d[\d,]*(?:\.\d+)?\s*(?:USD|EUR|GBP|JPY)\b)/gi;
+const CURRENCY_RE =
+  /(?:[$€£¥]\s?\d[\d,]*(?:\.\d+)?|\b\d[\d,]*(?:\.\d+)?\s*(?:USD|EUR|GBP|JPY)\b)/gi;
 const UNIT_RE =
   /\b\d+(?:\.\d+)?\s*(?:ms|ns|us|µs|s|sec|min|hr|kb|mb|gb|tb|mib|gib|hz|khz|mhz|ghz|px|rem|mm|cm|g|kg|bps|kbps|mbps|gbps|rps|qps|%)\b/gi;
 const SEMVER_RE = /\bv?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?\b/g;
@@ -27,10 +28,7 @@ const SEMVER_RE = /\bv?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?\b/g;
  */
 export function computeTimeAndNumberAnchors(text) {
   const raw = typeof text === 'string' ? text : '';
-  const words = raw
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
+  const words = raw.trim().split(/\s+/).filter(Boolean);
   const wordCount = words.length;
 
   const years = raw.match(YEAR_RE) || [];
@@ -192,7 +190,12 @@ export function evaluateCraftCovariateReport(records = []) {
   return {
     protocolVersion: '2026.11-K07',
     sampleSize: enriched.length,
-    offlineOnlyCovariates: ['time_and_number_anchors', 'colourfulness', 'edgeDensity', 'whitespaceRatio'],
+    offlineOnlyCovariates: [
+      'time_and_number_anchors',
+      'colourfulness',
+      'edgeDensity',
+      'whitespaceRatio',
+    ],
     correlations: {
       designScore_vs_specificityIndex_rho: spearmanRho(designScores, specificity),
       copyScore_vs_specificityIndex_rho: spearmanRho(copyScores, specificity),

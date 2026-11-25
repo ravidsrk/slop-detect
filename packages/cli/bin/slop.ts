@@ -7,7 +7,8 @@
 // Scores any URL against the AI-design-slop fingerprint and emits a
 // pretty terminal report or a machine-readable JSON blob.
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import {
   scanUrl,
   scanRemote,
@@ -49,6 +50,12 @@ import {
   planInitFiles,
 } from '../src/init-project.js';
 import {
+  detectVerifyTarget,
+  findProjectDesignMd,
+  formatDoctorReport,
+  runDoctor,
+} from '../src/doctor.js';
+import {
   avoidListWithinCap,
   diffSavedScans,
   discoverRenderedSite,
@@ -65,6 +72,18 @@ import {
 } from '../src/offline.js';
 
 const CLI_VERSION = '0.9.1';
+
+// Flush buffered stdout/stderr pipes before exiting so large (>64KB) --json /
+// --sarif payloads are never truncated mid-byte when piped to jq or subprocesses.
+function flushAndExit(code: number): Promise<never> {
+  process.exitCode = code;
+  return new Promise<never>(() => {
+    process.stdout.write('', () => {
+      process.stderr.write('', () => process.exit(code));
+    });
+  });
+}
+
 const args = process.argv.slice(2);
 const urls = [];
 const flags = {
@@ -79,7 +98,11 @@ const flags = {
   screenshot: false,
   verbose: false,
   preset: 'full',
+  presetExplicit: false,
   axes: ['design'],
+  axesExplicit: false,
+  pretty: false,
+  share: false,
   failOn: null as string | null,
   failUnderScore: null as number | null,
   failUnderLabel: null as string | null,
@@ -106,6 +129,8 @@ const flags = {
   origin: null as string | null,
   siteName: null as string | null,
   init: false,
+  doctor: false,
+  verify: false,
   initProviders: null as string | null,
   initScope: 'project',
   initCi: null as string | null,
@@ -289,9 +314,15 @@ for (let i = 0; i < args.length; i++) {
   else if (a === '--version' || a === '-V') {
     console.log(`slop-detect ${CLI_VERSION} (defs ${DEFINITIONS_VERSION})`);
     process.exit(0);
-  } else if (a === '--copy') flags.axes = [...new Set([...flags.axes, 'copy'])];
-  else if (a === '--craft') flags.axes = [...new Set([...flags.axes, 'craft'])];
-  else if (a === '--aeo') flags.aeo = true;
+  } else if (a === '--copy') {
+    flags.axes = [...new Set([...flags.axes, 'copy'])];
+    flags.axesExplicit = true;
+  } else if (a === '--craft') {
+    flags.axes = [...new Set([...flags.axes, 'craft'])];
+    flags.axesExplicit = true;
+  } else if (a === '--aeo') flags.aeo = true;
+  else if (a === '--pretty') flags.pretty = true;
+  else if (a === '--share') flags.share = true;
   else if (a === '--remote') flags.remote = true;
   else if (a === '--api' || a.startsWith('--api=')) {
     flags.api = a.startsWith('--api=') ? a.slice('--api='.length) : args[++i];
@@ -319,6 +350,7 @@ for (let i = 0; i < args.length; i++) {
       process.exit(2);
     }
     flags.axes = parsed;
+    flags.axesExplicit = true;
   } else if (a === '--fail-on' || a.startsWith('--fail-on=')) {
     const val = (
       a.startsWith('--fail-on=') ? a.slice('--fail-on='.length) : args[++i] || ''
@@ -444,7 +476,9 @@ for (let i = 0; i < args.length; i++) {
     flags.origin = a.startsWith('--origin=') ? a.slice('--origin='.length) : args[++i];
   } else if (a === '--site-name' || a.startsWith('--site-name=')) {
     flags.siteName = a.startsWith('--site-name=') ? a.slice('--site-name='.length) : args[++i];
-  } else if (a === 'init') flags.init = true;
+  } else if (a === 'init' && i === 0) flags.init = true;
+  else if (a === 'doctor' && i === 0) flags.doctor = true;
+  else if (a === 'verify' && i === 0) flags.verify = true;
   else if (a === '--providers' || a.startsWith('--providers=')) {
     flags.initProviders = a.startsWith('--providers=') ? a.slice('--providers='.length) : args[++i];
   } else if (a === '--scope' || a.startsWith('--scope=')) {
@@ -466,6 +500,7 @@ for (let i = 0; i < args.length; i++) {
       process.exit(2);
     }
     flags.preset = val;
+    flags.presetExplicit = true;
   } else if (a.startsWith('--preset=')) {
     const val = a.slice('--preset='.length);
     if (!isPreset(val)) {
@@ -473,6 +508,7 @@ for (let i = 0; i < args.length; i++) {
       process.exit(2);
     }
     flags.preset = val;
+    flags.presetExplicit = true;
   } else if (a.startsWith('--')) {
     console.error(`Unknown flag: ${a}`);
     process.exit(2);
@@ -548,6 +584,57 @@ if (flags.format && flags.sarif && flags.format !== 'sarif') {
 if (flags.site && flags.siteCopy) {
   console.error('Pass either --site or --site-copy, not both.');
   process.exit(2);
+}
+
+if (flags.doctor) {
+  if (urls.length) {
+    console.error('doctor inspects local setup and does not take a URL.');
+    process.exit(2);
+  }
+  const report = runDoctor(flags.initDir || process.cwd());
+  console.log(flags.json ? JSON.stringify(report, null, 2) : formatDoctorReport(report));
+  process.exit(report.ok ? 0 : 1);
+}
+
+if (flags.verify) {
+  const cwd = flags.initDir || process.cwd();
+  if (!flags.axesExplicit) {
+    flags.axes = ['design', 'copy', 'craft'];
+    flags.axesExplicit = true;
+  }
+  if (!flags.designMd && !flags.refFile) {
+    const projectDesignMd = findProjectDesignMd(cwd);
+    if (projectDesignMd && !flags.remote) {
+      flags.designMd = projectDesignMd;
+    } else if (flags.remote) {
+      flags.designMd = 'auto';
+    }
+  }
+  if (!flags.compareTo && pathExists('.slop/baseline.json')) {
+    try {
+      const base = readJsonFile('.slop/baseline.json');
+      if (base?.definitionsVersion === DEFINITIONS_VERSION) {
+        flags.compareTo = '.slop/baseline.json';
+        flags.failOnRegression = true;
+      }
+    } catch {
+      // ignore unreadable baseline in auto-detect; doctor flags it explicitly
+    }
+  }
+  if (!flags.failOn && flags.failUnderScore == null) {
+    flags.failOn = 'Heavy';
+  }
+  if (urls.length === 0) {
+    const detected = detectVerifyTarget(cwd);
+    if (detected) {
+      urls.push(detected);
+    } else {
+      console.error(
+        'verify needs a URL/build directory or a configured .slop/local-url (e.g. `slop-detect verify http://127.0.0.1:3000` or `slop-detect verify ./dist`).'
+      );
+      process.exit(2);
+    }
+  }
 }
 
 if (flags.init) {
@@ -686,23 +773,11 @@ if (flags.compareTo && flags.compareCurrent) {
   }
 }
 
-if (flags.format && urls.length === 1 && pathExists(urls[0]) && /\.json$/i.test(urls[0])) {
-  try {
-    const doc = readJsonFile(urls[0]);
-    console.log(formatScanDocument(doc, flags.format));
-    process.exit(
-      exitCodeForScanResults(doc, {
-        failOn: flags.failOn,
-        failUnderScore: flags.failUnderScore,
-      })
-    );
-  } catch (e) {
-    console.error(e.message || String(e));
-    process.exit(2);
-  }
-}
+const formatSavedFile = Boolean(
+  flags.format && urls.length === 1 && pathExists(urls[0]) && /\.json$/i.test(urls[0])
+);
 
-if (urls.length === 0) {
+if (!formatSavedFile && urls.length === 0) {
   help();
   process.exit(2);
 }
@@ -745,20 +820,22 @@ if (flags.a11y && flags.remote) {
 // Normalize bare hostnames the way the web UI does: `slop-detect example.com`
 // should Just Work. Local directories and HTML files (`./dist`, `file://...`)
 // are preserved and served over an ephemeral loopback server in Main (#210).
-for (let i = 0; i < urls.length; i++) {
-  const u = urls[i].trim();
-  if (isLocalTarget(u)) {
-    urls[i] = u;
-    continue;
+if (!formatSavedFile) {
+  for (let i = 0; i < urls.length; i++) {
+    const u = urls[i].trim();
+    if (isLocalTarget(u)) {
+      urls[i] = u;
+      continue;
+    }
+    const scheme = u.match(/^([a-z][a-z0-9+.-]*):/i);
+    if (scheme && !/^https?$/i.test(scheme[1])) {
+      console.error(
+        `Only http(s) URLs can be scanned (or existing local HTML/build directories): ${u}`
+      );
+      process.exit(2);
+    }
+    urls[i] = /^https?:\/\//i.test(u) ? u : 'https://' + u;
   }
-  const scheme = u.match(/^([a-z][a-z0-9+.-]*):/i);
-  if (scheme && !/^https?$/i.test(scheme[1])) {
-    console.error(
-      `Only http(s) URLs can be scanned (or existing local HTML/build directories): ${u}`
-    );
-    process.exit(2);
-  }
-  urls[i] = /^https?:\/\//i.test(u) ? u : 'https://' + u;
 }
 
 function help() {
@@ -777,7 +854,11 @@ function help() {
 Slop Detector — score landing pages against ${PATTERNS.length} AI-design-slop patterns (defs ${DEFINITIONS_VERSION})
 
 Usage:
-  slop-detect <url> [<url2> ...] [options]
+  slop-detect <url|dir> [<url2> ...] [options]
+  slop-detect verify [url|dir]      One-command 5-axis gate (design+copy+craft+DESIGN.md+baseline)
+  slop-detect doctor                Diagnose Node, Chromium, DESIGN.md, .sloprc.json, MCP & hooks
+  slop-detect init                  Bootstrap MCP, hooks, and CI config for coding agents
+  slop-detect diff <a> <b>          Compare two saved scan JSON files
 
 Options:
   --json, -j          Emit JSON instead of pretty output
@@ -834,15 +915,34 @@ Options:
   --axes <list>       Axes to score: design (default), copy, craft. Comma-separated or "all"
   --copy              Also score the copy axis
   --craft             Also score the craft-floor axis (never feeds Clean/Mild/Heavy)
-  --aeo               Add the AEO axis: can AI engines (ChatGPT/Claude/Perplexity)
-                      actually read & cite this page? (network checks, no browser)
+  --aeo               Add the AEO axis: can AI search and agent crawlers fetch
+                      and parse this page? (network checks, no browser)
   --remote            Scan via the slop-detect.com API instead of a local browser
-                      (no Playwright/Chromium install needed). Honors SLOP_API_KEY.
+                      (no Playwright/Chromium install needed; private share:false by default).
+                      Honors SLOP_API_KEY. Pass --share to mint a public permalink.
+  --share             Opt in to a public permalink when using --remote
+  --pretty            Force human terminal output even under CLAUDECODE/CURSOR_AGENT
   --api <url>         Use a custom API base (implies --remote). Env: SLOP_API
   --design-md <src>   System axis: check the page against its declared design
                       system (DESIGN.md spec). <src> = file path, URL, or "auto"
                       (looks for <origin>/DESIGN.md). Reports drift, not slop —
                       higher is better.
+  --tokens <src>      Alias for --design-md accepting a DTCG tokens.json or DESIGN.md
+  --extract-tokens [file]
+                      Extract live DOM tokens as DTCG 2025.10 JSON (stdout or file)
+  --ref <src>         Reference DESIGN.md / tokens file to verify against
+  --config <file>     Path to a .sloprc.json config with assertions and waivers
+  --only <ids>        Comma-separated pattern IDs or axis names to include
+  --skip <ids>        Comma-separated pattern IDs or axis names to exclude
+  --no-inline-ignores Ignore inline data-slop-ignore / comment waivers on the page
+  --experimental      Include weight-0 experimental watchlist checks
+  --annotate-screenshot <png>
+                      Save a PNG screenshot with bounding boxes on triggered patterns
+  --budget <n>        Alias for --fail-under <n> (maximum allowed slop score 0-100)
+  --sitemap, --crawl  Alias for --site 5 (or combine with --max-pages <n>)
+  --max-pages <n>     Page sample limit (1-15) for --sitemap / --crawl / --site
+  diff <a> <b>        Alias for --diff-scan <a> <b>
+  bench <manifest>    Evaluate a benchmark manifest JSON and print TSV/JSON summary
   --fail-on <tier>    Exit 1 if any scored page is at/above tier: mild | heavy.
                       A blocked or errored scan exits 2, with or without this flag.
                       Exit 2 means the scan could not run. It is not a Clean score.
@@ -1152,10 +1252,13 @@ if (
 
 if (
   !flags.format &&
+  !flags.pretty &&
   !flags.json &&
   !flags.sarif &&
   !flags.fixPrompt &&
   !flags.brief &&
+  !flags.initDesignMd &&
+  !flags.initTokens &&
   !process.env.CI &&
   (process.env.CLAUDECODE || process.env.CURSOR_AGENT)
 ) {
@@ -1173,6 +1276,21 @@ const machineOutput =
 
 // ── Main ────────────────────────────────────────────────────────────────────
 (async () => {
+  if (formatSavedFile) {
+    try {
+      const doc = readJsonFile(urls[0]);
+      console.log(formatScanDocument(doc, flags.format));
+      return await flushAndExit(
+        exitCodeForScanResults(doc, {
+          failOn: flags.failOn,
+          failUnderScore: flags.failUnderScore,
+        })
+      );
+    } catch (e) {
+      console.error(e.message || String(e));
+      process.exit(2);
+    }
+  }
   let loadedConfig = null;
   const cfgCandidate = flags.configPath || (pathExists('.sloprc.json') ? '.sloprc.json' : null);
   if (cfgCandidate) {
@@ -1255,16 +1373,19 @@ const machineOutput =
         if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 200));
         try {
           const urlCfg = loadedConfig ? resolveSlopConfigForUrl(loadedConfig, url) : null;
-          const effectivePreset =
-            flags.preset !== 'full' ? flags.preset : urlCfg?.preset || flags.preset;
-          const effectiveAxes =
-            flags.axes.length > 1 ? flags.axes : (urlCfg?.axes as string[]) || flags.axes;
+          const effectivePreset = flags.presetExplicit
+            ? flags.preset
+            : urlCfg?.preset || flags.preset;
+          const effectiveAxes = flags.axesExplicit
+            ? flags.axes
+            : (urlCfg?.axes as string[]) || flags.axes;
           const scanOpts: ScanOptions = {
             screenshot: flags.screenshot,
             annotateScreenshot: flags.annotateScreenshot,
             preset: effectivePreset,
             axes: effectiveAxes,
             api: flags.api,
+            share: flags.share,
             timeout: flags.timeout || undefined,
             includeSystem:
               flags.initDesignMd || flags.initTokens || Boolean(flags.refFile) || undefined,
@@ -1284,6 +1405,12 @@ const machineOutput =
                 `${C.grey}No DESIGN.md found for ${url} (auto) — skipping the system axis.${C.reset}`
               );
           } else if (designMdInput && flags.remote) {
+            if (designMdInput !== 'auto' && !/^https?:\/\//i.test(designMdInput)) {
+              console.error(
+                `Local design system path "${designMdInput}" cannot be used with --remote; drop --remote or pass an http(s) URL / "auto".`
+              );
+              process.exit(2);
+            }
             scanOpts.designMd = designMdInput;
           }
           const r = flags.remote ? await scanRemote(url, scanOpts) : await scanUrl(url, scanOpts);
@@ -1363,6 +1490,31 @@ const machineOutput =
         process.exit(2);
       }
     }
+    let compareExit = 0;
+    const comparisons: any[] = [];
+    if (flags.compareTo && !flags.compareCurrent) {
+      let baseline;
+      try {
+        baseline = readJsonFile(flags.compareTo);
+      } catch (e) {
+        console.error(e.message || String(e));
+        console.error('Scan could not run. This is not a Clean score.');
+        process.exit(2);
+      }
+      for (const result of results) {
+        const report = compareScans(baseline, result, { maxDelta: flags.maxDelta });
+        comparisons.push(report);
+        if (!report.comparable) {
+          console.error(report.error || report.text);
+          compareExit = 2;
+          continue;
+        }
+        if (flags.failOnRegression && report.regression) compareExit = Math.max(compareExit, 1);
+      }
+      if (results.length === 1 && comparisons.length === 1) {
+        results[0].comparison = comparisons[0];
+      }
+    }
     if (flags.initDesignMd) {
       const docs = results.map((r) => {
         if (r.error || r.blocked) return `# Error scanning ${r.url}: ${r.error || r.code}`;
@@ -1387,6 +1539,7 @@ const machineOutput =
       });
       const serialized = JSON.stringify(docs.length === 1 ? docs[0] : docs, null, 2);
       if (flags.extractTokensOut) {
+        mkdirSync(dirname(flags.extractTokensOut), { recursive: true });
         writeFileSync(flags.extractTokensOut, `${serialized}\n`);
         if (!flags.json) console.error(`Wrote DTCG tokens to ${flags.extractTokensOut}.`);
       } else {
@@ -1444,27 +1597,11 @@ const machineOutput =
       failOn: flags.failOn,
       failUnderScore: flags.failUnderScore,
     });
-    let compareExit = 0;
-    if (flags.compareTo && !flags.compareCurrent) {
-      let baseline;
-      try {
-        baseline = readJsonFile(flags.compareTo);
-      } catch (e) {
-        console.error(e.message || String(e));
-        console.error('Scan could not run. This is not a Clean score.');
-        process.exit(2);
-      }
-      for (const result of results) {
-        const report = compareScans(baseline, result, { maxDelta: flags.maxDelta });
-        if (!report.comparable) {
-          console.error(report.error || report.text);
-          compareExit = 2;
-          continue;
-        }
-        const line = flags.json ? JSON.stringify(report, null, 2) : report.text;
-        if (machineOutput) console.error(line);
-        else console.log(line);
-        if (flags.failOnRegression && report.regression) compareExit = Math.max(compareExit, 1);
+    if (!flags.json && comparisons.length > 0) {
+      for (const report of comparisons) {
+        if (!report.comparable) continue;
+        if (machineOutput) console.error(report.text);
+        else console.log(report.text);
       }
     }
     const finalExit = compareExit === 2 || exitCode === 2 ? 2 : Math.max(exitCode, compareExit);
@@ -1507,7 +1644,12 @@ const machineOutput =
         `${C.red}${C.bold}✗ --fail-under ${flags.failUnderLabel}: one or more pages failed the gate.${C.reset}`
       );
     }
-    process.exit(finalExit);
+    // Wait for static servers to close cleanly, then flush stdout/stderr before exiting.
+    for (const srv of staticServers) {
+      await srv.close().catch(() => {});
+    }
+    staticServers.length = 0;
+    return await flushAndExit(finalExit);
   } finally {
     for (const srv of staticServers) {
       await srv.close().catch(() => {});

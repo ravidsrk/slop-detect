@@ -62,7 +62,7 @@
     "slop-detect": "workspace:*"
   },
   "peerDependencies": {
-    "slop-detect": "^0.9.0"
+    "slop-detect": ">=0.9.0 <2.0.0"
   },
   "peerDependenciesMeta": {
     "slop-detect": {

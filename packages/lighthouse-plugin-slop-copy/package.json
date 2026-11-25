@@ -1,0 +1,37 @@
+{
+  "name": "lighthouse-plugin-slop-copy",
+  "version": "0.9.1",
+  "description": "Lighthouse plugin for Slop Detector Copy axis, chatbot paste artifacts, and HTML-level AEO checks (excludes computed-style Design rules).",
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./plugin": "./plugin.js",
+    "./audits/slop-copy-patterns": "./audits/slop-copy-patterns.js",
+    "./audits/slop-chatbot-artifacts": "./audits/slop-chatbot-artifacts.js",
+    "./audits/slop-html-aeo": "./audits/slop-html-aeo.js"
+  },
+  "files": [
+    "index.js",
+    "plugin.js",
+    "audits/",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@slop-detect/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "lighthouse": ">=11.0.0"
+  },
+  "license": "MIT",
+  "keywords": [
+    "lighthouse",
+    "lighthouse-plugin",
+    "slop-detect",
+    "aeo",
+    "copy-audit"
+  ]
+}

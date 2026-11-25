@@ -258,12 +258,12 @@ jobs:
           fi
 
       - name: Publish slop-detect-mcp to Official MCP Registry
-        if: (github.event_name != 'workflow_dispatch' || inputs.dry_run == false) && env.MCP_REGISTRY_ENABLED == 'true'
+        if: (github.event_name != 'workflow_dispatch' || inputs.dry_run == false) && vars.MCP_REGISTRY_ENABLED == 'true'
         continue-on-error: true
         working-directory: packages/mcp
         run: |
           TAG="${GITHUB_REF_NAME#v}"
-          if [ -n "$TAG" ]; then
+          if [[ "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
             node -e 'const fs=require("fs"),f="server.json",j=JSON.parse(fs.readFileSync(f,"utf8"));j.version=process.env.TAG;if(j.packages&&j.packages[0])j.packages[0].version=process.env.TAG;fs.writeFileSync(f,JSON.stringify(j,null,2)+"\n");'
           fi
           curl -fsSL https://github.com/modelcontextprotocol/registry/releases/download/v1.8.1/mcp-publisher_linux_amd64.tar.gz -o /tmp/mcp-publisher.tar.gz
@@ -272,5 +272,5 @@ jobs:
           /tmp/mcp-publisher login github-oidc
           /tmp/mcp-publisher publish
         env:
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ steps.mode.outputs.version }}
 

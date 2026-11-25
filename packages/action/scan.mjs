@@ -9,7 +9,8 @@
 // summary → (in a PR) upsert a sticky comment → apply the fail-under gate and
 // exit non-zero if the page is too sloppy.
 
-import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { randomBytes } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,13 +20,29 @@ import { buildActionSarif } from './sarif.mjs';
 // Tiny helpers
 // ---------------------------------------------------------------------------
 
-// GitHub Actions workflow commands. ::error:: surfaces in the run's annotations
-// and is the conventional way for a step to flag a failure.
+// GitHub Actions workflow commands. Percent-encode control characters to prevent
+// command injection via untrusted page titles/labels/URLs.
+const escGhData = (v) =>
+  String(v ?? '')
+    .replace(/%/g, '%25')
+    .replace(/\r/g, '%0D')
+    .replace(/\n/g, '%0A');
+const escGhProp = (v) => escGhData(v).replace(/:/g, '%3A').replace(/,/g, '%2C');
+const escMdCell = (v) =>
+  String(v ?? '')
+    .replace(/\\/g, '\\\\')
+    .replace(/\|/g, '\\|')
+    .replace(/\r?\n/g, ' ');
+
 const log = (msg) => process.stdout.write(`${msg}\n`);
-const ghError = (msg) => log(`::error::${msg}`);
+const ghError = (msg) => log(`::error::${escGhData(msg)}`);
 const ghWarning = (msg, title = '') =>
-  log(title ? `::warning title=${title}::${msg}` : `::warning::${msg}`);
-const ghNotice = (msg) => log(`::notice::${msg}`);
+  log(
+    title
+      ? `::warning title=${escGhProp(title)}::${escGhData(msg)}`
+      : `::warning::${escGhData(msg)}`
+  );
+const ghNotice = (msg) => log(`::notice::${escGhData(msg)}`);
 
 // SEC-4: surface misconfiguration risk when running on pull_request_target.
 export const PULL_REQUEST_TARGET_NOTICE =
@@ -67,8 +84,10 @@ export function buildScanPayload(url, opts = {}) {
 }
 
 export function emitPatternWarnings(result) {
-  const designTriggered = (result?.patterns || []).filter((p) => p.triggered);
-  const copyTriggered = (result?.axes?.copy?.patterns || []).filter((p) => p.triggered);
+  const designTriggered = (result?.patterns || []).filter((p) => p.triggered && !p.waived);
+  const copyTriggered = (result?.axes?.copy?.patterns || []).filter(
+    (p) => p.triggered && !p.waived
+  );
   const target = result?.finalUrl || result?.url || '';
   let count = 0;
   for (const p of [...designTriggered, ...copyTriggered]) {
@@ -92,12 +111,18 @@ function die(msg) {
   process.exit(1);
 }
 
-// Append a single output line to $GITHUB_OUTPUT. We use the simple `name=value`
-// form (values here are single-line: score, grade, tier, short verdict, url).
+// Append a safe output entry to $GITHUB_OUTPUT using a random heredoc delimiter
+// so newlines in verdicts/URLs can never inject extra outputs.
 function setOutput(name, value) {
   const file = process.env.GITHUB_OUTPUT;
   if (!file) return; // running locally without the runner — skip silently
-  appendFileSync(file, `${name}=${value ?? ''}\n`);
+  const str = String(value ?? '');
+  if (!/[\r\n]/.test(str)) {
+    appendFileSync(file, `${name}=${str}\n`);
+    return;
+  }
+  const delim = `ghadelim_${randomBytes(8).toString('hex')}`;
+  appendFileSync(file, `${name}<<${delim}\n${str}\n${delim}\n`);
 }
 
 // Append markdown to the job summary panel.
@@ -142,6 +167,7 @@ async function scan(apiBase, url, opts = {}) {
       method: 'POST',
       headers,
       body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(45000),
     });
   } catch (err) {
     die(`Could not reach slop-detect API at ${endpoint}: ${err.message}`);
@@ -185,8 +211,15 @@ export function scanLocal(target, opts = {}) {
   if (opts.aeo) args.push('--aeo');
 
   const cmd = existsSync(monoCli) ? process.execPath : 'npx';
-  const cmdArgs = existsSync(monoCli) ? [monoCli, ...args] : ['--yes', 'slop-detect', ...args];
-  const proc = spawnSync(cmd, cmdArgs, { encoding: 'utf8', timeout: 180000 });
+  const cmdArgs = existsSync(monoCli)
+    ? [monoCli, ...args]
+    : ['--yes', 'slop-detect@0.9.1', ...args];
+  const proc = spawnSync(cmd, cmdArgs, {
+    encoding: 'utf8',
+    timeout: 180000,
+    maxBuffer: 20 * 1024 * 1024,
+    shell: process.platform === 'win32',
+  });
   if (proc.error) {
     die(`Local CLI scan failed to launch: ${proc.error.message}`);
   }
@@ -194,7 +227,9 @@ export function scanLocal(target, opts = {}) {
   try {
     data = JSON.parse(proc.stdout || '');
   } catch {
-    die(`Local CLI scan returned non-JSON output (exit ${proc.status}): ${(proc.stderr || proc.stdout || '').trim()}`);
+    die(
+      `Local CLI scan returned non-JSON output (exit ${proc.status}): ${(proc.stderr || proc.stdout || '').trim()}`
+    );
   }
   if (data?.error || typeof data?.score !== 'number') {
     die(`Local CLI scan failed: ${data?.error || 'missing numeric score'}`);
@@ -221,6 +256,7 @@ export async function scanAeo(apiBase, url, opts = {}) {
       method: 'POST',
       headers,
       body: JSON.stringify({ url }),
+      signal: AbortSignal.timeout(30000),
     });
   } catch (err) {
     return warn(`could not reach ${endpoint} (${err?.message || err})`);
@@ -245,7 +281,9 @@ export async function scanAeo(apiBase, url, opts = {}) {
 // ---------------------------------------------------------------------------
 export function evaluateThreshold(result, failUnder, failOn = '') {
   const raw = String(failUnder ?? '').trim();
-  const rawFailOn = String(failOn ?? '').trim().toLowerCase();
+  const rawFailOn = String(failOn ?? '')
+    .trim()
+    .toLowerCase();
 
   // Empty → report-only, always passes.
   if (raw === '' && rawFailOn === '') {
@@ -262,12 +300,27 @@ export function evaluateThreshold(result, failUnder, failOn = '') {
     };
   }
 
+  if (rawFailOn !== '' && !['mild', 'heavy', 'drift'].includes(rawFailOn)) {
+    return {
+      passed: false,
+      mode: 'invalid',
+      reason: `Invalid fail-on value "${rawFailOn}". Expected "mild", "heavy", or "drift".`,
+    };
+  }
+
   if (rawFailOn === 'drift') {
+    if (!result?.system || !result.system.declared) {
+      return {
+        passed: false,
+        mode: 'drift',
+        reason:
+          'fail-on="drift" requires design-md to be enabled and a declared DESIGN.md to be found.',
+      };
+    }
     const drifted =
-      result?.system &&
-      (result.system.tier === 'Drifting' ||
-        result.system.tier === 'Off-system' ||
-        (Array.isArray(result.system.drift) && result.system.drift.length > 0));
+      result.system.tier === 'Drifting' ||
+      result.system.tier === 'Off-system' ||
+      (Array.isArray(result.system.drift) && result.system.drift.length > 0);
     if (drifted) {
       return {
         passed: false,
@@ -282,8 +335,7 @@ export function evaluateThreshold(result, failUnder, failOn = '') {
 
   if (rawFailOn === 'heavy' || rawFailOn === 'mild') {
     const tier = String(result?.unifiedTier || result?.tier || '');
-    const breached =
-      rawFailOn === 'heavy' ? tier === 'Heavy' : tier === 'Heavy' || tier === 'Mild';
+    const breached = rawFailOn === 'heavy' ? tier === 'Heavy' : tier === 'Heavy' || tier === 'Mild';
     if (breached) {
       return {
         passed: false,
@@ -346,14 +398,16 @@ export function evaluateThreshold(result, failUnder, failOn = '') {
 const STICKY_MARKER = '<!-- slop-detect-action -->';
 
 function triggeredTable(result) {
-  const designTriggered = (result.patterns || []).filter((p) => p.triggered);
-  const copyTriggered = (result.axes?.copy?.patterns || []).filter((p) => p.triggered);
+  const designTriggered = (result.patterns || []).filter((p) => p.triggered && !p.waived);
+  const copyTriggered = (result.axes?.copy?.patterns || []).filter((p) => p.triggered && !p.waived);
   const triggered = [...designTriggered, ...copyTriggered];
   if (triggered.length === 0) {
     return '_No slop patterns triggered — clean._';
   }
   const rows = triggered
-    .map((p) => `| ${p.label || p.id} | ${p.axis || 'design'} | +${p.weight} |`)
+    .map(
+      (p) => `| ${escMdCell(p.label || p.id)} | ${escMdCell(p.axis || 'design')} | +${p.weight} |`
+    )
     .join('\n');
   return ['| Pattern | Axis | Weight |', '| --- | :---: | ---: |', rows].join('\n');
 }
@@ -442,8 +496,10 @@ function readPrNumber() {
 }
 
 async function gh(apiUrl, token, pathname, init = {}) {
-  const res = await fetch(`${apiUrl}${pathname}`, {
+  const target = /^https?:\/\//i.test(pathname) ? pathname : `${apiUrl}${pathname}`;
+  const res = await fetch(target, {
     ...init,
+    signal: AbortSignal.timeout(15000),
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: 'application/vnd.github+json',
@@ -460,16 +516,25 @@ async function upsertStickyComment(token, repo, prNumber, body) {
   const [owner, name] = repo.split('/');
   const base = `/repos/${owner}/${name}/issues/${prNumber}/comments`;
 
-  // 1) Look for our existing comment by the hidden marker.
+  // 1) Look for our existing comment by the hidden marker across pages (capped at 5 pages).
   let existingId = null;
   try {
-    const listRes = await gh(apiUrl, token, `${base}?per_page=100`);
-    if (listRes.ok) {
+    let nextUrl = `${base}?per_page=100`;
+    for (let page = 0; page < 5 && nextUrl && !existingId; page++) {
+      const listRes = await gh(apiUrl, token, nextUrl);
+      if (!listRes.ok) {
+        log(`Could not list PR comments (HTTP ${listRes.status}); will try to create a new one.`);
+        break;
+      }
       const comments = await listRes.json();
       const mine = comments.find((c) => (c.body || '').includes(STICKY_MARKER));
-      if (mine) existingId = mine.id;
-    } else {
-      log(`Could not list PR comments (HTTP ${listRes.status}); will try to create a new one.`);
+      if (mine) {
+        existingId = mine.id;
+        break;
+      }
+      const link = listRes.headers?.get?.('link') || '';
+      const nextMatch = link.match(/<([^>]+)>;\s*rel="next"/i);
+      nextUrl = nextMatch ? nextMatch[1] : null;
     }
   } catch (err) {
     log(`Listing PR comments failed: ${err.message}`);
@@ -566,11 +631,32 @@ async function main() {
       mode === 'local'
         ? scanLocal(baselineUrl, { axes, preset, designMd, aeo: aeoEnabled })
         : await scan(apiBase, baselineUrl, { axes, preset, designMd, apiKey, share: false });
-    if (result.score > baseline.score) {
+    const currScore = typeof result.unifiedScore === 'number' ? result.unifiedScore : result.score;
+    const baseScore =
+      typeof baseline.unifiedScore === 'number' ? baseline.unifiedScore : baseline.score;
+    const baseIds = new Set(
+      [...(baseline.patterns || []), ...(baseline.axes?.copy?.patterns || [])]
+        .filter((p) => p.triggered && !p.waived && p.status !== 'review' && p.weight !== 0)
+        .map((p) => p.id)
+    );
+    const addedIds = [...(result.patterns || []), ...(result.axes?.copy?.patterns || [])]
+      .filter(
+        (p) =>
+          p.triggered && !p.waived && p.status !== 'review' && p.weight !== 0 && !baseIds.has(p.id)
+      )
+      .map((p) => p.id);
+    if (currScore > baseScore || addedIds.length > 0) {
+      const parts = [];
+      if (currScore > baseScore) {
+        parts.push(`Score regressed from ${baseScore}/100 (baseline) to ${currScore}/100.`);
+      }
+      if (addedIds.length > 0) {
+        parts.push(`New scored patterns: ${addedIds.join(', ')}.`);
+      }
       gate = {
         passed: false,
         mode: 'regression',
-        reason: `Score regressed from ${baseline.score}/100 (baseline) to ${result.score}/100.`,
+        reason: parts.join(' '),
       };
     }
   }
@@ -580,6 +666,7 @@ async function main() {
 
   const sarifPath = (process.env.INPUT_SARIF || (uploadSarif ? 'slop-detect.sarif' : '')).trim();
   if (sarifPath) {
+    mkdirSync(dirname(sarifPath), { recursive: true });
     writeFileSync(sarifPath, `${JSON.stringify(buildActionSarif([result]), null, 2)}\n`);
     setOutput('sarif-file', sarifPath);
   }

@@ -1,9 +1,17 @@
 // Commands that finish without Playwright: static copy, avoid list, diff,
 // reporters, and AEO starter files.
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { createServer } from 'node:http';
-import { dirname, extname, join, relative, resolve } from 'node:path';
+import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   buildAeoFixFiles,
@@ -169,15 +177,40 @@ export async function startStaticTargetServer(target: string): Promise<{
     throw new Error(`Local target does not exist: ${target}`);
   }
   const info = statSync(fsTarget);
-  const rootDir = info.isDirectory() ? fsTarget : dirname(fsTarget);
-  const entryPath = info.isDirectory() ? '/' : '/' + relative(rootDir, fsTarget);
+  const rootDir = realpathSync(info.isDirectory() ? fsTarget : dirname(fsTarget));
+  const realTarget = realpathSync(fsTarget);
+  const entryPath = info.isDirectory() ? '/' : '/' + relative(rootDir, realTarget);
+  const isSingleFile = !info.isDirectory();
+
+  const isInsideRoot = (candidatePath: string): boolean => {
+    const rel = relative(rootDir, candidatePath);
+    return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel) && !rel.startsWith(sep));
+  };
+
+  const hasHiddenSegment = (candidatePath: string): boolean => {
+    const rel = relative(rootDir, candidatePath);
+    if (!rel) return false;
+    return rel.split(/[/\\]/).some((seg) => seg.startsWith('.') && seg !== '.well-known');
+  };
 
   const server = createServer((req, res) => {
     try {
       const u = new URL(req.url || '/', 'http://127.0.0.1');
-      const decoded = decodeURIComponent(u.pathname);
+      let decoded: string;
+      try {
+        decoded = decodeURIComponent(u.pathname);
+      } catch {
+        res.writeHead(400, { 'content-type': 'text/plain' });
+        res.end('Bad request');
+        return;
+      }
+      if (decoded.includes('\0')) {
+        res.writeHead(400, { 'content-type': 'text/plain' });
+        res.end('Bad request');
+        return;
+      }
       let candidate = resolve(rootDir, '.' + decoded);
-      if (!candidate.startsWith(rootDir)) {
+      if (!isInsideRoot(candidate) || hasHiddenSegment(candidate)) {
         res.writeHead(403, { 'content-type': 'text/plain' });
         res.end('Forbidden');
         return;
@@ -192,9 +225,23 @@ export async function startStaticTargetServer(target: string): Promise<{
         res.end('Not found');
         return;
       }
-      const ext = extname(candidate).toLowerCase();
+      const realCandidate = realpathSync(candidate);
+      if (!isInsideRoot(realCandidate) || hasHiddenSegment(realCandidate)) {
+        res.writeHead(403, { 'content-type': 'text/plain' });
+        res.end('Forbidden');
+        return;
+      }
+      // When scanning a single local HTML file, only serve that file plus safe
+      // static asset extensions so sibling configs/secrets (.env, *.json, etc.)
+      // are never exposed to scripts running inside the scanned page.
+      const ext = extname(realCandidate).toLowerCase();
+      if (isSingleFile && realCandidate !== realTarget && !MIME_BY_EXT[ext]) {
+        res.writeHead(403, { 'content-type': 'text/plain' });
+        res.end('Forbidden');
+        return;
+      }
       const ct = MIME_BY_EXT[ext] || 'application/octet-stream';
-      const body = readFileSync(candidate);
+      const body = readFileSync(realCandidate);
       res.writeHead(200, { 'content-type': ct });
       res.end(body);
     } catch {

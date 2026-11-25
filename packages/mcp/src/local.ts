@@ -83,8 +83,25 @@ export function isLoopbackOrFile(raw: string) {
   if (url.protocol === 'file:') return true;
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
   const host = url.hostname.replace(/^\[|\]$/g, '').toLowerCase();
-  if (host === 'localhost' || host === '127.0.0.1' || host === '::1') return true;
-  if (host.endsWith('.localhost')) return true;
+  if (
+    host === 'localhost' ||
+    host === '0.0.0.0' ||
+    host === '::1' ||
+    host === '::' ||
+    host.endsWith('.localhost') ||
+    host.endsWith('.local') ||
+    host.endsWith('.internal')
+  ) {
+    return true;
+  }
+  const m4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (m4) {
+    const [a, b] = [Number(m4[1]), Number(m4[2])];
+    if (a === 127 || a === 10 || a === 0) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 169 && b === 254) return true;
+  }
   return false;
 }
 
@@ -206,6 +223,9 @@ export async function localScan(url: string, opts: LocalScanOptions = {}) {
     if (typeof cli.loadDesignMd !== 'function') {
       throw new Error(localScannerMissingMessage('slop-detect did not export loadDesignMd'));
     }
+    // Always extract observed system tokens when designMd was requested, even
+    // if no /DESIGN.md exists yet (extract_design_system depends on systemContext).
+    scanOpts.includeSystem = true;
     const source = opts.designMd === true ? 'auto' : opts.designMd;
     const loaded = await cli.loadDesignMd(source, url);
     if (loaded && loaded.text) scanOpts.designMd = loaded.text;

@@ -13,8 +13,9 @@ branding:
 
 inputs:
   url:
-    description: 'The page (URL) to scan — typically a trusted, workflow-derived deploy-preview URL. Treat as untrusted input: pass only URLs your workflow resolves from your host, never PR-controlled content (especially on pull_request_target).'
-    required: true
+    description: 'The page (URL) to scan — typically a trusted, workflow-derived deploy-preview URL. Optional when mode is "local" and static-dir is set. Treat as untrusted input: pass only URLs your workflow resolves from your host, never PR-controlled content (especially on pull_request_target).'
+    required: false
+    default: ''
   mode:
     description: 'Execution mode: "api" (default, zero-install hosted scanner) or "local" (local headless Chromium via npx slop-detect for private previews or static builds).'
     required: false
@@ -142,8 +143,8 @@ runs:
         INPUT_UPLOAD_SARIF: ${{ inputs.upload-sarif }}
         GITHUB_TOKEN: ${{ inputs.github-token }}
     - name: Upload SARIF to GitHub Code Scanning
-      if: ${{ inputs.upload-sarif == 'true' && steps.scan.outputs.sarif-file != '' }}
+      if: ${{ !cancelled() && inputs.upload-sarif == 'true' && steps.scan.outputs.sarif-file != '' }}
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: ${{ steps.scan.outputs.sarif-file }}
-        category: slop-detect/${{ inputs.url }}
+        category: slop-detect/${{ inputs.url || inputs.static-dir || 'scan' }}
