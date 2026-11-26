@@ -5,7 +5,10 @@ import { sendEmail, emailConfigured } from '../functions/_email.ts';
 import { buildVerificationEmail, buildRegressionAlert, mailFooter } from '../functions/_alerts.ts';
 import { monitorSweep } from '../functions/_sweep.ts';
 import { issueWatchToken, consumeWatchToken, getWatch } from '../functions/_shared.ts';
-import { onRequestGet as confirmGet } from '../functions/api/watch/confirm.tsx';
+import {
+  onRequestGet as confirmGet,
+  onRequestPost as confirmPost,
+} from '../functions/api/watch/confirm.tsx';
 
 function makeKv(seed = {}) {
   const store = new Map(
@@ -248,4 +251,32 @@ test('GET /api/watch/confirm rejects a bad/expired token with 410', async () => 
     env: { RESULTS: kv },
   });
   expect(res.status).toBe(410);
+});
+
+test('prefetch GET /api/watch/confirm preserves token; POST confirms the watch', async () => {
+  const kv = makeKv({
+    'w:prefetch.example.com': JSON.stringify({
+      domain: 'prefetch.example.com',
+      email: 'o@x.io',
+      verified: false,
+    }),
+  });
+  const token = await issueWatchToken(kv, 'prefetch.example.com', 'o@x.io');
+  const preRes = await confirmGet({
+    request: new Request(`https://slop-detect.com/api/watch/confirm?token=${token}`, {
+      headers: { 'Sec-Purpose': 'prefetch' },
+    }),
+    env: { RESULTS: kv },
+  });
+  expect(preRes.status).toBe(200);
+  expect((await getWatch(kv, 'prefetch.example.com')).verified).toBe(false);
+
+  const postRes = await confirmPost({
+    request: new Request(`https://slop-detect.com/api/watch/confirm?token=${token}`, {
+      method: 'POST',
+    }),
+    env: { RESULTS: kv },
+  });
+  expect(postRes.status).toBe(200);
+  expect((await getWatch(kv, 'prefetch.example.com')).verified).toBe(true);
 });

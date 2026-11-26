@@ -15,10 +15,14 @@
 //   - We never override a header a route set itself (and _headers, applied by the
 //     platform to static assets, carries identical values), so this can't clash.
 
-const SECURITY_HEADERS = {
+const BASE_SECURITY_HEADERS = {
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+};
+
+const HTML_SECURITY_HEADERS = {
+  ...BASE_SECURITY_HEADERS,
   'Permissions-Policy': 'geolocation=(), microphone=(), camera=(), browsing-topics=()',
   'X-Frame-Options': 'SAMEORIGIN',
   // Identical to the /* CSP in public/_headers: scoped to Google Fonts and
@@ -31,12 +35,15 @@ const SECURITY_HEADERS = {
 export async function onRequest(context) {
   const res = await context.next();
   const contentType = res.headers.get('Content-Type') || '';
-  // Only decorate HTML; leave JSON, images (OG/badge), and other assets alone.
-  if (!contentType.includes('text/html')) return res;
-
   const merged = new Response(res.body, res);
-  for (const [k, v] of Object.entries(SECURITY_HEADERS)) {
+  const headersToApply = contentType.includes('text/html')
+    ? HTML_SECURITY_HEADERS
+    : BASE_SECURITY_HEADERS;
+  for (const [k, v] of Object.entries(headersToApply)) {
     if (!merged.headers.has(k)) merged.headers.set(k, v);
+  }
+  if (contentType.startsWith('image/') && !merged.headers.has('Cross-Origin-Resource-Policy')) {
+    merged.headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
   }
   return merged;
 }

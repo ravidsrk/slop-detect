@@ -190,20 +190,23 @@ function Histogram({ sites, scored }: { sites: any[]; scored: number }) {
 // One corpus or directory row — third-party grades and tiers are withheld unless
 // the domain is an email-verified directory listing (FIX-04).
 function Row({ s, origin, verified }: { s: any; origin: string; verified?: any }) {
+  const dom = String(s.domain || '').toLowerCase();
   if (verified) {
     return (
-      <LeaderboardRow
-        rank={null}
-        domain={s.domain}
-        score={verified.score ?? s.score}
-        grade={verified.grade ?? s.grade}
-        tier={verified.tier ?? s.tier}
-        href={`${origin}/score/${s.domain}`}
-      />
+      <li class="lb-filter-row" data-domain={dom} data-tier="verified">
+        <LeaderboardRow
+          rank={null}
+          domain={s.domain}
+          score={verified.score ?? s.score}
+          grade={verified.grade ?? s.grade}
+          tier={verified.tier ?? s.tier}
+          href={`${origin}/score/${s.domain}`}
+        />
+      </li>
     );
   }
   return (
-    <li class="lr">
+    <li class="lr lb-filter-row" data-domain={dom} data-tier="unverified">
       <span class="lr-rank">·</span>
       <span class="lr-name">
         <a class="lr-dom" href={`${origin}/score/${s.domain}`}>
@@ -341,6 +344,14 @@ function CategoryBoards({
           placeholder="Filter domains (e.g. stripe, linear)…"
           aria-label="Filter domains"
         />
+        <div class="lb-tiers" role="group" aria-label="Filter by listing status">
+          <button type="button" class="lb-tier-btn active" data-tier-filter="all">
+            all
+          </button>
+          <button type="button" class="lb-tier-btn" data-tier-filter="verified">
+            opt-in verified
+          </button>
+        </div>
         <a class="lb-compare-link" href={`${origin}/compare`}>
           compare head-to-head →
         </a>
@@ -368,11 +379,7 @@ function CategoryBoards({
               <ol>
                 {rows.map((s) => {
                   const v = verifiedMap.get(String(s.domain || '').toLowerCase());
-                  return (
-                    <div class="lb-filter-row" data-domain={String(s.domain || '').toLowerCase()}>
-                      <Row s={s} origin={origin} verified={v} />
-                    </div>
-                  );
+                  return <Row s={s} origin={origin} verified={v} />;
                 })}
               </ol>
             </section>
@@ -642,9 +649,7 @@ export async function onRequestGet({ request, env }: { request: { url: string };
     </html>
   );
 
-  const html =
-    '<!doctype html><!-- impeccable-disable low-contrast -- tierText() tokens pinned by ui.test.js -->' +
-    doc.toString();
+  const html = '<!doctype html>' + doc.toString();
 
   return new Response(html, {
     headers: {

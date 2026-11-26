@@ -99,8 +99,8 @@ jobs:
           cat result.json
           score=$(node -e "console.log(JSON.parse(require('fs').readFileSync('result.json')).score)")
           echo "Score: $score"
-          if [ "$score" -gt 12 ]; then
-            echo "::error::Clean artisan fixture should score Clean (< 12), got $score"
+          if [ "$score" -gt 9 ]; then
+            echo "::error::Clean artisan fixture should score Clean (<= 9), got $score"
             exit 1
           fi
       - name: MCP local hook scans a dev server

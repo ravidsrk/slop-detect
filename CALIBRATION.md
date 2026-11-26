@@ -225,28 +225,18 @@ Human raters label each page into one of three anchored tiers **blind to the eng
 
 ---
 
-## Findings — 2026-11 (`definitions@2026.11`, Pioneer Over-Fire Fix)
+## Findings — 2026-11 (`definitions@2026.11`, Engine Rules & Calibration Status)
 
-Under `DEFINITIONS_VERSION = "2026.11"`, three evidence-driven calibration fixes landed to resolve the Class-2/Class-3 pioneer over-fires documented in June and October:
+Under `DEFINITIONS_VERSION = "2026.11"`, the engine ships **45 design patterns**, **26 copy patterns**, **9 `DESIGN.md` checks**, **11 craft-floor checks**, and **16 AEO checks**. Rather than publishing unverified re-scored live URL tables before a fresh Chromium crawl runs, the table below documents the **exact implemented rules** in `@slop-detect/core` today:
 
-1. **Corroboration gating on weak structural tells**: `centered_hero`, `icon_card_grid`, `perma_dark_mode`, `nested_cards`, and `stat_banner` now require corroboration from at least one strong tell (`purple_accent`, `gradient_text`, `colored_glows`, `glassmorphism`, `hero_eyebrow_pill`, `gradient_cta`, or `gradient_avatars`) before contributing full weight.
-2. **`gradient_backgrounds` demotion (`4 → 2`) & `slop_fonts` cap**: `gradient_backgrounds` weight was halved from 4 to 2 (and capped behind corroboration), while `slop_fonts` is discounted when no other strong template tell fires.
-3. **Token-scoped `DESIGN.md` waivers (`S-03`)**: Sites declaring their brand palette, font stack, dark surface, or radius scale in `DESIGN.md` waive matching rules (`purple_accent`, `slop_fonts`, `perma_dark_mode`, `cream_default_bg`, `uniform_radius_shadow`) when the live DOM color/font matches the declared token within Oklab $\Delta E \le 0.05$.
-
-| Pioneer / Seed Site | Stratum | Expected | `2026.10` Score | `2026.11` Score | Why it moved in `2026.11` |
-| --- | :---: | :---: | :---: | :---: | --- |
-| `news.ycombinator.com` | `a` | Clean | Clean (3) | **Clean (3)** ✓ | Unchanged (`flat_type_hierarchy`·3) |
-| `example.com` | `a` | Clean | Clean (0) | **Clean (0)** ✓ | Unchanged (0 patterns) |
-| `motherfuckingwebsite.com` | `a` | Clean | Clean (0) | **Clean (0)** ✓ | Unchanged (0 patterns) |
-| `berkshirehathaway.com` | `a` | Clean | Clean (3) | **Clean (3)** ✓ | Unchanged (`flat_type_hierarchy`·3) |
-| `gnu.org` | `a` | Clean | Mild (10) | **Clean (8)** ✓ | `gradient_backgrounds` demoted `4 → 2` (`10 → 8`, crosses Mild → Clean) |
-| `supabase.com` | `p` | Clean | Mild (20) | **Clean (8)** ✓ | Uncorroborated `slop_fonts` + `icon_card_grid` + `gradient_backgrounds` discounted |
-| `linear.app` | `p` | Clean | Mild (16) | **Clean (7)** ✓ | Uncorroborated `slop_fonts` + `perma_dark_mode` + `nested_cards` discounted |
-| `vercel.com` | `p` | Clean | Mild (17) | **Clean (9)** ✓ | Geist `slop_fonts` + `gradient_backgrounds` discounted when uncorroborated |
-| `stripe.com` | `p` | Clean | Mild (19) | **Clean (8)** ✓ (with `DESIGN.md`) / **Mild (13)** (raw) | Brand blurple `#533AFD` waived when declared in `DESIGN.md`; structural cluster discounted |
-| `bolt.new` | `b` | Mild | Mild (15) | **Mild (15)** ✓ | Corroborated (`glassmorphism` + `bento_grid` + `perma_dark_mode`) |
-| `aura.build` | `b` | Mild | Mild (25) | **Mild (25)** ✓ | Corroborated (`glassmorphism` + `colored_glows` + `slop_fonts`) |
-| `v0.dev` | `b` | Mild | Mild (22) | **Mild (20)** ✓ | Corroborated (`hero_eyebrow_pill` + `slop_fonts` + `crushed_tracking`) |
+1. **Co-signal discounts & caps (implemented in `packages/core/src/index.ts`)**:
+   - `slop_fonts_co_signal` (`D-08`): Inter/Geist alone (`interOrGeistOnly: true`) with zero other triggered design tells is discounted to `0` points.
+   - `purple_accent_co_signal` (`FIX-06`): `purple_accent` alone (weight `4`) with zero other triggered design tells is discounted to `0` points.
+   - `slop_fonts_centered_hero_cap` (`FIX-07`): `slop_fonts` (`8`) + `centered_hero` (`4`) are capped at `8` combined points.
+   - `overlapping_evidence_dedup` (`FIX-19`): Two triggered patterns sharing ≥2 `nodeIds` covering ≥50% of the smaller pattern deduplicate the lower-weight rule.
+2. **Weight-0 promotion gate (`K-04`)**: All newly added or broadened design/copy rules ship at `weight: 0` (`status: "review"` or `"experimental"`). Existing baseline rules such as `gradient_backgrounds` (`weight: 4`) remain unchanged until held-out empirical calibration justifies a weight change.
+3. **Token-scoped `DESIGN.md` waivers (`S-03`)**: Sites declaring their brand palette, font stack, dark surface, cream surface, or radius scale in `DESIGN.md` waive matching rules (`purple_accent`, `slop_fonts`, `display_mono_heading`, `perma_dark_mode`, `cream_default_bg`, `editorial_cream_kit`, `uniform_radius_shadow`) when observed live DOM tokens match declared tokens within Oklab $\Delta E \le 0.05$.
+4. **Live corpus status**: Published public leaderboard rows remain anchored to the measured `2026.10` Chromium crawl. Synthetic pioneer-archetype HTML fixtures (`packages/core/test/fixtures/pioneers/*.html`) are tested in CI (`packages/core/test/pioneers.test.js`) and score Clean/Mild (never Heavy). A fresh live multi-stratum `2026.11` re-score (including ≥1,520 human controls for the `v1.0.0` gate) is pending and will be committed with raw JSONL artifacts when run.
 
 ---
 
@@ -267,7 +257,7 @@ node packages/cli/calibration/craft-covariate.mjs --json
 - Measured physical and systems units (`14ms`, `3.4 GB/s`, `999Hz`, `24.2g`, `9.4mm`)
 - Semantic version strings (`v2.14.0`, `0.9.2-rc.1`)
 
-By **K-07 governance**, `time_and_number_anchors` is evaluated **exclusively offline** in `craft-covariate.mjs` as an oracle covariate and is **never shipped in `@slop-detect/core` live scoring**. Shipping a live reward for numbers or dates would invite trivial Goodhart gaming (stuffing arbitrary years or percentages into hero copy). Across the calibration fixture panel, `specificityIndex` correlates strongly and negatively with both `designScore` ($\rho = -0.8332$) and `copyScore` ($\rho = -0.7984$), confirming that high-slop pages systematically lack concrete numerical/temporal anchors.
+By **K-07 governance**, `time_and_number_anchors` is evaluated **exclusively offline** in `craft-covariate.mjs` as an oracle covariate and is **never shipped in `@slop-detect/core` live scoring**. Shipping a live reward for numbers or dates would invite trivial Goodhart gaming (stuffing arbitrary years or percentages into hero copy). On the script's built-in **synthetic self-test fixture panel** (not yet measured on a live multi-domain crawl), `specificityIndex` correlates negatively with `designScore` ($\rho = -0.8332$) and `copyScore` ($\rho = -0.7984$); live corpus correlation will be published once the held-out `v1.0` crawl completes.
 
 ---
 
@@ -288,19 +278,10 @@ Implements the Monroe, Colaresi & Quinn (2008) informative Dirichlet-prior log-o
 
 Manifest: [`packages/cli/calibration/prompt-panel.json`](packages/cli/calibration/prompt-panel.json)
 
-To measure how default-template tells evolve as model checkpoints and page-builder system prompts change, `prompt-panel.json` pins **40 deterministic prompts** across **8 verticals** (`saas`, `devtools`, `fintech`, `healthcare`, `ecommerce`, `agency_portfolio`, `ai_ml_product`, `oss_docs`) $\times$ **5 prompt styles** (`zero_shot_minimal`, `vibe_prompt`, `detailed_prd`, `anti_slop_prompt`, `skill_assisted`).
+To measure how default-template tells evolve as model checkpoints and page-builder system prompts change, `prompt-panel.json` pins **40 deterministic prompts** across **8 verticals** (`saas`, `devtools`, `fintech`, `healthcare`, `ecommerce`, `agency_portfolio`, `ai_ml_product`, `oss_docs`) $\times$ **5 prompt styles** (`zero_shot_minimal`, `vibe_prompt`, `detailed_prd`, `anti_slop_prompt`, `skill_assisted`), all mapped to registered `@slop-detect/core` pattern IDs.
 
-| Pattern ID | Axis | 2025 Q4 | 2026 Q1 | 2026 Q2 | Est. Half-Life (Quarters) | Cohort Status |
-| --- | :---: | :---: | :---: | :---: | :---: | --- |
-| `purple_accent` | `design` | 68% | 59% | 52% | 5.1 | Decaying slowly → `editorial_cream_kit` |
-| `gradient_text` | `design` | 64% | 55% | 48% | 4.8 | Decaying slowly → `display_mono_heading` |
-| `slop_fonts` | `design` | 82% | 79% | 76% | 18.0 | Persistent default |
-| `pill_badge` | `design` | 71% | 66% | 61% | 9.2 | Persistent default |
-| `three_card_grid` | `design` | 74% | 70% | 67% | 14.1 | Persistent default → `bento_grid` |
-| `bento_grid` | `design` | 31% | 42% | 49% | — | Rising 2026 cohort |
-| `editorial_cream_kit` | `design` | 14% | 27% | 38% | — | Rising 2026 cohort |
-| `copy.unlock_unleash_supercharge` | `copy` | 58% | 51% | 44% | 5.0 | Decaying slowly → `copy.built_for_modern_teams` |
-| `copy.seamless_effortless` | `copy` | 62% | 57% | 53% | 8.8 | Persistent default |
+**Measurement status:** Awaiting the first recorded quarterly generator run. All `prevalence*` and `estimatedHalfLifeQuarters` entries in `prompt-panel.json` are set to `null` (`"status": "unmeasured"`) until real HTML outputs from each generator are captured, archived, and scored with `slop-detect`.
+
 
 
 

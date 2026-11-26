@@ -68,11 +68,28 @@ export function hookTarget(argv, env, cwd) {
 }
 
 // PostToolUse fires for every edit; only edits that can change the rendered
-// page are worth a browser scan.
+// UI/styles/templates are worth a browser scan (skip pure backend .ts/.js/.md).
 const UI_EXTENSIONS = new Set([
-  '.html', '.htm', '.css', '.scss', '.sass', '.less', '.pcss', '.styl',
-  '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.vue', '.svelte', '.astro',
-  '.md', '.mdx', '.liquid', '.njk', '.hbs', '.ejs', '.erb', '.php', '.twig',
+  '.html',
+  '.htm',
+  '.css',
+  '.scss',
+  '.sass',
+  '.less',
+  '.pcss',
+  '.styl',
+  '.jsx',
+  '.tsx',
+  '.vue',
+  '.svelte',
+  '.astro',
+  '.mdx',
+  '.liquid',
+  '.njk',
+  '.hbs',
+  '.ejs',
+  '.erb',
+  '.twig',
 ]);
 
 export function touchesUi(input) {
@@ -88,8 +105,10 @@ export function touchesUi(input) {
 }
 
 export function firstLine(text) {
-  return String(text || '')
-    .split('\n')
-    .map((line) => line.trim())
-    .find(Boolean) || '';
+  return (
+    String(text || '')
+      .split('\n')
+      .map((line) => line.trim())
+      .find(Boolean) || ''
+  );
 }

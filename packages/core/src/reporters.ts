@@ -28,6 +28,8 @@ function asList(result: any): any[] {
 }
 
 function selectorOf(pattern: any): string {
+  const locSel = pattern?.locations?.[0]?.selector;
+  if (typeof locSel === 'string' && locSel.trim()) return locSel.trim();
   const evidence = pattern?.evidence || {};
   if (typeof evidence.selector === 'string' && evidence.selector.trim())
     return evidence.selector.trim();
@@ -81,7 +83,14 @@ export function formatAgentReport(result: any): string {
       lines.push('Scan could not run. This is not a Clean score.');
       continue;
     }
-    for (const pattern of triggeredPatterns(page)) {
+    const triggered = triggeredPatterns(page);
+    if (triggered.length === 0) {
+      lines.push(
+        `CLEAN ${page.finalUrl || page.url || 'page'}: score=${page.score}/100 tier=${page.tier || 'Clean'} (0 patterns triggered)`
+      );
+      continue;
+    }
+    for (const pattern of triggered) {
       const message = oneLine(firstSample(pattern));
       lines.push(`${pattern.id} ${selectorOf(pattern)}: ${message} → ${fixRule(pattern)}`);
     }
@@ -95,6 +104,17 @@ function githubLevel(pattern: any): 'error' | 'warning' | 'notice' {
   return pattern?.weight >= 6 ? 'error' : 'warning';
 }
 
+function escapeGithubData(value: string): string {
+  return String(value || '')
+    .replace(/%/g, '%25')
+    .replace(/\r/g, '%0D')
+    .replace(/\n/g, '%0A');
+}
+
+function escapeGithubProp(value: string): string {
+  return escapeGithubData(value).replace(/:/g, '%3A').replace(/,/g, '%2C');
+}
+
 export function formatGithubReport(result: any): string {
   const lines: string[] = [];
   for (const page of asList(result)) {
@@ -106,18 +126,25 @@ export function formatGithubReport(result: any): string {
     for (const pattern of triggeredPatterns(page)) {
       const level = githubLevel(pattern);
       const message = oneLine(`${pattern.label || pattern.id}: ${firstSample(pattern)}`);
-      lines.push(`::${level} title=${pattern.id}::${titleUrl} ${message}`);
+      lines.push(
+        `::${level} title=${escapeGithubProp(pattern.id)}::${escapeGithubData(`${titleUrl} ${message}`)}`
+      );
     }
   }
   return lines.join('\n');
 }
 
 function xmlEscape(value: string): string {
-  return String(value || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  return (
+    String(value || '')
+      // Strip illegal XML 1.0 control chars
+      // eslint-disable-next-line no-control-regex
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g, '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+  );
 }
 
 export function formatJunitReport(result: any): string {
@@ -141,7 +168,12 @@ export function formatJunitReport(result: any): string {
     for (const pattern of [...patterns, ...copy]) {
       if (!pattern?.id) continue;
       const open = `  <testcase name="${xmlEscape(pattern.id)}" classname="${xmlEscape(name)}">`;
-      if (pattern.status === 'review' || pattern.status === 'unknown') {
+      if (pattern.waived) {
+        skipped += 1;
+        cases.push(
+          `${open}<skipped message="${xmlEscape(pattern.waiverReason || 'waived')}"/></testcase>`
+        );
+      } else if (pattern.status === 'review' || pattern.status === 'unknown') {
         skipped += 1;
         cases.push(`${open}<skipped message="${xmlEscape(pattern.status)}"/></testcase>`);
       } else if (pattern.triggered) {

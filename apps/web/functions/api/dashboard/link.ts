@@ -54,12 +54,15 @@ function dashMemDecrement(email) {
 }
 
 export async function dashLinkAllowed(kv, email) {
-  if (!kv) return true;
   // Over-cap denials must not consume budget: without the release, a burst
   // would wedge the address until the hour-long mem window resets.
   if (dashMemIncrement(email) > DASHLINK_LIMIT) {
     dashMemDecrement(email);
     return false;
+  }
+  if (!kv) {
+    // Missing RATE_LIMIT still honors the in-isolate ceiling above, matching ogRenderAllowed.
+    return true;
   }
   // Key on the hashed address, never the raw email, so a rate-limit counter is
   // not a place a plaintext address sits at rest.

@@ -280,10 +280,7 @@ export async function onRequestGet({ params, request, env }) {
     kvLatest ||
     (corpusSite
       ? {
-          id:
-            String(corpusSite.resultUrl || '')
-              .split('/')
-              .pop() || domain,
+          id: corpusSite.resultUrl ? String(corpusSite.resultUrl).split('/').pop() || null : null,
           url: corpusSite.url || `https://${domain}`,
           finalUrl: corpusSite.url || `https://${domain}`,
           domain,
@@ -442,7 +439,7 @@ export async function onRequestGet({ params, request, env }) {
               <div class="rs-ledger">
                 <SectionLedger tag="" label="category overview" />
               </div>
-              <CategoryBars categories={view.categories} />
+              <CategoryBars categories={view.categories} withheld={withheld} />
             </section>
 
             <section class="result-section">
@@ -462,7 +459,7 @@ export async function onRequestGet({ params, request, env }) {
 
         <section class="result-section">
           <div class="rs-ledger">
-            <SectionLedger tag="" label="the four axes" />
+            <SectionLedger tag="" label="the five axes" />
           </div>
           <AxisStrip slim={latest} />
         </section>

@@ -44,7 +44,49 @@ export function createColorHelpers() {
     coral: [255, 127, 80, 1],
     gold: [255, 215, 0, 1],
     crimson: [220, 20, 60, 1],
+    blueviolet: [138, 43, 226, 1],
+    darkviolet: [148, 0, 211, 1],
+    darkorchid: [153, 50, 204, 1],
+    mediumpurple: [147, 112, 219, 1],
+    mediumslateblue: [123, 104, 238, 1],
+    slateblue: [106, 90, 205, 1],
+    plum: [221, 160, 221, 1],
+    orchid: [218, 112, 214, 1],
+    lavender: [230, 230, 250, 1],
+    tomato: [255, 99, 71, 1],
+    salmon: [250, 128, 114, 1],
+    khaki: [240, 230, 140, 1],
+    beige: [245, 245, 220, 1],
+    ivory: [255, 255, 240, 1],
+    linen: [250, 240, 230, 1],
+    snow: [255, 250, 250, 1],
+    whitesmoke: [245, 245, 245, 1],
+    gainsboro: [220, 220, 220, 1],
+    lightgray: [211, 211, 211, 1],
+    lightgrey: [211, 211, 211, 1],
+    darkgray: [169, 169, 169, 1],
+    darkgrey: [169, 169, 169, 1],
+    dimgray: [105, 105, 105, 1],
+    dimgrey: [105, 105, 105, 1],
+    slategray: [112, 128, 144, 1],
+    slategrey: [112, 128, 144, 1],
+    darkslategray: [47, 79, 79, 1],
+    darkslategrey: [47, 79, 79, 1],
+    midnightblue: [25, 25, 112, 1],
+    royalblue: [65, 105, 225, 1],
+    steelblue: [70, 130, 180, 1],
+    dodgerblue: [30, 144, 255, 1],
+    deepskyblue: [0, 191, 255, 1],
+    skyblue: [135, 206, 235, 1],
+    turquoise: [64, 224, 208, 1],
+    seagreen: [46, 139, 87, 1],
+    forestgreen: [34, 139, 34, 1],
+    limegreen: [50, 205, 50, 1],
+    hotpink: [255, 105, 180, 1],
+    deeppink: [255, 20, 147, 1],
   };
+
+  const STRICT_NUM_RE = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i;
 
   function srgbToLinear(u: number): number {
     const abs = Math.abs(u);
@@ -160,9 +202,12 @@ export function createColorHelpers() {
     const t = tok.trim().toLowerCase();
     if (t === 'none') return 0;
     if (t.endsWith('%')) {
-      const n = parseFloat(t.slice(0, -1));
+      const raw = t.slice(0, -1);
+      if (!STRICT_NUM_RE.test(raw)) return null;
+      const n = parseFloat(raw);
       return Number.isNaN(n) ? null : clamp01(n / 100);
     }
+    if (!STRICT_NUM_RE.test(t)) return null;
     const n = parseFloat(t);
     return Number.isNaN(n) ? null : clamp01(n);
   }
@@ -172,9 +217,12 @@ export function createColorHelpers() {
     const t = tok.trim().toLowerCase();
     if (t === 'none') return 0;
     if (t.endsWith('%')) {
-      const n = parseFloat(t.slice(0, -1));
+      const raw = t.slice(0, -1);
+      if (!STRICT_NUM_RE.test(raw)) return null;
+      const n = parseFloat(raw);
       return Number.isNaN(n) ? null : (n / 100) * pctScale;
     }
+    if (!STRICT_NUM_RE.test(t)) return null;
     const n = parseFloat(t);
     return Number.isNaN(n) ? null : n;
   }
@@ -360,22 +408,12 @@ export function createColorHelpers() {
         const parsed = splitFnArgs(body);
         if (!parsed || parsed.channels.length !== 3) return null;
         const h = parseAngle(parsed.channels[0]);
-        const sPct = parseNumOrPct(parsed.channels[1], 1);
-        const lPct = parseNumOrPct(parsed.channels[2], 1);
+        // CSS Color 4 allows unitless 0..100 or percentage 0%..100% for S and L
+        const sRaw = parseNumOrPct(parsed.channels[1], 100);
+        const lRaw = parseNumOrPct(parsed.channels[2], 100);
         const a = parseAlpha(parsed.alpha);
-        if (h === null || sPct === null || lPct === null || a === null) return null;
-        // Require % on saturation/lightness in hsl() unless 'none'
-        if (
-          parsed.channels[1].trim().toLowerCase() !== 'none' &&
-          !parsed.channels[1].trim().endsWith('%')
-        )
-          return null;
-        if (
-          parsed.channels[2].trim().toLowerCase() !== 'none' &&
-          !parsed.channels[2].trim().endsWith('%')
-        )
-          return null;
-        const [r01, g01, b01] = hslToRgb01(h, clamp01(sPct), clamp01(lPct));
+        if (h === null || sRaw === null || lRaw === null || a === null) return null;
+        const [r01, g01, b01] = hslToRgb01(h, clamp01(sRaw / 100), clamp01(lRaw / 100));
         return buildFromSrgb(r01 * 255, g01 * 255, b01 * 255, a);
       }
 
@@ -384,11 +422,12 @@ export function createColorHelpers() {
         const parsed = splitFnArgs(body);
         if (!parsed || parsed.channels.length !== 3) return null;
         const h = parseAngle(parsed.channels[0]);
-        const w = parseNumOrPct(parsed.channels[1], 1);
-        const bl = parseNumOrPct(parsed.channels[2], 1);
+        // CSS Color 4: whiteness/blackness are 0..100 (whether unitless or %)
+        const wRaw = parseNumOrPct(parsed.channels[1], 100);
+        const blRaw = parseNumOrPct(parsed.channels[2], 100);
         const a = parseAlpha(parsed.alpha);
-        if (h === null || w === null || bl === null || a === null) return null;
-        const [r01, g01, b01] = hwbToRgb01(h, Math.max(0, w), Math.max(0, bl));
+        if (h === null || wRaw === null || blRaw === null || a === null) return null;
+        const [r01, g01, b01] = hwbToRgb01(h, Math.max(0, wRaw / 100), Math.max(0, blRaw / 100));
         return buildFromSrgb(r01 * 255, g01 * 255, b01 * 255, a);
       }
 
@@ -710,6 +749,19 @@ export function createColorHelpers() {
         i = openIdx + 1;
         continue;
       }
+      const wordMatch = s.slice(i).match(/^([a-zA-Z]+)(?![a-zA-Z0-9(-])/);
+      if (wordMatch) {
+        const w = wordMatch[1].toLowerCase();
+        const prevCh = i > 0 ? s[i - 1] : ' ';
+        if (
+          !/[a-zA-Z0-9_-]/.test(prevCh) &&
+          (w === 'transparent' || Object.prototype.hasOwnProperty.call(NAMED_COLORS, w))
+        ) {
+          results.push(wordMatch[1]);
+        }
+        i += wordMatch[1].length;
+        continue;
+      }
       i++;
     }
     return results;
@@ -731,14 +783,25 @@ export function createColorHelpers() {
         stops.push({ raw, color: col.a > 0 ? col : null, unknown: false });
       }
     }
-    // Check if gradient contains unparseable color-like functions or CSS var() stops (e.g. broken oklch/color-mix, var(--x))
-    const brokenMatch =
-      bgImage.match(/\b(?:oklch|oklab|color-mix|color|lab|lch|rgba?|hsla?|hwb|var)\([^)]*\)/gi) ||
-      [];
-    for (const cand of brokenMatch) {
-      if (!tokens.includes(cand) && !parseColorRaw(cand)) {
-        stops.push({ raw: cand, color: null, unknown: true });
+    // Scan balanced parentheses for unresolved CSS var(...) stops without breaking nested color-mix(...)
+    const varRe = /\bvar\(/gi;
+    let vm: RegExpExecArray | null;
+    while ((vm = varRe.exec(bgImage)) !== null) {
+      const start = vm.index;
+      let depth = 0;
+      let end = -1;
+      for (let j = start + 3; j < bgImage.length; j++) {
+        if (bgImage[j] === '(') depth++;
+        else if (bgImage[j] === ')') {
+          depth--;
+          if (depth === 0) {
+            end = j;
+            break;
+          }
+        }
       }
+      const cand = end !== -1 ? bgImage.slice(start, end + 1) : bgImage.slice(start);
+      stops.push({ raw: cand, color: null, unknown: true });
     }
     return stops;
   }
@@ -849,29 +912,58 @@ export function createColorHelpers() {
     return channelSpread(c) < 30;
   }
 
-  // Walk up the ancestor chain to find the first opaque background color an
-  // element actually sits on (its own bg, else the nearest painted ancestor,
-  // else white as the document default). Returns a parsed color.
+  // Walk up the ancestor chain and alpha-composite semi-transparent layers over
+  // the nearest opaque ancestor (defaulting to document white).
   function effectiveBackground(el: any) {
+    const layers: Array<{ r: number; g: number; b: number; a: number }> = [];
+    let base: any = null;
     let node = el;
     let guard = 0;
     while (node && node.nodeType === 1 && guard++ < 40) {
       const cs = getComputedStyle(node);
       const bg = parseColor(cs.backgroundColor);
-      if (bg && bg.a >= 0.5) return bg;
+      if (bg && bg.a >= 0.99) {
+        base = bg;
+        break;
+      }
+      if (bg && bg.a > 0) {
+        layers.push(bg);
+      }
       const img = cs.backgroundImage || '';
       if (img && img !== 'none' && /gradient|url\(/.test(img)) {
         if (/url\(/i.test(img)) {
-          return { ...buildFromSrgb(255, 255, 255, 1), _approx: true, _image: true };
+          base = { ...buildFromSrgb(255, 255, 255, 1), _approx: true, _image: true };
+          break;
         }
         const stops = extractGradientStops(img);
         const solidStop = stops.find((st) => !st.unknown && st.color && st.color.a >= 0.5);
-        if (solidStop) return solidStop.color;
-        return { ...buildFromSrgb(255, 255, 255, 1), _approx: true };
+        if (solidStop) {
+          if (solidStop.color.a >= 0.99) {
+            base = solidStop.color;
+            break;
+          }
+          layers.push(solidStop.color);
+        } else {
+          base = { ...buildFromSrgb(255, 255, 255, 1), _approx: true };
+          break;
+        }
       }
       node = node.parentElement;
     }
-    return buildFromSrgb(255, 255, 255, 1);
+    let out = base || buildFromSrgb(255, 255, 255, 1);
+    const metaApprox = out._approx;
+    const metaImage = out._image;
+    for (let i = layers.length - 1; i >= 0; i--) {
+      const fg = layers[i];
+      const a = clamp01(fg.a ?? 1);
+      const r = fg.r * a + out.r * (1 - a);
+      const g = fg.g * a + out.g * (1 - a);
+      const b = fg.b * a + out.b * (1 - a);
+      out = buildFromSrgb(r, g, b, 1);
+    }
+    if (metaApprox) out._approx = true;
+    if (metaImage) out._image = true;
+    return out;
   }
 
   return {

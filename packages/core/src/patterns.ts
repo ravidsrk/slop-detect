@@ -24,7 +24,7 @@ export const PATTERNS = [
     fpRate: null,
     fpRatePre2022: null,
     extract: (ctx) => {
-      const { visible, isSlopFont, isAccentSerif, resolveRenderedFont, h1 } = ctx;
+      const { visible, isSlopFont, isAccentSerif, resolveRenderedFont, h1, addLoc } = ctx;
       const primaryPrefixes = [
         'inter',
         'geist',
@@ -50,14 +50,20 @@ export const PATTERNS = [
         if (!fam) return '';
         return String(fam).toLowerCase().replace(/['"]/g, '').split(',')[0].trim();
       };
-      const isPrimary = (fam) => {
-        const r = resolveFam(fam);
-        return Boolean(r && primaryPrefixes.some((p) => r.startsWith(p)));
+      const matchesPrefix = (r, prefixes) => {
+        if (!r) return false;
+        const norm = r.replace(/^__+/, '');
+        return prefixes.some(
+          (p) =>
+            norm === p ||
+            norm.startsWith(p + ' ') ||
+            norm.startsWith(p + '-') ||
+            norm.startsWith(p + '_')
+        );
       };
-      const isSecondary = (fam) => {
-        const r = resolveFam(fam);
-        return Boolean(r && secondaryPrefixes.some((p) => r.startsWith(p)));
-      };
+      const isPrimary = (fam) => matchesPrefix(resolveFam(fam), primaryPrefixes);
+      const isSecondary = (fam) => matchesPrefix(resolveFam(fam), secondaryPrefixes);
+      const isInterOrGeist = (r) => matchesPrefix(r, ['inter', 'geist']);
       let slopCount = 0,
         primaryCount = 0,
         secondaryCount = 0,
@@ -65,6 +71,7 @@ export const PATTERNS = [
         total = 0,
         accentSerifWords = 0;
       const seen = new Set();
+      const locs = [];
       for (const el of visible) {
         if (!el.textContent || !el.textContent.trim()) continue;
         const cs = getComputedStyle(el);
@@ -79,9 +86,10 @@ export const PATTERNS = [
         );
         if (slop) {
           slopCount++;
+          if (typeof addLoc === 'function') addLoc(locs, el);
           if (isPrimary(fam)) primaryCount++;
           else if (isSecondary(fam)) secondaryCount++;
-          if (resolved.startsWith('inter') || resolved.startsWith('geist')) {
+          if (isInterOrGeist(resolved)) {
             interOrGeistCount++;
           }
         }
@@ -97,11 +105,16 @@ export const PATTERNS = [
           ? isSlopFont(heroResolved)
           : isSlopFont(heroRawFam))
       );
+      if (heroIsSlop && h1 && typeof addLoc === 'function') {
+        const h1Locs = [];
+        addLoc(h1Locs, h1);
+        if (h1Locs[0]) {
+          locs.unshift(h1Locs[0]);
+        }
+      }
       const heroIsPrimary = isPrimary(heroRawFam);
       const heroIsSecondary = isSecondary(heroRawFam);
-      const heroIsInterOrGeist =
-        Boolean(heroResolved) &&
-        (heroResolved.startsWith('inter') || heroResolved.startsWith('geist'));
+      const heroIsInterOrGeist = isInterOrGeist(heroResolved);
       const ratio = total ? slopCount / total : 0;
       const secondaryOnly =
         (slopCount > 0 || heroIsSlop) &&
@@ -126,6 +139,7 @@ export const PATTERNS = [
         interOrGeistOnly,
         interLifecycleStatus: 'decaying',
         accentSerifItalicCount: accentSerifWords,
+        locations: locs.slice(0, 5),
         triggered: heroIsSlop || ratio >= 0.6,
       };
     },
@@ -148,7 +162,7 @@ export const PATTERNS = [
     fpRate: null,
     fpRatePre2022: null,
     extract: (ctx) => {
-      const { visible, resolveRenderedFont, h1 } = ctx;
+      const { visible, resolveRenderedFont, h1, addLoc } = ctx;
       const newPrefixes = [
         'syne',
         'fraunces',
@@ -171,11 +185,20 @@ export const PATTERNS = [
       };
       const matchesNew = (fam) => {
         const r = resolveFam(fam);
-        return Boolean(r && newPrefixes.some((p) => r.startsWith(p)));
+        if (!r) return false;
+        const norm = r.replace(/^__+/, '');
+        return newPrefixes.some(
+          (p) =>
+            norm === p ||
+            norm.startsWith(p + ' ') ||
+            norm.startsWith(p + '-') ||
+            norm.startsWith(p + '_')
+        );
       };
       let matchCount = 0;
       let total = 0;
       const seen = new Set();
+      const locs = [];
       for (const el of visible) {
         if (!el.textContent || !el.textContent.trim()) continue;
         const cs = getComputedStyle(el);
@@ -183,7 +206,10 @@ export const PATTERNS = [
         if (!fam || seen.has(el)) continue;
         seen.add(el);
         total++;
-        if (matchesNew(fam)) matchCount++;
+        if (matchesNew(fam)) {
+          matchCount++;
+          if (typeof addLoc === 'function') addLoc(locs, el);
+        }
       }
       const heroRawFam = h1 ? getComputedStyle(h1).fontFamily : '';
       const heroResolved = resolveFam(heroRawFam);
@@ -196,6 +222,7 @@ export const PATTERNS = [
         heroFam: heroRawFam,
         resolvedHeroFam: heroResolved,
         heroMatches,
+        locations: locs.slice(0, 5),
         triggered: heroMatches || ratio >= 0.45,
       };
     },
@@ -217,10 +244,11 @@ export const PATTERNS = [
     fpRate: null,
     fpRatePre2022: null,
     extract: (ctx) => {
-      const { visible, parseColor, isPurple, extractColorStrings } = ctx;
+      const { visible, parseColor, isPurple, extractColorStrings, addLoc } = ctx;
       let purpleEls = 0,
         filledCtas = 0;
       const samples = [];
+      const locs = [];
       for (const el of visible) {
         const cs = getComputedStyle(el);
         const bg = parseColor(cs.backgroundColor);
@@ -252,10 +280,11 @@ export const PATTERNS = [
         const filled = (bg && bg.a >= 0.5 && isPurple(bg)) || (gradPurp && (!bg || bg.a < 0.1));
         if (filled) {
           filledCtas++;
+          if (typeof addLoc === 'function') addLoc(locs, el);
           if (samples.length < 2) samples.push({ tag: el.tagName, bg: cs.backgroundColor });
         }
       }
-      return { purpleEls, filledCtas, samples, triggered: filledCtas >= 1 };
+      return { purpleEls, filledCtas, samples, locations: locs, triggered: filledCtas >= 1 };
     },
   },
 
@@ -275,14 +304,16 @@ export const PATTERNS = [
     fpRate: null,
     fpRatePre2022: null,
     extract: (ctx) => {
-      const { visible, h1 } = ctx;
+      const { visible, h1, addLoc } = ctx;
       let count = 0;
       let heroHasGradient = false;
+      const locs = [];
       for (const el of visible) {
         const cs = getComputedStyle(el);
         const clip = (cs as any).webkitBackgroundClip || cs.backgroundClip;
         if (clip === 'text' && /gradient\(/.test(cs.backgroundImage || '')) {
           count++;
+          if (typeof addLoc === 'function') addLoc(locs, el);
           if (el === h1) heroHasGradient = true;
         }
       }
@@ -291,9 +322,10 @@ export const PATTERNS = [
         const clip = (cs as any).webkitBackgroundClip || cs.backgroundClip;
         if (clip === 'text' && /gradient\(/.test(cs.backgroundImage || '')) {
           heroHasGradient = true;
+          if (typeof addLoc === 'function') addLoc(locs, h1);
         }
       }
-      return { count, heroHasGradient, triggered: count > 0 || heroHasGradient };
+      return { count, heroHasGradient, locations: locs, triggered: count > 0 || heroHasGradient };
     },
   },
 
@@ -600,35 +632,74 @@ export const PATTERNS = [
     fpRate: null,
     fpRatePre2022: null,
     extract: (ctx) => {
-      const { visible, parseColor, isPurple, extractColorStrings } = ctx;
+      const { visible, parseColor, isPurple, extractColorStrings, addLoc } = ctx;
       let glowCount = 0;
+      const locs = [];
+      const splitLayers = (raw) => {
+        const out = [];
+        let depth = 0,
+          start = 0;
+        for (let i = 0; i < raw.length; i++) {
+          const ch = raw[i];
+          if (ch === '(') depth++;
+          else if (ch === ')') depth = Math.max(0, depth - 1);
+          else if (ch === ',' && depth === 0) {
+            out.push(raw.slice(start, i).trim());
+            start = i + 1;
+          }
+        }
+        const tail = raw.slice(start).trim();
+        if (tail) out.push(tail);
+        return out;
+      };
+      const layerBlurPx = (layer) => {
+        // Remove parenthesized color functions and hex/keyword tokens so lengths are [offsetX, offsetY, blur, spread]
+        let stripped = '';
+        let depth = 0;
+        for (let i = 0; i < layer.length; i++) {
+          const ch = layer[i];
+          if (ch === '(') depth++;
+          else if (ch === ')') depth = Math.max(0, depth - 1);
+          else if (depth === 0) stripped += ch;
+        }
+        const lengths = stripped.match(/(?:^|\s)([+-]?(?:\d+\.?\d*|\.\d+)(?:px)?)(?=\s|$)/gi) || [];
+        if (lengths.length < 3) return 0;
+        const blur = parseFloat(lengths[2]);
+        return Number.isFinite(blur) ? Math.abs(blur) : 0;
+      };
       for (const el of visible) {
         const cs = getComputedStyle(el);
         const shadow = cs.boxShadow || '';
         if (!shadow || shadow === 'none') continue;
-        const blurMatch = shadow.match(/\s(\d+(?:\.\d+)?)px\s/g) || [];
-        const maxBlur = Math.max(0, ...blurMatch.map((b) => parseFloat(b)));
-        if (maxBlur < 24) continue;
-        const colors =
-          typeof extractColorStrings === 'function'
-            ? extractColorStrings(shadow)
-            : shadow.match(/rgba?\([^)]+\)|#[0-9a-f]{3,8}/gi) || [];
-        for (const c of colors) {
-          const col = parseColor(c);
-          if (!col || col.a < 0.1) continue;
-          if (isPurple(col)) {
-            glowCount++;
-            break;
+        let matched = false;
+        for (const layer of splitLayers(shadow)) {
+          if (layerBlurPx(layer) < 24) continue;
+          const colors =
+            typeof extractColorStrings === 'function'
+              ? extractColorStrings(layer)
+              : layer.match(/rgba?\([^)]+\)|#[0-9a-f]{3,8}/gi) || [];
+          for (const c of colors) {
+            const col = parseColor(c);
+            if (!col || col.a < 0.1) continue;
+            if (isPurple(col)) {
+              matched = true;
+              break;
+            }
+            const max = Math.max(col.r, col.g, col.b),
+              min = Math.min(col.r, col.g, col.b);
+            if ((max - min > 60 || (col.oklch && col.oklch.C >= 0.1)) && col.a > 0.2) {
+              matched = true;
+              break;
+            }
           }
-          const max = Math.max(col.r, col.g, col.b),
-            min = Math.min(col.r, col.g, col.b);
-          if ((max - min > 60 || (col.oklch && col.oklch.C >= 0.1)) && col.a > 0.2) {
-            glowCount++;
-            break;
-          }
+          if (matched) break;
+        }
+        if (matched) {
+          glowCount++;
+          if (typeof addLoc === 'function') addLoc(locs, el);
         }
       }
-      return { glowCount, triggered: glowCount >= 1 };
+      return { glowCount, locations: locs, triggered: glowCount >= 1 };
     },
   },
 
@@ -919,7 +990,7 @@ export const PATTERNS = [
         if (total >= 200) break;
       }
       const ratio = total ? greys / total : 0;
-      const triggered = dark && (ratio >= 0.3 || total >= 5);
+      const triggered = dark && total >= 5 && ratio >= 0.3;
       const surface = bodyBg
         ? `rgb(${Math.round(bodyBg.r)}, ${Math.round(bodyBg.g)}, ${Math.round(bodyBg.b)})`
         : null;
@@ -1168,9 +1239,10 @@ export const PATTERNS = [
     fpRate: null,
     fpRatePre2022: null,
     extract: (ctx) => {
-      const { visible } = ctx;
+      const { visible, parseColor, addLoc } = ctx;
       let count = 0;
       const samples = [];
+      const locs = [];
       for (const el of visible) {
         const cs = getComputedStyle(el);
         const r = el.getBoundingClientRect();
@@ -1181,17 +1253,24 @@ export const PATTERNS = [
         const bg = cs.backgroundImage || '';
         const bgColor = cs.backgroundColor;
         const hasGradient = /gradient\(/.test(bg);
-        const hasSolidColor =
-          bgColor && bgColor !== 'rgba(0, 0, 0, 0)' && bgColor !== 'transparent';
+        const parsedBg = typeof parseColor === 'function' ? parseColor(bgColor) : null;
+        const hasSolidColor = parsedBg
+          ? parsedBg.a > 0.05
+          : Boolean(bgColor && bgColor !== 'rgba(0, 0, 0, 0)' && bgColor !== 'transparent');
         if (!hasGradient && !hasSolidColor) continue;
+        // Skip solid circular nav/header/footer controls (e.g., language switchers EN/FR, icon buttons)
+        if (!hasGradient && typeof el.closest === 'function' && el.closest('nav, header, footer')) {
+          continue;
+        }
         const txt = (el.textContent || '').trim();
         if (txt.length < 1 || txt.length > 3) continue;
         if (!/^[A-Za-z]{1,3}$/.test(txt)) continue;
         if (el.querySelector('img, svg[data-photo]')) continue;
         count++;
+        if (typeof addLoc === 'function') addLoc(locs, el);
         if (samples.length < 3) samples.push({ initials: txt, size: Math.round(r.width) });
       }
-      return { count, samples, triggered: count >= 2 };
+      return { count, samples, locations: locs, triggered: count >= 2 };
     },
   },
 
@@ -1213,8 +1292,9 @@ export const PATTERNS = [
     fpRate: null,
     fpRatePre2022: null,
     extract: (ctx) => {
-      const { visible } = ctx;
+      const { visible, addLoc } = ctx;
       let best = { children: 0, spanVariety: 0, rounded: 0 };
+      let bestEl = null;
       for (const el of visible) {
         const cs = getComputedStyle(el);
         if (cs.display !== 'grid') continue;
@@ -1231,16 +1311,28 @@ export const PATTERNS = [
           sized++;
           const kcs = getComputedStyle(k);
           const gc = (kcs.gridColumn || '').toString();
-          const m = gc.match(/span\s+(\d+)/i);
-          spans.add(m ? parseInt(m[1], 10) : 1);
+          const mSpan = gc.match(/span\s+(\d+)/i);
+          const mLine = gc.match(/^(\d+)\s*\/\s*(\d+)$/);
+          const spanVal = mSpan
+            ? parseInt(mSpan[1], 10)
+            : mLine
+              ? Math.max(1, Math.abs(parseInt(mLine[2], 10) - parseInt(mLine[1], 10)))
+              : 1;
+          spans.add(spanVal);
           if (parseFloat(kcs.borderRadius) >= 12) rounded++;
         }
         if (sized < 4) continue;
         const score = { children: sized, spanVariety: spans.size, rounded };
-        if (rounded >= 4 && spans.size >= 2 && sized > best.children) best = score;
+        if (rounded >= 4 && spans.size >= 2 && sized > best.children) {
+          best = score;
+          bestEl = el;
+        }
       }
+      const locs = [];
+      if (bestEl && typeof addLoc === 'function') addLoc(locs, bestEl);
       return {
         ...best,
+        locations: locs,
         triggered: best.rounded >= 4 && best.spanVariety >= 2 && best.children >= 5,
       };
     },
@@ -2377,17 +2469,28 @@ export const PATTERNS = [
     fpRate: null,
     fpRatePre2022: null,
     extract: (ctx) => {
-      const { visible } = ctx;
+      const { visible, parseColor, addLoc } = ctx;
       let count = 0;
+      const locs = [];
       for (const el of visible) {
         if (!el.children || el.children.length < 3) continue;
         const kids = Array.from(el.children) as any[];
         let circles = 0;
         for (const k of kids.slice(0, 5)) {
+          if ((k.textContent || '').trim().length > 0) continue;
           const kr = k.getBoundingClientRect();
           if (kr.width >= 6 && kr.width <= 16 && Math.abs(kr.width - kr.height) <= 2) {
             const kcs = getComputedStyle(k);
             if (parseFloat(kcs.borderRadius) >= kr.width * 0.4) {
+              const bg = typeof parseColor === 'function' ? parseColor(kcs.backgroundColor) : null;
+              const visibleFill = bg
+                ? bg.a >= 0.2
+                : Boolean(
+                    kcs.backgroundColor &&
+                    kcs.backgroundColor !== 'rgba(0, 0, 0, 0)' &&
+                    kcs.backgroundColor !== 'transparent'
+                  );
+              if (!visibleFill) continue;
               circles++;
             }
           }
@@ -2396,10 +2499,11 @@ export const PATTERNS = [
           const container = el.parentElement;
           if (container && container.querySelector('pre, code, [class*="mono"]')) {
             count++;
+            if (typeof addLoc === 'function') addLoc(locs, el);
           }
         }
       }
-      return { count, triggered: count >= 1 };
+      return { count, locations: locs, triggered: count >= 1 };
     },
   },
 
@@ -2419,35 +2523,48 @@ export const PATTERNS = [
     fpRate: null,
     fpRatePre2022: null,
     extract: (ctx) => {
-      const { visible } = ctx;
+      const { visible, addLoc } = ctx;
       const nodeIds: string[] = [];
+      const locs = [];
       let placeholderLogos = 0;
       let duplicateLogoRows = 0;
 
       for (const el of visible) {
         if (!el.children || el.children.length < 4 || el.children.length > 12) continue;
+        const inNavChrome =
+          typeof el.closest === 'function' && Boolean(el.closest('nav, header, footer'));
         const kids = Array.from(el.children) as any[];
         const srcs: string[] = [];
         let genericItems = 0;
+        let rowPlaceholders = 0;
 
         for (const k of kids) {
           const txt = (k.textContent || '').trim();
           if (/^(?:logo|company|brand|partner|acme|corp)\s*\d*$/i.test(txt)) {
             placeholderLogos++;
+            rowPlaceholders++;
             genericItems++;
           }
           const img = k.querySelector?.('img');
           if (img) {
             const src = img.getAttribute('src') || '';
             if (src) srcs.push(src);
-          } else if (k.querySelector?.('svg') && txt.length >= 2 && txt.length <= 20) {
+          } else if (
+            !inNavChrome &&
+            k.querySelector?.('svg') &&
+            txt.length >= 2 &&
+            txt.length <= 20
+          ) {
             genericItems++;
           }
         }
 
         const uniqueSrcs = new Set(srcs);
-        if ((srcs.length >= 4 && uniqueSrcs.size < srcs.length) || genericItems >= 4) {
-          duplicateLogoRows++;
+        const hasDupImgs = srcs.length >= 4 && uniqueSrcs.size < srcs.length;
+        const hasGenericLogoRow = !inNavChrome && genericItems >= 4;
+        if (hasDupImgs || hasGenericLogoRow || rowPlaceholders >= 2) {
+          if (hasDupImgs || hasGenericLogoRow) duplicateLogoRows++;
+          if (typeof addLoc === 'function') addLoc(locs, el);
           const r = el.getBoundingClientRect();
           nodeIds.push(`logobar:${Math.round(r.top || 0)}`);
         }
@@ -2457,6 +2574,7 @@ export const PATTERNS = [
         placeholderLogos,
         duplicateLogoRows,
         nodeIds,
+        locations: locs,
         triggered: placeholderLogos >= 2 || duplicateLogoRows >= 1,
       };
     },
@@ -2478,8 +2596,9 @@ export const PATTERNS = [
     fpRate: null,
     fpRatePre2022: null,
     extract: (ctx) => {
-      const { visible } = ctx;
+      const { visible, addLoc } = ctx;
       let tickers = 0;
+      const locs = [];
       for (const el of visible) {
         const cs = getComputedStyle(el);
         const cls = String(el.className || '');
@@ -2492,16 +2611,17 @@ export const PATTERNS = [
         if (!isInfiniteLinear) continue;
         const kids = Array.from(el.children || []) as any[];
         if (kids.length >= 2) {
-          const texts = kids.map(
-            (k) => (k.textContent || '').trim() || k.innerHTML?.slice(0, 60) || ''
-          );
-          const unique = new Set(texts.filter(Boolean));
-          if (texts.length >= 2 && unique.size <= Math.ceil(texts.length / 2)) {
+          const texts = kids
+            .map((k) => (k.textContent || '').trim() || k.innerHTML?.slice(0, 60) || '')
+            .filter(Boolean);
+          const unique = new Set(texts);
+          if (texts.length >= 2 && unique.size >= 1 && unique.size <= Math.ceil(texts.length / 2)) {
             tickers++;
+            if (typeof addLoc === 'function') addLoc(locs, el);
           }
         }
       }
-      return { tickers, triggered: tickers >= 1 };
+      return { tickers, locations: locs, triggered: tickers >= 1 };
     },
   },
 
@@ -2521,11 +2641,13 @@ export const PATTERNS = [
     likelihoodRatio: null,
     fpRate: null,
     fpRatePre2022: null,
-    extract: () => {
+    extract: (ctx) => {
+      const { addLoc } = ctx || {};
       const vh = window.innerHeight || 800;
       const all = document.body ? document.body.querySelectorAll('section *, main *') : [];
       let count = 0;
       const sections = new Set();
+      const locs = [];
       let checked = 0;
       for (const el of Array.from(all) as any[]) {
         if (checked++ > 1200) break;
@@ -2538,14 +2660,21 @@ export const PATTERNS = [
         const matrixMatch = tr.match(
           /matrix\([^,]+,[^,]+,[^,]+,[^,]+,[^,]+,\s*([+-]?\d+(?:\.\d+)?)\)/
         );
+        const matrix3dMatch = tr.match(/matrix3d\((?:[^,]+,){13}\s*([+-]?\d+(?:\.\d+)?),/);
         const translateYMatch = tr.match(/translateY\(\s*([+-]?\d+(?:\.\d+)?)px\)/i);
+        const translate3dMatch = tr.match(/translate3d\([^,]+,\s*([+-]?\d+(?:\.\d+)?)px\s*,/i);
         const ty = matrixMatch
           ? parseFloat(matrixMatch[1])
-          : translateYMatch
-            ? parseFloat(translateYMatch[1])
-            : 0;
+          : matrix3dMatch
+            ? parseFloat(matrix3dMatch[1])
+            : translateYMatch
+              ? parseFloat(translateYMatch[1])
+              : translate3dMatch
+                ? parseFloat(translate3dMatch[1])
+                : 0;
         if (ty >= 8 && ty <= 60) {
           count++;
+          if (typeof addLoc === 'function') addLoc(locs, el);
           const sec = el.closest('section, article, main > div') || el.parentElement;
           if (sec) sections.add(sec);
         }
@@ -2553,6 +2682,7 @@ export const PATTERNS = [
       return {
         count,
         sectionCount: sections.size,
+        locations: locs,
         triggered: count >= 6 && sections.size >= 3,
       };
     },

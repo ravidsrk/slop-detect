@@ -18,7 +18,7 @@ import {
 } from '../functions/_shared.ts';
 import { buildDashboardLinkEmail } from '../functions/_alerts.ts';
 import { onRequestPost as linkPost, dashLinkAllowed } from '../functions/api/dashboard/link.ts';
-import { onRequestGet as dashGet } from '../functions/dashboard.tsx';
+import { onRequestGet as dashGet, onRequestPost as dashPost } from '../functions/dashboard.tsx';
 
 const SECRET = 'test-secret-0123456789';
 
@@ -319,7 +319,7 @@ test('/dashboard is configured-off without SESSION_SECRET', async () => {
 
 test('link endpoint reads exactly one RESULTS index key per lookup [COST-2]', async () => {
   const kv = makeKv();
-  await seedWatches(kv, [{ domain: 'a.com', email: 'known@x.io' }]);
+  await seedWatches(kv, [{ domain: 'a.com', email: 'cost2@x.io' }]);
   let resultsGets = 0;
   const resultsKv = {
     ...kv,
@@ -331,7 +331,7 @@ test('link endpoint reads exactly one RESULTS index key per lookup [COST-2]', as
   const env = { RESULTS: resultsKv, ...LIVE_ENV };
   globalThis.fetch = async () => new Response('{}', { status: 200 });
 
-  await linkPost({ request: postReq({ email: 'known@x.io' }), env });
+  await linkPost({ request: postReq({ email: 'cost2@x.io' }), env });
   // T-31 contract change (surfaced, not silent): the send path adds ONE more
   // point-read — the bounce-suppression gate (G-46, `sup:` key). T-35 adds
   // one more: the funnel blob read for dashboard.link_sent. The COST-2
@@ -339,7 +339,7 @@ test('link endpoint reads exactly one RESULTS index key per lookup [COST-2]', as
   // + 1 funnel-blob get, each named and constant. Any N+1 regression still
   // blows past 3 and fails here.
   expect(resultsGets, 'lookup + suppression + funnel reads').toBe(3);
-  expect(await getEmailDomains(kv, 'known@x.io')).toEqual(['a.com']);
+  expect(await getEmailDomains(kv, 'cost2@x.io')).toEqual(['a.com']);
 });
 
 test('/dashboard without a cookie shows the login form, no domains', async () => {
@@ -413,4 +413,51 @@ test('?logout=1 clears the cookie and returns to login', async () => {
   });
   expect(res.headers.get('Set-Cookie')).toMatch(/Max-Age=0/);
   expect(await res.text()).toMatch(/Sign in to your dashboard/);
+});
+
+test('prefetch GET /dashboard?token=... does not burn the single-use token; POST exchanges it', async () => {
+  const kv = makeKv();
+  await seedWatches(kv, [{ domain: 'a.com', email: 'agency@x.io' }]);
+  const t = await issueDashboardToken(kv, 'agency@x.io');
+  const prefetchReq = new Request(`https://slop-detect.com/dashboard?token=${t}`, {
+    headers: { 'Sec-Purpose': 'prefetch' },
+  });
+  const preRes = await dashGet({
+    request: prefetchReq,
+    env: { RESULTS: kv, SESSION_SECRET: SECRET },
+  });
+  expect(preRes.status).toBe(200);
+  expect(await preRes.text()).toMatch(/Continue to your dashboard/);
+
+  // Token must still be unburned for POST exchange.
+  const postRes = await dashPost({
+    request: new Request(`https://slop-detect.com/dashboard?token=${t}`, {
+      method: 'POST',
+      headers: { Origin: 'https://slop-detect.com' },
+    }),
+    env: { RESULTS: kv, SESSION_SECRET: SECRET },
+  });
+  expect(postRes.status).toBe(302);
+  expect(postRes.headers.get('Set-Cookie')).toMatch(/sd_session=/);
+});
+
+test('POST /dashboard?logout=1 rejects foreign origins and clears cookie for same-origin', async () => {
+  const bad = await dashPost({
+    request: new Request('https://slop-detect.com/dashboard?logout=1', {
+      method: 'POST',
+      headers: { Origin: 'https://evil.example' },
+    }),
+    env: { RESULTS: makeKv(), SESSION_SECRET: SECRET },
+  });
+  expect(bad.status).toBe(403);
+
+  const ok = await dashPost({
+    request: new Request('https://slop-detect.com/dashboard?logout=1', {
+      method: 'POST',
+      headers: { Origin: 'https://slop-detect.com' },
+    }),
+    env: { RESULTS: makeKv(), SESSION_SECRET: SECRET },
+  });
+  expect(ok.status).toBe(200);
+  expect(ok.headers.get('Set-Cookie')).toMatch(/Max-Age=0/);
 });

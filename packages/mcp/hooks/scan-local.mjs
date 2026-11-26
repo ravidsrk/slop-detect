@@ -62,7 +62,9 @@ let result;
 try {
   result = stampScanResult(await scanUrl(target, { preset: 'full', axes: ['design'] }));
 } catch (err) {
-  fail(`Scan could not run. This is not a Clean score. ${firstLine(err && err.message ? err.message : err)}`);
+  fail(
+    `Scan could not run. This is not a Clean score. ${firstLine(err && err.message ? err.message : err)}`
+  );
 }
 
 if (asHook) process.exit(0);

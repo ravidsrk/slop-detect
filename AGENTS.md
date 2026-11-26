@@ -7,8 +7,9 @@ in this repo and how to use Slop Detector as a tool. Human docs: [README.md](REA
 
 Slop Detector scores any landing page against the **AI-design-slop fingerprint** — a
 deterministic, weighted 0–100 measure of the CSS and copy tells that AI page builders
-(Cursor, v0, Lovable, Bolt) converge on, run on real headless Chromium. It also has an
-**AEO axis**: can AI engines fetch, read and cite a page. Live site: https://slop-detect.com
+(Cursor, v0, Lovable, Bolt) converge on, run on real headless Chromium. It also checks
+**`DESIGN.md` system compliance** and **AEO technical crawler eligibility** (`robots.txt`,
+indexability, server HTML text, Markdown twins, `/llms.txt`). Live site: https://slop-detect.com
 
 ## Using Slop Detector as a tool (not just editing it)
 
@@ -106,7 +107,7 @@ Page-eval note: both runners (`apps/web/functions/api/scan.ts` and
   (CLI) → `slop-detect-mcp`, on a `v*.*.*` tag. `apps/web` deploys to Cloudflare
   Pages after every green `ci` run on `main` (and on `v*` tags), so merging to main
   ships production.
-- The whole brand is deliberately anti-slop: dark, monospace, no gradients/glow/purple.
+- The whole brand is deliberately anti-slop: light editorial-instrument paper (`#F4F5F2`), carbon ink (`#181815`), calibration green (`#1FA85E`), `Newsreader` + `Libre Franklin` + `JetBrains Mono` (with a dark `#16170F` continuity band), flat 1px borders, no gradients/glow/purple CTAs.
 
 ## Roadmap and issues
 

@@ -445,7 +445,7 @@ export const COPY_PATTERNS = [
     tier: 'Suggestion',
     statistical: true,
     status: 'active',
-    evidenceGrade: 'measured',
+    evidenceGrade: 'practitioner',
     era: '2024-gpt4',
     modelFamilies: ['GPT-4', 'Claude', 'Gemini'],
     lastValidatedIn: '2026.11',
@@ -493,7 +493,7 @@ export const COPY_PATTERNS = [
     statistical: true,
     coOccurrenceOnly: true,
     status: 'decaying',
-    evidenceGrade: 'measured',
+    evidenceGrade: 'practitioner',
     era: '2025-v0',
     modelFamilies: ['Claude (unconstrained)', 'GPT-4.1/4o era', 'DeepSeek'],
     lastValidatedIn: '2026.11',
@@ -529,7 +529,7 @@ export const COPY_PATTERNS = [
     tier: 'Suggestion',
     statistical: true,
     status: 'rising',
-    evidenceGrade: 'measured',
+    evidenceGrade: 'practitioner',
     era: '2025-v0',
     modelFamilies: ['Claude', 'GPT-4o', 'v0'],
     lastValidatedIn: '2026.11',
@@ -625,7 +625,7 @@ export const COPY_PATTERNS = [
     fpRatePre2022: null,
     match: ({ text, paragraphs, blocks, blockSpans }: any) => {
       const re =
-        /\b(?:in conclusion|in summary|to sum up|to summarize|all in all|ultimately,|in the end,|when all is said and done)\b/gi;
+        /\b(?:in conclusion|in summary|to sum up|to summarize|all in all|when all is said and done)\b|\b(?:ultimately|in the end)(?=,)/gi;
       // C-07: Position-aware when multiple paragraphs/blocks exist: check last two prose blocks
       const fullText = String(text || '');
       let targetText = fullText;
@@ -900,15 +900,13 @@ export const COPY_PATTERNS = [
 
       // Downgrade to Warning if inside blockquote/q or meta-discussion of >=3 families near "artifact|tell|sign"
       const quoteBlocks = positionedBlocks({ blocks, blockSpans });
+      const matchedQuoteBlocks = quoteBlocks.filter((b: any) =>
+        CHATBOT_MARKUP_REGISTRY.some((r) =>
+          new RegExp(r.re.source, 'i').test(spanText(b, String(text || '')))
+        )
+      );
       const allInQuote =
-        quoteBlocks.length > 0 &&
-        quoteBlocks
-          .filter((b: any) =>
-            CHATBOT_MARKUP_REGISTRY.some((r) =>
-              new RegExp(r.re.source, 'i').test(spanText(b, String(text || '')))
-            )
-          )
-          .every((b: any) => b.inQuote);
+        matchedQuoteBlocks.length > 0 && matchedQuoteBlocks.every((b: any) => b.inQuote);
       const isMetaDiscussion =
         matchedFamilies.length >= 3 &&
         /\b(?:artifact|tell|sign|detector|regex)\b/i.test(view.normalized);
@@ -1041,7 +1039,7 @@ export const COPY_PATTERNS = [
     match: ({ links }: any) => {
       // Inspects parsed a[href] query parameters ONLY — never prose text.
       const linkList = Array.isArray(links) ? links : [];
-      const aiSources = new Set(['chatgpt.com', 'openai', 'copilot.com']);
+      const aiSources = new Set([...AI_REFERRAL_SOURCES, 'openai', 'copilot.com', 'grok.com']);
       const matchedHrefs: string[] = [];
 
       for (const item of linkList) {
@@ -1146,7 +1144,9 @@ export const COPY_PATTERNS = [
     fpRatePre2022: null,
     match: ({ text }: any) => {
       const s = String(text || '');
-      const boldItalic = countMatches(s, /(\*\*|__)(?=\S)([^*\n]{1,80}?)(?<=\S)\1/g);
+      const boldItalic =
+        countMatches(s, /\*\*(?=\S)([^*\n]{1,80}?)(?<=\S)\*\*/g) +
+        countMatches(s, /(?:^|\s)__(?=[A-Za-z0-9])([^_\n]{1,80}?)(?<=\S)__(?=\s|[.,!?;:]|$)/g);
       const headingSyntax = countMatches(s, /(?:^|\n)\s*#{1,6}\s+[A-Za-z0-9][^\n]{1,80}/g);
       const inlineLinks = countMatches(s, /\[([^\]\n]{1,80})\]\((https?:\/\/[^\s)]+)\)/g);
       const hrLines = countMatches(s, /(?:^|\n)\s*(?:---|\*\*\*|___)\s*(?:\n|$)/g);

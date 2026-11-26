@@ -15,7 +15,7 @@
 // From a terminal: 0 ok · 1 regression (text on stdout) · 2 could not run.
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -56,6 +56,35 @@ if (!target) {
 }
 if (asHook && event === 'PostToolUse' && !touchesUi(input)) finish(0);
 
+// Guard against concurrent PostToolUse hook invocations racing on the same baseline file.
+const lockPath = join(cwd, '.slop', 'hook.lock');
+let lockAcquired = false;
+function releaseLock() {
+  if (!lockAcquired) return;
+  lockAcquired = false;
+  try {
+    unlinkSync(lockPath);
+  } catch {
+    /* ignore */
+  }
+}
+if (asHook && event === 'PostToolUse') {
+  try {
+    mkdirSync(dirname(lockPath), { recursive: true });
+    if (existsSync(lockPath)) {
+      const ageMs = Date.now() - statSync(lockPath).mtimeMs;
+      if (ageMs < 30000) finish(0);
+      unlinkSync(lockPath);
+    }
+    writeFileSync(lockPath, String(process.pid), { flag: 'wx' });
+    lockAcquired = true;
+    process.on('exit', releaseLock);
+  } catch {
+    // Another PostToolUse scan won the lock race; let it handle this edit.
+    finish(0);
+  }
+}
+
 const here = dirname(fileURLToPath(import.meta.url));
 // SLOP_HOOK_SCANNER swaps the scanner for a stub in tests.
 const scanner = process.env.SLOP_HOOK_SCANNER || join(here, 'scan-local.mjs');
@@ -67,7 +96,10 @@ const child = spawnSync(process.execPath, [scanner, target], {
 });
 if (child.error) cannotRun(child.error.message);
 if (child.status !== 0) {
-  cannotRun(firstLine(child.stderr).replace(/^Scan could not run\. This is not a Clean score\.\s*/, '') || `scanner exited ${child.status}`);
+  cannotRun(
+    firstLine(child.stderr).replace(/^Scan could not run\. This is not a Clean score\.\s*/, '') ||
+      `scanner exited ${child.status}`
+  );
 }
 
 let result;
@@ -83,8 +115,7 @@ if (!result || result.blocked || result.error || typeof result.score !== 'number
 const { importCore } = await import('./import-core.mjs');
 const { regressionAgainstBaseline, triggeredPatterns } = await importCore();
 
-const baselinePath =
-  process.env.SLOP_BASELINE_PATH || join(cwd, '.slop', 'session-baseline.json');
+const baselinePath = process.env.SLOP_BASELINE_PATH || join(cwd, '.slop', 'session-baseline.json');
 let baseline = null;
 if (existsSync(baselinePath)) {
   try {
@@ -122,5 +153,9 @@ if (!asHook) finish(1, { stdout: decision.text });
 const message = `slop-detect: ${decision.text} Fix the new patterns, or say why they are intended. (Scanned ${target}.)`;
 if (isStopEvent(event) && stopAlreadyContinued(input)) {
   finish(0, { stdout: JSON.stringify({ systemMessage: message }) });
+}
+// Cursor's lowercase `stop` hook consumes `{ followup_message }` JSON on stdout.
+if (event === 'stop') {
+  finish(0, { stdout: JSON.stringify({ followup_message: message }) });
 }
 finish(2, { stderr: message });

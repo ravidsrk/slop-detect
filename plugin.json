@@ -16,11 +16,7 @@
   "mcpServers": {
     "slop-detect": {
       "command": "npx",
-      "args": ["-y", "slop-detect-mcp"]
-    },
-    "slop-detect-remote": {
-      "url": "https://slop-detect.com/mcp",
-      "transport": "streamable-http"
+      "args": ["-y", "-p", "slop-detect", "-p", "slop-detect-mcp", "slop-detect-mcp", "--local"]
     }
   },
   "extensions": {

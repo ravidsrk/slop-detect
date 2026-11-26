@@ -37,6 +37,26 @@ export function evaluateNetlifyGate(result, inputs = {}) {
   const failOn = String(inputs.failOn ?? 'heavy')
     .trim()
     .toLowerCase();
+  if (failOn === 'drift') {
+    if (!result.system?.declared) {
+      return {
+        passed: false,
+        couldNotRun: false,
+        reason: 'failOn="drift" requires designMd to be enabled and a declared DESIGN.md.',
+      };
+    }
+    if (
+      result.system.tier === 'Drifting' ||
+      result.system.tier === 'Off-system' ||
+      (Array.isArray(result.system.drift) && result.system.drift.length > 0)
+    ) {
+      return {
+        passed: false,
+        couldNotRun: false,
+        reason: `DESIGN.md drift detected (${result.system.tier}, ${result.system.drift?.length || 0} item(s)).`,
+      };
+    }
+  }
   if (failOn === 'heavy' && (effectiveScore >= 28 || effectiveTier === 'Heavy')) {
     return {
       passed: false,
@@ -74,16 +94,25 @@ async function defaultScan(targetUrl, inputs = {}) {
     url: targetUrl,
     axes,
     preset: inputs.preset || 'full',
+    share: inputs.share === true || String(inputs.share).trim() === 'true',
   };
   if (inputs.designMd) {
     payload.designMd = inputs.designMd === 'auto' ? true : inputs.designMd;
   }
+  const headers = { 'content-type': 'application/json', accept: 'application/json' };
+  const apiKey = inputs.apiKey || process.env.SLOP_API_KEY || '';
+  if (apiKey) headers['x-api-key'] = apiKey;
   const res = await fetch(`${apiBase}/api/scan`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', accept: 'application/json' },
+    headers,
     body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(45000),
   });
-  return res.json();
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { error: data?.error || data?.message || `HTTP ${res.status}` };
+  }
+  return data;
 }
 
 export async function onPostBuild({ inputs = {}, constants = {}, utils = {}, scanImpl } = {}) {
@@ -114,8 +143,10 @@ export async function onPostBuild({ inputs = {}, constants = {}, utils = {}, sca
   const scoreLabel =
     typeof result?.score === 'number' ? `${result.score}/100 (${result.tier || 'scored'})` : 'n/a';
   const triggered = [
-    ...((result?.patterns || []).filter((p) => p.triggered).map((p) => p.id) || []),
-    ...((result?.axes?.copy?.patterns || []).filter((p) => p.triggered).map((p) => p.id) || []),
+    ...((result?.patterns || []).filter((p) => p.triggered && !p.waived).map((p) => p.id) || []),
+    ...((result?.axes?.copy?.patterns || [])
+      .filter((p) => p.triggered && !p.waived)
+      .map((p) => p.id) || []),
   ];
 
   utils?.status?.show?.({
@@ -135,6 +166,8 @@ export async function onPostBuild({ inputs = {}, constants = {}, utils = {}, sca
   return { passed: gate.passed, reason: gate.reason, result };
 }
 
+// Export onSuccess only on the default Netlify plugin object (onPostBuild stays
+// named-exported for callers/tests) so Netlify does not double-scan the deploy.
 export const onSuccess = onPostBuild;
 
-export default { onPostBuild, onSuccess, evaluateNetlifyGate };
+export default { onSuccess, evaluateNetlifyGate };

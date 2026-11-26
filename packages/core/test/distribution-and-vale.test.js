@@ -141,7 +141,8 @@ describe('R-01, R-02, R-03, R-05, R-06, R-08, R-09..R-14, W-05, K-04 distributio
     expect(cursorPlugin).toEqual(rootPlugin);
     expect(rootPlugin.schemaVersion).toBe('1.0.0');
     expect(rootPlugin.skills).toEqual(['./skills/slop-detect/SKILL.md']);
-    expect(rootPlugin.mcpServers['slop-detect-remote'].url).toBe('https://slop-detect.com/mcp');
+    expect(rootPlugin.mcpServers['slop-detect'].args).toContain('--local');
+    expect(rootPlugin.mcpServers['slop-detect'].args).toContain('slop-detect');
     expect(rootPlugin.extensions['com.openai'].privacyPolicyUrl).toBe(
       'https://slop-detect.com/privacy.md'
     );

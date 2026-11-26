@@ -1,9 +1,10 @@
 # Slop Detector
 
 > Score any landing page against the AI-design fingerprint. Deterministic 0–100
-> slop scoring for landing pages, plus an AEO axis that measures whether AI
-> engines can read and cite a page. Open source; runs on real Chromium; ships as
-> a web app, a CLI, and an MCP server.
+> slop scoring for landing pages, `DESIGN.md` token compliance, and an AEO axis
+> measuring technical crawler eligibility (`robots.txt`, indexability, server
+> HTML text, Markdown twins). Open source; runs on real Chromium; ships as a web
+> app, a CLI, and an MCP server.
 
 Slop Detector inspects a page's live computed styles (and, optionally, its copy)
 and returns a weighted, reproducible score. Lower is better: 0 means no

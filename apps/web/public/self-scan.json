@@ -2,7 +2,7 @@
   "url": "https://slop-detect.com/",
   "finalUrl": "https://slop-detect.com/",
   "title": "Slop Detector: score any landing page against the AI-design fingerprint",
-  "h1": "Does your landing page look generated?",
+  "h1": "Does your landing page wear a default template?",
   "h1Font": "Newsreader, Georgia, \"Times New Roman\", serif",
   "preset": "full",
   "calibration": "uncalibrated-beta",
@@ -16,125 +16,60 @@
       "evidenceGrade": "practitioner",
       "fpRatePre2022": null,
       "detail": {
-        "matchCount": 260,
-        "total": 480,
-        "ratio": 0.542,
+        "matchCount": 382,
+        "total": 737,
+        "ratio": 0.518,
         "heroFam": "Newsreader, Georgia, \"Times New Roman\", serif",
         "resolvedHeroFam": "newsreader",
         "heroMatches": false,
-        "triggered": true,
         "locations": [
           {
-            "selector": "h1.display-hero",
+            "selector": "span.logo-word",
             "rect": {
-              "x": 360,
-              "y": 173,
-              "width": 560,
-              "height": 127
-            }
-          },
-          {
-            "selector": "nav.nav",
-            "rect": {
-              "x": 0,
-              "y": 0,
-              "width": 1280,
-              "height": 62
-            }
-          },
-          {
-            "selector": "div.nav-inner",
-            "rect": {
-              "x": 80,
-              "y": 0,
-              "width": 1120,
-              "height": 61
-            }
-          },
-          {
-            "selector": "a.logo",
-            "rect": {
-              "x": 112,
+              "x": 142,
               "y": 18,
-              "width": 127,
+              "width": 97,
               "height": 24
             }
           },
           {
-            "selector": "span.logo-mark",
+            "selector": "a.nav-link",
             "rect": {
-              "x": 112,
-              "y": 19,
-              "width": 22,
-              "height": 22
+              "x": 700,
+              "y": 20,
+              "width": 88,
+              "height": 21
+            }
+          },
+          {
+            "selector": "a.nav-link",
+            "rect": {
+              "x": 806,
+              "y": 20,
+              "width": 56,
+              "height": 21
+            }
+          },
+          {
+            "selector": "a.nav-link",
+            "rect": {
+              "x": 880,
+              "y": 20,
+              "width": 32,
+              "height": 21
+            }
+          },
+          {
+            "selector": "a.nav-link",
+            "rect": {
+              "x": 930,
+              "y": 20,
+              "width": 72,
+              "height": 21
             }
           }
-        ]
-      }
-    },
-    {
-      "id": "hero_accent_word",
-      "label": "Single inline accent span/italic/color word inside H1",
-      "status": "review",
-      "weight": 0,
-      "scoreDelta": 0,
-      "evidenceGrade": "practitioner",
-      "fpRatePre2022": null,
-      "detail": {
-        "h1Text": "Does your landing page look generated?",
-        "accentText": "generated?",
-        "differedBy": [
-          "fontStyle",
-          "color"
         ],
-        "triggered": true,
-        "locations": [
-          {
-            "selector": "h1.display-hero",
-            "rect": {
-              "x": 360,
-              "y": 173,
-              "width": 560,
-              "height": 127
-            }
-          },
-          {
-            "selector": "h1.display-hero",
-            "rect": {
-              "x": 360,
-              "y": 173,
-              "width": 560,
-              "height": 127
-            }
-          },
-          {
-            "selector": "h2.h2-section",
-            "rect": {
-              "x": 112,
-              "y": 1421,
-              "width": 440,
-              "height": 39
-            }
-          },
-          {
-            "selector": "h3.lb-col-h",
-            "rect": {
-              "x": 112,
-              "y": 1592,
-              "width": 336,
-              "height": 28
-            }
-          },
-          {
-            "selector": "h3.lb-col-h",
-            "rect": {
-              "x": 472,
-              "y": 1592,
-              "width": 336,
-              "height": 28
-            }
-          }
-        ]
+        "triggered": true
       }
     },
     {
@@ -149,117 +84,26 @@
         "creamBranch": true,
         "broadsheetBranch": false,
         "hasSerifH1": true,
-        "hairlineRules": 99,
+        "hairlineRules": 164,
         "trackedLabels": 0,
         "triggered": true,
-        "locations": [
-          {
-            "selector": "nav.nav",
-            "rect": {
-              "x": 0,
-              "y": 0,
-              "width": 1280,
-              "height": 62
-            }
-          },
-          {
-            "selector": "div.nav-inner",
-            "rect": {
-              "x": 80,
-              "y": 0,
-              "width": 1120,
-              "height": 61
-            }
-          },
-          {
-            "selector": "a.logo",
-            "rect": {
-              "x": 112,
-              "y": 18,
-              "width": 127,
-              "height": 24
-            }
-          },
-          {
-            "selector": "span.logo-mark",
-            "rect": {
-              "x": 112,
-              "y": 19,
-              "width": 22,
-              "height": 22
-            }
-          },
-          {
-            "selector": "svg",
-            "rect": {
-              "x": 112,
-              "y": 19,
-              "width": 22,
-              "height": 22
-            }
-          }
-        ]
+        "locations": []
       }
     },
     {
-      "id": "uniform_card_hover",
-      "label": "Identical transform/box-shadow hover transition tuple across ≥4 cards",
+      "id": "fake_logo_bar",
+      "label": "Placeholder or duplicate-asset logo bar (\"Trusted by\" generic SVG/text row)",
       "status": "review",
       "weight": 0,
       "scoreDelta": 0,
       "evidenceGrade": "practitioner",
       "fpRatePre2022": null,
       "detail": {
-        "maxCount": 4,
-        "dominantTuple": "opacity, transform|0.45s, 0.45s|cubic-bezier(0.2, 0.7, 0.2, 1), cubic-bezier(0.2, 0.7, 0.2, 1)",
-        "triggered": true,
-        "locations": [
-          {
-            "selector": "nav.nav",
-            "rect": {
-              "x": 0,
-              "y": 0,
-              "width": 1280,
-              "height": 62
-            }
-          },
-          {
-            "selector": "div.nav-inner",
-            "rect": {
-              "x": 80,
-              "y": 0,
-              "width": 1120,
-              "height": 61
-            }
-          },
-          {
-            "selector": "a.logo",
-            "rect": {
-              "x": 112,
-              "y": 18,
-              "width": 127,
-              "height": 24
-            }
-          },
-          {
-            "selector": "span.logo-mark",
-            "rect": {
-              "x": 112,
-              "y": 19,
-              "width": 22,
-              "height": 22
-            }
-          },
-          {
-            "selector": "svg",
-            "rect": {
-              "x": 112,
-              "y": 19,
-              "width": 22,
-              "height": 22
-            }
-          }
-        ]
+        "placeholderLogos": 2,
+        "duplicateLogoRows": 0,
+        "nodeIds": [],
+        "locations": [],
+        "triggered": true
       }
     },
     {
@@ -281,65 +125,19 @@
           "maxRadiusPx": 50
         },
         "triggered": true,
-        "locations": [
-          {
-            "selector": "nav.nav",
-            "rect": {
-              "x": 0,
-              "y": 0,
-              "width": 1280,
-              "height": 62
-            }
-          },
-          {
-            "selector": "div.nav-inner",
-            "rect": {
-              "x": 80,
-              "y": 0,
-              "width": 1120,
-              "height": 61
-            }
-          },
-          {
-            "selector": "a.logo",
-            "rect": {
-              "x": 112,
-              "y": 18,
-              "width": 127,
-              "height": 24
-            }
-          },
-          {
-            "selector": "span.logo-mark",
-            "rect": {
-              "x": 112,
-              "y": 19,
-              "width": 22,
-              "height": 22
-            }
-          },
-          {
-            "selector": "svg",
-            "rect": {
-              "x": 112,
-              "y": 19,
-              "width": 22,
-              "height": 22
-            }
-          }
-        ]
+        "locations": []
       }
     }
   ],
   "score": 0,
   "tier": "Clean",
   "grade": "A+",
-  "verdict": "Restrained palette and typography. Default-template patterns are absent.",
-  "patternsFlagged": 5,
+  "verdict": "Matches few default-template patterns. Distinct visual choices.",
+  "patternsFlagged": 4,
   "patternsScored": 0,
   "patternsTotal": 45,
   "unknownCount": 0,
-  "reviewCount": 5,
+  "reviewCount": 4,
   "coverage": 1,
   "adjustments": [],
   "confidence": {
@@ -373,11 +171,12 @@
       "fpRate": null,
       "fpRatePre2022": null,
       "triggered": false,
+      "locations": [],
       "evidence": {
         "slopCount": 0,
         "primaryCount": 0,
         "secondaryCount": 0,
-        "total": 480,
+        "total": 737,
         "ratio": 0,
         "heroIsSlop": false,
         "heroFam": "Newsreader, Georgia, \"Times New Roman\", serif",
@@ -386,6 +185,7 @@
         "interOrGeistOnly": false,
         "interLifecycleStatus": "decaying",
         "accentSerifItalicCount": 0,
+        "locations": [],
         "triggered": false
       }
     },
@@ -413,106 +213,106 @@
       "triggered": true,
       "locations": [
         {
-          "selector": "h1.display-hero",
+          "selector": "span.logo-word",
           "rect": {
-            "x": 360,
-            "y": 173,
-            "width": 560,
-            "height": 127
-          }
-        },
-        {
-          "selector": "nav.nav",
-          "rect": {
-            "x": 0,
-            "y": 0,
-            "width": 1280,
-            "height": 62
-          }
-        },
-        {
-          "selector": "div.nav-inner",
-          "rect": {
-            "x": 80,
-            "y": 0,
-            "width": 1120,
-            "height": 61
-          }
-        },
-        {
-          "selector": "a.logo",
-          "rect": {
-            "x": 112,
+            "x": 142,
             "y": 18,
-            "width": 127,
+            "width": 97,
             "height": 24
           }
         },
         {
-          "selector": "span.logo-mark",
+          "selector": "a.nav-link",
           "rect": {
-            "x": 112,
-            "y": 19,
-            "width": 22,
-            "height": 22
+            "x": 700,
+            "y": 20,
+            "width": 88,
+            "height": 21
+          }
+        },
+        {
+          "selector": "a.nav-link",
+          "rect": {
+            "x": 806,
+            "y": 20,
+            "width": 56,
+            "height": 21
+          }
+        },
+        {
+          "selector": "a.nav-link",
+          "rect": {
+            "x": 880,
+            "y": 20,
+            "width": 32,
+            "height": 21
+          }
+        },
+        {
+          "selector": "a.nav-link",
+          "rect": {
+            "x": 930,
+            "y": 20,
+            "width": 72,
+            "height": 21
           }
         }
       ],
       "evidence": {
-        "matchCount": 260,
-        "total": 480,
-        "ratio": 0.542,
+        "matchCount": 382,
+        "total": 737,
+        "ratio": 0.518,
         "heroFam": "Newsreader, Georgia, \"Times New Roman\", serif",
         "resolvedHeroFam": "newsreader",
         "heroMatches": false,
-        "triggered": true,
         "locations": [
           {
-            "selector": "h1.display-hero",
+            "selector": "span.logo-word",
             "rect": {
-              "x": 360,
-              "y": 173,
-              "width": 560,
-              "height": 127
-            }
-          },
-          {
-            "selector": "nav.nav",
-            "rect": {
-              "x": 0,
-              "y": 0,
-              "width": 1280,
-              "height": 62
-            }
-          },
-          {
-            "selector": "div.nav-inner",
-            "rect": {
-              "x": 80,
-              "y": 0,
-              "width": 1120,
-              "height": 61
-            }
-          },
-          {
-            "selector": "a.logo",
-            "rect": {
-              "x": 112,
+              "x": 142,
               "y": 18,
-              "width": 127,
+              "width": 97,
               "height": 24
             }
           },
           {
-            "selector": "span.logo-mark",
+            "selector": "a.nav-link",
             "rect": {
-              "x": 112,
-              "y": 19,
-              "width": 22,
-              "height": 22
+              "x": 700,
+              "y": 20,
+              "width": 88,
+              "height": 21
+            }
+          },
+          {
+            "selector": "a.nav-link",
+            "rect": {
+              "x": 806,
+              "y": 20,
+              "width": 56,
+              "height": 21
+            }
+          },
+          {
+            "selector": "a.nav-link",
+            "rect": {
+              "x": 880,
+              "y": 20,
+              "width": 32,
+              "height": 21
+            }
+          },
+          {
+            "selector": "a.nav-link",
+            "rect": {
+              "x": 930,
+              "y": 20,
+              "width": 72,
+              "height": 21
             }
           }
-        ]
+        ],
+        "triggered": true
       }
     },
     {
@@ -536,10 +336,12 @@
       "fpRate": null,
       "fpRatePre2022": null,
       "triggered": false,
+      "locations": [],
       "evidence": {
         "purpleEls": 0,
         "filledCtas": 0,
         "samples": [],
+        "locations": [],
         "triggered": false
       }
     },
@@ -564,9 +366,11 @@
       "fpRate": null,
       "fpRatePre2022": null,
       "triggered": false,
+      "locations": [],
       "evidence": {
         "count": 0,
         "heroHasGradient": false,
+        "locations": [],
         "triggered": false
       }
     },
@@ -697,8 +501,10 @@
       "fpRate": null,
       "fpRatePre2022": null,
       "triggered": false,
+      "locations": [],
       "evidence": {
         "glowCount": 0,
+        "locations": [],
         "triggered": false
       }
     },
@@ -961,9 +767,11 @@
       "fpRate": null,
       "fpRatePre2022": null,
       "triggered": false,
+      "locations": [],
       "evidence": {
         "count": 0,
         "samples": [],
+        "locations": [],
         "triggered": false
       }
     },
@@ -988,10 +796,12 @@
       "fpRate": null,
       "fpRatePre2022": null,
       "triggered": false,
+      "locations": [],
       "evidence": {
         "children": 0,
         "spanVariety": 0,
         "rounded": 0,
+        "locations": [],
         "triggered": false
       }
     },
@@ -1097,7 +907,7 @@
       "triggered": false,
       "evidence": {
         "fails": 0,
-        "checked": 44,
+        "checked": 47,
         "ratioFail": 0,
         "samples": [],
         "apcaNote": "APCA, a candidate method; the WCAG 3 draft leaves the contrast measure undetermined",
@@ -1152,8 +962,8 @@
       "triggered": false,
       "evidence": {
         "fontSize": 59,
-        "chars": 38,
-        "text": "Does your landing page look generated?",
+        "chars": 47,
+        "text": "Does your landing page wear a default template?",
         "triggered": false
       }
     },
@@ -1240,7 +1050,7 @@
       "short": "Hero accent word",
       "category": "fonts",
       "weight": 0,
-      "status": "review",
+      "status": "pass",
       "ruleStatus": "review",
       "evidenceGrade": "practitioner",
       "era": "2026-opus4.6",
@@ -1253,109 +1063,9 @@
       "likelihoodRatio": null,
       "fpRate": null,
       "fpRatePre2022": null,
-      "triggered": true,
-      "locations": [
-        {
-          "selector": "h1.display-hero",
-          "rect": {
-            "x": 360,
-            "y": 173,
-            "width": 560,
-            "height": 127
-          }
-        },
-        {
-          "selector": "h1.display-hero",
-          "rect": {
-            "x": 360,
-            "y": 173,
-            "width": 560,
-            "height": 127
-          }
-        },
-        {
-          "selector": "h2.h2-section",
-          "rect": {
-            "x": 112,
-            "y": 1421,
-            "width": 440,
-            "height": 39
-          }
-        },
-        {
-          "selector": "h3.lb-col-h",
-          "rect": {
-            "x": 112,
-            "y": 1592,
-            "width": 336,
-            "height": 28
-          }
-        },
-        {
-          "selector": "h3.lb-col-h",
-          "rect": {
-            "x": 472,
-            "y": 1592,
-            "width": 336,
-            "height": 28
-          }
-        }
-      ],
+      "triggered": false,
       "evidence": {
-        "h1Text": "Does your landing page look generated?",
-        "accentText": "generated?",
-        "differedBy": [
-          "fontStyle",
-          "color"
-        ],
-        "triggered": true,
-        "locations": [
-          {
-            "selector": "h1.display-hero",
-            "rect": {
-              "x": 360,
-              "y": 173,
-              "width": 560,
-              "height": 127
-            }
-          },
-          {
-            "selector": "h1.display-hero",
-            "rect": {
-              "x": 360,
-              "y": 173,
-              "width": 560,
-              "height": 127
-            }
-          },
-          {
-            "selector": "h2.h2-section",
-            "rect": {
-              "x": 112,
-              "y": 1421,
-              "width": 440,
-              "height": 39
-            }
-          },
-          {
-            "selector": "h3.lb-col-h",
-            "rect": {
-              "x": 112,
-              "y": 1592,
-              "width": 336,
-              "height": 28
-            }
-          },
-          {
-            "selector": "h3.lb-col-h",
-            "rect": {
-              "x": 472,
-              "y": 1592,
-              "width": 336,
-              "height": 28
-            }
-          }
-        ]
+        "triggered": false
       }
     },
     {
@@ -1413,9 +1123,9 @@
       "fpRatePre2022": null,
       "triggered": false,
       "evidence": {
-        "totalComponents": 55,
+        "totalComponents": 63,
         "dominantRadius": 3,
-        "radiusShare": 0.582,
+        "radiusShare": 0.587,
         "dominantSizeClasses": 2,
         "shadowShare": 0,
         "triggered": false
@@ -1439,107 +1149,15 @@
       "fpRate": null,
       "fpRatePre2022": null,
       "triggered": true,
-      "locations": [
-        {
-          "selector": "nav.nav",
-          "rect": {
-            "x": 0,
-            "y": 0,
-            "width": 1280,
-            "height": 62
-          }
-        },
-        {
-          "selector": "div.nav-inner",
-          "rect": {
-            "x": 80,
-            "y": 0,
-            "width": 1120,
-            "height": 61
-          }
-        },
-        {
-          "selector": "a.logo",
-          "rect": {
-            "x": 112,
-            "y": 18,
-            "width": 127,
-            "height": 24
-          }
-        },
-        {
-          "selector": "span.logo-mark",
-          "rect": {
-            "x": 112,
-            "y": 19,
-            "width": 22,
-            "height": 22
-          }
-        },
-        {
-          "selector": "svg",
-          "rect": {
-            "x": 112,
-            "y": 19,
-            "width": 22,
-            "height": 22
-          }
-        }
-      ],
+      "locations": [],
       "evidence": {
         "creamBranch": true,
         "broadsheetBranch": false,
         "hasSerifH1": true,
-        "hairlineRules": 99,
+        "hairlineRules": 164,
         "trackedLabels": 0,
         "triggered": true,
-        "locations": [
-          {
-            "selector": "nav.nav",
-            "rect": {
-              "x": 0,
-              "y": 0,
-              "width": 1280,
-              "height": 62
-            }
-          },
-          {
-            "selector": "div.nav-inner",
-            "rect": {
-              "x": 80,
-              "y": 0,
-              "width": 1120,
-              "height": 61
-            }
-          },
-          {
-            "selector": "a.logo",
-            "rect": {
-              "x": 112,
-              "y": 18,
-              "width": 127,
-              "height": 24
-            }
-          },
-          {
-            "selector": "span.logo-mark",
-            "rect": {
-              "x": 112,
-              "y": 19,
-              "width": 22,
-              "height": 22
-            }
-          },
-          {
-            "selector": "svg",
-            "rect": {
-              "x": 112,
-              "y": 19,
-              "width": 22,
-              "height": 22
-            }
-          }
-        ]
+        "locations": []
       }
     },
     {
@@ -1630,7 +1248,7 @@
       "fpRatePre2022": null,
       "triggered": false,
       "evidence": {
-        "hits": [],
+        "exempt": "code-in-hero",
         "triggered": false
       }
     },
@@ -1682,8 +1300,10 @@
       "fpRate": null,
       "fpRatePre2022": null,
       "triggered": false,
+      "locations": [],
       "evidence": {
         "count": 0,
+        "locations": [],
         "triggered": false
       }
     },
@@ -1693,7 +1313,7 @@
       "short": "Fake logo bar",
       "category": "images",
       "weight": 0,
-      "status": "pass",
+      "status": "review",
       "ruleStatus": "review",
       "evidenceGrade": "practitioner",
       "era": "2025-v0",
@@ -1706,12 +1326,14 @@
       "likelihoodRatio": null,
       "fpRate": null,
       "fpRatePre2022": null,
-      "triggered": false,
+      "triggered": true,
+      "locations": [],
       "evidence": {
-        "placeholderLogos": 1,
+        "placeholderLogos": 2,
         "duplicateLogoRows": 0,
         "nodeIds": [],
-        "triggered": false
+        "locations": [],
+        "triggered": true
       }
     },
     {
@@ -1734,8 +1356,10 @@
       "fpRate": null,
       "fpRatePre2022": null,
       "triggered": false,
+      "locations": [],
       "evidence": {
         "tickers": 0,
+        "locations": [],
         "triggered": false
       }
     },
@@ -1760,9 +1384,11 @@
       "fpRate": null,
       "fpRatePre2022": null,
       "triggered": false,
+      "locations": [],
       "evidence": {
         "count": 0,
         "sectionCount": 0,
+        "locations": [],
         "triggered": false
       }
     },
@@ -1797,7 +1423,7 @@
       "short": "Uniform hover",
       "category": "css",
       "weight": 0,
-      "status": "review",
+      "status": "pass",
       "ruleStatus": "review",
       "evidenceGrade": "practitioner",
       "era": "2025-v0",
@@ -1810,105 +1436,11 @@
       "likelihoodRatio": null,
       "fpRate": null,
       "fpRatePre2022": null,
-      "triggered": true,
-      "locations": [
-        {
-          "selector": "nav.nav",
-          "rect": {
-            "x": 0,
-            "y": 0,
-            "width": 1280,
-            "height": 62
-          }
-        },
-        {
-          "selector": "div.nav-inner",
-          "rect": {
-            "x": 80,
-            "y": 0,
-            "width": 1120,
-            "height": 61
-          }
-        },
-        {
-          "selector": "a.logo",
-          "rect": {
-            "x": 112,
-            "y": 18,
-            "width": 127,
-            "height": 24
-          }
-        },
-        {
-          "selector": "span.logo-mark",
-          "rect": {
-            "x": 112,
-            "y": 19,
-            "width": 22,
-            "height": 22
-          }
-        },
-        {
-          "selector": "svg",
-          "rect": {
-            "x": 112,
-            "y": 19,
-            "width": 22,
-            "height": 22
-          }
-        }
-      ],
+      "triggered": false,
       "evidence": {
-        "maxCount": 4,
-        "dominantTuple": "opacity, transform|0.45s, 0.45s|cubic-bezier(0.2, 0.7, 0.2, 1), cubic-bezier(0.2, 0.7, 0.2, 1)",
-        "triggered": true,
-        "locations": [
-          {
-            "selector": "nav.nav",
-            "rect": {
-              "x": 0,
-              "y": 0,
-              "width": 1280,
-              "height": 62
-            }
-          },
-          {
-            "selector": "div.nav-inner",
-            "rect": {
-              "x": 80,
-              "y": 0,
-              "width": 1120,
-              "height": 61
-            }
-          },
-          {
-            "selector": "a.logo",
-            "rect": {
-              "x": 112,
-              "y": 18,
-              "width": 127,
-              "height": 24
-            }
-          },
-          {
-            "selector": "span.logo-mark",
-            "rect": {
-              "x": 112,
-              "y": 19,
-              "width": 22,
-              "height": 22
-            }
-          },
-          {
-            "selector": "svg",
-            "rect": {
-              "x": 112,
-              "y": 19,
-              "width": 22,
-              "height": 22
-            }
-          }
-        ]
+        "maxCount": 1,
+        "dominantTuple": "all|0.14s|ease",
+        "triggered": false
       }
     },
     {
@@ -1931,53 +1463,7 @@
       "fpRate": null,
       "fpRatePre2022": null,
       "triggered": true,
-      "locations": [
-        {
-          "selector": "nav.nav",
-          "rect": {
-            "x": 0,
-            "y": 0,
-            "width": 1280,
-            "height": 62
-          }
-        },
-        {
-          "selector": "div.nav-inner",
-          "rect": {
-            "x": 80,
-            "y": 0,
-            "width": 1120,
-            "height": 61
-          }
-        },
-        {
-          "selector": "a.logo",
-          "rect": {
-            "x": 112,
-            "y": 18,
-            "width": 127,
-            "height": 24
-          }
-        },
-        {
-          "selector": "span.logo-mark",
-          "rect": {
-            "x": 112,
-            "y": 19,
-            "width": 22,
-            "height": 22
-          }
-        },
-        {
-          "selector": "svg",
-          "rect": {
-            "x": 112,
-            "y": 19,
-            "width": 22,
-            "height": 22
-          }
-        }
-      ],
+      "locations": [],
       "evidence": {
         "sectionCount": 8,
         "repeatedShare": 0.5,
@@ -1989,53 +1475,7 @@
           "maxRadiusPx": 50
         },
         "triggered": true,
-        "locations": [
-          {
-            "selector": "nav.nav",
-            "rect": {
-              "x": 0,
-              "y": 0,
-              "width": 1280,
-              "height": 62
-            }
-          },
-          {
-            "selector": "div.nav-inner",
-            "rect": {
-              "x": 80,
-              "y": 0,
-              "width": 1120,
-              "height": 61
-            }
-          },
-          {
-            "selector": "a.logo",
-            "rect": {
-              "x": 112,
-              "y": 18,
-              "width": 127,
-              "height": 24
-            }
-          },
-          {
-            "selector": "span.logo-mark",
-            "rect": {
-              "x": 112,
-              "y": 19,
-              "width": 22,
-              "height": 22
-            }
-          },
-          {
-            "selector": "svg",
-            "rect": {
-              "x": 112,
-              "y": 19,
-              "width": 22,
-              "height": 22
-            }
-          }
-        ]
+        "locations": []
       }
     },
     {
@@ -2073,17 +1513,17 @@
   "madeWith": [],
   "kitMatch": {
     "id": "claude-opus-5.5-default",
-    "hits": 3,
+    "hits": 2,
     "of": 5,
     "matched": false,
     "signals": {
       "cream_ground": true,
-      "hero_accent_word": true,
+      "hero_accent_word": false,
       "numbered_labels": false,
       "mono_labels": true,
       "pill_buttons": false
     },
-    "summary": "matches 3 of 5 signals of the default kit named in Anthropic's Opus 5.5 prompting guide",
+    "summary": "matches 2 of 5 signals of the default kit named in Anthropic's Opus 5.5 prompting guide",
     "source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5#frontend-design-defaults",
     "sourceDate": "2026-10-20",
     "status": "active"
@@ -2091,23 +1531,23 @@
   "kitMatches": [
     {
       "id": "claude-opus-5.5-default",
-      "hits": 3,
+      "hits": 2,
       "of": 5,
       "matched": false,
       "signals": {
         "cream_ground": true,
-        "hero_accent_word": true,
+        "hero_accent_word": false,
         "numbered_labels": false,
         "mono_labels": true,
         "pill_buttons": false
       },
-      "summary": "matches 3 of 5 signals of the default kit named in Anthropic's Opus 5.5 prompting guide",
+      "summary": "matches 2 of 5 signals of the default kit named in Anthropic's Opus 5.5 prompting guide",
       "source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5#frontend-design-defaults",
       "sourceDate": "2026-10-20",
       "status": "active"
     }
   ],
-  "renderedWords": 1082,
+  "renderedWords": 1366,
   "schemaVersion": 1,
   "environment": {
     "viewport": {
@@ -2337,7 +1777,7 @@
       "score": 0,
       "tier": "Clean",
       "grade": "A+",
-      "patternsFlagged": 5,
+      "patternsFlagged": 4,
       "patternsTotal": 45,
       "patterns": [
         {
@@ -2361,11 +1801,12 @@
           "fpRate": null,
           "fpRatePre2022": null,
           "triggered": false,
+          "locations": [],
           "evidence": {
             "slopCount": 0,
             "primaryCount": 0,
             "secondaryCount": 0,
-            "total": 480,
+            "total": 737,
             "ratio": 0,
             "heroIsSlop": false,
             "heroFam": "Newsreader, Georgia, \"Times New Roman\", serif",
@@ -2374,6 +1815,7 @@
             "interOrGeistOnly": false,
             "interLifecycleStatus": "decaying",
             "accentSerifItalicCount": 0,
+            "locations": [],
             "triggered": false
           }
         },
@@ -2401,106 +1843,106 @@
           "triggered": true,
           "locations": [
             {
-              "selector": "h1.display-hero",
+              "selector": "span.logo-word",
               "rect": {
-                "x": 360,
-                "y": 173,
-                "width": 560,
-                "height": 127
-              }
-            },
-            {
-              "selector": "nav.nav",
-              "rect": {
-                "x": 0,
-                "y": 0,
-                "width": 1280,
-                "height": 62
-              }
-            },
-            {
-              "selector": "div.nav-inner",
-              "rect": {
-                "x": 80,
-                "y": 0,
-                "width": 1120,
-                "height": 61
-              }
-            },
-            {
-              "selector": "a.logo",
-              "rect": {
-                "x": 112,
+                "x": 142,
                 "y": 18,
-                "width": 127,
+                "width": 97,
                 "height": 24
               }
             },
             {
-              "selector": "span.logo-mark",
+              "selector": "a.nav-link",
               "rect": {
-                "x": 112,
-                "y": 19,
-                "width": 22,
-                "height": 22
+                "x": 700,
+                "y": 20,
+                "width": 88,
+                "height": 21
+              }
+            },
+            {
+              "selector": "a.nav-link",
+              "rect": {
+                "x": 806,
+                "y": 20,
+                "width": 56,
+                "height": 21
+              }
+            },
+            {
+              "selector": "a.nav-link",
+              "rect": {
+                "x": 880,
+                "y": 20,
+                "width": 32,
+                "height": 21
+              }
+            },
+            {
+              "selector": "a.nav-link",
+              "rect": {
+                "x": 930,
+                "y": 20,
+                "width": 72,
+                "height": 21
               }
             }
           ],
           "evidence": {
-            "matchCount": 260,
-            "total": 480,
-            "ratio": 0.542,
+            "matchCount": 382,
+            "total": 737,
+            "ratio": 0.518,
             "heroFam": "Newsreader, Georgia, \"Times New Roman\", serif",
             "resolvedHeroFam": "newsreader",
             "heroMatches": false,
-            "triggered": true,
             "locations": [
               {
-                "selector": "h1.display-hero",
+                "selector": "span.logo-word",
                 "rect": {
-                  "x": 360,
-                  "y": 173,
-                  "width": 560,
-                  "height": 127
-                }
-              },
-              {
-                "selector": "nav.nav",
-                "rect": {
-                  "x": 0,
-                  "y": 0,
-                  "width": 1280,
-                  "height": 62
-                }
-              },
-              {
-                "selector": "div.nav-inner",
-                "rect": {
-                  "x": 80,
-                  "y": 0,
-                  "width": 1120,
-                  "height": 61
-                }
-              },
-              {
-                "selector": "a.logo",
-                "rect": {
-                  "x": 112,
+                  "x": 142,
                   "y": 18,
-                  "width": 127,
+                  "width": 97,
                   "height": 24
                 }
               },
               {
-                "selector": "span.logo-mark",
+                "selector": "a.nav-link",
                 "rect": {
-                  "x": 112,
-                  "y": 19,
-                  "width": 22,
-                  "height": 22
+                  "x": 700,
+                  "y": 20,
+                  "width": 88,
+                  "height": 21
+                }
+              },
+              {
+                "selector": "a.nav-link",
+                "rect": {
+                  "x": 806,
+                  "y": 20,
+                  "width": 56,
+                  "height": 21
+                }
+              },
+              {
+                "selector": "a.nav-link",
+                "rect": {
+                  "x": 880,
+                  "y": 20,
+                  "width": 32,
+                  "height": 21
+                }
+              },
+              {
+                "selector": "a.nav-link",
+                "rect": {
+                  "x": 930,
+                  "y": 20,
+                  "width": 72,
+                  "height": 21
                 }
               }
-            ]
+            ],
+            "triggered": true
           }
         },
         {
@@ -2524,10 +1966,12 @@
           "fpRate": null,
           "fpRatePre2022": null,
           "triggered": false,
+          "locations": [],
           "evidence": {
             "purpleEls": 0,
             "filledCtas": 0,
             "samples": [],
+            "locations": [],
             "triggered": false
           }
         },
@@ -2552,9 +1996,11 @@
           "fpRate": null,
           "fpRatePre2022": null,
           "triggered": false,
+          "locations": [],
           "evidence": {
             "count": 0,
             "heroHasGradient": false,
+            "locations": [],
             "triggered": false
           }
         },
@@ -2685,8 +2131,10 @@
           "fpRate": null,
           "fpRatePre2022": null,
           "triggered": false,
+          "locations": [],
           "evidence": {
             "glowCount": 0,
+            "locations": [],
             "triggered": false
           }
         },
@@ -2949,9 +2397,11 @@
           "fpRate": null,
           "fpRatePre2022": null,
           "triggered": false,
+          "locations": [],
           "evidence": {
             "count": 0,
             "samples": [],
+            "locations": [],
             "triggered": false
           }
         },
@@ -2976,10 +2426,12 @@
           "fpRate": null,
           "fpRatePre2022": null,
           "triggered": false,
+          "locations": [],
           "evidence": {
             "children": 0,
             "spanVariety": 0,
             "rounded": 0,
+            "locations": [],
             "triggered": false
           }
         },
@@ -3085,7 +2537,7 @@
           "triggered": false,
           "evidence": {
             "fails": 0,
-            "checked": 44,
+            "checked": 47,
             "ratioFail": 0,
             "samples": [],
             "apcaNote": "APCA, a candidate method; the WCAG 3 draft leaves the contrast measure undetermined",
@@ -3140,8 +2592,8 @@
           "triggered": false,
           "evidence": {
             "fontSize": 59,
-            "chars": 38,
-            "text": "Does your landing page look generated?",
+            "chars": 47,
+            "text": "Does your landing page wear a default template?",
             "triggered": false
           }
         },
@@ -3228,7 +2680,7 @@
           "short": "Hero accent word",
           "category": "fonts",
           "weight": 0,
-          "status": "review",
+          "status": "pass",
           "ruleStatus": "review",
           "evidenceGrade": "practitioner",
           "era": "2026-opus4.6",
@@ -3241,109 +2693,9 @@
           "likelihoodRatio": null,
           "fpRate": null,
           "fpRatePre2022": null,
-          "triggered": true,
-          "locations": [
-            {
-              "selector": "h1.display-hero",
-              "rect": {
-                "x": 360,
-                "y": 173,
-                "width": 560,
-                "height": 127
-              }
-            },
-            {
-              "selector": "h1.display-hero",
-              "rect": {
-                "x": 360,
-                "y": 173,
-                "width": 560,
-                "height": 127
-              }
-            },
-            {
-              "selector": "h2.h2-section",
-              "rect": {
-                "x": 112,
-                "y": 1421,
-                "width": 440,
-                "height": 39
-              }
-            },
-            {
-              "selector": "h3.lb-col-h",
-              "rect": {
-                "x": 112,
-                "y": 1592,
-                "width": 336,
-                "height": 28
-              }
-            },
-            {
-              "selector": "h3.lb-col-h",
-              "rect": {
-                "x": 472,
-                "y": 1592,
-                "width": 336,
-                "height": 28
-              }
-            }
-          ],
+          "triggered": false,
           "evidence": {
-            "h1Text": "Does your landing page look generated?",
-            "accentText": "generated?",
-            "differedBy": [
-              "fontStyle",
-              "color"
-            ],
-            "triggered": true,
-            "locations": [
-              {
-                "selector": "h1.display-hero",
-                "rect": {
-                  "x": 360,
-                  "y": 173,
-                  "width": 560,
-                  "height": 127
-                }
-              },
-              {
-                "selector": "h1.display-hero",
-                "rect": {
-                  "x": 360,
-                  "y": 173,
-                  "width": 560,
-                  "height": 127
-                }
-              },
-              {
-                "selector": "h2.h2-section",
-                "rect": {
-                  "x": 112,
-                  "y": 1421,
-                  "width": 440,
-                  "height": 39
-                }
-              },
-              {
-                "selector": "h3.lb-col-h",
-                "rect": {
-                  "x": 112,
-                  "y": 1592,
-                  "width": 336,
-                  "height": 28
-                }
-              },
-              {
-                "selector": "h3.lb-col-h",
-                "rect": {
-                  "x": 472,
-                  "y": 1592,
-                  "width": 336,
-                  "height": 28
-                }
-              }
-            ]
+            "triggered": false
           }
         },
         {
@@ -3401,9 +2753,9 @@
           "fpRatePre2022": null,
           "triggered": false,
           "evidence": {
-            "totalComponents": 55,
+            "totalComponents": 63,
             "dominantRadius": 3,
-            "radiusShare": 0.582,
+            "radiusShare": 0.587,
             "dominantSizeClasses": 2,
             "shadowShare": 0,
             "triggered": false
@@ -3427,107 +2779,15 @@
           "fpRate": null,
           "fpRatePre2022": null,
           "triggered": true,
-          "locations": [
-            {
-              "selector": "nav.nav",
-              "rect": {
-                "x": 0,
-                "y": 0,
-                "width": 1280,
-                "height": 62
-              }
-            },
-            {
-              "selector": "div.nav-inner",
-              "rect": {
-                "x": 80,
-                "y": 0,
-                "width": 1120,
-                "height": 61
-              }
-            },
-            {
-              "selector": "a.logo",
-              "rect": {
-                "x": 112,
-                "y": 18,
-                "width": 127,
-                "height": 24
-              }
-            },
-            {
-              "selector": "span.logo-mark",
-              "rect": {
-                "x": 112,
-                "y": 19,
-                "width": 22,
-                "height": 22
-              }
-            },
-            {
-              "selector": "svg",
-              "rect": {
-                "x": 112,
-                "y": 19,
-                "width": 22,
-                "height": 22
-              }
-            }
-          ],
+          "locations": [],
           "evidence": {
             "creamBranch": true,
             "broadsheetBranch": false,
             "hasSerifH1": true,
-            "hairlineRules": 99,
+            "hairlineRules": 164,
             "trackedLabels": 0,
             "triggered": true,
-            "locations": [
-              {
-                "selector": "nav.nav",
-                "rect": {
-                  "x": 0,
-                  "y": 0,
-                  "width": 1280,
-                  "height": 62
-                }
-              },
-              {
-                "selector": "div.nav-inner",
-                "rect": {
-                  "x": 80,
-                  "y": 0,
-                  "width": 1120,
-                  "height": 61
-                }
-              },
-              {
-                "selector": "a.logo",
-                "rect": {
-                  "x": 112,
-                  "y": 18,
-                  "width": 127,
-                  "height": 24
-                }
-              },
-              {
-                "selector": "span.logo-mark",
-                "rect": {
-                  "x": 112,
-                  "y": 19,
-                  "width": 22,
-                  "height": 22
-                }
-              },
-              {
-                "selector": "svg",
-                "rect": {
-                  "x": 112,
-                  "y": 19,
-                  "width": 22,
-                  "height": 22
-                }
-              }
-            ]
+            "locations": []
           }
         },
         {
@@ -3618,7 +2878,7 @@
           "fpRatePre2022": null,
           "triggered": false,
           "evidence": {
-            "hits": [],
+            "exempt": "code-in-hero",
             "triggered": false
           }
         },
@@ -3670,8 +2930,10 @@
           "fpRate": null,
           "fpRatePre2022": null,
           "triggered": false,
+          "locations": [],
           "evidence": {
             "count": 0,
+            "locations": [],
             "triggered": false
           }
         },
@@ -3681,7 +2943,7 @@
           "short": "Fake logo bar",
           "category": "images",
           "weight": 0,
-          "status": "pass",
+          "status": "review",
           "ruleStatus": "review",
           "evidenceGrade": "practitioner",
           "era": "2025-v0",
@@ -3694,12 +2956,14 @@
           "likelihoodRatio": null,
           "fpRate": null,
           "fpRatePre2022": null,
-          "triggered": false,
+          "triggered": true,
+          "locations": [],
           "evidence": {
-            "placeholderLogos": 1,
+            "placeholderLogos": 2,
             "duplicateLogoRows": 0,
             "nodeIds": [],
-            "triggered": false
+            "locations": [],
+            "triggered": true
           }
         },
         {
@@ -3722,8 +2986,10 @@
           "fpRate": null,
           "fpRatePre2022": null,
           "triggered": false,
+          "locations": [],
           "evidence": {
             "tickers": 0,
+            "locations": [],
             "triggered": false
           }
         },
@@ -3748,9 +3014,11 @@
           "fpRate": null,
           "fpRatePre2022": null,
           "triggered": false,
+          "locations": [],
           "evidence": {
             "count": 0,
             "sectionCount": 0,
+            "locations": [],
             "triggered": false
           }
         },
@@ -3785,7 +3053,7 @@
           "short": "Uniform hover",
           "category": "css",
           "weight": 0,
-          "status": "review",
+          "status": "pass",
           "ruleStatus": "review",
           "evidenceGrade": "practitioner",
           "era": "2025-v0",
@@ -3798,105 +3066,11 @@
           "likelihoodRatio": null,
           "fpRate": null,
           "fpRatePre2022": null,
-          "triggered": true,
-          "locations": [
-            {
-              "selector": "nav.nav",
-              "rect": {
-                "x": 0,
-                "y": 0,
-                "width": 1280,
-                "height": 62
-              }
-            },
-            {
-              "selector": "div.nav-inner",
-              "rect": {
-                "x": 80,
-                "y": 0,
-                "width": 1120,
-                "height": 61
-              }
-            },
-            {
-              "selector": "a.logo",
-              "rect": {
-                "x": 112,
-                "y": 18,
-                "width": 127,
-                "height": 24
-              }
-            },
-            {
-              "selector": "span.logo-mark",
-              "rect": {
-                "x": 112,
-                "y": 19,
-                "width": 22,
-                "height": 22
-              }
-            },
-            {
-              "selector": "svg",
-              "rect": {
-                "x": 112,
-                "y": 19,
-                "width": 22,
-                "height": 22
-              }
-            }
-          ],
+          "triggered": false,
           "evidence": {
-            "maxCount": 4,
-            "dominantTuple": "opacity, transform|0.45s, 0.45s|cubic-bezier(0.2, 0.7, 0.2, 1), cubic-bezier(0.2, 0.7, 0.2, 1)",
-            "triggered": true,
-            "locations": [
-              {
-                "selector": "nav.nav",
-                "rect": {
-                  "x": 0,
-                  "y": 0,
-                  "width": 1280,
-                  "height": 62
-                }
-              },
-              {
-                "selector": "div.nav-inner",
-                "rect": {
-                  "x": 80,
-                  "y": 0,
-                  "width": 1120,
-                  "height": 61
-                }
-              },
-              {
-                "selector": "a.logo",
-                "rect": {
-                  "x": 112,
-                  "y": 18,
-                  "width": 127,
-                  "height": 24
-                }
-              },
-              {
-                "selector": "span.logo-mark",
-                "rect": {
-                  "x": 112,
-                  "y": 19,
-                  "width": 22,
-                  "height": 22
-                }
-              },
-              {
-                "selector": "svg",
-                "rect": {
-                  "x": 112,
-                  "y": 19,
-                  "width": 22,
-                  "height": 22
-                }
-              }
-            ]
+            "maxCount": 1,
+            "dominantTuple": "all|0.14s|ease",
+            "triggered": false
           }
         },
         {
@@ -3919,53 +3093,7 @@
           "fpRate": null,
           "fpRatePre2022": null,
           "triggered": true,
-          "locations": [
-            {
-              "selector": "nav.nav",
-              "rect": {
-                "x": 0,
-                "y": 0,
-                "width": 1280,
-                "height": 62
-              }
-            },
-            {
-              "selector": "div.nav-inner",
-              "rect": {
-                "x": 80,
-                "y": 0,
-                "width": 1120,
-                "height": 61
-              }
-            },
-            {
-              "selector": "a.logo",
-              "rect": {
-                "x": 112,
-                "y": 18,
-                "width": 127,
-                "height": 24
-              }
-            },
-            {
-              "selector": "span.logo-mark",
-              "rect": {
-                "x": 112,
-                "y": 19,
-                "width": 22,
-                "height": 22
-              }
-            },
-            {
-              "selector": "svg",
-              "rect": {
-                "x": 112,
-                "y": 19,
-                "width": 22,
-                "height": 22
-              }
-            }
-          ],
+          "locations": [],
           "evidence": {
             "sectionCount": 8,
             "repeatedShare": 0.5,
@@ -3977,53 +3105,7 @@
               "maxRadiusPx": 50
             },
             "triggered": true,
-            "locations": [
-              {
-                "selector": "nav.nav",
-                "rect": {
-                  "x": 0,
-                  "y": 0,
-                  "width": 1280,
-                  "height": 62
-                }
-              },
-              {
-                "selector": "div.nav-inner",
-                "rect": {
-                  "x": 80,
-                  "y": 0,
-                  "width": 1120,
-                  "height": 61
-                }
-              },
-              {
-                "selector": "a.logo",
-                "rect": {
-                  "x": 112,
-                  "y": 18,
-                  "width": 127,
-                  "height": 24
-                }
-              },
-              {
-                "selector": "span.logo-mark",
-                "rect": {
-                  "x": 112,
-                  "y": 19,
-                  "width": 22,
-                  "height": 22
-                }
-              },
-              {
-                "selector": "svg",
-                "rect": {
-                  "x": 112,
-                  "y": 19,
-                  "width": 22,
-                  "height": 22
-                }
-              }
-            ]
+            "locations": []
           }
         },
         {
@@ -4065,8 +3147,8 @@
       "grade": "A+",
       "patternsFlagged": 0,
       "patternsTotal": 26,
-      "wordCount": 1082,
-      "proseWordCount": 678,
+      "wordCount": 1366,
+      "proseWordCount": 764,
       "lang": "en",
       "isEnglish": true,
       "proseConfidence": "high",
@@ -4083,7 +3165,7 @@
           "statistical": true,
           "status": "pass",
           "ruleStatus": "active",
-          "evidenceGrade": "measured",
+          "evidenceGrade": "practitioner",
           "era": "2024-gpt4",
           "modelFamilies": [
             "GPT-4",
@@ -4097,16 +3179,10 @@
           "coOccurrenceOnly": false,
           "triggered": false,
           "evidence": {
-            "total": 1,
-            "distinct": 1,
-            "density": 0.9,
-            "topWords": [
-              {
-                "word": "bespoke",
-                "count": 1,
-                "era": "2025-2026"
-              }
-            ],
+            "total": 0,
+            "distinct": 0,
+            "density": 0,
+            "topWords": [],
             "confusablesFolded": 0,
             "triggered": false
           }
@@ -4121,7 +3197,7 @@
           "statistical": true,
           "status": "pass",
           "ruleStatus": "decaying",
-          "evidenceGrade": "measured",
+          "evidenceGrade": "practitioner",
           "era": "2025-v0",
           "modelFamilies": [
             "Claude (unconstrained)",
@@ -4135,10 +3211,10 @@
           "coOccurrenceOnly": true,
           "triggered": false,
           "evidence": {
-            "emDashes": 1,
+            "emDashes": 0,
             "enDashAsDash": 0,
-            "total": 1,
-            "density": 0.9,
+            "total": 0,
+            "density": 0,
             "triggered": false
           }
         },
@@ -4152,7 +3228,7 @@
           "statistical": true,
           "status": "pass",
           "ruleStatus": "rising",
-          "evidenceGrade": "measured",
+          "evidenceGrade": "practitioner",
           "era": "2025-v0",
           "modelFamilies": [
             "Claude",
@@ -4250,9 +3326,11 @@
           "coOccurrenceOnly": true,
           "triggered": false,
           "evidence": {
-            "total": 0,
-            "density": 0,
-            "samples": [],
+            "total": 1,
+            "density": 0.7,
+            "samples": [
+              "conformance, hygiene, and crawler"
+            ],
             "triggered": false
           }
         },
@@ -4449,8 +3527,8 @@
             "total": 0,
             "families": [],
             "samples": [],
-            "effectiveTier": "Warning",
-            "downgraded": true,
+            "effectiveTier": "Error",
+            "downgraded": false,
             "triggered": false
           }
         },
@@ -4715,7 +3793,7 @@
           "triggered": false,
           "evidence": {
             "startsWithSummary": false,
-            "overlap": 0.2,
+            "overlap": 0.17,
             "legacyVsModernPer1000": 0,
             "triggered": false
           }
@@ -4780,7 +3858,7 @@
           "evidence": {
             "count": 0,
             "density": 0,
-            "nominalizationDensity": 11.1,
+            "nominalizationDensity": 11,
             "samples": [],
             "triggered": false
           }
@@ -4805,11 +3883,11 @@
           "coOccurrenceOnly": false,
           "triggered": false,
           "evidence": {
-            "sentenceCount": 34,
-            "mean": 15.76,
-            "sd": 7.48,
-            "cv": 0.475,
-            "iqr": 11,
+            "sentenceCount": 37,
+            "mean": 15.46,
+            "sd": 6.42,
+            "cv": 0.415,
+            "iqr": 9,
             "triggered": false
           }
         },
@@ -5111,7 +4189,7 @@
         "fpRate": null,
         "fpRatePre2022": null,
         "label": "CTA / button colors come from the palette (Oklab ΔE ≤ 0.02)",
-        "message": "all 19 CTA colors match the palette"
+        "message": "all 24 CTA colors match the palette"
       },
       {
         "id": "colors.surface",
@@ -5236,18 +4314,18 @@
           "matchedCount": 11,
           "nearMissCount": 0,
           "totalCount": 11,
-          "matchedArea": 281264,
-          "totalArea": 281264,
+          "matchedArea": 315085,
+          "totalArea": 315085,
           "tier": "Aligned"
         },
         "backgroundColor": {
           "countRatio": 1,
           "areaRatio": 1,
-          "matchedCount": 20,
+          "matchedCount": 25,
           "nearMissCount": 0,
-          "totalCount": 20,
-          "matchedArea": 199712,
-          "totalArea": 199712,
+          "totalCount": 25,
+          "matchedArea": 217142,
+          "totalArea": 217142,
           "tier": "Aligned"
         },
         "borderColor": {
@@ -5348,24 +4426,34 @@
         "#C9402E",
         "#E05A47",
         "#A83223",
+        "#E56B5B",
+        "#FFD8D2",
         "#2C6E8F",
+        "#1F5E7D",
+        "#0A2A18",
+        "#E6F9EE",
+        "#4E5046",
+        "#D2D4CA",
+        "#C9CBC3",
         "#DBDDD6",
         "#DEDFD9",
         "#E2E4DE",
         "999px"
       ],
-      "unusedTokenShare": 0.595,
+      "unusedTokenShare": 0.66,
       "deprecatedTokensUsed": [],
       "motionTokensDeclared": 0,
       "unmatchedMotionCount": 0
-    }
+    },
+    "source": "https://slop-detect.com/DESIGN.md"
   },
   "waivedPatterns": [],
   "systemContext": {
     "fonts": {
-      "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace": 190,
-      "Newsreader, Georgia, \"Times New Roman\", serif": 17,
-      "\"Libre Franklin\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif": 67
+      "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace": 312,
+      "Newsreader, Georgia, \"Times New Roman\", serif": 16,
+      "\"Libre Franklin\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif": 133,
+      "monospace": 1
     },
     "ctas": [
       {
@@ -5378,7 +4466,7 @@
           "selector": "button#go",
           "rect": {
             "x": 843,
-            "y": 329,
+            "y": 392,
             "width": 76,
             "height": 46
           }
@@ -5394,7 +4482,7 @@
           "selector": "button",
           "rect": {
             "x": 417,
-            "y": 423,
+            "y": 486,
             "width": 202,
             "height": 32
           }
@@ -5410,7 +4498,7 @@
           "selector": "button",
           "rect": {
             "x": 627,
-            "y": 423,
+            "y": 486,
             "width": 122,
             "height": 32
           }
@@ -5426,7 +4514,7 @@
           "selector": "button",
           "rect": {
             "x": 757,
-            "y": 423,
+            "y": 486,
             "width": 106,
             "height": 32
           }
@@ -5436,14 +4524,94 @@
         "bg": "rgb(24, 24, 21)",
         "color": "rgb(244, 245, 242)",
         "hasBgImage": false,
-        "area": 4030,
-        "text": "v0-starter · 48 · F",
+        "area": 3164,
+        "text": "MCP (--local)",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 324,
+            "y": 680,
+            "width": 113,
+            "height": 28
+          }
+        }
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "color": "rgb(62, 64, 56)",
+        "hasBgImage": false,
+        "area": 3360,
+        "text": "DESIGN.md Gate",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 443,
+            "y": 680,
+            "width": 120,
+            "height": 28
+          }
+        }
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "color": "rgb(62, 64, 56)",
+        "hasBgImage": false,
+        "area": 3164,
+        "text": "GitHub Action",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 569,
+            "y": 680,
+            "width": 113,
+            "height": 28
+          }
+        }
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "color": "rgb(62, 64, 56)",
+        "hasBgImage": false,
+        "area": 4536,
+        "text": "CLI (--format agent)",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 688,
+            "y": 680,
+            "width": 162,
+            "height": 28
+          }
+        }
+      },
+      {
+        "bg": "rgb(251, 251, 249)",
+        "color": "rgb(24, 24, 21)",
+        "hasBgImage": false,
+        "area": 3024,
+        "text": "Copy snippet",
+        "location": {
+          "selector": "button#wbCopyBtn",
+          "rect": {
+            "x": 1043,
+            "y": 680,
+            "width": 108,
+            "height": 28
+          }
+        }
+      },
+      {
+        "bg": "rgb(24, 24, 21)",
+        "color": "rgb(244, 245, 242)",
+        "hasBgImage": false,
+        "area": 4576,
+        "text": "starter-heavy · 44 · F",
         "location": {
           "selector": "button",
           "rect": {
             "x": 315,
-            "y": 556,
-            "width": 155,
+            "y": 1085,
+            "width": 176,
             "height": 26
           }
         }
@@ -5452,14 +4620,14 @@
         "bg": "rgb(251, 251, 249)",
         "color": "rgb(62, 64, 56)",
         "hasBgImage": false,
-        "area": 4212,
-        "text": "linear-type · 16 · B",
+        "area": 3848,
+        "text": "saas-mild · 16 · B",
         "location": {
           "selector": "button",
           "rect": {
-            "x": 475,
-            "y": 556,
-            "width": 162,
+            "x": 496,
+            "y": 1085,
+            "width": 148,
             "height": 26
           }
         }
@@ -5473,8 +4641,8 @@
         "location": {
           "selector": "button",
           "rect": {
-            "x": 642,
-            "y": 556,
+            "x": 649,
+            "y": 1085,
             "width": 162,
             "height": 26
           }
@@ -5490,7 +4658,7 @@
           "selector": "button#stageExplodeBtn",
           "rect": {
             "x": 987,
-            "y": 556,
+            "y": 1085,
             "width": 162,
             "height": 26
           }
@@ -5506,7 +4674,7 @@
           "selector": "button#stageDeslopBtn",
           "rect": {
             "x": 980,
-            "y": 801,
+            "y": 1330,
             "width": 150,
             "height": 28
           }
@@ -5522,7 +4690,7 @@
           "selector": "button",
           "rect": {
             "x": 131,
-            "y": 2104,
+            "y": 2632,
             "width": 87,
             "height": 28
           }
@@ -5538,7 +4706,7 @@
           "selector": "button",
           "rect": {
             "x": 224,
-            "y": 2104,
+            "y": 2632,
             "width": 59,
             "height": 28
           }
@@ -5554,7 +4722,7 @@
           "selector": "button",
           "rect": {
             "x": 289,
-            "y": 2104,
+            "y": 2632,
             "width": 66,
             "height": 28
           }
@@ -5570,7 +4738,7 @@
           "selector": "button",
           "rect": {
             "x": 361,
-            "y": 2104,
+            "y": 2632,
             "width": 66,
             "height": 28
           }
@@ -5586,7 +4754,7 @@
           "selector": "button",
           "rect": {
             "x": 433,
-            "y": 2104,
+            "y": 2632,
             "width": 45,
             "height": 28
           }
@@ -5602,7 +4770,7 @@
           "selector": "button",
           "rect": {
             "x": 484,
-            "y": 2104,
+            "y": 2632,
             "width": 66,
             "height": 28
           }
@@ -5618,7 +4786,7 @@
           "selector": "button",
           "rect": {
             "x": 556,
-            "y": 2104,
+            "y": 2632,
             "width": 94,
             "height": 28
           }
@@ -5634,7 +4802,7 @@
           "selector": "button#watchGo",
           "rect": {
             "x": 692,
-            "y": 4301,
+            "y": 5021,
             "width": 100,
             "height": 44
           }
@@ -5650,7 +4818,7 @@
           "selector": "a",
           "rect": {
             "x": 112,
-            "y": 4717,
+            "y": 5437,
             "width": 554,
             "height": 245
           }
@@ -5666,7 +4834,7 @@
           "selector": "a",
           "rect": {
             "x": 460,
-            "y": 5238,
+            "y": 5958,
             "width": 162,
             "height": 44
           }
@@ -5680,14 +4848,14 @@
         "color": "rgb(24, 24, 21)",
         "fontFamily": "Newsreader, Georgia, \"Times New Roman\", serif",
         "fontSize": 58.88,
-        "area": 71208,
+        "area": 106811,
         "location": {
           "selector": "h1",
           "rect": {
             "x": 360,
             "y": 173,
             "width": 560,
-            "height": 127
+            "height": 191
           }
         }
       },
@@ -5696,13 +4864,13 @@
         "color": "rgb(24, 24, 21)",
         "fontFamily": "Newsreader, Georgia, \"Times New Roman\", serif",
         "fontSize": 34,
-        "area": 17198,
+        "area": 15416,
         "location": {
           "selector": "h2",
           "rect": {
             "x": 112,
-            "y": 1421,
-            "width": 440,
+            "y": 1949,
+            "width": 394,
             "height": 39
           }
         }
@@ -5717,7 +4885,7 @@
           "selector": "h3",
           "rect": {
             "x": 112,
-            "y": 1592,
+            "y": 2120,
             "width": 336,
             "height": 28
           }
@@ -5733,7 +4901,7 @@
           "selector": "h3",
           "rect": {
             "x": 472,
-            "y": 1592,
+            "y": 2120,
             "width": 336,
             "height": 28
           }
@@ -5749,7 +4917,7 @@
           "selector": "h3",
           "rect": {
             "x": 832,
-            "y": 1592,
+            "y": 2120,
             "width": 336,
             "height": 28
           }
@@ -5765,7 +4933,7 @@
           "selector": "h2",
           "rect": {
             "x": 112,
-            "y": 1955,
+            "y": 2483,
             "width": 477,
             "height": 39
           }
@@ -5781,7 +4949,7 @@
           "selector": "h2",
           "rect": {
             "x": 112,
-            "y": 2769,
+            "y": 3297,
             "width": 726,
             "height": 35
           }
@@ -5797,7 +4965,7 @@
           "selector": "h2#band-h",
           "rect": {
             "x": 112,
-            "y": 3528,
+            "y": 4248,
             "width": 450,
             "height": 87
           }
@@ -5813,7 +4981,7 @@
           "selector": "h3",
           "rect": {
             "x": 112,
-            "y": 4163,
+            "y": 4883,
             "width": 680,
             "height": 32
           }
@@ -5829,7 +4997,7 @@
           "selector": "h3",
           "rect": {
             "x": 141,
-            "y": 4742,
+            "y": 5462,
             "width": 496,
             "height": 27
           }
@@ -5845,7 +5013,7 @@
           "selector": "h2",
           "rect": {
             "x": 112,
-            "y": 5098,
+            "y": 5818,
             "width": 1056,
             "height": 43
           }
@@ -5854,10 +5022,10 @@
     ],
     "radii": [
       4,
+      6,
       3,
       8,
-      5,
-      6
+      5
     ],
     "spacings": [
       13,
@@ -5873,14 +5041,14 @@
       22,
       5,
       7,
-      4,
       10,
+      4,
+      11,
       20,
       3,
       9,
       2,
       64,
-      11,
       24,
       40,
       28,
@@ -5893,6 +5061,7 @@
       59,
       14,
       12.5,
+      16,
       12,
       42,
       34,
@@ -5900,7 +5069,6 @@
       14.5,
       22,
       30,
-      16,
       38,
       28,
       19,
@@ -5953,6 +5121,14 @@
         "fontSize": 13,
         "lineHeight": 1.6,
         "letterSpacing": 0,
+        "area": 832
+      },
+      {
+        "tag": "A",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 13,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
         "area": 3132
       },
       {
@@ -5969,15 +5145,7 @@
         "fontSize": 59,
         "lineHeight": 1.08,
         "letterSpacing": -1.29536,
-        "area": 71208
-      },
-      {
-        "tag": "EM",
-        "fontFamily": "Newsreader, Georgia, \"Times New Roman\", serif",
-        "fontSize": 59,
-        "lineHeight": 1.08,
-        "letterSpacing": -1.29536,
-        "area": 14694
+        "area": 106811
       },
       {
         "tag": "SPAN",
@@ -6028,12 +5196,60 @@
         "area": 3392
       },
       {
-        "tag": "SUMMARY",
-        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "tag": "SPAN",
+        "fontFamily": "\"Libre Franklin\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+        "fontSize": 16,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 2662
+      },
+      {
+        "tag": "SPAN",
+        "fontFamily": "\"Libre Franklin\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
         "fontSize": 12,
         "lineHeight": 1.6,
         "letterSpacing": 0,
-        "area": 3833
+        "area": 780
+      },
+      {
+        "tag": "SPAN",
+        "fontFamily": "\"Libre Franklin\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+        "fontSize": 16,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 2227
+      },
+      {
+        "tag": "SPAN",
+        "fontFamily": "\"Libre Franklin\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+        "fontSize": 16,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 2585
+      },
+      {
+        "tag": "SPAN",
+        "fontFamily": "\"Libre Franklin\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+        "fontSize": 16,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 2380
+      },
+      {
+        "tag": "SPAN",
+        "fontFamily": "\"Libre Franklin\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+        "fontSize": 16,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 2687
+      },
+      {
+        "tag": "LABEL",
+        "fontFamily": "\"Libre Franklin\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+        "fontSize": 12,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 710
       },
       {
         "tag": "SPAN",
@@ -6044,12 +5260,68 @@
         "area": 3224
       },
       {
-        "tag": "SPAN",
+        "tag": "BUTTON",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": null,
+        "letterSpacing": 0,
+        "area": 3164
+      },
+      {
+        "tag": "BUTTON",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": null,
+        "letterSpacing": 0,
+        "area": 3360
+      },
+      {
+        "tag": "BUTTON",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": null,
+        "letterSpacing": 0,
+        "area": 3164
+      },
+      {
+        "tag": "BUTTON",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": null,
+        "letterSpacing": 0,
+        "area": 4536
+      },
+      {
+        "tag": "BUTTON",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": null,
+        "letterSpacing": 0,
+        "area": 3024
+      },
+      {
+        "tag": "DIV",
         "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
         "fontSize": 12,
         "lineHeight": 1.6,
         "letterSpacing": 0,
-        "area": 1344
+        "area": 10244
+      },
+      {
+        "tag": "PRE",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12.5,
+        "lineHeight": 1.58,
+        "letterSpacing": 0,
+        "area": 94902
+      },
+      {
+        "tag": "DIV",
+        "fontFamily": "\"Libre Franklin\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+        "fontSize": 13,
+        "lineHeight": 1.55,
+        "letterSpacing": 0,
+        "area": 32260
       },
       {
         "tag": "SPAN",
@@ -6057,7 +5329,7 @@
         "fontSize": 12,
         "lineHeight": 1.6,
         "letterSpacing": 0,
-        "area": 3492
+        "area": 4432
       },
       {
         "tag": "SPAN",
@@ -6065,15 +5337,31 @@
         "fontSize": 12,
         "lineHeight": 1.6,
         "letterSpacing": 0,
-        "area": 1568
+        "area": 2283
       },
       {
-        "tag": "LABEL",
+        "tag": "PRE",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": 1.58,
+        "letterSpacing": 0,
+        "area": 77994
+      },
+      {
+        "tag": "SPAN",
         "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
         "fontSize": 12,
         "lineHeight": 1.6,
         "letterSpacing": 0,
-        "area": 806
+        "area": 4432
+      },
+      {
+        "tag": "CODE",
+        "fontFamily": "monospace",
+        "fontSize": 12,
+        "lineHeight": 1.6,
+        "letterSpacing": 0,
+        "area": 2773
       },
       {
         "tag": "SPAN",
@@ -6089,7 +5377,15 @@
         "fontSize": 12,
         "lineHeight": null,
         "letterSpacing": 0,
-        "area": 4030
+        "area": 4576
+      },
+      {
+        "tag": "BUTTON",
+        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+        "fontSize": 12,
+        "lineHeight": null,
+        "letterSpacing": 0,
+        "area": 3848
       },
       {
         "tag": "BUTTON",
@@ -6098,134 +5394,6 @@
         "lineHeight": null,
         "letterSpacing": 0,
         "area": 4212
-      },
-      {
-        "tag": "BUTTON",
-        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
-        "fontSize": 12,
-        "lineHeight": null,
-        "letterSpacing": 0,
-        "area": 4212
-      },
-      {
-        "tag": "BUTTON",
-        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
-        "fontSize": 12,
-        "lineHeight": null,
-        "letterSpacing": 0,
-        "area": 4212
-      },
-      {
-        "tag": "SPAN",
-        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
-        "fontSize": 12,
-        "lineHeight": 1.6,
-        "letterSpacing": 0,
-        "area": 2149
-      },
-      {
-        "tag": "SPAN",
-        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
-        "fontSize": 12,
-        "lineHeight": 1.6,
-        "letterSpacing": 0,
-        "area": 2552
-      },
-      {
-        "tag": "SPAN",
-        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
-        "fontSize": 12,
-        "lineHeight": 1.6,
-        "letterSpacing": 0,
-        "area": 6428
-      },
-      {
-        "tag": "A",
-        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
-        "fontSize": 12,
-        "lineHeight": 1.6,
-        "letterSpacing": 0,
-        "area": 2283
-      },
-      {
-        "tag": "SPAN",
-        "fontFamily": "Newsreader, Georgia, \"Times New Roman\", serif",
-        "fontSize": 42,
-        "lineHeight": 0.95,
-        "letterSpacing": 0,
-        "area": 2100
-      },
-      {
-        "tag": "SPAN",
-        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
-        "fontSize": 13,
-        "lineHeight": 1.6,
-        "letterSpacing": 0,
-        "area": 544
-      },
-      {
-        "tag": "SPAN",
-        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
-        "fontSize": 12,
-        "lineHeight": 1.6,
-        "letterSpacing": 0,
-        "area": 1495
-      },
-      {
-        "tag": "P",
-        "fontFamily": "Newsreader, Georgia, \"Times New Roman\", serif",
-        "fontSize": 15,
-        "lineHeight": 1.4,
-        "letterSpacing": 0,
-        "area": 8495
-      },
-      {
-        "tag": "LABEL",
-        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
-        "fontSize": 12,
-        "lineHeight": 1.6,
-        "letterSpacing": 0,
-        "area": 3358
-      },
-      {
-        "tag": "SPAN",
-        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
-        "fontSize": 12,
-        "lineHeight": 1.6,
-        "letterSpacing": 0,
-        "area": 1746
-      },
-      {
-        "tag": "BUTTON",
-        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
-        "fontSize": 12,
-        "lineHeight": null,
-        "letterSpacing": 0,
-        "area": 4200
-      },
-      {
-        "tag": "SPAN",
-        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
-        "fontSize": 12,
-        "lineHeight": 1.6,
-        "letterSpacing": 0,
-        "area": 3761
-      },
-      {
-        "tag": "SPAN",
-        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
-        "fontSize": 12,
-        "lineHeight": 1.6,
-        "letterSpacing": 0,
-        "area": 2283
-      },
-      {
-        "tag": "SPAN",
-        "fontFamily": "\"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
-        "fontSize": 12,
-        "lineHeight": 1.6,
-        "letterSpacing": 0,
-        "area": 652
       }
     ],
     "componentPairs": [
@@ -6239,7 +5407,7 @@
           "selector": "button#go",
           "rect": {
             "x": 843,
-            "y": 329,
+            "y": 392,
             "width": 76,
             "height": 46
           }
@@ -6255,7 +5423,7 @@
           "selector": "button",
           "rect": {
             "x": 417,
-            "y": 423,
+            "y": 486,
             "width": 202,
             "height": 32
           }
@@ -6271,7 +5439,7 @@
           "selector": "button",
           "rect": {
             "x": 627,
-            "y": 423,
+            "y": 486,
             "width": 122,
             "height": 32
           }
@@ -6287,7 +5455,7 @@
           "selector": "button",
           "rect": {
             "x": 757,
-            "y": 423,
+            "y": 486,
             "width": 106,
             "height": 32
           }
@@ -6298,13 +5466,93 @@
         "fg": "rgb(244, 245, 242)",
         "bg": "rgb(24, 24, 21)",
         "hasBgImage": false,
-        "text": "v0-starter · 48 · F",
+        "text": "MCP (--local)",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 324,
+            "y": 680,
+            "width": 113,
+            "height": 28
+          }
+        }
+      },
+      {
+        "tag": "BUTTON",
+        "fg": "rgb(62, 64, 56)",
+        "bg": "rgb(251, 251, 249)",
+        "hasBgImage": false,
+        "text": "DESIGN.md Gate",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 443,
+            "y": 680,
+            "width": 120,
+            "height": 28
+          }
+        }
+      },
+      {
+        "tag": "BUTTON",
+        "fg": "rgb(62, 64, 56)",
+        "bg": "rgb(251, 251, 249)",
+        "hasBgImage": false,
+        "text": "GitHub Action",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 569,
+            "y": 680,
+            "width": 113,
+            "height": 28
+          }
+        }
+      },
+      {
+        "tag": "BUTTON",
+        "fg": "rgb(62, 64, 56)",
+        "bg": "rgb(251, 251, 249)",
+        "hasBgImage": false,
+        "text": "CLI (--format agent)",
+        "location": {
+          "selector": "button",
+          "rect": {
+            "x": 688,
+            "y": 680,
+            "width": 162,
+            "height": 28
+          }
+        }
+      },
+      {
+        "tag": "BUTTON",
+        "fg": "rgb(24, 24, 21)",
+        "bg": "rgb(251, 251, 249)",
+        "hasBgImage": false,
+        "text": "Copy snippet",
+        "location": {
+          "selector": "button#wbCopyBtn",
+          "rect": {
+            "x": 1043,
+            "y": 680,
+            "width": 108,
+            "height": 28
+          }
+        }
+      },
+      {
+        "tag": "BUTTON",
+        "fg": "rgb(244, 245, 242)",
+        "bg": "rgb(24, 24, 21)",
+        "hasBgImage": false,
+        "text": "starter-heavy · 44 · F",
         "location": {
           "selector": "button",
           "rect": {
             "x": 315,
-            "y": 556,
-            "width": 155,
+            "y": 1085,
+            "width": 176,
             "height": 26
           }
         }
@@ -6314,13 +5562,13 @@
         "fg": "rgb(62, 64, 56)",
         "bg": "rgb(251, 251, 249)",
         "hasBgImage": false,
-        "text": "linear-type · 16 · B",
+        "text": "saas-mild · 16 · B",
         "location": {
           "selector": "button",
           "rect": {
-            "x": 475,
-            "y": 556,
-            "width": 162,
+            "x": 496,
+            "y": 1085,
+            "width": 148,
             "height": 26
           }
         }
@@ -6334,8 +5582,8 @@
         "location": {
           "selector": "button",
           "rect": {
-            "x": 642,
-            "y": 556,
+            "x": 649,
+            "y": 1085,
             "width": 162,
             "height": 26
           }
@@ -6351,7 +5599,7 @@
           "selector": "button#stageExplodeBtn",
           "rect": {
             "x": 987,
-            "y": 556,
+            "y": 1085,
             "width": 162,
             "height": 26
           }
@@ -6367,7 +5615,7 @@
           "selector": "button#stageDeslopBtn",
           "rect": {
             "x": 980,
-            "y": 801,
+            "y": 1330,
             "width": 150,
             "height": 28
           }
@@ -6383,7 +5631,7 @@
           "selector": "button",
           "rect": {
             "x": 131,
-            "y": 2104,
+            "y": 2632,
             "width": 87,
             "height": 28
           }
@@ -6399,7 +5647,7 @@
           "selector": "button",
           "rect": {
             "x": 224,
-            "y": 2104,
+            "y": 2632,
             "width": 59,
             "height": 28
           }
@@ -6415,7 +5663,7 @@
           "selector": "button",
           "rect": {
             "x": 289,
-            "y": 2104,
+            "y": 2632,
             "width": 66,
             "height": 28
           }
@@ -6431,7 +5679,7 @@
           "selector": "button",
           "rect": {
             "x": 361,
-            "y": 2104,
+            "y": 2632,
             "width": 66,
             "height": 28
           }
@@ -6447,7 +5695,7 @@
           "selector": "button",
           "rect": {
             "x": 433,
-            "y": 2104,
+            "y": 2632,
             "width": 45,
             "height": 28
           }
@@ -6463,7 +5711,7 @@
           "selector": "button",
           "rect": {
             "x": 484,
-            "y": 2104,
+            "y": 2632,
             "width": 66,
             "height": 28
           }
@@ -6479,7 +5727,7 @@
           "selector": "button",
           "rect": {
             "x": 556,
-            "y": 2104,
+            "y": 2632,
             "width": 94,
             "height": 28
           }
@@ -6495,7 +5743,7 @@
           "selector": "button#watchGo",
           "rect": {
             "x": 692,
-            "y": 4301,
+            "y": 5021,
             "width": 100,
             "height": 44
           }
@@ -6511,7 +5759,7 @@
           "selector": "a",
           "rect": {
             "x": 112,
-            "y": 4717,
+            "y": 5437,
             "width": 554,
             "height": 245
           }
@@ -6527,7 +5775,7 @@
           "selector": "a",
           "rect": {
             "x": 460,
-            "y": 5238,
+            "y": 5958,
             "width": 162,
             "height": 44
           }
@@ -6539,7 +5787,7 @@
     "schemaVersion": 1,
     "axis": "aeo",
     "url": "https://slop-detect.com/",
-    "mdUrl": "https://slop-detect.com/index.md",
+    "mdUrl": "http://127.0.0.1:8791/index.md",
     "vantagePoint": "scanner-origin",
     "evidence": [],
     "score": 100,
@@ -6722,10 +5970,10 @@
         "weight": 15,
         "status": "pass",
         "passed": true,
-        "message": "server HTML contains 100% of rendered words (1168/1082)",
+        "message": "server HTML contains 100% of rendered words (1375/1366)",
         "detail": {
-          "noJsWords": 1168,
-          "renderedWords": 1082,
+          "noJsWords": 1375,
+          "renderedWords": 1366,
           "ratio": 1
         }
       },
@@ -6736,10 +5984,10 @@
         "weight": 6,
         "status": "pass",
         "passed": true,
-        "message": "validated markdown twin at http://127.0.0.1:8788/index.md (4134 bytes)",
+        "message": "validated markdown twin at http://127.0.0.1:8791/index.md (4367 bytes)",
         "detail": {
           "valid": true,
-          "strippedLength": 4134,
+          "strippedLength": 4367,
           "negotiatedMarkdown": false
         }
       },
@@ -6793,18 +6041,32 @@
         "weight": 0,
         "status": "pass",
         "passed": true,
-        "message": "Accessible name coverage: 97%",
+        "message": "Accessible name coverage: 98%",
         "detail": {
           "healthy": true,
-          "accessibleNameRatio": 0.973,
-          "totalInteractive": 74,
-          "namedInteractive": 72,
+          "accessibleNameRatio": 0.977,
+          "totalInteractive": 86,
+          "namedInteractive": 84,
           "emptyPriceShell": false,
           "axeRuleCount": 33,
           "lighthouseEquivalent": {
             "audit": "agent-accessibility-tree",
             "version": "13.5.0"
           }
+        }
+      },
+      {
+        "id": "jsonld.hygiene",
+        "label": "JSON-LD structured data parses cleanly and matches visible text",
+        "severity": "info",
+        "weight": 0,
+        "status": "pass",
+        "passed": true,
+        "message": "JSON-LD parses cleanly",
+        "detail": {
+          "blocks": 1,
+          "valid": true,
+          "matchesVisibleText": true
         }
       }
     ],
@@ -6981,10 +6243,10 @@
         "weight": 15,
         "status": "pass",
         "passed": true,
-        "message": "server HTML contains 100% of rendered words (1168/1082)",
+        "message": "server HTML contains 100% of rendered words (1375/1366)",
         "detail": {
-          "noJsWords": 1168,
-          "renderedWords": 1082,
+          "noJsWords": 1375,
+          "renderedWords": 1366,
           "ratio": 1
         }
       },
@@ -6995,10 +6257,10 @@
         "weight": 6,
         "status": "pass",
         "passed": true,
-        "message": "validated markdown twin at http://127.0.0.1:8788/index.md (4134 bytes)",
+        "message": "validated markdown twin at http://127.0.0.1:8791/index.md (4367 bytes)",
         "detail": {
           "valid": true,
-          "strippedLength": 4134,
+          "strippedLength": 4367,
           "negotiatedMarkdown": false
         }
       },
@@ -7065,12 +6327,12 @@
         "weight": 0,
         "status": "pass",
         "passed": true,
-        "message": "Accessible name coverage: 97%",
+        "message": "Accessible name coverage: 98%",
         "detail": {
           "healthy": true,
-          "accessibleNameRatio": 0.973,
-          "totalInteractive": 74,
-          "namedInteractive": 72,
+          "accessibleNameRatio": 0.977,
+          "totalInteractive": 86,
+          "namedInteractive": 84,
           "emptyPriceShell": false,
           "axeRuleCount": 33,
           "lighthouseEquivalent": {
@@ -7164,16 +6426,17 @@
         "label": "JSON-LD structured data parses cleanly and matches visible text",
         "severity": "info",
         "weight": 0,
-        "status": "info",
+        "status": "pass",
         "passed": true,
-        "message": "JSON-LD syntax or @context/@type issue detected",
+        "message": "JSON-LD parses cleanly",
         "detail": {
           "blocks": 1,
-          "valid": false,
+          "valid": true,
           "matchesVisibleText": true
         }
       }
     ],
-    "durationMs": 63
+    "durationMs": 95,
+    "finalUrl": "https://slop-detect.com/"
   }
 }

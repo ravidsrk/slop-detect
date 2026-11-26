@@ -8,11 +8,11 @@ This is the full single-file manual for AI agents. Lighter index: https://slop-d
 
 ## Overview
 
-Slop Detector inspects a page's live computed styles (and, optionally, its copy) and
-returns a weighted, reproducible score. It is not a quality verdict. A high score
-means a page looks machine-generated, not that it is bad. Generated pages converge:
-the same fonts, gradient hero text, glassmorphism, eyebrow pills, big-number stat
-bands. Slop Detector measures how far a page sits along that fingerprint.
+Slop Detector inspects a page's live computed styles, copy, craft floor, declared
+`DESIGN.md` tokens, and AEO crawler eligibility in headless Chromium and returns
+a weighted, reproducible report. It is not an authorship verdict. A high slop
+score means a page matches many default-template patterns, not who built it or
+that the product is bad.
 
 - Web app: https://slop-detect.com
 - Source: https://github.com/ravidsrk/slop-detect
@@ -20,11 +20,11 @@ bands. Slop Detector measures how far a page sits along that fingerprint.
 
 ## Concepts
 
-- **Score**: weighted 0–100. Each triggered pattern adds a fixed weight. Higher = more machine-made.
+- **Score**: weighted 0–100. Each triggered scored pattern adds a fixed weight. Higher = more default-template overlap.
 - **Tiers**: Clean 0–9, Mild 10–27, Heavy 28+.
-- **Determinism**: no model, no randomness. Same page in, same score out.
-- **Axes**: `design` (default), `copy` (LLM phrasing tells), and the separate `AEO` axis.
-- **AEO polarity**: inverted vs slop: higher AEO is better, lower slop is better.
+- **Determinism**: no model, no randomness. Same page in, same report out.
+- **Axes**: `design` (default), `copy` (prose and paste artifacts), `craft` (objective defect floor, separate), `system` (`DESIGN.md` / DTCG token compliance), and `aeo` (HTTP crawler eligibility).
+- **Polarity**: lower is better for `design` and `copy`; higher is better for `craft`, `system`, and `aeo`.
 
 ## The fingerprint: what it measures
 
@@ -121,9 +121,12 @@ Build a ready-to-paste de-slop prompt. Body `{ "result": {...} }` (cheap) or
 ## CLI
 
 ```bash
-npx slop-detect https://example.com           # score a page
-npx slop-detect https://example.com --aeo      # + AEO axis
-npx slop-detect https://example.com --fail-on heavy   # gate CI (non-zero exit on Heavy)
+npx slop-detect verify http://localhost:3000       # one-command 5-axis gate + baseline
+npx slop-detect doctor                             # verify local Chromium, DESIGN.md & hooks
+npx slop-detect init                               # bootstrap MCP + hooks + CI
+npx slop-detect https://example.com --format agent # compact selector-addressed output
+npx slop-detect https://example.com --aeo          # + AEO crawler eligibility axis
+npx slop-detect https://example.com --fail-on heavy # gate CI (non-zero exit on Heavy)
 ```
 
 npm package: `slop-detect`.
@@ -131,11 +134,11 @@ npm package: `slop-detect`.
 ## MCP server
 
 ```bash
-npx -y slop-detect-mcp
+npx -y -p slop-detect -p slop-detect-mcp slop-detect-mcp --local
 ```
 
-Exposes `scan_page`, `check_aeo`, `check_design_system`, `fix_prompt`,
-`lint_design_md`, and `diff_design_md` to any MCP
+Exposes `scan_page`, `check_aeo`, `check_design_system`, `extract_design_system`,
+`fix_prompt`, `lint_design_md`, and `diff_design_md` to any MCP
 client (Claude Code, Cursor, Windsurf). Server card:
 https://slop-detect.com/.well-known/mcp/server-card.json
 

@@ -32,7 +32,7 @@
     },
     {
       "name": "aeo",
-      "description": "Score whether AI engines can read & cite a page."
+      "description": "Check technical crawler eligibility (robots.txt, indexability, server HTML text, Markdown twin, llms.txt)."
     },
     {
       "name": "catalogue",
@@ -130,8 +130,8 @@
         "tags": [
           "aeo"
         ],
-        "summary": "Score whether AI engines can fetch, read & cite a page.",
-        "description": "Runs the AEO axis: a handful of plain edge fetches (HTML, GPTBot UA, robots.txt, markdown twin, llms.txt) scored against the AEO check catalogue. Higher is better — inverse polarity of the slop score. No browser needed.",
+        "summary": "Check technical AEO crawler eligibility for a page.",
+        "description": "Runs the AEO axis: plain edge fetches using the honest SlopDetector-AEO user agent (never spoofing vendor bots) across HTML, robots.txt (RFC 9309), preview directives, Markdown twin, and llms.txt. Higher is better — inverse polarity of the slop score. No browser needed.",
         "security": [
           {},
           {
@@ -504,6 +504,54 @@
           }
         }
       }
+    },
+    "/api/health": {
+      "get": {
+        "operationId": "healthCheck",
+        "tags": [
+          "catalogue"
+        ],
+        "summary": "Service readiness and KV/browser binding probe.",
+        "responses": {
+          "200": {
+            "description": "All required bindings healthy."
+          },
+          "503": {
+            "description": "One or more bindings degraded."
+          }
+        }
+      }
+    },
+    "/api/stats": {
+      "get": {
+        "operationId": "scanStats",
+        "tags": [
+          "catalogue"
+        ],
+        "summary": "Aggregate scan counts and score distribution.",
+        "responses": {
+          "200": {
+            "description": "Aggregate public telemetry."
+          }
+        }
+      }
+    },
+    "/api/opt-in": {
+      "post": {
+        "operationId": "optInDirectory",
+        "tags": [
+          "directory"
+        ],
+        "summary": "Request email-verified opt-in to publish a domain's public grade and directory listing.",
+        "responses": {
+          "200": {
+            "description": "Verification requested."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -576,10 +624,12 @@
               "full",
               "strict",
               "marketing",
-              "minimal"
+              "minimal",
+              "editorial",
+              "devtool"
             ],
             "default": "full",
-            "description": "Scoring preset. `full` scores everything; `strict` only weight>=5 smoking guns; `marketing` brand-surface tells; `minimal` the three dead-giveaways."
+            "description": "Scoring preset. `full` scores everything; `strict` only weight>=5 smoking guns; `marketing` brand-surface tells; `minimal` the three signature tells; `editorial` and `devtool` tune for publication and developer pages."
           },
           "axes": {
             "type": "array",
@@ -587,10 +637,11 @@
               "type": "string",
               "enum": [
                 "design",
-                "copy"
+                "copy",
+                "craft"
               ]
             },
-            "description": "Axes to score. Omit for design only; use ['design','copy'] or 'all' for both."
+            "description": "Axes to score. Omit for design only; pass ['design','copy','craft'] or 'all' for multi-axis."
           },
           "screenshot": {
             "type": "boolean",
@@ -600,7 +651,7 @@
           "share": {
             "type": "boolean",
             "default": true,
-            "description": "Persist a shareable permalink (/r/:id). Set false for CI dry-runs."
+            "description": "Persist a shareable permalink (/r/:id). Set false for private or CI runs."
           },
           "designMd": {
             "oneOf": [
@@ -609,10 +660,16 @@
               },
               {
                 "type": "string",
+                "enum": [
+                  "auto"
+                ]
+              },
+              {
+                "type": "string",
                 "format": "uri"
               }
             ],
-            "description": "System axis - check the page against its declared design system (DESIGN.md spec). `true` looks for <origin>/DESIGN.md; a URL fetches that file (SSRF-guarded). Adds a `system` block to the response: 0-100 compliance score (HIGHER is better), tier Aligned/Drifting/Off-system, and named drift items."
+            "description": "System axis - check the page against its declared design system (DESIGN.md spec). `true` or `'auto'` looks for <origin>/DESIGN.md; a URL fetches that file (SSRF-guarded). Adds a `system` block to the response: 0-100 compliance score (HIGHER is better), tier Aligned/Drifting/Off-system, and named drift items."
           }
         }
       },
@@ -645,7 +702,7 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 100,
-            "description": "Weighted design-slop score. Higher = more machine-made."
+            "description": "Weighted design-slop score (lower is better). Measures overlap with common default-template patterns, not authorship."
           },
           "tier": {
             "type": "string",
@@ -746,7 +803,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "example": "gradient_hero_text"
+            "example": "gradient_text"
           },
           "label": {
             "type": "string"
@@ -758,9 +815,11 @@
             "type": "string",
             "nullable": true,
             "enum": [
-              "type",
-              "color",
+              "fonts",
+              "colors",
               "layout",
+              "css",
+              "images",
               "copy",
               null
             ]
@@ -773,9 +832,30 @@
             "description": "Version a pattern was added.",
             "example": "baseline"
           },
-          "hit": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "fail",
+              "review",
+              "unknown",
+              "pass"
+            ]
+          },
+          "triggered": {
             "type": "boolean",
             "description": "Whether this pattern fired on the scanned page."
+          },
+          "locations": {
+            "type": "array",
+            "description": "Observed DOM CSS selectors and bounding rects for this finding.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "selector": {
+                  "type": "string"
+                }
+              }
+            }
           }
         }
       },
@@ -854,7 +934,7 @@
       },
       "AeoResult": {
         "type": "object",
-        "description": "AEO conformance report. Score polarity is INVERTED vs the slop score — higher is better.",
+        "description": "AEO technical crawler eligibility report. Score polarity is INVERTED vs the slop score — higher is better.",
         "properties": {
           "url": {
             "type": "string",
@@ -864,39 +944,50 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 100,
-            "description": "0-100. Higher = more AI-readable."
+            "description": "0-100. Higher = stronger technical crawler eligibility."
           },
           "tier": {
             "type": "string",
             "enum": [
-              "AI-Ready",
-              "Partial",
-              "Invisible"
+              "Eligible",
+              "Partially Eligible",
+              "Restricted"
             ],
-            "description": "AI-Ready >=80, Partial >=50, Invisible <50."
+            "description": "Eligible >=80, Partially Eligible 50-79, Restricted <50."
           },
           "checks": {
             "type": "array",
-            "description": "Per-check results (required + recommended).",
+            "description": "Per-check results (required, recommended, and informational).",
             "items": {
               "type": "object",
               "properties": {
                 "id": {
                   "type": "string",
-                  "example": "bot.notBlocked"
+                  "example": "html.reachable"
                 },
                 "label": {
                   "type": "string"
                 },
-                "tier": {
+                "severity": {
                   "type": "string",
                   "enum": [
                     "required",
-                    "recommended"
+                    "recommended",
+                    "info"
                   ]
                 },
-                "pass": {
-                  "type": "boolean"
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "pass",
+                    "fail",
+                    "unknown",
+                    "info"
+                  ]
+                },
+                "passed": {
+                  "type": "boolean",
+                  "nullable": true
                 },
                 "weight": {
                   "type": "number"

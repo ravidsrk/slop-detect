@@ -24,7 +24,7 @@ export function extractTextContext() {
   }
 
   var SKIP_TAGS =
-    /^(NAV|FOOTER|HEADER|SCRIPT|STYLE|NOSCRIPT|SVG|CODE|PRE|KBD|SAMP|TEXTAREA|TEMPLATE)$/i;
+    /^(NAV|FOOTER|HEADER|SCRIPT|STYLE|NOSCRIPT|SVG|CODE|PRE|KBD|SAMP|TEXTAREA|TEMPLATE|SELECT|OPTION)$/i;
   var BLOCK_TAGS = /^(P|H1|H2|H3|H4|H5|H6|LI|DT|DD|BLOCKQUOTE|FIGCAPTION)$/i;
   var PROSE_TAGS = /^(P|LI|BLOCKQUOTE|DD)$/i;
   var hiddenBlocks = 0;
@@ -136,18 +136,28 @@ export function extractTextContext() {
   var INLINE =
     /^(A|ABBR|B|BDI|BDO|CITE|DATA|DFN|EM|I|MARK|Q|S|SMALL|SPAN|STRONG|SUB|SUP|TIME|U|WBR|FONT|LABEL)$/i;
 
+  var CHAT_DEMO_TOKEN_RE =
+    /(?:^|\s)(?:chat|chatbot|message|chat-demo|chat-message|chat-bubble|chat-transcript|chat-conversation|assistant-message|ai-message|chat_[a-z0-9_-]+)(?:\s|$)/i;
+
+  function hasChatDemoAncestor(el: any): boolean {
+    var cur = el;
+    var guard = 0;
+    while (cur && cur.nodeType === 1 && guard++ < 40) {
+      if (cur.hasAttribute && cur.hasAttribute('data-chat-demo')) return true;
+      var cls = typeof cur.className === 'string' ? cur.className : '';
+      if (cls && CHAT_DEMO_TOKEN_RE.test(cls)) return true;
+      cur = cur.parentElement;
+    }
+    return false;
+  }
+
   function contextFlags(el: any) {
     var rect = el.getBoundingClientRect ? el.getBoundingClientRect() : { top: 0 };
-    var anc = el.closest
-      ? el.closest(
-          '[class*="chat"], [class*="message"], [class*="bubble"], [class*="transcript"], [class*="conversation"], [class*="demo"]'
-        )
-      : null;
     return {
       inHero: rect.top < vh * 0.9,
       inFooter: Boolean(el.closest && el.closest('footer, [role="contentinfo"]')),
       inQuote: Boolean(el.closest && el.closest('blockquote, q')),
-      inChatDemo: Boolean(anc),
+      inChatDemo: hasChatDemoAncestor(el),
       top: Math.round(rect.top || 0),
     };
   }
@@ -360,6 +370,7 @@ export function extractTextContext() {
     lang: lang.trim(),
     links: links,
     attributes: attributes,
+    testimonials: [],
   };
 }
 

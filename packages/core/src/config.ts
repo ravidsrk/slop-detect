@@ -103,11 +103,15 @@ export function parseSlopRc(
 
 function matchesUrlPattern(url: string, pattern: string): boolean {
   if (!pattern) return false;
-  try {
-    const re = new RegExp(pattern);
-    if (re.test(url)) return true;
-  } catch {
-    // Fallback to glob-style matching
+  // Detect glob-style wildcards (`*` / `?`) when not explicitly using regex anchors/groups/escapes
+  const looksLikeGlob = pattern.includes('*') && !/[\\^$()[\]|+]|\.\*/.test(pattern);
+  if (!looksLikeGlob) {
+    try {
+      const re = new RegExp(pattern);
+      if (re.test(url)) return true;
+    } catch {
+      // Fallback to glob-style matching
+    }
   }
   const globRe = new RegExp(
     '^' +
@@ -297,29 +301,29 @@ export function applyConfigAndInlineWaivers(
   >();
   for (const w of existingWaivers) {
     if (w && w.id) {
+      const src = (w.source as 'inline' | 'config' | 'design-md') || 'design-md';
+      if (opts.noInlineIgnores && src === 'inline') continue;
       waiverMap.set(w.id, {
         id: w.id,
-        source: (w.source as any) || 'design-md',
+        source: src,
         reason: w.reason || 'declared in DESIGN.md',
       });
     }
   }
 
-  if (!opts.noInlineIgnores) {
-    for (const [id, reason] of Object.entries(resolved.waivers)) {
-      if (!waiverMap.has(id)) {
-        waiverMap.set(id, { id, source: 'config', reason });
-      }
+  for (const [id, reason] of Object.entries(resolved.waivers)) {
+    if (!waiverMap.has(id)) {
+      waiverMap.set(id, { id, source: 'config', reason });
     }
-    if (Array.isArray(opts.inlineWaivers)) {
-      for (const w of opts.inlineWaivers) {
-        if (w && w.id && !waiverMap.has(w.id)) {
-          waiverMap.set(w.id, {
-            id: w.id,
-            source: 'inline',
-            reason: w.reason || 'inline data-slop-ignore waiver',
-          });
-        }
+  }
+  if (!opts.noInlineIgnores && Array.isArray(opts.inlineWaivers)) {
+    for (const w of opts.inlineWaivers) {
+      if (w && w.id && !waiverMap.has(w.id)) {
+        waiverMap.set(w.id, {
+          id: w.id,
+          source: 'inline',
+          reason: w.reason || 'inline data-slop-ignore waiver',
+        });
       }
     }
   }
@@ -327,7 +331,7 @@ export function applyConfigAndInlineWaivers(
   const onlyList = parseOnlySkipList(opts.only);
   const skipList = parseOnlySkipList(opts.skip);
   const hasFilters = onlyList.length > 0 || skipList.length > 0;
-  const hasActiveWaivers = !opts.noInlineIgnores && waiverMap.size > 0;
+  const hasActiveWaivers = waiverMap.size > 0;
 
   let patterns = Array.isArray(result.patterns) ? [...result.patterns] : [];
   if (hasFilters) {
@@ -338,49 +342,48 @@ export function applyConfigAndInlineWaivers(
   }
 
   const triggeredWaived: Array<{ id: string; source: string; reason: string }> = [];
-  if (hasActiveWaivers) {
-    patterns = patterns.map((p) => {
-      const w = waiverMap.get(p.id);
-      if (w && (p.triggered || p.waived)) {
-        triggeredWaived.push(w);
-        return {
-          ...p,
-          triggered: false,
-          waived: true,
-          waiverReason: w.reason,
-          waiverSource: w.source,
-        };
-      }
-      return p;
-    });
-  } else if (opts.noInlineIgnores) {
-    // Restore any previously waived pattern that had rawTriggered or waived flag
-    patterns = patterns.map((p) => {
-      if (p.waived) {
-        const copy = { ...p, triggered: true };
-        delete copy.waived;
-        delete copy.waiverReason;
-        delete copy.waiverSource;
-        return copy;
-      }
-      return p;
-    });
-  }
+  patterns = patterns.map((p) => {
+    // If --no-inline-ignores is set, only un-waive previously inline-waived patterns
+    if (opts.noInlineIgnores && p.waived && p.waiverSource === 'inline') {
+      const copy = { ...p, triggered: true };
+      delete copy.waived;
+      delete copy.waiverReason;
+      delete copy.waiverSource;
+      return copy;
+    }
+    const w = hasActiveWaivers ? waiverMap.get(p.id) : undefined;
+    if (w && (p.triggered || p.waived)) {
+      triggeredWaived.push(w);
+      return {
+        ...p,
+        triggered: false,
+        waived: true,
+        waiverReason: w.reason,
+        waiverSource: w.source,
+      };
+    }
+    return p;
+  });
 
   // Recompute design score if waivers or filters modified the pattern list
   const rescored = scorePatterns(patterns);
+  const activeTriggered = patterns.filter((p) => p.triggered && !p.waived);
   const nextResult: any = {
     ...result,
     rawScore,
-    score: opts.noInlineIgnores ? rawScore : rescored.score,
+    score: rescored.score,
     tier: rescored.tier,
     grade: rescored.grade,
     confidence: rescored.confidence,
     patternsFlagged: rescored.patternsFlagged,
     patternsTotal: rescored.patternsTotal,
-    verdict: verdictFor(rescored.tier, rescored.patternsFlagged),
+    patternsScored: rescored.patternsScored,
+    reviewCount: rescored.reviewCount,
+    adjustments: rescored.adjustments,
+    evidence: rescored.evidence,
+    verdict: verdictFor(rescored.score, rescored.tier, activeTriggered),
     patterns,
-    waivedPatterns: opts.noInlineIgnores ? [] : triggeredWaived,
+    waivedPatterns: triggeredWaived,
   };
 
   if (nextResult.axes?.design) {
@@ -396,6 +399,20 @@ export function applyConfigAndInlineWaivers(
         patterns,
       },
     };
+    const scoredAxes: Array<{ score: number; tier: string }> = [];
+    if (typeof nextResult.axes.design?.score === 'number') {
+      scoredAxes.push({ score: nextResult.axes.design.score, tier: nextResult.axes.design.tier });
+    }
+    if (typeof nextResult.axes.copy?.score === 'number') {
+      scoredAxes.push({ score: nextResult.axes.copy.score, tier: nextResult.axes.copy.tier });
+    }
+    if (scoredAxes.length > 0 && typeof nextResult.unifiedScore === 'number') {
+      const maxS = Math.max(...scoredAxes.map((a) => a.score));
+      const dirty = scoredAxes.filter((a) => a.score >= 10).length;
+      const unifiedScore = Math.min(100, maxS + Math.max(0, dirty - 1) * 6);
+      nextResult.unifiedScore = unifiedScore;
+      nextResult.unifiedTier = unifiedScore >= 28 ? 'Heavy' : unifiedScore >= 10 ? 'Mild' : 'Clean';
+    }
   }
 
   // Evaluate config assertions (levels warn / error, maxScore / minScore)

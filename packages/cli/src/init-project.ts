@@ -85,22 +85,33 @@ The MCP server in \`.mcp.json\` runs \`slop-detect-mcp --local\` with the \`slop
 const CODEX_NOTE = `Codex runs a hook only after you approve the hook file. The command does not call slop-detect.com. A blocked scan exits 2 and is not a Clean score.
 `;
 
-const CI_WORKFLOW = `# Recipe only. workflow_dispatch does not score a page by itself.
-# Point a job at a trusted preview URL when you want a gate.
-# A missing URL is not a Clean score.
-# This file does not submit the action to a marketplace.
+const CI_WORKFLOW = `# Slop Detect PR gate — points at a trusted deploy preview or static build.
+# Never pass PR-controlled content into \`url\` on pull_request_target.
 name: slop-detect
 on:
+  pull_request:
   workflow_dispatch:
+    inputs:
+      url:
+        description: 'Preview URL to scan'
+        required: true
 jobs:
-  note:
+  slop-check:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
-      - name: Recipe
-        run: |
-          echo "Use ravidsrk/slop-detect/packages/action with a trusted preview URL."
-          echo "A missing URL is not a Clean score."
-          echo "This file does not submit the action to the GitHub Marketplace."
+      - uses: actions/checkout@v4
+      - name: Run Slop Detect
+        if: \${{ github.event.inputs.url != '' || vars.SLOP_PREVIEW_URL != '' }}
+        uses: ravidsrk/slop-detect@v0.9.1
+        with:
+          url: \${{ github.event.inputs.url || vars.SLOP_PREVIEW_URL }}
+          axes: design,copy
+          design-md: auto
+          fail-on: heavy
+          share: 'false'
 `;
 
 export interface InitPlanOptions {
@@ -189,6 +200,23 @@ export function planInitFiles(
   if (hooks && providers.has('claude')) {
     files.push({ path: '.claude/settings.local.json', contents: claudeSettings() });
   }
+  if (providers.has('cursor')) {
+    files.push({
+      path: '.cursor/mcp.json',
+      contents: `${JSON.stringify(
+        {
+          mcpServers: {
+            'slop-detect': {
+              command: 'npx',
+              args: MCP_SERVER_ARGS,
+            },
+          },
+        },
+        null,
+        2
+      )}\n`,
+    });
+  }
   if (hooks && providers.has('cursor')) {
     files.push({
       path: '.cursor/hooks.json',
@@ -221,7 +249,16 @@ export function planInitFiles(
   if (hooks && providers.has('copilot')) {
     files.push({
       path: '.github/hooks/slop-detect.json',
-      contents: `${JSON.stringify({ command: HOOK_COMMAND }, null, 2)}\n`,
+      contents: `${JSON.stringify(
+        {
+          version: 1,
+          hooks: {
+            postToolUse: [{ type: 'command', bash: HOOK_COMMAND }],
+          },
+        },
+        null,
+        2
+      )}\n`,
     });
   }
   if (opts.ci === 'github') {
@@ -234,14 +271,6 @@ export interface InitWriteResult {
   written: string[];
   unchanged: string[];
   skipped: string[];
-}
-
-function commandAlreadyPresent(existing: string, planned: string): boolean {
-  return (
-    existing.includes(HOOK_COMMAND) &&
-    planned.includes(HOOK_COMMAND) &&
-    !LEGACY_HOOK_COMMANDS.some((command) => existing.includes(command))
-  );
 }
 
 function hookCommandOf(entry: any): string | null {
@@ -300,10 +329,6 @@ export function applyInitPlan(
     }
     const existing = readFileSync(target, 'utf8');
     if (existing === file.contents) {
-      result.unchanged.push(file.path);
-      continue;
-    }
-    if (file.path.endsWith('.json') && commandAlreadyPresent(existing, file.contents)) {
       result.unchanged.push(file.path);
       continue;
     }

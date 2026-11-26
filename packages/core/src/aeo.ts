@@ -6,6 +6,7 @@
 // (CLI), a Cloudflare Worker (web), or a test.
 
 import { SCAN_SCHEMA_VERSION } from './scan-schema.js';
+import { DEFINITIONS_VERSION } from './definitions.js';
 
 export const AEO_SCANNER_USER_AGENT = 'SlopDetector-AEO/1.0 (+https://slop-detect.com/bot)';
 
@@ -13,7 +14,7 @@ export interface AIBotEntry {
   name: string;
   uaPattern: string | RegExp;
   vendor: string;
-  purpose: 'search' | 'user-action' | 'training';
+  purpose: 'search' | 'user-action' | 'training' | 'other';
   verifiedAt: string;
   docsUrl?: string;
   inheritsFrom?: string;
@@ -105,7 +106,7 @@ export const AI_BOT_REGISTRY: AIBotEntry[] = [
     name: 'OAI-AdsBot',
     uaPattern: 'OAI-AdsBot',
     vendor: 'OpenAI',
-    purpose: 'search',
+    purpose: 'other',
     verifiedAt: '2026-10-01',
   },
   {
@@ -119,7 +120,7 @@ export const AI_BOT_REGISTRY: AIBotEntry[] = [
     name: 'meta-externalads',
     uaPattern: 'meta-externalads',
     vendor: 'Meta',
-    purpose: 'search',
+    purpose: 'other',
     verifiedAt: '2026-10-01',
   },
 
@@ -660,6 +661,11 @@ async function fetchWithTimeout(
         redirect: 'manual',
       });
       if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
+        try {
+          await res.body?.cancel?.();
+        } catch {
+          /* ignore */
+        }
         current = new URL(res.headers.get('location')!, current).toString();
         continue;
       }
@@ -1071,14 +1077,16 @@ export function parsePreviewDirectives(
   };
 
   // Parse X-Robots-Tag. A combined value such as "googlebot: index, bingbot: noindex"
-  // is one header with a scope per bot. Tokens before the first bot prefix stay global.
+  // is one header with a scope per bot. Directives following an unrecognized bot
+  // prefix (e.g. "yandex: noindex") stay isolated in 'other' and never leak to 'all'.
   const xRobots = getHeader('x-robots-tag');
   if (xRobots) {
-    let scope: 'all' | 'google' | 'bing' | 'apple' = 'all';
+    let scope: 'all' | 'google' | 'bing' | 'apple' | 'other' = 'all';
     for (const part of String(xRobots).split(',')) {
       const trimmed = part.trim();
       if (!trimmed) continue;
       const botPrefix = trimmed.match(/^(googlebot|bingbot|applebot|robots)\s*:\s*(.*)$/i);
+      const otherBotPrefix = !botPrefix ? trimmed.match(/^([a-z0-9_-]+)\s*:\s*(.*)$/i) : null;
       if (botPrefix) {
         const bot = botPrefix[1].toLowerCase();
         scope =
@@ -1091,7 +1099,14 @@ export function parsePreviewDirectives(
                 : 'all';
         const rest = botPrefix[2].trim();
         if (rest) rawScopes[scope].push(rest.toLowerCase());
-      } else {
+      } else if (
+        otherBotPrefix &&
+        !/^(?:max-snippet|max-image-preview|max-video-preview|unavailable_after)$/i.test(
+          otherBotPrefix[1]
+        )
+      ) {
+        scope = 'other';
+      } else if (scope !== 'other') {
         rawScopes[scope].push(trimmed.toLowerCase());
       }
     }
@@ -1301,7 +1316,7 @@ export function detectPromptInjection(
   hiddenSnippets.push(...commentMatches);
   const inlineHiddenMatches =
     html.match(
-      /<[a-z0-9]+\b[^>]*(?:hidden|aria-hidden\s*=\s*["']true["']|class\s*=\s*["'][^"']*\b(?:sr-only|visually-hidden)\b[^"']*["']|style\s*=\s*["'][^"']*(?:display\s*:\s*none|visibility\s*:\s*hidden|opacity\s*:\s*0|font-size\s*:\s*0|left\s*:\s*-\d{3,}px)[^"']*["'])[^>]*>[\s\S]*?<\/[a-z0-9]+>/gi
+      /<([a-z0-9]+)\b[^>]*?(?:(?<=[\s])hidden(?:\s*=\s*["'][^"']*["'])?(?=[\s>])|aria-hidden\s*=\s*["']true["']|class\s*=\s*["'][^"']*\b(?:sr-only|visually-hidden)\b[^"']*["']|style\s*=\s*["'][^"']*(?:display\s*:\s*none|visibility\s*:\s*hidden|opacity\s*:\s*0(?:\.0+)?(?=\s*[;"']|\s*$)|font-size\s*:\s*0(?:\.0+)?(?:px|rem|em|%)?(?=\s*[;"']|\s*$)|left\s*:\s*-\d{3,}px)[^"']*["'])[^>]*>[\s\S]*?<\/\1>/gi
     ) || [];
   hiddenSnippets.push(...inlineHiddenMatches);
 
@@ -1509,7 +1524,7 @@ export function validateMarkdownTwin(
   }
   const stripped = String(body || '')
     .replace(/^\uFEFF?\s*---\r?\n[\s\S]*?\r?\n---\r?\n?/, '')
-    .replace(/```json\r?\n[\s\S]*?\r?\n```\s*$/i, '')
+    .replace(/```json\r?\n(?:(?!```)[\s\S])*\r?\n```\s*$/i, '')
     .trim();
   if (/^\s*<!doctype html|^\s*<html\b/i.test(stripped)) {
     return { valid: false, strippedLength: stripped.length, reason: 'html_body' };
@@ -1568,7 +1583,8 @@ function makeCheckResult(
   check: any,
   status: 'pass' | 'warn' | 'fail' | 'na' | 'unknown' | 'info',
   message: string,
-  detail: Record<string, any> = {}
+  detail: Record<string, any> = {},
+  passedOverride?: boolean
 ) {
   return {
     id: check.id,
@@ -1576,7 +1592,10 @@ function makeCheckResult(
     severity: check.severity,
     weight: check.weight,
     status,
-    passed: status === 'pass' || status === 'warn' || status === 'info',
+    passed:
+      typeof passedOverride === 'boolean'
+        ? passedOverride
+        : status === 'pass' || status === 'warn' || status === 'info',
     message,
     detail,
   };
@@ -1607,6 +1626,7 @@ export async function runAeoChecks(
   let html: Response | null = null;
   let htmlBody = '';
   let htmlErr: string | null = null;
+  let ssrfBlocked = false;
   try {
     html = await fetchWithTimeout(
       url.toString(),
@@ -1619,8 +1639,17 @@ export async function runAeoChecks(
     );
     // FIX-15: stream-read first MAX_HTML_BYTES of HTML even when Content-Length > 2 MB
     htmlBody = await readBodyCapped(html, MAX_HTML_BYTES, true);
-  } catch (e) {
+  } catch (e: any) {
     htmlErr = e instanceof Error ? e.message : String(e);
+    if (e?.code === 'ssrf_blocked') ssrfBlocked = true;
+  }
+  let targetUrl = url;
+  if (html && typeof html.url === 'string' && html.url) {
+    try {
+      targetUrl = new URL(html.url);
+    } catch {
+      targetUrl = url;
+    }
   }
   const p0Class = classifyEdgeResponse(html, htmlBody);
   const htmlOk = !!(html && html.ok && p0Class.outcome === 'ok');
@@ -1632,6 +1661,31 @@ export async function runAeoChecks(
       { httpStatus: html ? html.status : null }
     )
   );
+
+  // Stop immediately when SSRF blocked the baseline target — never fire follow-up probes.
+  if (ssrfBlocked) {
+    for (const c of AEO_CHECKS) {
+      if (c.id === 'html.reachable') continue;
+      checks.push(makeCheckResult(c, 'na', 'Blocked by SSRF policy — skipped'));
+    }
+    return {
+      schemaVersion: SCAN_SCHEMA_VERSION,
+      axis: 'aeo',
+      url: url.toString(),
+      mdUrl: toMarkdownUrl(url.toString()),
+      vantagePoint,
+      evidence: checks.filter((c) => c.status === 'fail'),
+      score: 0,
+      maxScore: 100,
+      tier: 'Restricted' as const,
+      definitionsVersion: DEFINITIONS_VERSION,
+      checks,
+      passed: [],
+      failed: checks.filter((c) => c.status === 'fail'),
+      requiredFailed: 1,
+      durationMs: Date.now() - start,
+    };
+  }
 
   // 2. edge.access (FIX-13: P0 baseline + P1 search-class probe + P2 agent-class probe, no UA spoofing)
   let p1Res: Response | null = null;
@@ -1697,7 +1751,7 @@ export async function runAeoChecks(
   let robotsFetched = false;
   try {
     const r = await fetchWithTimeout(
-      new URL('/robots.txt', url).toString(),
+      new URL('/robots.txt', targetUrl).toString(),
       { headers: { 'User-Agent': userAgent } },
       timeoutMs,
       fetchImpl,
@@ -1712,7 +1766,7 @@ export async function runAeoChecks(
   } catch (e) {
     robotsErr = e instanceof Error ? e.message : String(e);
   }
-  const robotsVerdict = evaluateRobotsTxt(robotsTxt, url.pathname, {
+  const robotsVerdict = evaluateRobotsTxt(robotsTxt, `${targetUrl.pathname}${targetUrl.search}`, {
     status: robotsStatus,
     contentType: robotsCt,
     error: robotsErr,
@@ -1827,19 +1881,32 @@ export async function runAeoChecks(
   }
 
   // 7. md.twin & 8. html.linkAlternate & 10. html.vary (FIX-15)
-  const mdUrl = toMarkdownUrl(url.toString());
+  const mdUrl = toMarkdownUrl(targetUrl.toString());
   let advertisedHref: string | null = null;
   if (htmlOk && html) {
     const linkHeader = html.headers.get('link') || '';
-    const linkHeaderMatch = linkHeader.match(
-      /<([^>]+)>\s*;\s*rel=["']?alternate["']?[^>]*type=["']?text\/markdown["']?/i
-    );
-    if (linkHeaderMatch) advertisedHref = linkHeaderMatch[1];
+    // Parse RFC 8288 comma-separated Link entries independently so parameters
+    // from one link never bleed into another, regardless of parameter order.
+    const linkEntries = linkHeader.match(/<[^>]+>[^,]*/g) || [];
+    for (const entry of linkEntries) {
+      const m = entry.match(/^<([^>]+)>(.*)$/);
+      if (!m) continue;
+      const params = m[2] || '';
+      if (
+        /;\s*rel\s*=\s*(?:"[^"]*\balternate\b[^"]*"|'[^']*\balternate\b[^']*'|alternate(?:\s*;|\s*$))/i.test(
+          params
+        ) &&
+        /;\s*type\s*=\s*["']?text\/(?:x-)?markdown["']?/i.test(params)
+      ) {
+        advertisedHref = m[1].trim();
+        break;
+      }
+    }
     if (!advertisedHref) {
       const head = htmlBody.slice(0, 50_000);
       const linkTags = head.match(/<link\b[^>]+rel=["']alternate["'][^>]*>/gi) || [];
       for (const tag of linkTags) {
-        if (/text\/markdown/i.test(tag)) {
+        if (/text\/(?:x-)?markdown/i.test(tag)) {
           const hm = tag.match(/\bhref=["']([^"']+)["']/i);
           if (hm && hm[1].trim()) advertisedHref = hm[1].trim();
         }
@@ -1851,7 +1918,17 @@ export async function runAeoChecks(
   let advertisedUrlError: string | null = null;
   if (advertisedHref) {
     try {
-      advertisedUrl = new URL(advertisedHref, url).toString();
+      const resolvedAlt = new URL(advertisedHref, targetUrl);
+      if (resolvedAlt.protocol !== 'http:' && resolvedAlt.protocol !== 'https:') {
+        advertisedUrlError = 'non-http alternate URL';
+      } else if (
+        resolvedAlt.origin !== targetUrl.origin &&
+        (typeof isUrlAllowed !== 'function' || !isUrlAllowed(resolvedAlt.toString()))
+      ) {
+        advertisedUrlError = 'cross-origin alternate URL skipped';
+      } else {
+        advertisedUrl = resolvedAlt.toString();
+      }
     } catch {
       advertisedUrlError = 'invalid alternate URL';
     }
@@ -1866,7 +1943,7 @@ export async function runAeoChecks(
 
   // Probe canonical URL for content negotiation (Accept: text/markdown) and static twin URLs.
   // A malformed alternate URL is recorded and skipped so the rest of the report still runs.
-  const canonicalUrlStr = url.toString();
+  const canonicalUrlStr = targetUrl.toString();
   const probeUrls = [canonicalUrlStr, ...(advertisedUrl ? [advertisedUrl] : []), mdUrl];
   for (const candidateUrl of [...new Set(probeUrls)]) {
     const isCanonicalNegotiation = candidateUrl === canonicalUrlStr;
@@ -1998,7 +2075,7 @@ export async function runAeoChecks(
   let llmsBody = '';
   try {
     llmsRes = await fetchWithTimeout(
-      new URL('/llms.txt', url).toString(),
+      new URL('/llms.txt', targetUrl).toString(),
       { headers: { 'User-Agent': userAgent } },
       timeoutMs,
       fetchImpl,
@@ -2076,7 +2153,8 @@ export async function runAeoChecks(
         manip.triggered
           ? `Detected ${manip.findings.length} potential prompt-manipulation signal(s)`
           : 'No prompt manipulation signals detected',
-        manip
+        manip,
+        !manip.triggered
       )
     );
 
@@ -2086,7 +2164,8 @@ export async function runAeoChecks(
         pickCheck('agent.operability'),
         oper.healthy ? 'pass' : 'info',
         `Accessible name coverage: ${Math.round(oper.accessibleNameRatio * 100)}%`,
-        oper
+        oper,
+        oper.healthy
       )
     );
 
@@ -2135,30 +2214,48 @@ export async function runAeoChecks(
     const datesFound: string[] = [];
     const jsonLdDates: string[] = [];
     const visibleLower = stripHtmlToText(htmlBody).toLowerCase();
+    const inspectJsonLdNode = (node: any, inheritedContext: boolean) => {
+      if (!node || typeof node !== 'object') {
+        jsonLdValid = false;
+        return;
+      }
+      const hasContext = Boolean(node['@context']) || inheritedContext;
+      if (Array.isArray(node['@graph'])) {
+        if (!hasContext || node['@graph'].length === 0) jsonLdValid = false;
+        for (const item of node['@graph']) inspectJsonLdNode(item, hasContext);
+        return;
+      }
+      if (!hasContext || !node['@type']) jsonLdValid = false;
+      if (typeof node.datePublished === 'string') {
+        datesFound.push(node.datePublished);
+        jsonLdDates.push(node.datePublished.slice(0, 10));
+      }
+      if (typeof node.dateModified === 'string') {
+        datesFound.push(node.dateModified);
+        jsonLdDates.push(node.dateModified.slice(0, 10));
+      }
+      const literalCandidate =
+        typeof node.headline === 'string'
+          ? node.headline
+          : typeof node.name === 'string'
+            ? node.name
+            : null;
+      if (literalCandidate && visibleLower.length >= 20) {
+        const normLit = literalCandidate.trim().toLowerCase();
+        if (normLit.length >= 6 && !visibleLower.includes(normLit)) {
+          jsonLdMatchesVisible = false;
+        }
+      }
+    };
     for (const blk of ldMatches) {
       const inner = blk.replace(/^<script[^>]*>|<\/script>$/gi, '').trim();
       try {
         const obj = JSON.parse(inner);
-        if (!obj['@context'] || !obj['@type']) jsonLdValid = false;
-        if (typeof obj.datePublished === 'string') {
-          datesFound.push(obj.datePublished);
-          jsonLdDates.push(obj.datePublished.slice(0, 10));
-        }
-        if (typeof obj.dateModified === 'string') {
-          datesFound.push(obj.dateModified);
-          jsonLdDates.push(obj.dateModified.slice(0, 10));
-        }
-        const literalCandidate =
-          typeof obj.headline === 'string'
-            ? obj.headline
-            : typeof obj.name === 'string'
-              ? obj.name
-              : null;
-        if (literalCandidate && visibleLower.length >= 20) {
-          const normLit = literalCandidate.trim().toLowerCase();
-          if (normLit.length >= 6 && !visibleLower.includes(normLit)) {
-            jsonLdMatchesVisible = false;
-          }
+        if (Array.isArray(obj)) {
+          if (obj.length === 0) jsonLdValid = false;
+          for (const item of obj) inspectJsonLdNode(item, false);
+        } else {
+          inspectJsonLdNode(obj, false);
         }
       } catch {
         jsonLdValid = false;
@@ -2211,7 +2308,8 @@ export async function runAeoChecks(
             : !jsonLdMatchesVisible
               ? 'JSON-LD headline/name does not match visible page text'
               : 'JSON-LD parses cleanly',
-        { blocks: ldMatches.length, valid: jsonLdValid, matchesVisibleText: jsonLdMatchesVisible }
+        { blocks: ldMatches.length, valid: jsonLdValid, matchesVisibleText: jsonLdMatchesVisible },
+        jsonLdValid && jsonLdMatchesVisible
       )
     );
   } else {
@@ -2227,7 +2325,9 @@ export async function runAeoChecks(
     }
   }
 
-  // Dynamic denominator (FIX-18): exclude 'na', 'unknown', 'info', and weight === 0 checks
+  // Dynamic denominator (FIX-18): exclude 'na', 'unknown', 'info', and weight === 0 checks.
+  // When html.reachable itself fails, an unreachable/5xx page must never score as
+  // Partially Eligible purely off a permissive /robots.txt — cap in the Restricted band.
   const applicable = checks.filter(
     (c) => c.weight > 0 && c.status !== 'na' && c.status !== 'unknown' && c.status !== 'info'
   );
@@ -2239,7 +2339,8 @@ export async function runAeoChecks(
   }, 0);
   const applicableWeight = applicable.reduce((s, c) => s + c.weight, 0);
   const ratio = applicableWeight > 0 ? earnedWeight / applicableWeight : 0;
-  const score = applicableWeight > 0 ? Math.round(ratio * 100) : 0;
+  const rawScore = applicableWeight > 0 ? Math.round(ratio * 100) : 0;
+  const score = htmlOk ? rawScore : Math.min(rawScore, 25);
 
   const passed = checks.filter((c) => c.status === 'pass');
   const failed = checks.filter((c) => c.status === 'fail');

@@ -5,7 +5,10 @@
 // Base URL is configurable so the same server can point at a local dev build
 // (e.g. `SLOP_DETECT_API=http://localhost:8788`) without code changes.
 export function apiBase() {
-  return (process.env.SLOP_DETECT_API || 'https://slop-detect.com').replace(/\/$/, '');
+  return (process.env.SLOP_DETECT_API || process.env.SLOP_API || 'https://slop-detect.com').replace(
+    /\/$/,
+    ''
+  );
 }
 
 // Custom error that carries the HTTP status. We surface 429 (rate limited) and

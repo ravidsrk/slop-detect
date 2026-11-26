@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- impeccable-disable numbered-section-labels -- architectural specification ledger numbering -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -151,8 +150,9 @@
     </a>
     <div class="nav-links">
       <a class="nav-link" href="/leaderboard">leaderboard</a>
-      <a class="nav-link nav-link-active" href="/compare">compare</a>
+      <a class="nav-link nav-link-active" href="/compare" aria-current="page">compare</a>
       <a class="nav-link" href="/docs">docs</a>
+      <a class="nav-link" href="/dashboard">dashboard</a>
       <a class="nav-link" href="/brand">brand</a>
       <a class="nav-gh" href="https://github.com/ravidsrk/slop-detect" target="_blank" rel="noopener noreferrer">github ↗</a>
     </div>
@@ -205,11 +205,12 @@
     <h2>One fixed yardstick, not a moving model</h2>
     <p>
       Most "is this AI?" tools are <strong>probabilistic ML classifiers</strong>: they output a
-      confidence that something was machine-generated, and that confidence shifts as the model is
-      retrained. Slop Detector works the other way. It is a <strong>deterministic fingerprint</strong>:
-      a fixed catalogue of CSS and copy tells, each with a fixed weight, evaluated against a page's
+      probabilistic authorship score that shifts whenever the model is
+      retrained. Slop Detector works the other way. It is a <strong>deterministic verifier</strong>:
+      a fixed catalogue of CSS, copy, craft, and <code>DESIGN.md</code> checks evaluated against a page's
       <em>live computed styles</em> in real headless Chromium. The same page always yields the same
-      score. No model, no randomness, so the output is auditable, reproducible, and safe to gate CI on.
+      result. No model, no randomness, so the output is auditable, reproducible, and safe to gate CI
+      and coding-agent edit loops on.
     </p>
     <figure style="margin:20px 0 6px;border:1px solid var(--border);border-radius:var(--r-6);background:var(--panel);overflow:hidden">
       <img src="/media/hero-optical-instrument.png" alt="Isometric exploded view of a landing page inspected across five optical DOM strata" decoding="async" width="1200" height="675" style="display:block;width:100%;height:auto;border-bottom:1px solid var(--border-2)">
@@ -269,9 +270,10 @@
     <div class="sec-h"><span class="tag">§ 05</span><span class="lbl">when to use which</span></div>
     <h2>Pick by the question you're asking</h2>
     <ul>
-      <li><strong>Slop Detector</strong>: a reproducible, explainable read on how many default-template patterns a landing page matches, or to gate design regressions in CI.</li>
-      <li><strong>An ML AI-detector</strong>: a probabilistic "was this generated?" verdict on arbitrary text or images.</li>
-      <li><strong>Lighthouse / axe</strong>: performance, accessibility, and technical SEO. Orthogonal to slop.</li>
+      <li><strong>Slop Detector</strong>: a deterministic Chromium verifier for coding-agent loops, rendered <code>DESIGN.md</code> token compliance, craft floor checks, AEO crawler eligibility, and CI gates.</li>
+      <li><strong>Design-generation skills (e.g. Impeccable, frontend-design)</strong>: prompt libraries that help agents author better UI. Complementary — use them to generate, and call <code>slop-detect-mcp --local</code> or <code>npx slop-detect verify</code> to verify the rendered DOM.</li>
+      <li><strong>ML classifiers</strong>: probabilistic authorship guesses on arbitrary text or images.</li>
+      <li><strong>Lighthouse / axe</strong>: performance, accessibility, and technical SEO. Orthogonal to template convergence and <code>DESIGN.md</code> drift.</li>
     </ul>
   </section>
 

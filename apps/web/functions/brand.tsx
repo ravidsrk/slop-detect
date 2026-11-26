@@ -338,8 +338,9 @@ export async function onRequestGet({ request }) {
               <span class="mono">this page scores 0/100 · A+ · Clean</span>
             </div>
             <p class="hero-lead lead">
-              slop-detect scores how generated a landing page looks. So the identity that ships it
-              has to score zero on its own scan. Below is that identity, and the reasons it passes.
+              slop-detect measures how many default-template patterns a landing page matches. So the
+              identity that ships it has to score zero on its own scan. Below is that identity, and
+              the reasons it passes.
             </p>
           </section>
 
@@ -631,7 +632,7 @@ export async function onRequestGet({ request }) {
 
           {/* closer: the scan flow + the manifesto */}
           <section class="close" aria-labelledby="close-h">
-            <h2 id="close-h">See if your page looks generated.</h2>
+            <h2 id="close-h">See what your page matches.</h2>
             <p class="close-body lead">One scan, about eight seconds, no signup.</p>
             <div class="close-scan">
               <ScanInput variant="hero" action="/score" id="brand-scan" />
@@ -650,9 +651,7 @@ export async function onRequestGet({ request }) {
     </html>
   );
 
-  const html =
-    '<!doctype html><!-- impeccable-disable numbered-section-labels, low-contrast -- brand.test.js pins SectionLedger 01..08 and VOICE #15824A/#9A6B12/#B23A2A -->' +
-    doc.toString();
+  const html = '<!doctype html>' + doc.toString();
 
   return new Response(html, {
     headers: {

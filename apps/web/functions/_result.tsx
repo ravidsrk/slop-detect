@@ -591,7 +591,7 @@ export function BigScore({
     { label: 'Compare →', href: `${origin}/compare?a=${encodeURIComponent(slim.domain)}` },
     { label: 'Rescan →', href: `${origin}/?url=${encodeURIComponent(slim.domain)}` },
     { label: 'Printable report →', href: `${origin}/report/${slim.domain}` },
-    { label: 'This scan →', href: `${origin}/r/${slim.id}` },
+    ...(slim.id ? [{ label: 'This scan →', href: `${origin}/r/${slim.id}` }] : []),
   ];
   return (
     <div class="bs">
@@ -653,7 +653,13 @@ export function BigScore({
 }
 
 // 4. Category overview: five status bars (fill width = clean %, color = tier).
-export function CategoryBars({ categories }: { categories: any[] }) {
+export function CategoryBars({
+  categories,
+  withheld = false,
+}: {
+  categories: any[];
+  withheld?: boolean;
+}) {
   return (
     <div class="cbars">
       {categories.map((c) => (
@@ -668,12 +674,16 @@ export function CategoryBars({ categories }: { categories: any[] }) {
           <span class="cbar-track" aria-hidden="true">
             <span
               class="cbar-fill"
-              style={`display:block;width:${c.cleanPct}%;background:${tierFill(c.tier)}`}
+              style={`display:block;width:${c.cleanPct}%;background:${withheld ? 'var(--text-5)' : tierFill(c.tier)}`}
             />
           </span>
           <span class="cbar-name">{c.label}</span>
           <span class="cbar-sub">
-            {c.flagged ? `+${c.weight} · ${c.flagged} flagged` : 'clean'}
+            {c.flagged
+              ? withheld
+                ? `${c.flagged} flagged`
+                : `+${c.weight} · ${c.flagged} flagged`
+              : 'clean'}
           </span>
         </button>
       ))}
@@ -760,7 +770,7 @@ export function Breakdown({
                         {p.short ? <div class="bd-ev">{p.short}</div> : null}
                         {p.why ? <div class="bd-why">{p.why}</div> : null}
                       </div>
-                      <span class="bd-w">+{p.weight}</span>
+                      {!withheld ? <span class="bd-w">+{p.weight}</span> : null}
                     </div>
                   ))
                 ) : (
@@ -915,7 +925,8 @@ export function SystemAeoCards({ slim }: { slim: any }) {
         ))}
         <div id="aeoTurnstile" />
         <p class="aeo-foot" id="aeoFoot">
-          Eight checks, weighted to 100. Evaluated live per scan. Run a fresh scan to see pass/fail.
+          {AEO_CHECKS.length} checks, weighted to 100. Evaluated live per scan using an honest
+          scanner user-agent. Run a fresh scan to see pass/fail.
         </p>
       </div>
     </div>

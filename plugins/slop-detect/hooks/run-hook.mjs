@@ -51,6 +51,44 @@ const cwd =
   process.cwd();
 if (!process.env.SLOP_LOCAL_URL && !existsSync(join(cwd, '.slop', 'local-url'))) process.exit(0);
 
+// Skip spawning npx completely for non-UI PostToolUse edits.
+const eventName = String((input && (input.hook_event_name || input.event)) || '');
+if (eventName === 'PostToolUse') {
+  const toolInput = (input && input.tool_input) || {};
+  const filePath = String(toolInput.file_path || toolInput.path || '');
+  if (filePath) {
+    const base = filePath.split(/[\\/]/).pop().toLowerCase();
+    const uiExt = new Set([
+      '.html',
+      '.htm',
+      '.css',
+      '.scss',
+      '.sass',
+      '.less',
+      '.pcss',
+      '.styl',
+      '.jsx',
+      '.tsx',
+      '.vue',
+      '.svelte',
+      '.astro',
+      '.mdx',
+      '.liquid',
+      '.njk',
+      '.hbs',
+      '.ejs',
+      '.erb',
+      '.twig',
+    ]);
+    const isDesignFile =
+      base === 'design.md' || base === 'tokens.json' || base.startsWith('tailwind.config');
+    const dot = base.lastIndexOf('.');
+    if (!isDesignFile && !(dot >= 0 && uiExt.has(base.slice(dot)))) {
+      process.exit(0);
+    }
+  }
+}
+
 const child = spawnSync(
   'npx',
   ['-y', '-p', 'slop-detect', '-p', 'slop-detect-mcp', 'slop-detect-hook'],

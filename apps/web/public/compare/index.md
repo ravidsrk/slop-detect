@@ -5,12 +5,12 @@
 
 ## The short version
 
-Most "is this AI?" tools are probabilistic ML classifiers: they output a confidence
-that something was machine-generated, and that confidence shifts as the model is
-retrained. Slop Detector works the other way, as a deterministic fingerprint: a fixed
-catalogue of CSS and copy tells, each with a fixed weight, evaluated against a page's
-live computed styles in real headless Chromium. Same page in, same score out. No
-model, no randomness, auditable, reproducible, safe to gate CI on.
+Most "is this AI?" tools are probabilistic ML classifiers: they output a
+probabilistic authorship guess that shifts as the model is retrained. Slop
+Detector works the other way, as a deterministic verifier: a fixed catalogue of
+CSS, copy, craft, and `DESIGN.md` checks evaluated against a page's live computed
+styles in real headless Chromium. Same page in, same report out. No model, no
+randomness, auditable, reproducible, safe to gate coding-agent loops and CI on.
 
 ## Methodology comparison
 

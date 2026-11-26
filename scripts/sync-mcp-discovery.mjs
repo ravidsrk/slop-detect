@@ -10,7 +10,9 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const core = await import('../packages/core/dist/index.js');
-const path = fileURLToPath(new URL('../apps/web/public/.well-known/mcp/server-card.json', import.meta.url));
+const path = fileURLToPath(
+  new URL('../apps/web/public/.well-known/mcp/server-card.json', import.meta.url)
+);
 const card = JSON.parse(readFileSync(path, 'utf8'));
 card.tools = core.MCP_TOOLS.map((tool) => ({
   name: tool.name,

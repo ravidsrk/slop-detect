@@ -171,6 +171,12 @@ export function resolveRenderedFont(family: string | null | undefined, docFonts?
     '-apple-system',
     'blinkmacsystemfont',
     'segoe ui',
+    'roboto',
+    'sf pro',
+    'sf pro display',
+    'sf pro text',
+    'ubuntu',
+    'noto sans',
     'helvetica',
     'helvetica neue',
     'arial',
@@ -199,8 +205,10 @@ export function resolveRenderedFont(family: string | null | undefined, docFonts?
         (f.family === candidate ||
           candidate.startsWith(f.family + ' ') ||
           candidate.startsWith(f.family + '-') ||
+          candidate.startsWith(f.family + '_') ||
           f.family.startsWith(candidate + ' ') ||
-          f.family.startsWith(candidate + '-'))
+          f.family.startsWith(candidate + '-') ||
+          f.family.startsWith(candidate + '_'))
     );
     if (loadedMatch) return candidate;
     if (systemFallbacks.has(candidate)) return candidate;
@@ -212,21 +220,34 @@ export function isSlopFont(family: string | null | undefined, docFonts?: any): b
   if (!family) return false;
   const first = resolveRenderedFont(family, docFonts);
   if (!first) return false;
-  return SLOP_FONT_PREFIXES.some((p) => first.startsWith(p));
+  // Normalize Next.js next/font hashed family names like "__Inter_d65c78" -> "inter_d65c78"
+  const norm = first.replace(/^__+/, '');
+  return SLOP_FONT_PREFIXES.some(
+    (p) =>
+      norm === p || norm.startsWith(p + ' ') || norm.startsWith(p + '-') || norm.startsWith(p + '_')
+  );
 }
 
 export function isPrimarySlopFont(family: string | null | undefined, docFonts?: any): boolean {
   if (!family) return false;
   const first = resolveRenderedFont(family, docFonts);
   if (!first) return false;
-  return PRIMARY_SLOP_FONT_PREFIXES.some((p) => first.startsWith(p));
+  const norm = first.replace(/^__+/, '');
+  return PRIMARY_SLOP_FONT_PREFIXES.some(
+    (p) =>
+      norm === p || norm.startsWith(p + ' ') || norm.startsWith(p + '-') || norm.startsWith(p + '_')
+  );
 }
 
 export function isSecondarySlopFont(family: string | null | undefined, docFonts?: any): boolean {
   if (!family) return false;
   const first = resolveRenderedFont(family, docFonts);
   if (!first) return false;
-  return SECONDARY_SLOP_FONT_PREFIXES.some((p) => first.startsWith(p));
+  const norm = first.replace(/^__+/, '');
+  return SECONDARY_SLOP_FONT_PREFIXES.some(
+    (p) =>
+      norm === p || norm.startsWith(p + ' ') || norm.startsWith(p + '-') || norm.startsWith(p + '_')
+  );
 }
 
 export const ACCENT_SERIF_PREFIXES = [
@@ -244,6 +265,12 @@ export const ACCENT_SERIF_PREFIXES = [
 export function isAccentSerif(family: string | null | undefined): boolean {
   if (!family) return false;
   const f = String(family).toLowerCase().replace(/['"]/g, '');
-  const first = f.split(',')[0].trim();
-  return ACCENT_SERIF_PREFIXES.some((p) => first.startsWith(p));
+  const first = f.split(',')[0].trim().replace(/^__+/, '');
+  return ACCENT_SERIF_PREFIXES.some(
+    (p) =>
+      first === p ||
+      first.startsWith(p + ' ') ||
+      first.startsWith(p + '-') ||
+      first.startsWith(p + '_')
+  );
 }

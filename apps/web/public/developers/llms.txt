@@ -7,8 +7,10 @@ Three integration surfaces, all free and open source (MIT):
 ## CLI
 
 ```bash
-npx slop-detect https://example.com          # score a page
-npx slop-detect https://example.com --aeo     # + AEO axis
+npx slop-detect verify http://localhost:3000  # one-command 5-axis gate + baseline
+npx slop-detect init                          # bootstrap MCP + hooks + CI
+npx slop-detect doctor                        # verify local Chromium, DESIGN.md & hooks
+npx slop-detect https://example.com --aeo     # + AEO crawler eligibility axis
 npx slop-detect https://example.com --fail-on heavy   # gate CI (non-zero exit)
 ```
 
@@ -17,11 +19,11 @@ npm: `slop-detect`. Source: https://github.com/ravidsrk/slop-detect
 ## MCP server
 
 ```bash
-npx -y slop-detect-mcp
+npx -y -p slop-detect -p slop-detect-mcp slop-detect-mcp --local
 ```
 
 Exposes these tools to any MCP client (Claude Code, Cursor, Windsurf):
-`scan_page`, `check_aeo`, `check_design_system`, `fix_prompt`,
+`scan_page`, `check_aeo`, `check_design_system`, `extract_design_system`, `fix_prompt`,
 `lint_design_md`, `diff_design_md`. Server card:
 https://slop-detect.com/.well-known/mcp/server-card.json
 

@@ -50,32 +50,37 @@ const N_CRAFT = CRAFT_CHECKS.length;
 const N_AEO = AEO_CHECKS.length;
 const N_AEO_REQUIRED = AEO_CHECKS.filter((c) => c.severity === 'required').length;
 
-// The four product axes. The engine scores design + copy directly; the system and
-// AEO axes are separate live endpoints. Each carries its identity color and its
-// polarity (slop: lower is better; system & AEO: higher is better).
-const FOUR_AXES = [
+// The five product axes. Design + copy score template overlap (lower is better);
+// craft floor, DESIGN.md system compliance, and AEO eligibility want higher scores.
+const FIVE_AXES = [
   {
     name: 'design slop',
     color: 'var(--heavy-text)',
-    desc: `The original CSS fingerprint: ${N_DESIGN} weighted tells AI builders converged on — slop fonts, purple CTAs, gradient text, glassmorphism, bento grids.`,
+    desc: `The deterministic CSS/DOM fingerprint: ${N_DESIGN} rules covering default fonts, indigo/violet CTAs, gradient text, glassmorphism, and layout convergence. Weight 0 review rules add no points.`,
     polarity: 'lower is better',
   },
   {
     name: 'copy slop',
     color: 'var(--mild-text)',
-    desc: `${N_COPY} text tells on the page's own prose: buzzword density, em-dash overload, the "not just X, it's Y" antithesis, filler openers.`,
+    desc: `${N_COPY} prose and paste-artifact rules: buzzword density, antithesis constructions, filler openers, and leaked chatbot markup or placeholders.`,
     polarity: 'lower is better',
+  },
+  {
+    name: 'craft floor',
+    color: 'var(--text)',
+    desc: `${N_CRAFT} objective rendering, WCAG contrast, mobile 390px reflow, broken media, and interaction checks. Reported separately — never feeds Clean/Mild/Heavy.`,
+    polarity: 'higher is better',
   },
   {
     name: 'system · DESIGN.md',
     color: 'var(--system-text)',
-    desc: 'Does the page honor its own declared design system? Named, contestable drift against a DESIGN.md, never a verdict.',
+    desc: 'Does the rendered page honor its own declared DESIGN.md or DTCG tokens? Named, contestable drift against your own design system, never a verdict.',
     polarity: 'higher is better',
   },
   {
     name: 'AEO · agent-readable',
     color: 'var(--clean-text)',
-    desc: `Can AI engines fetch, read, and cite the page? ${N_AEO} weighted checks against the live crawler registry.`,
+    desc: `Can search and AI answer crawlers fetch, parse, and cite the page? ${N_AEO} HTTP eligibility checks against documented crawler rules.`,
     polarity: 'higher is better',
   },
 ];
@@ -186,7 +191,7 @@ const TIER_COLUMNS = [
 // The 11-item TOC. Each entry is an in-page anchor; the matching <section> uses the
 // same id. Order mirrors the content flow (design "Docs sidebar").
 const TOC = [
-  { id: 'axes', label: 'The four axes' },
+  { id: 'axes', label: 'The five axes' },
   { id: 'install', label: 'Install' },
   { id: 'cli', label: 'The CLI' },
   { id: 'aeo', label: 'AEO · agent-readable' },
@@ -223,11 +228,15 @@ const CODE = {
   ].join('\n'),
 
   cli: [
+    `slop-detect ${esc('verify [url|dir]')}       ${c.cmt('# one-command 5-axis gate + baseline ratchet')}`,
+    `slop-detect ${esc('init')}                   ${c.cmt('# bootstrap MCP, hooks & CI for coding agents')}`,
+    `slop-detect ${esc('doctor')}                 ${c.cmt('# verify Chromium, DESIGN.md, .sloprc & hooks')}`,
     `slop-detect ${esc('<url> [...urls]')}        ${c.cmt('# score one or many pages')}`,
-    `  ${c.key('--copy')}              ${c.cmt('# also score the copy axis')}`,
-    `  ${c.key('--axes all')}          ${c.cmt('# design + copy together')}`,
+    `  ${c.key('--copy --craft')}      ${c.cmt('# add copy axis + craft floor checks')}`,
+    `  ${c.key('--axes all')}          ${c.cmt('# design + copy + craft together')}`,
     `  ${c.key('--aeo')}               ${c.cmt('# score the ' + N_AEO + '-check AEO axis')}`,
     `  ${c.key('--design-md auto')}    ${c.cmt('# check against <origin>/DESIGN.md')}`,
+    `  ${c.key('--format agent')}      ${c.cmt('# ~32-token selector-addressed agent output')}`,
     `  ${c.key('--preset strict')}     ${c.cmt('# score a curated subset')}`,
     `  ${c.key('--remote')}            ${c.cmt('# scan via the API, no local browser')}`,
     `  ${c.key('--json')}              ${c.cmt('# machine-readable output')}`,
@@ -263,16 +272,22 @@ const CODE = {
   mcp: [
     '{',
     `  ${c.key('"mcpServers"')}: {`,
-    `    ${c.key('"slop-detect"')}: { ${c.key('"command"')}: ${c.str('"npx"')}, ${c.key('"args"')}: [${c.str('"-y"')}, ${c.str('"slop-detect-mcp"')}] }`,
+    `    ${c.key('"slop-detect"')}: {`,
+    `      ${c.key('"command"')}: ${c.str('"npx"')},`,
+    `      ${c.key('"args"')}: [${c.str('"-y"')}, ${c.str('"-p"')}, ${c.str('"slop-detect"')}, ${c.str('"-p"')}, ${c.str('"slop-detect-mcp"')}, ${c.str('"slop-detect-mcp"')}, ${c.str('"--local"')}]`,
+    '    }',
     '  }',
     '}',
   ].join('\n'),
 
   ci: [
-    `${c.key('- uses')}: ravidsrk/slop-detect/packages/action@v0.8.0`,
+    `${c.key('- uses')}: ravidsrk/slop-detect/packages/action@v0.9.1`,
     `  ${c.key('with')}:`,
     `    ${c.key('url')}: ${esc('${{ steps.preview.outputs.url }}')}   ${c.cmt('# your deploy-preview URL')}`,
+    `    ${c.key('axes')}: ${c.str("'design,copy,craft'")}`,
+    `    ${c.key('design-md')}: ${c.str("'auto'")}`,
     `    ${c.key('fail-under')}: ${c.str("'B'")}                       ${c.cmt('# fail if the grade drops below B')}`,
+    `    ${c.key('upload-sarif')}: ${c.str("'true'")}`,
   ].join('\n'),
 };
 
@@ -529,7 +544,7 @@ export async function onRequestGet({ request }) {
         <title>How the scan works · slop-detect</title>
         <meta
           name="description"
-          content="The slop-detect methodology: a deterministic, weighted, reproducible fingerprint of the design and copy tells AI builders converged on, plus the DESIGN.md system axis and the AEO agent-readability axis. The four axes, the CLI, the API, presets, and the CI gate."
+          content="The slop-detect methodology: a deterministic, weighted, reproducible fingerprint of default-template design and copy patterns, plus the craft floor, DESIGN.md system compliance, and AEO eligibility axes. The five axes, CLI, MCP, API, presets, and CI gate."
         />
         <link rel="canonical" href={`${ORIGIN}/docs`} />
         <link rel="alternate" type="text/markdown" href={`${ORIGIN}/docs.md`} />
@@ -537,7 +552,7 @@ export async function onRequestGet({ request }) {
         <meta property="og:title" content="How the scan works · slop-detect" />
         <meta
           property="og:description"
-          content="The methodology behind the AI-design-slop fingerprint: four axes, the CLI, the REST API, presets, MCP, and the CI gate."
+          content="The methodology behind the deterministic Chromium verifier: five axes, CLI, REST API, presets, MCP, and CI gate."
         />
         <meta property="og:url" content={`${ORIGIN}/docs`} />
         <meta property="og:image" content={`${ORIGIN}/og.png`} />
@@ -582,11 +597,12 @@ export async function onRequestGet({ request }) {
               <a href={`${origin}/docs.md`}>/docs.md</a>.
             </p>
 
-            {/* 4. The four axes */}
-            <DocSection id="axes" tag="01" title="The four axes">
+            {/* 4. The five axes */}
+            <DocSection id="axes" tag="01" title="The five axes">
               <p>
-                A page can be slop in more than one way. slop-detect scores four independent axes;
-                the two slop axes want a low score, the system and AEO axes want a high one.
+                A landing page can drift in more than one way. slop-detect evaluates five orthogonal
+                axes: the two default-template axes want a low score, while the craft floor,
+                DESIGN.md system compliance, and AEO eligibility axes want a high one.
               </p>
               <table class="tbl">
                 <thead>
@@ -597,7 +613,7 @@ export async function onRequestGet({ request }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {FOUR_AXES.map((a) => (
+                  {FIVE_AXES.map((a) => (
                     <tr>
                       <td class="name" style={`color:${a.color}`}>
                         {a.name}
@@ -611,9 +627,9 @@ export async function onRequestGet({ request }) {
 
               <DocFigure
                 src="/media/docs-four-axes-architecture.png"
-                alt="Four-axis telemetry architecture schematic showing Design Slop, Copy Slop, System Compliance, and AEO checks converging into a deterministic grade"
+                alt="Multi-axis telemetry architecture schematic showing Design Slop, Copy Slop, System Compliance, and AEO checks converging into a deterministic report"
                 figNum="FIG. 01"
-                caption="Four-axis telemetry architecture: headless Chromium DOM extraction feeding design, copy, system, and AEO instruments."
+                caption="Telemetry architecture: headless Chromium DOM extraction feeding design, copy, craft, system, and AEO instruments."
               />
 
               <DocFigure
@@ -641,8 +657,9 @@ export async function onRequestGet({ request }) {
               <div class="cat-exp" id="docCatExp">
                 <div class="cat-exp-hd">
                   <span class="cat-exp-title">
-                    live rule explorer · {N_DESIGN + N_COPY} rules ({N_DESIGN} design + {N_COPY}{' '}
-                    copy) · <span id="docCatCount">{N_DESIGN + N_COPY} shown</span>
+                    live rule explorer · {N_DESIGN + N_COPY + N_CRAFT} rules ({N_DESIGN} design +{' '}
+                    {N_COPY} copy + {N_CRAFT} craft) ·{' '}
+                    <span id="docCatCount">{N_DESIGN + N_COPY + N_CRAFT} shown</span>
                   </span>
                   <div class="cat-exp-ctrls">
                     <button
@@ -651,7 +668,7 @@ export async function onRequestGet({ request }) {
                       data-cat-filter="all"
                       aria-pressed="true"
                     >
-                      all ({N_DESIGN + N_COPY})
+                      all ({N_DESIGN + N_COPY + N_CRAFT})
                     </button>
                     <button
                       type="button"
@@ -921,9 +938,12 @@ export async function onRequestGet({ request }) {
               <p class="doc-sub">MCP · self-audit before shipping</p>
               <p>
                 <code>slop-detect-mcp</code> is a Model Context Protocol server that lets an agent
-                scan a page before it ships and pull the fix prompt back into the loop. Four tools:{' '}
-                <code>scan_page</code>, <code>check_aeo</code>, <code>check_design_system</code>,{' '}
-                <code>fix_prompt</code>.
+                scan a local or live page before shipping, inspect real CSS selectors, extract or
+                lint <code>DESIGN.md</code>, and pull remediation prompts back into the loop. Seven
+                tools: <code>scan_page</code>, <code>check_aeo</code>,{' '}
+                <code>check_design_system</code>, <code>extract_design_system</code>,{' '}
+                <code>fix_prompt</code>, <code>lint_design_md</code>, and{' '}
+                <code>diff_design_md</code>.
               </p>
               <Code lang="json" html={CODE.mcp} />
               <DocFigure

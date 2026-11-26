@@ -504,26 +504,29 @@ export function renderMcpPrompt(
   const url = typeof args?.url === 'string' && args.url.trim() ? args.url.trim() : '<url>';
   let text: string;
   if (name === 'audit_landing_page') {
+    const quotedUrl = JSON.stringify(url);
     text = [
       `Audit the landing page at ${url} with the slop-detect tools:`,
-      `1. Call scan_page with {"url": "${url}", "axes": ["design", "copy"], "design_md_url": "auto"}.`,
-      `2. Call check_aeo with {"url": "${url}"}.`,
+      `1. Call scan_page with {"url": ${quotedUrl}, "axes": ["design", "copy"], "design_md_url": "auto"}.`,
+      `2. Call check_aeo with {"url": ${quotedUrl}}.`,
       '3. Report the scores with their polarity (design and copy: lower is better; DESIGN.md compliance and AEO: higher is better), then the findings in priority order: heaviest triggered patterns first, then DESIGN.md drift, then failed AEO checks.',
       '4. Offer a fix prompt: call fix_prompt with the scan_id from step 1 (or the triggered pattern IDs) so the page is not scanned again.',
       'The scores measure overlap with common template defaults, not who or what made the page.',
     ].join('\n');
   } else if (name === 'deslop_and_verify') {
+    const quotedUrl = JSON.stringify(url);
     text = [
       `De-slop the page at ${url}:`,
-      `1. Call scan_page with {"url": "${url}", "axes": ["design", "copy"]}, then call fix_prompt with the returned scan_id (or the triggered pattern IDs).`,
+      `1. Call scan_page with {"url": ${quotedUrl}, "axes": ["design", "copy"]}, then call fix_prompt with the returned scan_id (or the triggered pattern IDs).`,
       '2. Apply each fix in the codebase. Do not introduce any of the currently passing patterns the prompt lists.',
       '3. Verify where the changes actually run: re-scan your local dev server (npm server started with --local) or a fresh preview deploy. A production URL only reflects your changes after you deploy.',
       '4. Done means the design score is under 10 (Clean) and none of the fixed patterns still trigger. If the scan cannot run (an error instead of a score), say so; that is not a Clean result.',
     ].join('\n');
   } else {
+    const quotedUrl = JSON.stringify(url);
     text = [
       `Bring ${url} back in line with its declared design system:`,
-      `1. Call check_design_system with {"url": "${url}"}. If it reports no declared system, stop and say so.`,
+      `1. Call check_design_system with {"url": ${quotedUrl}}. If it reports no declared system, stop and say so.`,
       '2. Fix each drift signal in the codebase (fonts, CTA and surface colours, radii) using the tokens the DESIGN.md declares.',
       '3. Re-run check_design_system where the changes run (local dev server with --local, or a preview deploy) and confirm the tier is Aligned (80+).',
     ].join('\n');

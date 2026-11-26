@@ -63,23 +63,33 @@ export async function monitorSweep({
           dirty = true;
           summary.alerted++;
         }
-        if (typeof sendWebhook === 'function' && fresh.webhookUrl && !fresh.webhookDisabled) {
-          try {
-            const wh = await sendWebhook(fresh, 'slop_regression');
-            if (wh && wh.sent) {
-              fresh.webhookFailures = 0;
-              summary.webhookSent++;
-            } else {
-              fresh.webhookFailures = (fresh.webhookFailures || 0) + 1;
-              if (fresh.webhookFailures >= 5) fresh.webhookDisabled = true;
-            }
-            dirty = true;
-          } catch {
+      }
+      if (
+        fresh.regressed &&
+        !fresh.webhookNotified &&
+        typeof sendWebhook === 'function' &&
+        fresh.webhookUrl &&
+        !fresh.webhookDisabled
+      ) {
+        try {
+          const wh = await sendWebhook(fresh, 'slop_regression');
+          if (wh && wh.sent) {
+            fresh.webhookFailures = 0;
+            fresh.webhookNotified = true;
+            summary.webhookSent++;
+          } else {
             fresh.webhookFailures = (fresh.webhookFailures || 0) + 1;
             if (fresh.webhookFailures >= 5) fresh.webhookDisabled = true;
-            dirty = true;
           }
+          dirty = true;
+        } catch {
+          fresh.webhookFailures = (fresh.webhookFailures || 0) + 1;
+          if (fresh.webhookFailures >= 5) fresh.webhookDisabled = true;
+          dirty = true;
         }
+      } else if (!fresh.regressed && fresh.webhookNotified) {
+        fresh.webhookNotified = false;
+        dirty = true;
       }
       if (typeof sendDriftAlert === 'function' && fresh.systemRegressed && !fresh.systemNotified) {
         const res = await sendDriftAlert(fresh);
@@ -88,23 +98,33 @@ export async function monitorSweep({
           dirty = true;
           summary.driftAlerted++;
         }
-        if (typeof sendWebhook === 'function' && fresh.webhookUrl && !fresh.webhookDisabled) {
-          try {
-            const wh = await sendWebhook(fresh, 'system_drift');
-            if (wh && wh.sent) {
-              fresh.webhookFailures = 0;
-              summary.webhookSent++;
-            } else {
-              fresh.webhookFailures = (fresh.webhookFailures || 0) + 1;
-              if (fresh.webhookFailures >= 5) fresh.webhookDisabled = true;
-            }
-            dirty = true;
-          } catch {
+      }
+      if (
+        fresh.systemRegressed &&
+        !fresh.systemWebhookNotified &&
+        typeof sendWebhook === 'function' &&
+        fresh.webhookUrl &&
+        !fresh.webhookDisabled
+      ) {
+        try {
+          const wh = await sendWebhook(fresh, 'system_drift');
+          if (wh && wh.sent) {
+            fresh.webhookFailures = 0;
+            fresh.systemWebhookNotified = true;
+            summary.webhookSent++;
+          } else {
             fresh.webhookFailures = (fresh.webhookFailures || 0) + 1;
             if (fresh.webhookFailures >= 5) fresh.webhookDisabled = true;
-            dirty = true;
           }
+          dirty = true;
+        } catch {
+          fresh.webhookFailures = (fresh.webhookFailures || 0) + 1;
+          if (fresh.webhookFailures >= 5) fresh.webhookDisabled = true;
+          dirty = true;
         }
+      } else if (!fresh.systemRegressed && fresh.systemWebhookNotified) {
+        fresh.systemWebhookNotified = false;
+        dirty = true;
       }
       if (dirty) await putWatch(fresh);
     } catch (_) {

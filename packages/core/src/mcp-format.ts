@@ -210,6 +210,13 @@ function compactPattern(p: any) {
   };
   if (typeof p.weight === 'number') out.weight = p.weight;
   if (p.waived) out.waived = true;
+  if (Array.isArray(p.locations) && p.locations.length > 0) {
+    const selectors = p.locations
+      .filter((l: any) => l && typeof l.selector === 'string' && l.selector.trim())
+      .slice(0, 2)
+      .map((l: any) => ({ selector: clipText(l.selector, 80) }));
+    if (selectors.length > 0) out.locations = selectors;
+  }
   const evidence = evidenceText(p);
   if (evidence) out.detail = evidence;
   return out;
@@ -526,13 +533,18 @@ export function buildMcpDesignSystem(opts: {
   const name = opts.name || hostnameLabel(opts.url) || 'Site Design System';
   const designMd = generateDesignMd(opts.observed || {}, { name, url: opts.url });
   const dtcgTokens = extractDtcgTokens(opts.observed || {}, { name });
-  const structured: Record<string, any> = { format, name };
+  const structured: Record<string, any> = {
+    format,
+    name,
+    designMdChars: designMd.length,
+    dtcgTokenGroups: Object.keys(dtcgTokens).filter((k) => !k.startsWith('$')),
+  };
   let text: string;
   if (format === 'dtcg') {
     text = JSON.stringify(dtcgTokens, null, 2);
     structured.dtcgTokens = dtcgTokens;
   } else if (format === 'both') {
-    text = `${designMd}\n\n\`\`\`json\n${JSON.stringify(dtcgTokens, null, 2)}\n\`\`\``;
+    text = `Extracted DESIGN.md (${designMd.length} chars) and DTCG 2025.10 tokens for "${name}". See structuredContent.designMd and structuredContent.dtcgTokens.\n\n${designMd}`;
     structured.designMd = designMd;
     structured.dtcgTokens = dtcgTokens;
   } else {

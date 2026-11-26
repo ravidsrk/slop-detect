@@ -131,7 +131,7 @@ test('local fix_prompt names a triggered pattern from the scan', async () => {
   const prompt = await handleCall('fix_prompt', { url: 'http://127.0.0.1:9/' });
   expect(prompt.isError).toBeFalsy();
   expect(prompt.content[0].text).toMatch(/Vibe purple/);
-  expect(prompt.content[0].text).toMatch(/240.295/);
+  expect(prompt.content[0].text).toMatch(/268.310/);
   expect(calls.some((href) => isHostedApiUrl(href))).toBe(false);
 });
 

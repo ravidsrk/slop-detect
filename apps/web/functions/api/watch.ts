@@ -268,7 +268,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
       directoryUrl: listed && watch.verified ? `${origin}/directory` : null,
       // Honest state: alerts are live only when a provider is configured AND the
       // address has confirmed (double opt-in). Always surface privacy + deletion.
-      alertsActive: alertsLive,
+      alertsActive: alertsLive && !!watch.verified,
       verified: !!watch.verified,
       verificationSent,
       privacyPolicy: `${origin}/privacy.md`,

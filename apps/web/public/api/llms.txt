@@ -8,10 +8,11 @@ headless Chromium. No API key for normal use; per-IP rate-limited.
 
 ## Endpoints
 
-- `POST /api/scan`: Score a URL against the design-slop fingerprint. Body:
-  `{ "url": "https://example.com" }`. Add `"axes": ["design","copy"]` for the copy
-  axis. Returns `{ score, tier, grade, patterns[], ... }`. Tiers: Clean 0–9, Mild
-  10–27, Heavy 28+.
+- `POST /api/scan`: Evaluate a URL across default-template design, copy, craft
+  floor, and optional `DESIGN.md` compliance. Body:
+  `{ "url": "https://example.com", "axes": ["design","copy","craft"], "designMd": true, "share": false }`.
+  Returns `{ score, tier, grade, patterns[], axes?, craft?, system?, starterDesignMd? }`.
+  Tiers: Clean 0–9, Mild 10–27, Heavy 28+.
 - `POST /api/aeo`: Score whether AI engines can read & cite a page. Body:
   `{ "url": "..." }`. Returns `{ score, tier, checks[] }`. Higher is better
   (inverse polarity of the slop score).

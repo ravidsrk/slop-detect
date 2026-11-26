@@ -21,7 +21,7 @@ Deterministic patterns evaluated inside headless Chromium. Each pattern returns 
 | `hero_eyebrow_pill` | Eyebrow pill above hero ("Now in beta" / "New") | 5 | layout | Rounded pill above H1 with launch/beta keywords or sparkle/rocket emoji |
 | `all_caps_labels` | All-caps section labels (retired — superseded by eyebrow_label) | 0 | fonts | ≥2 short uppercase labels with positive letter-spacing (retired at weight 0) |
 | `eyebrow_label` | Uppercase / tracked eyebrow labels above section headings | 0 | fonts | ≥60% of H2/H3 section headings preceded by a small tracked/uppercase eyebrow (review) |
-| `perma_dark_mode` | Perma dark mode + medium-grey body text | 4 | colors | Dark page surface with ≥30% mid-grey body paragraphs (or dark with ≥5 paras) |
+| `perma_dark_mode` | Perma dark mode + medium-grey body text | 4 | colors | Dark page surface with ≥30% mid-grey body paragraphs and ≥5 body paragraphs |
 | `icon_card_grid` | Identical feature cards with icon on top | 4 | layout | ≥3 sibling cards with top-positioned icon (SVG/img) |
 | `numbered_steps` | Numbered "1 · 2 · 3" step sequences | 3 | layout | Sibling group contains steps 1, 2, and 3 |
 | `stat_banner` | Big-number stat banner ("10k+", "99.9%", "$2M+") | 3 | layout | ≥3 large-font numeric tokens clustered on one row |

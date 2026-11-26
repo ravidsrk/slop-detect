@@ -146,16 +146,25 @@ export function isForeignOrigin(request) {
   let referer = '';
   let host = '';
   if (request.headers && typeof request.headers.get === 'function') {
-    origin = request.headers.get('Origin') || '';
-    referer = request.headers.get('Referer') || '';
-    host = request.headers.get('Host') || '';
+    origin = (request.headers.get('Origin') || '').trim();
+    referer = (request.headers.get('Referer') || '').trim();
+    host = (request.headers.get('Host') || '').trim();
   }
+  // Sandboxed iframes and data: documents send literal `Origin: null`; treat
+  // that as foreign rather than letting `new URL('null', base)` resolve it.
+  if (origin.toLowerCase() === 'null') return true;
   const cand = origin || referer;
   if (!cand) return false;
   try {
-    const candHost = new URL(cand, `https://${host || 'slop-detect.com'}`).host;
-    const selfHost = host || new URL(request.url).host;
-    return candHost !== selfHost;
+    const candUrl = new URL(cand);
+    const selfUrl = request.url ? new URL(request.url) : null;
+    if (host && selfUrl) {
+      return candUrl.host !== host || candUrl.protocol !== selfUrl.protocol;
+    }
+    if (selfUrl) {
+      return candUrl.origin !== selfUrl.origin;
+    }
+    return candUrl.host !== (host || 'slop-detect.com');
   } catch {
     return true;
   }

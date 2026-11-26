@@ -162,40 +162,85 @@ export async function readFetchedText(res: FetchedBody | null | undefined): Prom
 export async function discoverSitePages(
   seed: string,
   fetchImpl: typeof fetch,
-  opts: { max?: number; timeoutMs?: number } = {}
+  opts: { max?: number; timeoutMs?: number; isUrlAllowed?: (url: string) => boolean } = {}
 ): Promise<SiteSample> {
   const max = normalizeSiteSampleSize(opts.max);
   const timeoutMs = opts.timeoutMs ?? 8000;
-  const origin = new URL(seed).origin;
+  let origin = new URL(seed).origin;
   const sitemapUrls: string[] = [];
 
-  const fetchText = async (url: string) => {
+  const isProtocolAndAllowed = (candidate: string): boolean => {
     try {
+      const parsed = new URL(candidate);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
+      if (typeof opts.isUrlAllowed === 'function' && !opts.isUrlAllowed(parsed.toString())) {
+        return false;
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const isSameOriginAllowed = (candidate: string): boolean => {
+    try {
+      const parsed = new URL(candidate);
+      if (parsed.origin !== origin) return false;
+      return isProtocolAndAllowed(parsed.toString());
+    } catch {
+      return false;
+    }
+  };
+
+  const fetchText = async (url: string, allowOriginRedirect = false) => {
+    try {
+      const preCheck = allowOriginRedirect ? isProtocolAndAllowed : isSameOriginAllowed;
+      if (!preCheck(url)) return { text: '', finalUrl: url };
       const res = await fetchImpl(url, {
         signal: AbortSignal.timeout(timeoutMs),
         redirect: 'follow',
         headers: { accept: 'text/html,application/xml,text/xml,text/plain,*/*' },
       });
-      const text = await readFetchedText(res);
       const finalUrl = res && typeof res.url === 'string' && res.url ? res.url : url;
+      const postCheck = allowOriginRedirect ? isProtocolAndAllowed : isSameOriginAllowed;
+      if (finalUrl !== url && !postCheck(finalUrl)) {
+        try {
+          await res.body?.cancel?.();
+        } catch {
+          /* ignore */
+        }
+        return { text: '', finalUrl: url };
+      }
+      const text = await readFetchedText(res);
       return { text, finalUrl };
     } catch {
       return { text: '', finalUrl: url };
     }
   };
 
+  const seedPage = await fetchText(seed, true);
+  const base = seedPage.finalUrl || seed;
+  try {
+    origin = new URL(base).origin;
+  } catch {
+    /* keep initial seed origin */
+  }
+  const links = seedPage.text ? urlsFromHtmlLinks(seedPage.text, base) : [];
+
   const root = await fetchText(new URL('/sitemap.xml', origin).toString());
-  const locs = urlsFromSitemap(root.text);
+  const locs = urlsFromSitemap(root.text).filter(isSameOriginAllowed);
   sitemapUrls.push(...locs.filter((url) => !/\.xml($|\?)/i.test(url)));
   const nested = locs.filter((url) => /\.xml($|\?)/i.test(url)).slice(0, 2);
   for (const child of nested) {
+    if (!isSameOriginAllowed(child)) continue;
     const inner = await fetchText(child);
-    sitemapUrls.push(...urlsFromSitemap(inner.text).filter((url) => !/\.xml($|\?)/i.test(url)));
+    sitemapUrls.push(
+      ...urlsFromSitemap(inner.text)
+        .filter(isSameOriginAllowed)
+        .filter((url) => !/\.xml($|\?)/i.test(url))
+    );
   }
 
-  const seedPage = await fetchText(seed);
-  const base = seedPage.finalUrl || seed;
-  const links = seedPage.text ? urlsFromHtmlLinks(seedPage.text, base) : [];
   return selectSiteSample(base, { sitemapUrls, linkUrls: links, max });
 }
 
@@ -450,7 +495,11 @@ export function buildRenderedSiteReport(results: any[] = []) {
       findings.push({
         pageUrl: result.finalUrl || result.url,
         patternId: pattern.id,
-        domPath: pattern.evidence?.selector || pattern.evidence?.domPath || null,
+        domPath:
+          pattern.locations?.[0]?.selector ||
+          pattern.evidence?.selector ||
+          pattern.evidence?.domPath ||
+          null,
       });
     }
   }

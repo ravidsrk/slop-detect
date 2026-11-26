@@ -213,12 +213,13 @@ function main() {
   }
 
   if (args.includes('--json')) {
-    const { allTerms: _omit, ...summary } = report;
+    const summary = { ...report };
+    delete summary.allTerms;
     console.log(JSON.stringify(summary, null, 2));
     return;
   }
 
-  console.log('# Monroe et al. (2008) Fightin\' Words Dirichlet Log-Odds Report (#201)');
+  console.log("# Monroe et al. (2008) Fightin' Words Dirichlet Log-Odds Report (#201)");
   console.log(
     `Target docs (Stratum b): ${report.targetDocCount} (${report.targetTokenCount} n-grams) | Reference docs (Strata a/p): ${report.referenceDocCount} (${report.referenceTokenCount} n-grams)`
   );

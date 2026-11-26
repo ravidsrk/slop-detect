@@ -1,6 +1,6 @@
 ---
 name: slop-detect
-description: Score any landing page against the versioned design-slop fingerprint, copy axis, DESIGN.md system compliance, craft floor, and AEO eligibility, then generate a deterministic fix prompt. Use when the user asks to audit a landing page for default-template design or copy patterns, verify DESIGN.md compliance, check if answer engines can read a site (AEO), or get specific feedback to clean up a generic site.
+description: Audit a landing page in headless Chromium for DESIGN.md token compliance, zero-taste production hygiene (copy-paste artifacts, broken craft), default-template design and copy overlap, and AEO crawler eligibility, then generate a deterministic fix prompt. Use when auditing a page, checking DESIGN.md drift, verifying AEO eligibility, or running a local verify loop while editing UI.
 license: MIT
 metadata:
   author: ravidsrk
@@ -12,226 +12,55 @@ compatibility: Runs offline by default via the local slop-detect CLI (Playwright
 
 # slop-detect
 
-Score any landing page against the versioned telemetry engine (`definitions@2026.11`). The offline CLI (`npx slop-detect <url>`) and local MCP server (`npx -y -p slop-detect -p slop-detect-mcp slop-detect-mcp --local`) are the default local runners and keep all scanning on this machine with zero data egress. Only when you explicitly call the hosted HTTP API (`POST https://slop-detect.com/api/scan`) does data leave the machine, and only the target URL (plus optional axis/preset flags) is transmitted. Live pattern counts and rule lifecycle metadata are served dynamically from `GET https://slop-detect.com/api/patterns` (and MCP resource `slop://spec/patterns`).
+Deterministic landing-page auditor and rendered-DOM `DESIGN.md` conformance gate (`definitions@2026.11`).
 
-1. **Design Axis** — deterministic live-DOM inspection of computed styles in headless Chromium against default-template patterns. Weight 0 review rules add no points.
-2. **Copy Axis** — density-calibrated text and paste-artifact analysis. Weight 0 review rules add no points.
-3. **System Axis (`DESIGN.md` compliance)** — relative per-site audit checking whether the live DOM honors the site's own declared `DESIGN.md` or DTCG tokens.
-4. **AEO Axis** — whether a page can be fetched, parsed, and indexed by search and user-action crawlers. The scanner uses its own user agent and does not impersonate vendor crawlers. Tiers are Eligible, Partially Eligible, and Restricted.
-5. **Craft floor** — a separate defect score. It never feeds design, copy, or Clean / Mild / Heavy.
+- **Offline default local runner:** `npx slop-detect <url>` (Playwright Chromium) and `npx -y -p slop-detect -p slop-detect-mcp slop-detect-mcp --local` run offline on this machine with zero data egress.
+- **Optional hosted API:** Only when you explicitly call `https://slop-detect.com/api/*` does data leave the machine, and only the target `url` and scan options are transmitted. Pass `"share": false` (the MCP default) to keep scans off public permalinks.
+- **Live catalogue authority:** Never hardcode counts in UI or reports — fetch live counts, weights, and lifecycle status from `GET https://slop-detect.com/api/patterns` or MCP resource `slop://spec/patterns`.
 
-This skill is the **fast path**. When the user pastes a URL and asks anything about its design quality, default-template pattern overlap, copywriting tells, `DESIGN.md` drift, AEO readiness, or how to clean it up, call the tool rather than eyeballing the page yourself.
+## Five axes and polarity
 
-## When to use this skill
+- **Axis 1: The 45 design patterns** — *lower is better* (`Clean` 0–9 · `Mild` 10–27 · `Heavy` ≥28). Deterministic computed-style checks for default-template patterns. Weight 0 review rules add 0 points.
+- **Axis 2: The 26 copy patterns** — *lower is better* (`Clean` 0–7 · `Mild` 8–19 · `Heavy` ≥20). Prose density tells plus zero-taste paste hygiene (leaked chatbot markup, reply residue, unfilled placeholders, raw Markdown, hidden Unicode).
+- **Axis 3: System (`DESIGN.md` / DTCG `tokens.json`)** — *higher is better* (`Aligned` ≥80 · `Drifting` 50–79 · `Off-system` <50). Compares live rendered DOM tokens against declared tokens in Oklab ΔE and waives intentionally declared brand choices.
+- **Axis 4: AEO readiness (16 checks)** — *higher is better* (`Eligible` ≥80 · `Partially Eligible` 50–79 · `Restricted` <50). Technical eligibility for search and user-action crawlers using an honest scanner User-Agent (never spoofs vendor bots).
+- **Axis 5: Craft floor** — *higher is better* (separate 0–100 defect floor; never feeds Design, Copy, or Clean/Mild/Heavy).
 
-Trigger phrases (non-exhaustive):
+All scores measure overlap with common template defaults or declared tokens — never claim a page was written or built by a human or machine.
 
-- "does this match default-template patterns?", "does this have template tells?"
-- "audit my landing page", "score my landing page"
-- "why does this site look generic", "this looks slop-y"
-- "fix my landing page", "make my hero look less generic"
-- "does my site honor its DESIGN.md?", "check for design system drift"
-- "can ChatGPT / Claude / Perplexity read and cite my site?", "check AEO"
-- "design slop audit", "slop score"
-- Any URL pasted with a vague "what do you think of this?" — run a scan first
+## Recommended local edit-and-verify loop
 
-## Four-axis catalogue (`definitions@2026.11`)
+1. Run `scan_page` (or `npx slop-detect http://localhost:3000 --format agent --copy --design-md auto`).
+2. Call `fix_prompt` with the returned `scan_id` (or `brief: true` for a ≤120-word avoid list) so you do not run a second browser scan.
+3. Apply targeted fixes using the returned CSS selectors and recipes — do not swap one template default for another (e.g., Inter → Geist, indigo-600 → violet-500).
+4. Re-scan the local dev server until `score < 10` (`Clean`) and `DESIGN.md` compliance is `Aligned` (≥80). If a scan cannot run, report the error; it is never a Clean score.
 
-The live counts below come from the engine (`GET /api/patterns` is the canonical live count authority). Weight 0 rules are listed and add no points. Published leaderboard scores stay on definitions 2026.10 until a re-score.
+## MCP tools (`slop-detect-mcp`)
 
-### Axis 1: The 45 design patterns (lower score = cleaner)
+All 7 tools are shared by the local stdio server (`npx -y -p slop-detect -p slop-detect-mcp slop-detect-mcp --local`) and hosted endpoint (`https://slop-detect.com/mcp`):
 
-Weight 0 rows are in the catalogue and add no points until a measured promotion. Gray-on-color and wide body tracking are craft-floor checks, not design patterns.
+- `scan_page` — Design, Copy, Craft, and optional `DESIGN.md` check (returns compact summary + `scan_id` + DOM selectors).
+- `check_design_system` — Check rendered DOM drift against `<origin>/DESIGN.md` or a supplied URL.
+- `extract_design_system` — Bootstrap a `DESIGN.md` and/or DTCG 2025.10 `tokens.json` from a live page.
+- `lint_design_md` — Static linter for broken refs, WCAG `<4.5:1` pairs, and orphaned tokens (offline, instant).
+- `diff_design_md` — Detect breaking token removals/changes between two `DESIGN.md` files (offline, instant).
+- `check_aeo` — Technical AEO eligibility checks (robots.txt RFC 9309, indexability, preview directives, server text, Markdown twin, `llms.txt`).
+- `fix_prompt` — Targeted fix prompt or ≤120-word avoid list from `scan_id`, `patterns`, or `url`.
 
-| # | ID | Pattern | Weight | Status |
-| --- | --- | --- | --- | --- |
-| 1 | `slop_fonts` | Slop fonts | 8 | decaying |
-| 2 | `slop_fonts_2026` | 2026 slop fonts | 0 | review |
-| 3 | `purple_accent` | Vibe purple | 4 | decaying |
-| 4 | `gradient_text` | Gradient text | 6 | active |
-| 5 | `gradient_backgrounds` | Gradient bgs | 4 | active |
-| 6 | `accent_stripe` | Accent stripe | 6 | active |
-| 7 | `accent_stripe_2026` | Accent stripe 2026 | 0 | review |
-| 8 | `glassmorphism` | Glass | 4 | active |
-| 9 | `colored_glows` | Colored glows | 4 | active |
-| 10 | `centered_hero` | Centered hero | 4 | active |
-| 11 | `hero_eyebrow_pill` | Eyebrow pill | 5 | active |
-| 12 | `all_caps_labels` | All-caps (retired) | 0 | retired |
-| 13 | `eyebrow_label` | Eyebrow labels | 0 | review |
-| 14 | `perma_dark_mode` | Perma dark | 4 | active |
-| 15 | `icon_card_grid` | Icon cards | 4 | active |
-| 16 | `numbered_steps` | Numbered steps | 3 | active |
-| 17 | `stat_banner` | Stat banner | 3 | active |
-| 18 | `faq_accordion` | FAQ | 2 | active |
-| 19 | `gradient_letter_avatars` | Letter avatars | 5 | active |
-| 20 | `bento_grid` | Bento grid | 4 | active |
-| 21 | `aurora_mesh_gradient` | Aurora blobs | 5 | active |
-| 22 | `ai_sparkle_badges` | AI sparkles | 3 | active |
-| 23 | `cream_default_bg` | Cream bg | 7 | active |
-| 24 | `low_contrast_text` | Low contrast | 7 | active |
-| 25 | `crushed_tracking` | Crushed tracking | 5 | active |
-| 26 | `oversized_hero_h1` | Oversized H1 | 4 | active |
-| 27 | `nested_cards` | Nested cards | 4 | active |
-| 28 | `flat_type_hierarchy` | Flat hierarchy | 3 | active |
-| 29 | `scaffold_defaults_unedited` | Scaffold defaults | 0 | review |
-| 30 | `hero_accent_word` | Hero accent word | 0 | review |
-| 31 | `template_chrome_2026` | 2026 chrome | 0 | review |
-| 32 | `uniform_radius_shadow` | Uniform radius/shadow | 0 | review |
-| 33 | `editorial_cream_kit` | Editorial kit | 0 | review |
-| 34 | `template_page_order` | Page order | 0 | review |
-| 35 | `pulsing_status_badge` | Pulsing badge | 0 | review |
-| 36 | `display_mono_heading` | Mono heading | 0 | review |
-| 37 | `chip_rainbow` | Chip rainbow | 0 | review |
-| 38 | `fake_macos_terminal` | Fake terminal | 0 | review |
-| 39 | `fake_logo_bar` | Fake logo bar | 0 | review |
-| 40 | `infinite_marquee_ticker` | Marquee ticker | 0 | review |
-| 41 | `fade_up_monoculture` | Fade-up monoculture | 0 | review |
-| 42 | `cursor_spotlight_gradient` | Cursor spotlight | 0 | review |
-| 43 | `uniform_card_hover` | Uniform hover | 0 | review |
-| 44 | `section_template_repetition` | Section repetition | 0 | review |
-| 45 | `unthemed_browser_surfaces` | Unthemed surfaces | 0 | review |
-
-**Design Tiers:** `Clean` (0–9) · `Mild` (10–27) · `Heavy` (≥28).
-
-### Axis 2: The 26 copy patterns (lower score = cleaner)
-
-| # | ID | Pattern | Weight | Status |
-| --- | --- | --- | --- | --- |
-| 1 | `buzzword_density` | Buzzwords | 7 | active |
-| 2 | `em_dash_overload` | Em-dashes | 2 | decaying |
-| 3 | `antithesis_construction` | Not-just-X | 6 | rising |
-| 4 | `filler_openers` | Filler opener | 5 | decaying |
-| 5 | `formulaic_closers` | Closers | 4 | historical |
-| 6 | `rule_of_three` | Rule of three | 4 | decaying |
-| 7 | `whether_youre` | Whether-you | 3 | active |
-| 8 | `unicode_artifacts` | Unicode tells | 0 | retired |
-| 9 | `emoji_bullet_headers` | Emoji bullets | 3 | active |
-| 10 | `hidden_tag_characters` | Hidden tag chars | 0 | review |
-| 11 | `invisible_characters` | Invisible chars | 0 | review |
-| 12 | `fake_bold_math_alnum` | Fake-bold Unicode | 4 | active |
-| 13 | `chatbot_markup_leak` | Chatbot markup | 0 | review |
-| 14 | `chatbot_reply_residue` | Reply residue | 0 | review |
-| 15 | `ai_referral_utm_links` | AI UTM links | 0 | review |
-| 16 | `unfilled_placeholders` | Placeholders | 0 | review |
-| 17 | `leaked_markdown` | Raw Markdown | 0 | review |
-| 18 | `structural_fake_social_proof` | Fake social proof | 0 | review |
-| 19 | `bare_antithesis` | Bare antithesis | 0 | review |
-| 20 | `emoji_heading_ratio` | Emoji ratio | 0 | review |
-| 21 | `announced_structure` | Announced structure | 0 | review |
-| 22 | `restated_thesis_closer` | Restated thesis | 0 | review |
-| 23 | `context_leak_copy` | Context leak | 0 | review |
-| 24 | `trailing_participial_clauses` | Participial tails | 0 | review |
-| 25 | `sentence_length_uniformity` | Sentence uniformity | 0 | review |
-| 26 | `excess_vocabulary_log_odds` | Log-odds vocab | 0 | review |
-
-**Copy Tiers:** `Clean` (0–7) · `Mild` (8–19) · `Heavy` (≥20).
-
-### Axis 3: System compliance (`DESIGN.md`) (higher score = better)
-
-Compares live DOM tokens against `<origin>/DESIGN.md` or a DTCG `tokens.json` (9 checks). `Aligned` ≥80 · `Drifting` 50–79 · `Off-system` <50.
-
-### Axis 4: AEO readiness (16 checks, higher score = better)
-
-`html.reachable` (10 pts, required) · `edge.access` (20 pts, required) · `robots.searchAllowed` (20 pts, required) · `html.indexable` (12 pts, required) · `ai.previewControls` (8 pts, required) · `html.serverTextCoverage` (15 pts, required) · `md.twin` (6 pts, recommended) · `html.linkAlternate` (3 pts, recommended) · `site.llmsTxt` (2 pts, recommended) · `html.vary` (4 pts, recommended) · `ai.manipulation` (0 pts, info) · `agent.operability` (0 pts, info) · `agent.discovery` (0 pts, info) · `ai.usagePolicy` (0 pts, info) · `content.dates` (0 pts, info) · `jsonld.hygiene` (0 pts, info).
-**AEO Tiers:** `Eligible` (≥80) · `Partially Eligible` (50–79) · `Restricted` (<50). The scanner uses its own user agent and does not pretend to be Googlebot, GPTBot, or any other vendor crawler.
-
-### Craft floor (11 checks)
-
-A separate 0–100 floor. Findings never feed design, copy, or Clean / Mild / Heavy. Opt in with `--craft`. Weight 0 review checks add nothing.
-
-## How to use it
-
-### 1. Offline CLI (`slop-detect` — default local runner, no data leaves the machine)
+## CLI quick reference
 
 ```bash
-npx slop-detect https://example.com
-npx slop-detect http://localhost:3000 --format agent
-npx slop-detect https://example.com --copy --craft --aeo --design-md auto
-npx slop-detect https://example.com --fail-on heavy --fail-under B
-npx slop-detect https://example.com --sarif > slop.sarif
+npx slop-detect http://localhost:3000 --format agent --copy --design-md auto
+npx slop-detect https://example.com --aeo --craft --fix-prompt
 npx slop-detect https://example.com --init-design-md > DESIGN.md
-npx slop-detect https://example.com --init-tokens > tokens.json
 npx slop-detect --lint-design-md ./DESIGN.md
-npx slop-detect --diff-design-md ./base/DESIGN.md ./head/DESIGN.md
-npx slop-detect https://example.com --fix-prompt > fix.md
+npx slop-detect https://example.com --fail-on heavy --sarif > slop.sarif
+npx slop-detect init --providers claude,cursor --ci github
 ```
-
-### 2. MCP Server (`slop-detect-mcp`)
-
-Exposes tools (`scan_page`, `check_aeo`, `check_design_system`, `fix_prompt`, `lint_design_md`, `diff_design_md`, `extract_design_system`), workflow prompts (`audit_landing_page`, `deslop_and_verify`, `refactor_to_design_system`), and spec resources (`slop://spec/patterns`, `slop://spec/design-md-template`, `slop://spec/aeo`) directly to MCP-capable agents. The hosted endpoint `https://slop-detect.com/mcp` serves the same tools and arguments:
-
-```bash
-npx -y -p slop-detect -p slop-detect-mcp slop-detect-mcp --local
-npx -y slop-detect-mcp
-```
-
-`--local` scores `localhost`, `file://`, and remote URLs locally with Playwright and does not call slop-detect.com. It needs the `slop-detect` package, which is why the command names it with `-p`. Without `--local`, the server calls the hosted API for public `https://` URLs. Results are short summaries; reuse a scan by passing its `scan_id` (or the triggered pattern IDs) to `fix_prompt` instead of scanning again. `slop-detect-hook` (`npx -y -p slop-detect -p slop-detect-mcp slop-detect-hook`) is the matching Claude Code PostToolUse / Stop hook: set `SLOP_LOCAL_URL` or `.slop/local-url` to the dev server and it reports only new findings.
-
-### 3. Hosted HTTP API (optional — zero install for public URLs; sends only target URL)
-
-Data egress notice: calling `https://slop-detect.com/api/*` transmits only the target `url` and scan options (`axes`, `preset`, `designMd`) to the public scanner. Without `"share": false` the result also gets a public permalink and a per-domain history entry; the MCP servers always send `share: false`. Never send private or localhost URLs to the hosted API; use the offline CLI or `--local` MCP mode instead.
-
-```bash
-# Multi-axis scan (design + copy + optional DESIGN.md system check)
-curl -s -X POST -H 'Content-Type: application/json' \
-  https://slop-detect.com/api/scan \
-  -d '{"url":"https://example.com","axes":["design","copy"],"designMd":true,"share":false}'
-
-# AEO crawler & citation readiness audit
-curl -s -X POST -H 'Content-Type: application/json' \
-  https://slop-detect.com/api/aeo \
-  -d '{"url":"https://example.com"}'
-
-# Generate a copy-pasteable remediation prompt
-curl -s -X POST -H 'Content-Type: application/json' \
-  https://slop-detect.com/api/fix-prompt \
-  -d '{"url":"https://example.com"}' > fix.md
-```
-
-### 4. Programmatic embed (`slop-detect-core`)
-
-```bash
-npm install slop-detect-core
-```
-
-```js
-import { PATTERNS, scorePatterns, generateDesignMd, buildFixPrompt } from 'slop-detect-core';
-```
-
-## Output format the user wants to see
-
-After a scan, present results in this shape:
-
-1. **One-line verdict** with tier indicator and letter grade:
-   - 🔴 Heavy (≥28) — "Heavy slop — matches many default-template patterns"
-   - 🟡 Mild (10–27) — "Some slop signals — matches a few default-template patterns"
-   - 🟢 Clean (0–9) — "Clean — few default-template patterns"
-2. **Triggered patterns** (only `triggered: true`), each with weight + literal DOM/CSS evidence
-3. **Copy, System (`DESIGN.md`), and AEO readouts** when requested
-4. **Always offer the fix prompt** if score ≥ 10: "Want a copy-pasteable prompt to fix these in your editor? Run `npx slop-detect <url> --fix-prompt` or `/api/fix-prompt`."
-
-## Don't replace one slop pattern with another
-
-When advising fixes, never recommend:
-
-- Inter → Geist or Plus Jakarta Sans (all three are in the slop font list)
-- Indigo-600 → Violet-600 (both trigger `purple_accent`)
-- Linear-gradient text → Radial-gradient text (still triggers `gradient_text`)
-
-Trust `buildFixPrompt` / `/api/fix-prompt` recipes rather than improvising.
 
 ## Reference
 
-- Live web UI: https://slop-detect.com
-- Methodology & interactive catalogue: https://slop-detect.com/docs (Markdown twin: https://slop-detect.com/docs.md)
-- Live pattern catalogue JSON: https://slop-detect.com/api/patterns
-- OpenAPI 3.1 spec: https://slop-detect.com/openapi.json
-- Design patterns in code: https://github.com/ravidsrk/slop-detect/blob/main/packages/core/src/patterns.ts
-- Copy patterns in code: https://github.com/ravidsrk/slop-detect/blob/main/packages/core/src/copyPatterns.ts
-- AEO checks in code: https://github.com/ravidsrk/slop-detect/blob/main/packages/core/src/aeo.ts
-- DESIGN.md system checker: https://github.com/ravidsrk/slop-detect/blob/main/packages/core/src/system.ts
-- Fix recipes: https://github.com/ravidsrk/slop-detect/blob/main/packages/core/src/fixes.ts
-
-## License
-
-MIT
+- Live workbench: https://slop-detect.com
+- Live pattern catalogue: https://slop-detect.com/api/patterns · MCP resource `slop://spec/patterns`
+- OpenAPI 3.1: https://slop-detect.com/openapi.json
+- Docs (Markdown twin): https://slop-detect.com/docs.md

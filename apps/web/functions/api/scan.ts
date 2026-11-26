@@ -14,6 +14,7 @@ import {
   isPreset,
   presetCoverage,
   parseDesignMd,
+  generateDesignMd,
   scoreSystemCompliance,
   scoreCopy,
   scoreCraft,
@@ -133,15 +134,18 @@ export async function onRequestPost({ request, env, waitUntil }) {
   const url = checked.url;
   const requestedHost = new URL(url).hostname.toLowerCase();
 
-  // System axis (DESIGN.md compliance) — opt in via { designMd: true } (looks
-  // for <origin>/DESIGN.md next to the scanned page) or { designMd: "<url>" }.
-  const wantsSystem = body.designMd === true || typeof body.designMd === 'string';
-  if (typeof body.designMd === 'string') {
-    const dv = validateScanUrl(body.designMd);
+  // System axis (DESIGN.md compliance) — opt in via { designMd: true | "auto" }
+  // (looks for <origin>/DESIGN.md next to the scanned page) or { designMd: "<url>" }.
+  const rawDesignMd = body.designMd === 'auto' ? true : body.designMd;
+  const wantsSystem = rawDesignMd === true || typeof rawDesignMd === 'string';
+  let validatedDesignMdUrl: string | null = null;
+  if (typeof rawDesignMd === 'string') {
+    const dv = validateScanUrl(rawDesignMd);
     if (dv.error) {
       deferOps({ status: dv.status || 400 });
       return json({ error: `designMd: ${dv.error}`, requestId }, dv.status || 400);
     }
+    validatedDesignMdUrl = dv.url;
   }
 
   // Short-lived result cache: launch traffic repeats the same URLs (everyone
@@ -188,9 +192,103 @@ export async function onRequestPost({ request, env, waitUntil }) {
     await page.setViewport({ width: 1280, height: 800 });
     await page.setUserAgent(SCANNER_USER_AGENT);
 
+    // SSRF defense-in-depth at the network layer: block private/loopback/metadata
+    // subresources and redirects BEFORE Chromium fetches them, and reject
+    // cross-site top-level navigations (including <meta refresh> / location.href).
+    if (typeof page.setRequestInterception === 'function' && typeof page.on === 'function') {
+      try {
+        await page.setRequestInterception(true);
+        page.on('request', (req: any) => {
+          try {
+            const reqUrl = typeof req.url === 'function' ? req.url() : '';
+            if (
+              !reqUrl ||
+              reqUrl.startsWith('data:') ||
+              reqUrl.startsWith('blob:') ||
+              reqUrl === 'about:blank'
+            ) {
+              req.continue();
+              return;
+            }
+            if (!isAllowedUrl(reqUrl)) {
+              req.abort('blockedbyclient');
+              return;
+            }
+            const isTopNav =
+              typeof req.isNavigationRequest === 'function' &&
+              req.isNavigationRequest() &&
+              typeof req.frame === 'function' &&
+              req.frame() === page.mainFrame?.();
+            if (isTopNav && !isSameSiteRedirect(requestedHost, reqUrl)) {
+              req.abort('blockedbyclient');
+              return;
+            }
+            req.continue();
+          } catch {
+            try {
+              req.abort('failed');
+            } catch {
+              /* ignore */
+            }
+          }
+        });
+      } catch {
+        /* mock pages or runtimes without interception still hit boundary checks below */
+      }
+    }
+
+    const validateDestination = (destUrl: string) => {
+      let destHost = '';
+      try {
+        destHost = new URL(destUrl).hostname.toLowerCase();
+      } catch {
+        deferOps({ status: 400 });
+        return json(
+          {
+            error: 'Scan refused: navigation ended on an invalid URL.',
+            code: 'blocked_redirect',
+            url,
+            finalUrl: destUrl,
+            requestId,
+          },
+          400
+        );
+      }
+      if (!isAllowedUrl(destUrl)) {
+        deferOps({ status: 400 });
+        return json(
+          {
+            error: 'Scan refused: the URL redirected to a disallowed (private/internal) host.',
+            code: 'blocked_redirect',
+            url,
+            finalUrl: destUrl,
+            requestId,
+          },
+          400
+        );
+      }
+      if (!isSameSiteRedirect(requestedHost, destHost)) {
+        deferOps({ status: 400 });
+        return json(
+          {
+            error: `Scan refused: the URL redirected to a different site (${destHost}). Scan that address directly.`,
+            code: 'blocked_redirect',
+            url,
+            finalUrl: destUrl,
+            requestId,
+          },
+          400
+        );
+      }
+      return null;
+    };
+
     const navStart = Date.now();
     const navResponse = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25000 });
-    const finalNavUrl = navResponse?.url() ?? url;
+    const navUrl = navResponse?.url() ?? url;
+    const initialRefusal = validateDestination(navUrl);
+    if (initialRefusal) return initialRefusal;
+
     // Soft wait for CSS/above-fold images — shared budget with the CLI runner.
     await Promise.race([
       page
@@ -202,65 +300,24 @@ export async function onRequestPost({ request, env, waitUntil }) {
       new Promise((r) => setTimeout(r, SCAN_PAGE_WAIT.totalWaitCapMs)),
     ]);
     await new Promise((r) => setTimeout(r, SCAN_PAGE_WAIT.postNetworkSettleMs));
+    // Re-check the real Chromium frame URL AFTER settling so client-side
+    // navigations (<meta refresh>, location.href) cannot escape to private or
+    // cross-site origins before page.evaluate() or page.screenshot() run.
+    // Browser SOP prevents history.pushState from ever changing origin/host.
+    const settledUrl =
+      typeof page.url === 'function' && page.url() && page.url() !== 'about:blank'
+        ? page.url()
+        : navUrl;
+    const finalNavUrl = settledUrl || navUrl;
+    const settledRefusal = validateDestination(finalNavUrl);
+    if (settledRefusal) return settledRefusal;
+
     // REL-3: wait for web fonts before scoring (mirrors og/[id].ts).
     await page.evaluate(waitFontsReadyInPage, SCAN_PAGE_WAIT.fontsReadyTimeoutMs);
     navMs = Date.now() - navStart;
 
     const browserVersion = await browser.version();
     const data = await page.evaluate(pageScript);
-
-    // SSRF (defense-in-depth): re-validate on the navigation response URL, not
-    // page-reported location.href (spoofable via history.pushState). DNS-rebind
-    // cannot be fully closed inside Workers — that leg relies on Cloudflare
-    // Browser Rendering egress blocking RFC-1918/metadata; this closes the
-    // code/boundary part only.
-    let finalNavHost = '';
-    try {
-      finalNavHost = new URL(finalNavUrl).hostname.toLowerCase();
-    } catch {
-      deferOps({ status: 400 });
-      return json(
-        {
-          error: 'Scan refused: navigation ended on an invalid URL.',
-          code: 'blocked_redirect',
-          url,
-          finalUrl: finalNavUrl,
-          requestId,
-        },
-        400
-      );
-    }
-    // Two distinct refusals, named honestly: a private/internal destination is
-    // the SSRF case; a public but unrelated domain is a cross-site redirect.
-    // Same-site hops (apex→www, apex→app subdomain) are normal and allowed —
-    // the result is recorded under the final host via finalUrl/slimResult, and
-    // a watch on the requested domain is still updated (see persistence below).
-    if (!isAllowedUrl(finalNavUrl)) {
-      deferOps({ status: 400 });
-      return json(
-        {
-          error: 'Scan refused: the URL redirected to a disallowed (private/internal) host.',
-          code: 'blocked_redirect',
-          url,
-          finalUrl: finalNavUrl,
-          requestId,
-        },
-        400
-      );
-    }
-    if (!isSameSiteRedirect(requestedHost, finalNavHost)) {
-      deferOps({ status: 400 });
-      return json(
-        {
-          error: `Scan refused: the URL redirected to a different site (${finalNavHost}). Scan that address directly.`,
-          code: 'blocked_redirect',
-          url,
-          finalUrl: finalNavUrl,
-          requestId,
-        },
-        400
-      );
-    }
 
     // Anti-bot challenge / dead-page detection — refuse to score these so we
     // don't silently return a fake "Clean 0".
@@ -307,7 +364,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
     const preset = isPreset(body?.preset) ? body.preset : 'full';
     const scored = applyPreset(patterns, preset);
     const scoring = scorePatterns(scored);
-    const kitMatches = evaluateDefaultKits(data.signals || {});
+    const kitMatches = evaluateDefaultKits(data.signals || {}, { preset });
 
     const result: any = {
       url,
@@ -370,10 +427,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
     // what the page actually rendered. Reported separately from the slop score
     // (it measures alignment with the site's OWN system; higher is better).
     if (wantsSystem) {
-      const mdUrl =
-        typeof body.designMd === 'string'
-          ? body.designMd
-          : new URL('/DESIGN.md', finalNavUrl).toString();
+      const mdUrl = validatedDesignMdUrl || new URL('/DESIGN.md', finalNavUrl).toString();
       let mdText = null;
       if (isAllowedUrl(mdUrl)) {
         const res = await fetchAllowedUrl(
@@ -390,7 +444,19 @@ export async function onRequestPost({ request, env, waitUntil }) {
       // The observed tokens, as the CLI returns them: MCP extract_design_system
       // turns them into a starter DESIGN.md / tokens.json (#361). Not persisted:
       // slimResult() keeps only the scored fields.
-      if (data.systemContext) result.systemContext = data.systemContext;
+      if (data.systemContext) {
+        result.systemContext = data.systemContext;
+        if (!parsedMd) {
+          let host = 'Site';
+          try {
+            host = new URL(finalNavUrl).hostname.replace(/^www\./, '');
+          } catch {}
+          result.starterDesignMd = generateDesignMd(data.systemContext, {
+            name: result.title || host,
+            url: finalNavUrl,
+          });
+        }
+      }
     }
 
     // A non-full preset filters design patterns only. fullScore is that

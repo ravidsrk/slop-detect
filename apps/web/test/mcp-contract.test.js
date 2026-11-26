@@ -49,11 +49,12 @@ function scanPayload(url, overrides = {}) {
   };
 }
 
-async function rpc(method, params = {}, id = 1) {
+let testIpCounter = 1;
+async function rpc(method, params = {}, id = 1, ip = `198.51.100.${testIpCounter}`) {
   const res = await onRequestPost({
     request: new Request('https://slop-detect.com/mcp', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': ip },
       body: JSON.stringify({ jsonrpc: '2.0', id, method, params }),
     }),
     env: {},
@@ -62,9 +63,10 @@ async function rpc(method, params = {}, id = 1) {
   return res.json();
 }
 
-const call = (name, args) => rpc('tools/call', { name, arguments: args });
+const call = (name, args, ip) => rpc('tools/call', { name, arguments: args }, 1, ip);
 
 beforeEach(() => {
+  testIpCounter += 1;
   scanCalls.length = 0;
   scanImpl = (body) => json(scanPayload(body.url));
 });

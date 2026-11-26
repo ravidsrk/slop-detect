@@ -101,18 +101,29 @@ try {
     jsonrpc: '2.0',
     id: 1,
     method: 'initialize',
-    params: { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'smoke', version: '0' } },
+    params: {
+      protocolVersion: '2025-11-25',
+      capabilities: {},
+      clientInfo: { name: 'smoke', version: '0' },
+    },
   });
   const init = await reply(1);
   if (!init.result?.instructions) fail('initialize returned no server instructions');
   send({ jsonrpc: '2.0', method: 'notifications/initialized' });
-  send({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'scan_page', arguments: { url: fixture } } });
+  send({
+    jsonrpc: '2.0',
+    id: 2,
+    method: 'tools/call',
+    params: { name: 'scan_page', arguments: { url: fixture } },
+  });
   const scan = (await reply(2)).result;
   const text = scan?.content?.[0]?.text || '';
   if (scan?.isError) fail(`scan_page returned an error: ${text}`);
   if (!/Design: \d+\/100/.test(text)) fail(`unexpected scan_page text: ${text.slice(0, 200)}`);
   if (text.length > 4000) fail(`scan_page text is ${text.length} chars (budget 4000)`);
-  console.log(`ok   scan_page via the plugin command (${text.length} chars): ${text.split('\n')[1]}`);
+  console.log(
+    `ok   scan_page via the plugin command (${text.length} chars): ${text.split('\n')[1]}`
+  );
 } finally {
   child.kill();
 }
@@ -120,7 +131,8 @@ try {
 // 2. The hook command `slop-detect init` writes.
 const initSrc = readFileSync(join(root, 'packages/cli/src/init-project.ts'), 'utf8');
 const hookCommand = initSrc.match(/export const HOOK_COMMAND = '([^']+)'/)[1].split(' ');
-if (hookCommand[0] !== 'npx') fail(`HOOK_COMMAND does not start with npx: ${hookCommand.join(' ')}`);
+if (hookCommand[0] !== 'npx')
+  fail(`HOOK_COMMAND does not start with npx: ${hookCommand.join(' ')}`);
 const hookArgs = localArgs(hookCommand.slice(1));
 const hookCwd = mkdtempSync(join(tmpdir(), 'slop-hook-'));
 const hook = spawnSync('npx', hookArgs, {

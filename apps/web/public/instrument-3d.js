@@ -146,7 +146,7 @@
     heavy: {
       key: 'heavy',
       domain: 'v0-ai-launch.app',
-      baseScore: 48,
+      baseScore: 44,
       copyScore: 18,
       aeoScore: 35,
       sysScore: 42,
@@ -158,7 +158,7 @@
         { plane: 1, x: 0, z: -38, code: '+5', name: 'Eyebrow launch pill', cat: 'layout', minSlop: 0.4 },
         { plane: 1, x: -64, z: 4, code: '+8', name: 'Inter / Geist font stack', cat: 'fonts', minSlop: 0.15 },
         { plane: 1, x: 68, z: 6, code: '+6', name: 'Gradient-clipped H1', cat: 'colors', minSlop: 0.25 },
-        { plane: 2, x: -58, z: 0, code: '+8', name: 'VibeCode purple CTA', cat: 'colors', minSlop: 0.1 },
+        { plane: 2, x: -58, z: 0, code: '+4', name: 'VibeCode purple CTA', cat: 'colors', minSlop: 0.1 },
         { plane: 2, x: 62, z: 12, code: '+4', name: '28px chromatic glow', cat: 'css', minSlop: 0.3 },
         { plane: 3, x: -72, z: -12, code: '+4', name: '3-up icon card grid', cat: 'layout', minSlop: 0.45 },
         { plane: 3, x: 70, z: 18, code: '+6', name: '4px top accent stripe', cat: 'layout', minSlop: 0.2 },
@@ -196,9 +196,9 @@
   var SCAN_PHASES = [
     { idx: 1, label: 'Launching headless Chromium 1280×800 & checking SSRF hops…', plane: 0 },
     { idx: 2, label: 'Awaiting document.fonts.ready & network idle settle window…', plane: 1 },
-    { idx: 3, label: 'Evaluating 27 DOM geometry & computed-style extractors…', plane: 2 },
-    { idx: 4, label: 'Scoring 9 prose lexicon patterns & DESIGN.md token compliance…', plane: 3 },
-    { idx: 5, label: 'Assembling deterministic verdict & minting permalink…', plane: 4 },
+    { idx: 3, label: 'Evaluating DOM geometry & computed-style extractors…', plane: 2 },
+    { idx: 4, label: 'Scoring copy-axis patterns, craft floor & DESIGN.md compliance…', plane: 3 },
+    { idx: 5, label: 'Assembling deterministic scorecard & selectors…', plane: 4 },
   ];
 
   var PLANE_META = [
@@ -327,7 +327,8 @@
         elDomain.textContent = state.liveScanActive ? state.liveScanUrl : m.spec.domain;
       }
       if (elFlagged) {
-        elFlagged.textContent = m.activeTells.length + '/27 rules flagged';
+        elFlagged.textContent =
+          m.activeTells.length + (m.activeTells.length === 1 ? ' tell active' : ' tells active');
       }
       if (elVerdict) {
         if (state.morph >= 0.92 || m.score === 0) {
@@ -362,7 +363,7 @@
           elTellsList.innerHTML =
             '<li class="st-tell st-tell-clean"><span class="st-code" style="color:' +
             COLORS.cleanText +
-            '">✓ 0 </span><span class="st-name">All 27 CSS geometry &amp; 9 copy rules pass Clean.</span></li>';
+            '">✓ 0 </span><span class="st-name">All scored design &amp; copy rules pass Clean.</span></li>';
         } else {
           elTellsList.innerHTML = m.activeTells
             .map(function (t) {
@@ -1109,10 +1110,10 @@
       id: 'purple_accent',
       label: 'VibeCode purple CTA fill',
       category: 'colors',
-      weight: 8,
-      formula: 'CTA fill HSL hue 240°–295° && sat >= 35% && 15% < l < 85%',
-      reflex: 'Tailwind indigo-500/violet-600 (#6366F1 / #8B5CF6) on primary buttons is the #1 visual signature of generated UI.',
-      prescription: 'Anchor primary CTAs in high-contrast architectural ink (#181815) or a domain-specific terrestrial hue (#1FA85E).',
+      weight: 4,
+      formula: 'CTA fill OKLCH hue 268°–310° && chroma >= 0.08 (waived when declared in DESIGN.md)',
+      reflex: 'Tailwind indigo-500/violet-600 (#6366F1 / #8B5CF6) on primary buttons is a common default-template signature.',
+      prescription: 'Anchor primary CTAs in high-contrast architectural ink (#181815) or a domain-specific hue (#1FA85E), or declare brand purple in DESIGN.md.',
     },
     {
       id: 'cream_default_bg',
@@ -1473,7 +1474,7 @@
         ctx.fillText('Scan your page →', rx + rw / 2, btnY - ly + ry + Math.round(btnH * 0.64));
         ctx.textAlign = 'left';
 
-        leftCaption = '#6366F1 indigo-500 · HSL 239° reflex';
+        leftCaption = '#6366F1 indigo-500 · OKLCH 277° reflex';
         rightCaption = '#181815 carbon ink · 16.2:1 AA';
       } else if (item.id === 'gradient_text') {
         // Left: Gradient-clipped H1 vs plain solid H1
@@ -1844,8 +1845,8 @@
         ctx.fillStyle = COLORS.ink;
         var goodCopy =
           item.id === 'antithesis_construction'
-            ? '"Scores 27 CSS rules on real Chromium."'
-            : '"27 DOM queries run in ~8 seconds."';
+            ? '"Scores computed CSS rules on Chromium."'
+            : '"Deterministic DOM audit in ~8 seconds."';
         ctx.fillText(goodCopy, rx + 10, ry + Math.round(rh * 0.58));
 
         leftCaption =
@@ -1886,6 +1887,77 @@
 
     renderList();
     updateInspector(selectedItem);
+    // Hydrate the full live rule catalogue from /api/patterns so all design +
+    // copy rules (including weight-0 review rules) stay synchronized with core.
+    if (typeof fetch === 'function') {
+      fetch('/api/patterns')
+        .then(function (r) {
+          return r && r.ok ? r.json() : null;
+        })
+        .then(function (cat) {
+          if (!cat || !Array.isArray(cat.patterns)) return;
+          var byId = {};
+          XRAY_CATALOGUE.forEach(function (it) {
+            byId[it.id] = it;
+          });
+          var merged = [];
+          cat.patterns.forEach(function (p) {
+            var base = byId[p.id];
+            merged.push({
+              id: p.id,
+              label: (base && base.label) || p.short || p.id,
+              category: p.category || (base && base.category) || 'layout',
+              weight: typeof p.weight === 'number' ? p.weight : base ? base.weight : 0,
+              status: p.status || (p.weight > 0 ? 'active' : 'review'),
+              formula:
+                (base && base.formula) ||
+                'Deterministic Chromium DOM/CSS rule `' + p.id + '` (category: ' + (p.category || 'design') + ')',
+              reflex:
+                (base && base.reflex) ||
+                p.short ||
+                p.label ||
+                'Observed default-template pattern in rendered DOM.',
+              prescription:
+                (base && base.prescription) ||
+                'Replace default template reflex with tokens declared in DESIGN.md (run fix_prompt for selector-level guidance).',
+            });
+          });
+          if (Array.isArray(cat.copyPatterns)) {
+            cat.copyPatterns.forEach(function (cp) {
+              var base = byId[cp.id];
+              merged.push({
+                id: cp.id,
+                label: 'Copy · ' + ((base && base.label) || cp.short || cp.id),
+                category: 'copy',
+                weight: typeof cp.weight === 'number' ? cp.weight : 0,
+                status: cp.status || (cp.weight > 0 ? 'active' : 'review'),
+                formula:
+                  (base && base.formula) ||
+                  'Deterministic copy-axis rule `' + cp.id + '` on visible prose & attributes',
+                reflex:
+                  (base && base.reflex) ||
+                  cp.short ||
+                  cp.label ||
+                  'Observed prose or paste-hygiene tell.',
+                prescription:
+                  (base && base.prescription) ||
+                  'Use direct, verifiable product language and strip chatbot paste artifacts.',
+              });
+            });
+          }
+          if (merged.length > 0) {
+            XRAY_CATALOGUE = merged;
+            var cur =
+              XRAY_CATALOGUE.find(function (x) {
+                return selectedItem && x.id === selectedItem.id;
+              }) || XRAY_CATALOGUE[0];
+            selectedItem = cur;
+            renderList();
+            updateInspector(selectedItem);
+          }
+        })
+        .catch(function () {});
+    }
     window.addEventListener('resize', function () {
       if (selectedItem) drawXraySpecimen(selectedItem);
     });
@@ -1909,10 +1981,10 @@
     };
 
     var AXES_3D = [
-      { idx: 0, name: 'DESIGN SLOP (27)', polarity: '↓ 0 CLEAN', color: COLORS.heavy, vec: [-110, 0, 0] },
-      { idx: 1, name: 'COPY SLOP (9)', polarity: '↓ 0 CLEAN', color: COLORS.mild, vec: [0, 0, -110] },
+      { idx: 0, name: 'DESIGN SLOP', polarity: '↓ 0 CLEAN', color: COLORS.heavy, vec: [-110, 0, 0] },
+      { idx: 1, name: 'COPY SLOP', polarity: '↓ 0 CLEAN', color: COLORS.mild, vec: [0, 0, -110] },
       { idx: 2, name: 'SYSTEM · DESIGN.MD', polarity: '↑ 100 ALIGNED', color: COLORS.system, vec: [110, 0, 0] },
-      { idx: 3, name: 'AEO · AGENT-READY', polarity: '↑ 100 READY', color: COLORS.clean, vec: [0, -105, 0] },
+      { idx: 3, name: 'AEO · ELIGIBILITY', polarity: '↑ 100 ELIGIBLE', color: COLORS.clean, vec: [0, -105, 0] },
     ];
 
     document.querySelectorAll('.axes .axis').forEach(function (row, idx) {
@@ -2031,12 +2103,13 @@
   // ═══════════════════════════════════════════════════════════════════════════
   function initScrollReveals() {
     if (REDUCED_MOTION || typeof IntersectionObserver === 'undefined') return;
-    var targets = document.querySelectorAll('.section-ledger, .sec, .feature-card');
+    var targets = document.querySelectorAll('.section-ledger, .sec, .feature-card, [data-reveal]');
     var io = new IntersectionObserver(
       function (entries) {
         entries.forEach(function (entry) {
           if (entry.isIntersecting) {
             entry.target.classList.add('in-view');
+            entry.target.classList.add('is-visible');
             io.unobserve(entry.target);
           }
         });

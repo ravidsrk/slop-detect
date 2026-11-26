@@ -5,6 +5,10 @@
       "dependsOn": ["^build"],
       "inputs": [
         "src/**",
+        "bin/**",
+        "hooks/**",
+        "*.mjs",
+        "schemas/**",
         "test/**",
         "tsconfig.json",
         "package.json",
@@ -17,6 +21,10 @@
       "dependsOn": ["build", "^build"],
       "inputs": [
         "src/**",
+        "bin/**",
+        "hooks/**",
+        "*.mjs",
+        "schemas/**",
         "test/**",
         "tsconfig.json",
         "package.json",
@@ -26,11 +34,14 @@
     },
     "typecheck": {
       "dependsOn": ["^build"],
-      "inputs": ["src/**", "test/**", "tsconfig.json", "package.json"]
+      "inputs": ["src/**", "bin/**", "test/**", "tsconfig.json", "package.json"]
     },
     "lint": {
       "inputs": [
         "src/**",
+        "bin/**",
+        "hooks/**",
+        "*.mjs",
         "test/**",
         "tsconfig.json",
         "package.json",

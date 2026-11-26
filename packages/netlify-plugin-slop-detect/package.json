@@ -3,7 +3,15 @@
   "version": "0.9.1",
   "description": "Netlify Build Plugin to gate deploys on Slop Detector design, copy, and DESIGN.md thresholds.",
   "type": "module",
-  "main": "../../packages/netlify-plugin-slop-detect/index.js",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "manifest.yml",
+    "README.md"
+  ],
   "license": "MIT",
   "keywords": [
     "netlify",

@@ -137,13 +137,17 @@ test('the Google Fonts request loads only the brand faces (no Inter/Geist)', () 
 
 // ── design fidelity: the rebuilt landing wears the shared light system ───────
 test('the rebuilt landing renders the nine sections + serif centered hero', () => {
-  // the centered serif hero (the one allowed centered layout)
+  // the centered serif hero without italic accent tell (dogfoods cleanly without self-waiver)
   expect(html, 'serif hero headline').toMatch(/class="display-hero"/);
-  expect(html, 'the italic "generated?" hero').toMatch(/look <em>generated\?<\/em>/);
+  expect(html, 'clean hero copy without italic accent tell').toMatch(
+    /Does your landing page wear a default template\?/
+  );
+  expect(html, 'no impeccable-disable self-waiver').not.toMatch(/impeccable-disable/);
   // the editorial sections below the hero
+  expect(html, 'agentic workflow workbench').toMatch(/id="agentWorkbench"/);
   expect(html, 'stats strip').toMatch(/class="stats"/);
   expect(html, 'leaderboard preview backlinks to score pages').toMatch(/id="lbBoard"/);
-  expect(html, 'four-axis ledger').toMatch(/class="axes"/);
+  expect(html, 'five-axis ledger').toMatch(/class="axes/);
   expect(html, 'teams / continuity dark band').toMatch(/class="band"/);
   expect(html, 'research cards').toMatch(/class="research-grid"/);
   expect(html, 'the manifesto blockquote').toMatch(/Empty is better than fake/);
@@ -277,18 +281,24 @@ test('a completed scan navigates to the full /r/<id> result page', () => {
     /window\.location\.href = '\/r\/' \+ encodeURIComponent\(data\.id\)/.test(html),
     'scan success navigates to the permalink result page'
   ).toBeTruthy();
-  // the inline render stays as the fallback when there is no shareable id
+  // the inline render stays as the fallback when there is no shareable id or private mode
   expect(
-    /render\(data, Date\.now\(\) - t0\)/.test(html),
+    /render\(data, Date\.now\(\) - t0, aeoData\)/.test(html),
     'inline render fallback kept'
   ).toBeTruthy();
 });
 
 // ── 3D Exploded DOM Stage + Multi-Axis Console + Pattern X-Ray Explorer ──────
-test('landing renders the 3D Exploded DOM Stage, Multi-Axis Scan Console, Pattern X-Ray, and 4-Axis Grid', () => {
+test('landing renders the 3D Exploded DOM Stage, Multi-Axis Scan Console, Pattern X-Ray, and 5-Axis Grid', () => {
   expect(html, 'multi-axis copy toggle').toMatch(/id="optCopy"/);
+  expect(html, 'multi-axis craft toggle').toMatch(/id="optCraft"/);
   expect(html, 'multi-axis DESIGN.md toggle').toMatch(/id="optSystem"/);
+  expect(html, 'multi-axis AEO toggle').toMatch(/id="optAeo"/);
+  expect(html, 'private inline scan toggle').toMatch(/id="optPrivate"/);
   expect(html, 'preset selector').toMatch(/id="optPreset"/);
+  expect(html, 'editorial preset option').toMatch(/value="editorial"/);
+  expect(html, 'devtool preset option').toMatch(/value="devtool"/);
+  expect(html, 'agentic workflow workbench').toMatch(/id="agentWorkbench"/);
   expect(html, '3D exploded DOM stage container').toMatch(/id="stage3d"/);
   expect(html, '3D exploded DOM canvas').toMatch(/id="domStageCanvas"/);
   expect(html, 'de-slop calibration slider').toMatch(/id="stageMorphRange"/);

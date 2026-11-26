@@ -38,9 +38,10 @@ for why and what we're measuring.
 ## What's included (every plan)
 
 - Full 45-pattern deterministic design-slop fingerprint
-- Copy-slop axis (LLM phrasing tells)
-- AEO axis: can AI engines read & cite a page
+- Copy-slop axis (prose tells + copy-paste hygiene)
+- AEO axis: technical crawler eligibility (`robots.txt`, indexability, server HTML text, Markdown twin)
 - System axis: DESIGN.md compliance ("does the page honor its own design system?")
+- Craft floor: 11 separate rendering & accessibility hygiene checks
 - Real headless Chromium scoring
 - Shareable result permalinks + per-domain badges
 - Fix-prompt generation
@@ -48,10 +49,11 @@ for why and what we're measuring.
 ## Cost notes for agents
 
 - **No API key required** for normal use. See <https://slop-detect.com/auth.md>.
-- The only cost ceiling is the **per-IP rate limit** on the browser-driving routes
-  (`/api/scan`, `/api/aeo`). High-volume users should self-host (the repo is MIT)
-  to remove that ceiling.
-- The CLI and MCP server are free to run indefinitely; they call the same public API.
+- The only cost ceiling is the **per-IP rate limit** on the hosted browser-driving routes
+  (`/api/scan`, `/api/aeo`, `/mcp`). Run locally (`npx slop-detect` or
+  `npx -y -p slop-detect -p slop-detect-mcp slop-detect-mcp --local`) or self-host
+  (MIT) for unlimited offline scans with zero external data egress.
+- The CLI and local MCP server run offline on your machine; hosted API mode is optional.
 
 ## Links
 
