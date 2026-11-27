@@ -117,3 +117,26 @@ jobs:
           SLOP_LOCAL_URL=http://127.0.0.1:8766/clean-artisan.html \
             node packages/mcp/hooks/scan-local.mjs > hook-result.json
           node -e "const d=JSON.parse(require('fs').readFileSync('hook-result.json','utf8')); if (d.schemaVersion!==1 || typeof d.score!=='number' || d.blocked) { console.error(d); process.exit(1); } console.log('hook score', d.score);"
+
+  rust-engine:
+    name: Rust engine & WASM parity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - name: Run Rust workspace + oracle parity tests
+        run: cargo test --workspace --locked
+      - name: Build native release CLI binary
+        run: cargo build --release --locked -p slop-cli
+      - name: Smoke test native CLI (probe, doctor, static check, DESIGN.md lint)
+        run: |
+          ./target/release/slop-detect engine-probe
+          ./target/release/slop-detect doctor
+          ./target/release/slop-detect design lint ./DESIGN.md --format agent
+          ./target/release/slop-detect check ./DESIGN.md --format agent
+      - name: Build and verify wasm32-unknown-unknown module
+        run: |
+          cargo build --release --locked --target wasm32-unknown-unknown -p slop-wasm
+          node scripts/verify-wasm.mjs
