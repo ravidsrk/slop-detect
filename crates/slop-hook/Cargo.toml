@@ -1,0 +1,16 @@
+[package]
+name = "slop-hook"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+description = "Sub-15ms coding-agent hook engine (PostToolUse / Stop) for slop-detect."
+
+[dependencies]
+slop-core = { workspace = true }
+slop-static = { workspace = true }
+slop-browser = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

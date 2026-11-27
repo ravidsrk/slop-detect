@@ -1,0 +1,23 @@
+[package]
+name = "slop-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+description = "Single native Rust binary for slop-detect (static check, raw CDP scan, native AEO, DESIGN.md lint/diff, hooks, and stdio MCP)."
+
+[[bin]]
+name = "slop-detect"
+path = "src/main.rs"
+
+[dependencies]
+slop-core = { workspace = true }
+slop-static = { workspace = true }
+slop-aeo = { workspace = true }
+slop-browser = { workspace = true }
+slop-hook = { workspace = true }
+slop-mcp = { workspace = true }
+clap = { workspace = true }
+serde_json = { workspace = true }
