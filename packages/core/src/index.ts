@@ -10,6 +10,7 @@
 // for the two reference runners.
 
 export { PATTERNS } from './patterns.js';
+export { loadSlopWasm, type SlopWasmEngine, type SlopWasmExports } from './wasm-engine.js';
 export {
   COPY_PATTERNS,
   CHATBOT_MARKUP_REGISTRY,

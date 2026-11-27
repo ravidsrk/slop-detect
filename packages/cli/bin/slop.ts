@@ -17,6 +17,8 @@ import {
   loadAxeSource,
   buildSarifReport,
   exitCodeForScanResults,
+  findNativeEngine,
+  runNativeStaticCheck,
 } from '../src/index.js';
 import type { ScanOptions } from '../src/index.js';
 import {
@@ -147,6 +149,7 @@ const flags = {
   refFile: null as string | null,
   benchManifest: null as string | null,
   budget: null as number | null,
+  checkPath: null as string | null,
 };
 
 // Exit codes live in exitCodeForScanResults: 0 scored, 1 over the gate, 2 could
@@ -264,6 +267,13 @@ for (let i = 0; i < args.length; i++) {
       process.exit(2);
     }
     flags.designMd = val;
+  } else if (a === 'check' && i === 0) {
+    const next = args[i + 1];
+    if (next && !next.startsWith('--')) {
+      flags.checkPath = args[++i];
+    } else {
+      flags.checkPath = '.';
+    }
   } else if (a === 'diff' && i === 0) {
     const before = args[++i];
     const after = args[++i];
@@ -710,6 +720,25 @@ if (flags.emitAeoFixes) {
     console.error(e.message || String(e));
     process.exit(2);
   }
+}
+
+if (flags.checkPath) {
+  const native = findNativeEngine();
+  if (!native) {
+    console.error(
+      'Native Rust static engine binary not found. Build locally with `cargo build --release -p slop-cli` or run `./skills/slop-detect/scripts/slop-detect check`.'
+    );
+    process.exit(2);
+  }
+  const fmt = flags.json ? 'json' : flags.sarif ? 'sarif' : flags.format || 'human';
+  const res = runNativeStaticCheck(native.binary, flags.checkPath, {
+    designMd: flags.designMd,
+    format: fmt,
+    failOn: flags.failOn || 'error',
+  });
+  if (res.stdout) process.stdout.write(res.stdout);
+  if (res.stderr) process.stderr.write(res.stderr);
+  process.exit(res.exitCode);
 }
 
 if (flags.benchManifest) {

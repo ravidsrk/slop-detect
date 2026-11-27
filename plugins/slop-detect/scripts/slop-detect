@@ -1,0 +1,103 @@
+#!/usr/bin/env sh
+# Native binary launcher for the slop-detect Rust engine (zero Node at runtime).
+# Uses shell builtins on the hot path so coding-agent PostToolUse/Stop hooks
+# incur minimal startup latency.
+set -eu
+
+case $0 in
+  */*) dir=${0%/*} ;;
+  *) dir=. ;;
+esac
+[ -n "$dir" ] || dir=/
+caller_pwd=$PWD
+CDPATH= cd -- "$dir"
+dir=$PWD
+cd -- "$caller_pwd"
+
+repo_root=$(CDPATH= cd -- "$dir/../../.." 2>/dev/null && pwd || printf '%s' "$dir")
+
+if [ -n "${SLOP_DETECT_BIN:-}" ] && [ -x "${SLOP_DETECT_BIN}" ]; then
+  exec "${SLOP_DETECT_BIN}" "$@"
+fi
+
+# Prefer local workspace release/debug builds during development.
+if [ -x "$repo_root/target/release/slop-detect" ]; then
+  exec "$repo_root/target/release/slop-detect" "$@"
+fi
+if [ -x "$repo_root/target/debug/slop-detect" ]; then
+  exec "$repo_root/target/debug/slop-detect" "$@"
+fi
+
+os=$(uname -s | tr '[:upper:]' '[:lower:]')
+arch=$(uname -m)
+case "$os" in
+  darwin) os=darwin ;;
+  linux) os=linux ;;
+  *) echo "slop-detect: unsupported OS '$os'" >&2; exit 127 ;;
+esac
+case "$arch" in
+  x86_64|amd64) arch=x64 ;;
+  arm64|aarch64) arch=arm64 ;;
+  *) echo "slop-detect: unsupported arch '$arch'" >&2; exit 127 ;;
+esac
+
+version_file="$repo_root/ENGINE_VERSION"
+version="0.1.0"
+if [ -f "$version_file" ]; then
+  read -r version < "$version_file"
+fi
+
+asset="slop-detect-${os}-${arch}"
+cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/slop-detect/engine/${version}"
+cached="${cache_dir}/${asset}"
+
+if [ -x "$cached" ]; then
+  exec "$cached" "$@"
+fi
+
+# Download and verify against engine-checksums.txt when not cached locally.
+manifest="$dir/engine-checksums.txt"
+expected=""
+if [ -f "$manifest" ]; then
+  while read -r m_ver m_asset m_sum _; do
+    case "$m_ver" in ''|'#'*) continue ;; esac
+    if [ "$m_ver" = "$version" ] && [ "$m_asset" = "$asset" ]; then
+      expected="$m_sum"
+      break
+    fi
+  done < "$manifest"
+fi
+
+if [ -z "$expected" ]; then
+  echo "slop-detect: no native binary cached at $cached and no published checksum for ${version}/${asset}. Build locally with 'cargo build --release -p slop-cli' or run 'npx slop-detect'." >&2
+  exit 127
+fi
+
+url="https://github.com/ravidsrk/slop-detect/releases/download/engine-v${version}/${asset}"
+mkdir -p "$cache_dir"
+tmp="${cached}.tmp.$$"
+if command -v curl >/dev/null 2>&1; then
+  curl -fsSL "$url" -o "$tmp"
+elif command -v wget >/dev/null 2>&1; then
+  wget -qO "$tmp" "$url"
+else
+  echo "slop-detect: neither curl nor wget available to download ${asset}" >&2
+  exit 127
+fi
+
+actual=""
+if command -v sha256sum >/dev/null 2>&1; then
+  actual=$(sha256sum "$tmp" | awk '{print $1}')
+elif command -v shasum >/dev/null 2>&1; then
+  actual=$(shasum -a 256 "$tmp" | awk '{print $1}')
+fi
+
+if [ "$actual" != "$expected" ]; then
+  rm -f "$tmp"
+  echo "slop-detect: SHA-256 mismatch for ${asset} (expected ${expected}, got ${actual})" >&2
+  exit 1
+fi
+
+chmod +x "$tmp"
+mv -f "$tmp" "$cached"
+exec "$cached" "$@"

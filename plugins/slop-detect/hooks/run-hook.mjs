@@ -10,7 +10,33 @@
 
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { homedir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+function findNativeBinary(cwd) {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const exe = process.platform === 'win32' ? 'slop-detect.exe' : 'slop-detect';
+  const os =
+    process.platform === 'darwin' ? 'darwin' : process.platform === 'linux' ? 'linux' : 'windows';
+  const arch = process.arch === 'arm64' ? 'arm64' : 'x64';
+  const asset = os === 'windows' ? `slop-detect-${os}-${arch}.exe` : `slop-detect-${os}-${arch}`;
+  const cacheBase =
+    process.env.XDG_CACHE_HOME ||
+    (process.platform === 'win32'
+      ? process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local')
+      : join(homedir(), '.cache'));
+  const candidates = [
+    process.env.SLOP_DETECT_BIN,
+    join(cwd, 'target', 'release', exe),
+    join(cacheBase, 'slop-detect', 'engine', '0.1.0', asset),
+    join(here, '..', 'scripts', 'slop-detect'),
+  ].filter(Boolean);
+  for (const c of candidates) {
+    if (existsSync(c)) return c;
+  }
+  return null;
+}
 
 function readStdin(idleMs = 300, maxMs = 3000) {
   if (process.stdin.isTTY) return Promise.resolve('');
@@ -49,10 +75,28 @@ const cwd =
   (input && typeof input.cwd === 'string' && input.cwd) ||
   process.env.CLAUDE_PROJECT_DIR ||
   process.cwd();
+
+// Fast-path: if a native Rust binary is cached/installed locally, run sub-15ms
+// static checks on PostToolUse edits before falling through to live URL scans.
+const eventName = String((input && (input.hook_event_name || input.event)) || '');
+if (eventName === 'PostToolUse' && raw.trim()) {
+  const nativeBin = findNativeBinary(cwd);
+  if (nativeBin && !nativeBin.endsWith('scripts/slop-detect')) {
+    const fast = spawnSync(nativeBin, ['hook'], {
+      cwd,
+      input: raw,
+      encoding: 'utf8',
+      timeout: 3000,
+    });
+    if (!fast.error && fast.stdout && fast.stdout.trim()) {
+      process.stdout.write(fast.stdout);
+    }
+  }
+}
+
 if (!process.env.SLOP_LOCAL_URL && !existsSync(join(cwd, '.slop', 'local-url'))) process.exit(0);
 
 // Skip spawning npx completely for non-UI PostToolUse edits.
-const eventName = String((input && (input.hook_event_name || input.event)) || '');
 if (eventName === 'PostToolUse') {
   const toolInput = (input && input.tool_input) || {};
   const filePath = String(toolInput.file_path || toolInput.path || '');
