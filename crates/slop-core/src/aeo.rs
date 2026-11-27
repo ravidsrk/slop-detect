@@ -161,10 +161,7 @@ fn robots_pattern_matches(pattern: &str, target_path: &str) -> bool {
             return false;
         }
     }
-    if anchored_end && !raw.ends_with('*') && from != norm_path.len() {
-        return false;
-    }
-    true
+    !(anchored_end && !raw.ends_with('*') && from != norm_path.len())
 }
 
 pub fn parse_robots_txt(robots_txt: &str) -> ParsedRobotsTxt {
