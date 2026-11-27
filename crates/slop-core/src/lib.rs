@@ -9,6 +9,7 @@ pub mod copy;
 pub mod craft;
 pub mod design;
 pub mod design_md;
+pub mod fixes;
 pub mod verdict;
 
 pub const DEFINITIONS_VERSION: &str = "2026.11";

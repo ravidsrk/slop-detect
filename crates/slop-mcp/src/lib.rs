@@ -7,7 +7,10 @@ use serde_json::{json, Value};
 use slop_aeo::run_aeo_audit;
 use slop_browser::{scan_url_cdp, BrowserScanOptions};
 use slop_core::design::DESIGN_PATTERNS;
-use slop_core::design_md::{diff_design_md, lint_design_md};
+use slop_core::design_md::{
+    diff_design_md, extract_dtcg_tokens, generate_design_md, lint_design_md,
+};
+use slop_core::fixes::{build_avoid_list, build_fix_prompt};
 use slop_core::{DEFINITIONS_VERSION, ENGINE_VERSION};
 use slop_static::{check_path, StaticCheckOptions};
 use std::fs;
@@ -87,6 +90,50 @@ fn tool_definitions() -> Value {
                     "head_design_md": { "type": "string" }
                 },
                 "required": ["base_design_md", "head_design_md"],
+                "additionalProperties": false
+            }
+        },
+        {
+            "name": "check_design_system",
+            "title": "Check DESIGN.md System Compliance (Native CDP)",
+            "description": "Verify a rendered page offline against a local DESIGN.md or W3C DTCG tokens.json in Oklab ΔE.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "url": { "type": "string", "description": "Page URL to scan." },
+                    "design_md_path": { "type": "string", "description": "Local path to DESIGN.md or tokens.json." }
+                },
+                "required": ["url", "design_md_path"],
+                "additionalProperties": false
+            }
+        },
+        {
+            "name": "extract_design_system",
+            "title": "Extract DESIGN.md & DTCG Tokens from a Page (Native CDP)",
+            "description": "Bootstrap a WCAG-accessible DESIGN.md and W3C DTCG 2025.10 tokens.json from live computed DOM tokens.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "url": { "type": "string", "description": "Page URL to extract tokens from." },
+                    "name": { "type": "string", "description": "Optional design system name." },
+                    "format": { "type": "string", "enum": ["design_md", "dtcg", "both"] }
+                },
+                "required": ["url"],
+                "additionalProperties": false
+            }
+        },
+        {
+            "name": "fix_prompt",
+            "title": "Build Deterministic Remediation Prompt",
+            "description": "Build a copy-paste fix prompt or <=120-word avoid list from triggered pattern IDs or a live URL.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "url": { "type": "string" },
+                    "patterns": { "type": "array", "items": { "type": "string" } },
+                    "brief": { "type": "boolean", "description": "true returns <=120-word avoid list." }
+                },
+                "required": [],
                 "additionalProperties": false
             }
         }
@@ -326,6 +373,104 @@ fn execute_tool(name: &str, args: &Value) -> Value {
                     "isError": true
                 }),
             }
+        }
+        "check_design_system" => {
+            let url = args.get("url").and_then(|v| v.as_str()).unwrap_or("");
+            let path = args.get("design_md_path").and_then(|v| v.as_str()).unwrap_or("");
+            let Ok(md_text) = fs::read_to_string(path) else {
+                return json!({
+                    "content": [{ "type": "text", "text": format!("Could not read DESIGN.md at {}", path) }],
+                    "isError": true
+                });
+            };
+            let opts = BrowserScanOptions {
+                design_md_text: Some(md_text),
+                ..Default::default()
+            };
+            match scan_url_cdp(url, &opts) {
+                Ok(res) => {
+                    let sys = res.system.clone();
+                    let summary = match &sys {
+                        Some(s) => format!(
+                            "DESIGN.md compliance on {}: {:?}/100 ({}, drift={:?})",
+                            res.url, s.score, s.tier, s.drift_ids
+                        ),
+                        None => "No parseable DESIGN.md".to_string(),
+                    };
+                    json!({
+                        "content": [{ "type": "text", "text": summary }],
+                        "structuredContent": sys,
+                        "isError": false
+                    })
+                }
+                Err(e) => json!({
+                    "content": [{ "type": "text", "text": format!("Scan could not run: {}", e) }],
+                    "isError": true
+                }),
+            }
+        }
+        "extract_design_system" => {
+            let url = args.get("url").and_then(|v| v.as_str()).unwrap_or("");
+            let name = args.get("name").and_then(|v| v.as_str());
+            let fmt = args.get("format").and_then(|v| v.as_str()).unwrap_or("design_md");
+            match scan_url_cdp(url, &BrowserScanOptions::default()) {
+                Ok(res) => {
+                    let obs = res.observed_system.unwrap_or(Value::Null);
+                    let sys_name = name.or(if res.title.is_empty() { None } else { Some(res.title.as_str()) });
+                    let design_md = generate_design_md(&obs, sys_name, Some(url));
+                    let dtcg = extract_dtcg_tokens(&obs, sys_name);
+                    let text = match fmt {
+                        "dtcg" => serde_json::to_string_pretty(&dtcg).unwrap_or_default(),
+                        "both" => format!("{}\n\n```json\n{}\n```", design_md, serde_json::to_string_pretty(&dtcg).unwrap_or_default()),
+                        _ => design_md.clone(),
+                    };
+                    json!({
+                        "content": [{ "type": "text", "text": text }],
+                        "structuredContent": { "designMd": design_md, "dtcg": dtcg },
+                        "isError": false
+                    })
+                }
+                Err(e) => json!({
+                    "content": [{ "type": "text", "text": format!("Extraction scan failed: {}", e) }],
+                    "isError": true
+                }),
+            }
+        }
+        "fix_prompt" => {
+            let brief = args.get("brief").and_then(|v| v.as_bool()).unwrap_or(false);
+            let url = args.get("url").and_then(|v| v.as_str());
+            let mut patterns: Vec<String> = args
+                .get("patterns")
+                .and_then(|v| v.as_array())
+                .map(|a| a.iter().filter_map(|x| x.as_str().map(|s| s.to_string())).collect())
+                .unwrap_or_default();
+            let mut score = None;
+            let mut tier = None;
+            if patterns.is_empty() {
+                if let Some(u) = url {
+                    if let Ok(res) = scan_url_cdp(u, &BrowserScanOptions::default()) {
+                        score = Some(res.score);
+                        tier = Some(res.tier.clone());
+                        patterns = res
+                            .design
+                            .patterns
+                            .iter()
+                            .filter(|p| p.triggered)
+                            .map(|p| p.id.clone())
+                            .collect();
+                    }
+                }
+            }
+            let out = if brief {
+                build_avoid_list(&patterns)
+            } else {
+                build_fix_prompt(url, score, tier.as_deref(), &patterns)
+            };
+            json!({
+                "content": [{ "type": "text", "text": out.text }],
+                "structuredContent": out,
+                "isError": false
+            })
         }
         _ => json!({
             "content": [{ "type": "text", "text": format!("Unknown tool: {}", name) }],

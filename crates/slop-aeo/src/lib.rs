@@ -339,6 +339,114 @@ pub fn run_aeo_audit(raw_url: &str, timeout_secs: u64) -> Result<AeoReport, AeoE
         },
     );
 
+    // 12. agent.operability (0, review)
+    let empty_buttons = lower_body.matches("<button></button>").count();
+    push(
+        "agent.operability",
+        0,
+        if empty_buttons == 0 { "pass" } else { "review" },
+        0.0,
+        if empty_buttons == 0 {
+            "No unlabelled empty button controls detected in server HTML".to_string()
+        } else {
+            format!("Found {} empty <button></button> control(s) without accessible labels", empty_buttons)
+        },
+    );
+
+    // 13. agent.discovery (0, review)
+    let mut agent_card_url = parsed.clone();
+    agent_card_url.set_path("/.well-known/agent.json");
+    agent_card_url.set_query(None);
+    agent_card_url.set_fragment(None);
+    let agent_card_reply = fetch_capped(&agent, agent_card_url.as_str(), "application/json,*/*");
+    let has_agent_card = agent_card_reply.error.is_none()
+        && (200..300).contains(&agent_card_reply.status)
+        && agent_card_reply.body.trim_start().starts_with('{');
+    let has_discovery = has_agent_card || lower_body.contains("mcp") || lower_body.contains("openapi.json");
+    push(
+        "agent.discovery",
+        0,
+        if has_discovery { "pass" } else { "review" },
+        0.0,
+        if has_agent_card {
+            "Published /.well-known/agent.json discovery card".to_string()
+        } else if has_discovery {
+            "Discovery links detected in HTML".to_string()
+        } else {
+            "No /.well-known/agent.json or agent discovery metadata detected".to_string()
+        },
+    );
+
+    // 14. ai.usagePolicy (0, review)
+    let has_usage_policy = html_reply.headers.contains_key("content-usage")
+        || html_reply.headers.contains_key("content-signal")
+        || html_reply.headers.contains_key("tdm-reservation")
+        || lower_body.contains("tdm-reservation");
+    push(
+        "ai.usagePolicy",
+        0,
+        if has_usage_policy { "pass" } else { "review" },
+        0.0,
+        if has_usage_policy {
+            "Machine-readable AI usage policy header/meta declared".to_string()
+        } else {
+            "No AIPREF Content-Usage, Content-Signal, or TDMRep directive declared".to_string()
+        },
+    );
+
+    // 15. content.dates (0, review)
+    let has_dates = lower_body.contains("datepublished")
+        || lower_body.contains("datemodified")
+        || lower_body.contains("article:published_time")
+        || lower_body.contains("<time");
+    push(
+        "content.dates",
+        0,
+        if has_dates { "pass" } else { "review" },
+        0.0,
+        if has_dates {
+            "Machine-readable publication/modification date metadata present".to_string()
+        } else {
+            "No machine-readable publication or modification date metadata found".to_string()
+        },
+    );
+
+    // 16. jsonld.hygiene (0, review)
+    let mut jsonld_blocks = 0usize;
+    let mut jsonld_valid = 0usize;
+    let mut cursor = html_reply.body.as_str();
+    while let Some(start) = cursor.to_ascii_lowercase().find("application/ld+json") {
+        let after = &cursor[start..];
+        let Some(gt) = after.find('>') else { break };
+        let body_start = &after[gt + 1..];
+        let Some(end) = body_start.to_ascii_lowercase().find("</script>") else {
+            break;
+        };
+        let block = body_start[..end].trim();
+        jsonld_blocks += 1;
+        if let Ok(v) = serde_json::from_str::<serde_json::Value>(block) {
+            if v.get("@context").is_some() && v.get("@type").is_some() {
+                jsonld_valid += 1;
+            }
+        }
+        cursor = &body_start[end + 9..];
+    }
+    push(
+        "jsonld.hygiene",
+        0,
+        if jsonld_blocks == 0 || jsonld_valid == jsonld_blocks {
+            "pass"
+        } else {
+            "review"
+        },
+        0.0,
+        if jsonld_blocks == 0 {
+            "No JSON-LD blocks present".to_string()
+        } else {
+            format!("{}/{} JSON-LD blocks valid with @context and @type", jsonld_valid, jsonld_blocks)
+        },
+    );
+
     let applicable: f64 = checks.iter().map(|c| c.weight as f64).sum();
     let earned: f64 = checks.iter().map(|c| c.earned).sum();
     let score = if applicable > 0.0 {

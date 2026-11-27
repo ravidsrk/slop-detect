@@ -126,16 +126,20 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
-      - name: Run Rust workspace + oracle parity tests
-        run: cargo test --workspace --locked
+      - name: Run Rust clippy and workspace + oracle parity tests
+        run: |
+          cargo clippy --workspace --all-targets --locked -- -D warnings
+          cargo test --workspace --locked
       - name: Build native release CLI binary
         run: cargo build --release --locked -p slop-cli
-      - name: Smoke test native CLI (probe, doctor, static check, DESIGN.md lint)
+      - name: Smoke test native CLI + all golden fixtures via raw CDP (zero Playwright)
         run: |
           ./target/release/slop-detect engine-probe
           ./target/release/slop-detect doctor
           ./target/release/slop-detect design lint ./DESIGN.md --format agent
           ./target/release/slop-detect check ./DESIGN.md --format agent
+          node scripts/test-rust-cdp-golden.mjs
+          node scripts/sync-skills.mjs --check
       - name: Build and verify wasm32-unknown-unknown module
         run: |
           cargo build --release --locked --target wasm32-unknown-unknown -p slop-wasm

@@ -10,7 +10,10 @@ use serde_json::{json, Value};
 use slop_core::copy::{score_copy, CopyInput, CopyLink, CopyScoreResult};
 use slop_core::craft::{score_craft, CraftScoreResult};
 use slop_core::design::{score_patterns, DesignScoreResult, PatternInput, DESIGN_PATTERNS};
-use slop_core::design_md::{parse_design_md, score_system_compliance, SystemComplianceResult};
+use slop_core::design_md::{
+    apply_design_system_waivers, parse_design_md, score_system_compliance, SystemComplianceResult,
+    WaivedPattern,
+};
 use slop_core::verdict::{combine_axes, AxisSummaryInput, CombinedAxesResult};
 use slop_core::{DEFINITIONS_VERSION, SCAN_SCHEMA_VERSION};
 use std::collections::HashMap;
@@ -80,6 +83,12 @@ pub struct NativeScanResult {
     pub tier: String,
     pub grade: String,
     pub verdict: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub raw_score: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub raw_tier: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub waived_patterns: Vec<WaivedPattern>,
     pub patterns_flagged: usize,
     pub patterns_total: usize,
     pub elapsed_ms: u128,
@@ -91,6 +100,8 @@ pub struct NativeScanResult {
     pub craft: Option<CraftScoreResult>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub system: Option<SystemComplianceResult>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub observed_system: Option<Value>,
     pub unified: CombinedAxesResult,
 }
 
@@ -577,12 +588,24 @@ pub fn scan_url_cdp(url: &str, opts: &BrowserScanOptions) -> Result<NativeScanRe
         None
     };
 
-    // Optional DESIGN.md System Compliance axis
-    let system = opts.design_md_text.as_deref().map(|md_text| {
-        let parsed = parse_design_md(md_text);
-        let obs = raw.get("systemContext").cloned().unwrap_or(Value::Null);
-        score_system_compliance(parsed.as_ref(), &obs)
+    // Optional DESIGN.md System Compliance axis + S-03 token-scoped waivers
+    let observed_system = raw.get("systemContext").cloned();
+    let parsed_design_md = opts.design_md_text.as_deref().and_then(parse_design_md);
+    let system = opts.design_md_text.as_deref().map(|_| {
+        let obs = observed_system.clone().unwrap_or(Value::Null);
+        score_system_compliance(parsed_design_md.as_ref(), &obs)
     });
+
+    let (design, raw_score, raw_tier, waived_patterns) = if let Some(ref parsed_sys) = parsed_design_md {
+        let w = apply_design_system_waivers(&design, parsed_sys);
+        if w.waived_patterns.is_empty() {
+            (design, None, None, vec![])
+        } else {
+            (w.design, Some(w.raw_score), Some(w.raw_tier), w.waived_patterns)
+        }
+    } else {
+        (design, None, None, vec![])
+    };
 
     let unified = combine_axes(
         Some(&AxisSummaryInput {
@@ -605,6 +628,9 @@ pub fn scan_url_cdp(url: &str, opts: &BrowserScanOptions) -> Result<NativeScanRe
         tier: design.tier.clone(),
         grade: design.grade.clone(),
         verdict: design.verdict.clone(),
+        raw_score,
+        raw_tier,
+        waived_patterns,
         patterns_flagged: design.patterns_flagged,
         patterns_total: design.patterns_total,
         elapsed_ms: started.elapsed().as_millis(),
@@ -613,6 +639,7 @@ pub fn scan_url_cdp(url: &str, opts: &BrowserScanOptions) -> Result<NativeScanRe
         copy,
         craft,
         system,
+        observed_system,
         unified,
     })
 }

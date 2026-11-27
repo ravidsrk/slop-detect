@@ -43,8 +43,10 @@
     "calibrate": "bun packages/cli/calibration/run.mjs",
     "oracle:generate": "bun run --filter @slop-detect/core build && node scripts/generate-oracle.mjs",
     "probe:build": "bun run --filter @slop-detect/core build && node scripts/build-browser-probe.mjs",
+    "skills:sync": "node scripts/sync-skills.mjs",
     "rust:test": "cargo test --workspace",
     "rust:build": "cargo build --release -p slop-cli",
+    "rust:golden": "cargo build --release -p slop-cli && node scripts/test-rust-cdp-golden.mjs",
     "rust:wasm": "cargo build --release --target wasm32-unknown-unknown -p slop-wasm && node scripts/verify-wasm.mjs"
   },
   "engines": {
