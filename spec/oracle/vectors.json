@@ -1,0 +1,1389 @@
+{
+  "schemaVersion": 1,
+  "definitionsVersion": "2026.11",
+  "slopDetectVersion": "0.9.1",
+  "counts": {
+    "designPatterns": 45,
+    "copyPatterns": 26,
+    "craftChecks": 11,
+    "aeoChecks": 16
+  },
+  "colors": [
+    {
+      "input": "#181815",
+      "r": 24,
+      "g": 24,
+      "b": 21,
+      "a": 1,
+      "oklab": {
+        "L": 0.207864,
+        "a": -0.001682,
+        "b": 0.005537
+      },
+      "oklch": {
+        "L": 0.207864,
+        "C": 0.005787,
+        "h": 106.8926
+      },
+      "isPurple": false,
+      "isDark": true,
+      "isNeutral": true
+    },
+    {
+      "input": "#F4F5F2",
+      "r": 244,
+      "g": 245,
+      "b": 242,
+      "a": 1,
+      "oklab": {
+        "L": 0.968554,
+        "a": -0.002146,
+        "b": 0.003494
+      },
+      "oklch": {
+        "L": 0.968554,
+        "C": 0.0041,
+        "h": 121.5607
+      },
+      "isPurple": false,
+      "isDark": false,
+      "isNeutral": true
+    },
+    {
+      "input": "#1FA85E",
+      "r": 31,
+      "g": 168,
+      "b": 94,
+      "a": 1,
+      "oklab": {
+        "L": 0.645113,
+        "a": -0.139574,
+        "b": 0.070352
+      },
+      "oklch": {
+        "L": 0.645113,
+        "C": 0.156301,
+        "h": 153.2498
+      },
+      "isPurple": false,
+      "isDark": false,
+      "isNeutral": false
+    },
+    {
+      "input": "#6366f1",
+      "r": 99,
+      "g": 102,
+      "b": 241,
+      "a": 1,
+      "oklab": {
+        "L": 0.585404,
+        "a": 0.025283,
+        "b": -0.202483
+      },
+      "oklch": {
+        "L": 0.585404,
+        "C": 0.204055,
+        "h": 277.1173
+      },
+      "isPurple": true,
+      "isDark": false,
+      "isNeutral": false
+    },
+    {
+      "input": "#8b5cf6",
+      "r": 139,
+      "g": 92,
+      "b": 246,
+      "a": 1,
+      "oklab": {
+        "L": 0.605631,
+        "a": 0.084541,
+        "b": -0.201932
+      },
+      "oklch": {
+        "L": 0.605631,
+        "C": 0.218915,
+        "h": 292.7172
+      },
+      "isPurple": true,
+      "isDark": false,
+      "isNeutral": false
+    },
+    {
+      "input": "#fff",
+      "r": 255,
+      "g": 255,
+      "b": 255,
+      "a": 1,
+      "oklab": {
+        "L": 1,
+        "a": 0,
+        "b": 0
+      },
+      "oklch": {
+        "L": 1,
+        "C": 0,
+        "h": 0
+      },
+      "isPurple": false,
+      "isDark": false,
+      "isNeutral": true
+    },
+    {
+      "input": "#0008",
+      "r": 0,
+      "g": 0,
+      "b": 0,
+      "a": 0.533333,
+      "oklab": {
+        "L": 0,
+        "a": 0,
+        "b": 0
+      },
+      "oklch": {
+        "L": 0,
+        "C": 0,
+        "h": 0
+      },
+      "isPurple": false,
+      "isDark": true,
+      "isNeutral": true
+    },
+    {
+      "input": "rgb(99, 102, 241)",
+      "r": 99,
+      "g": 102,
+      "b": 241,
+      "a": 1,
+      "oklab": {
+        "L": 0.585404,
+        "a": 0.025283,
+        "b": -0.202483
+      },
+      "oklch": {
+        "L": 0.585404,
+        "C": 0.204055,
+        "h": 277.1173
+      },
+      "isPurple": true,
+      "isDark": false,
+      "isNeutral": false
+    },
+    {
+      "input": "rgba(24, 24, 21, 0.5)",
+      "r": 24,
+      "g": 24,
+      "b": 21,
+      "a": 0.5,
+      "oklab": {
+        "L": 0.207864,
+        "a": -0.001682,
+        "b": 0.005537
+      },
+      "oklch": {
+        "L": 0.207864,
+        "C": 0.005787,
+        "h": 106.8926
+      },
+      "isPurple": false,
+      "isDark": true,
+      "isNeutral": true
+    },
+    {
+      "input": "rgb(31 168 94 / 80%)",
+      "r": 31,
+      "g": 168,
+      "b": 94,
+      "a": 0.8,
+      "oklab": {
+        "L": 0.645113,
+        "a": -0.139574,
+        "b": 0.070352
+      },
+      "oklch": {
+        "L": 0.645113,
+        "C": 0.156301,
+        "h": 153.2498
+      },
+      "isPurple": false,
+      "isDark": false,
+      "isNeutral": false
+    },
+    {
+      "input": "hsl(262, 83%, 58%)",
+      "r": 124,
+      "g": 59,
+      "b": 237,
+      "a": 1,
+      "oklab": {
+        "L": 0.542413,
+        "a": 0.095956,
+        "b": -0.225882
+      },
+      "oklch": {
+        "L": 0.542413,
+        "C": 0.245419,
+        "h": 293.016
+      },
+      "isPurple": true,
+      "isDark": false,
+      "isNeutral": false
+    },
+    {
+      "input": "hsl(148deg 69% 39% / 0.9)",
+      "r": 31,
+      "g": 168,
+      "b": 95,
+      "a": 0.9,
+      "oklab": {
+        "L": 0.645437,
+        "a": -0.139286,
+        "b": 0.069404
+      },
+      "oklch": {
+        "L": 0.645437,
+        "C": 0.15562,
+        "h": 153.5136
+      },
+      "isPurple": false,
+      "isDark": false,
+      "isNeutral": false
+    },
+    {
+      "input": "oklch(0.62 0.21 290)",
+      "r": 137,
+      "g": 102,
+      "b": 249,
+      "a": 1,
+      "oklab": {
+        "L": 0.62,
+        "a": 0.071824,
+        "b": -0.197335
+      },
+      "oklch": {
+        "L": 0.62,
+        "C": 0.21,
+        "h": 290
+      },
+      "isPurple": true,
+      "isDark": false,
+      "isNeutral": false
+    },
+    {
+      "input": "oklch(55% 0.15 150 / 75%)",
+      "r": 5,
+      "g": 137,
+      "b": 62,
+      "a": 0.75,
+      "oklab": {
+        "L": 0.55,
+        "a": -0.129904,
+        "b": 0.075
+      },
+      "oklch": {
+        "L": 0.55,
+        "C": 0.15,
+        "h": 150
+      },
+      "isPurple": false,
+      "isDark": false,
+      "isNeutral": false
+    },
+    {
+      "input": "oklab(0.65 -0.12 0.08)",
+      "r": 75,
+      "g": 166,
+      "b": 87,
+      "a": 1,
+      "oklab": {
+        "L": 0.65,
+        "a": -0.12,
+        "b": 0.08
+      },
+      "oklch": {
+        "L": 0.65,
+        "C": 0.144222,
+        "h": 146.3099
+      },
+      "isPurple": false,
+      "isDark": false,
+      "isNeutral": false
+    },
+    {
+      "input": "rebeccapurple",
+      "r": 102,
+      "g": 51,
+      "b": 153,
+      "a": 1,
+      "oklab": {
+        "L": 0.440272,
+        "a": 0.088177,
+        "b": -0.133864
+      },
+      "oklch": {
+        "L": 0.440272,
+        "C": 0.160296,
+        "h": 303.373
+      },
+      "isPurple": true,
+      "isDark": false,
+      "isNeutral": false
+    }
+  ],
+  "colorPairs": [
+    {
+      "a": "#181815",
+      "b": "#F4F5F2",
+      "deltaEOklab": 0.760693,
+      "contrastRatio": 16.2581
+    },
+    {
+      "a": "#1FA85E",
+      "b": "#FFFFFF",
+      "deltaEOklab": 0.387782,
+      "contrastRatio": 3.0788
+    },
+    {
+      "a": "#6366F1",
+      "b": "#8B5CF6",
+      "deltaEOklab": 0.062618,
+      "contrastRatio": 1.0549
+    },
+    {
+      "a": "#777777",
+      "b": "#888888",
+      "deltaEOklab": 0.057491,
+      "contrastRatio": 1.2633
+    },
+    {
+      "a": "oklch(0.62 0.21 290)",
+      "b": "#8b5cf6",
+      "deltaEOklab": 0.019731,
+      "contrastRatio": 1.0752
+    }
+  ],
+  "designMd": {
+    "lintValid": {
+      "valid": true,
+      "specVersion": "alpha",
+      "errors": [],
+      "warnings": [],
+      "issues": []
+    },
+    "lintBroken": {
+      "valid": false,
+      "specVersion": "v2",
+      "errors": [
+        {
+          "ruleId": "broken-ref",
+          "severity": "error",
+          "path": "colors.loopA",
+          "message": "Circular token reference \"{colors.loopA}\" at \"colors.loopA\"."
+        },
+        {
+          "ruleId": "broken-ref",
+          "severity": "error",
+          "path": "colors.loopB",
+          "message": "Circular token reference \"{colors.loopA}\" at \"colors.loopB\"."
+        },
+        {
+          "ruleId": "broken-ref",
+          "severity": "error",
+          "path": "components.missing-ref.backgroundColor",
+          "message": "Unresolved token reference \"{colors.doesNotExist}\" at \"components.missing-ref.backgroundColor\"."
+        },
+        {
+          "ruleId": "contrast-ratio",
+          "severity": "error",
+          "path": "components.bad-button",
+          "message": "Component \"bad-button\" foreground (#CCCCCC) on background (#FFFFFF) has contrast 1.61:1 (< 4.5:1 WCAG AA minimum)."
+        }
+      ],
+      "warnings": [
+        {
+          "ruleId": "spec-version-mismatch",
+          "severity": "warning",
+          "path": "specVersion",
+          "message": "DESIGN.md declares specVersion \"v2\", expected \"alpha\"."
+        },
+        {
+          "ruleId": "orphaned-tokens",
+          "severity": "warning",
+          "path": "colors.orphan",
+          "message": "Token \"colors.orphan\" is declared in colors but never referenced by any component."
+        }
+      ],
+      "issues": [
+        {
+          "ruleId": "broken-ref",
+          "severity": "error",
+          "path": "colors.loopA",
+          "message": "Circular token reference \"{colors.loopA}\" at \"colors.loopA\"."
+        },
+        {
+          "ruleId": "broken-ref",
+          "severity": "error",
+          "path": "colors.loopB",
+          "message": "Circular token reference \"{colors.loopA}\" at \"colors.loopB\"."
+        },
+        {
+          "ruleId": "broken-ref",
+          "severity": "error",
+          "path": "components.missing-ref.backgroundColor",
+          "message": "Unresolved token reference \"{colors.doesNotExist}\" at \"components.missing-ref.backgroundColor\"."
+        },
+        {
+          "ruleId": "contrast-ratio",
+          "severity": "error",
+          "path": "components.bad-button",
+          "message": "Component \"bad-button\" foreground (#CCCCCC) on background (#FFFFFF) has contrast 1.61:1 (< 4.5:1 WCAG AA minimum)."
+        },
+        {
+          "ruleId": "spec-version-mismatch",
+          "severity": "warning",
+          "path": "specVersion",
+          "message": "DESIGN.md declares specVersion \"v2\", expected \"alpha\"."
+        },
+        {
+          "ruleId": "orphaned-tokens",
+          "severity": "warning",
+          "path": "colors.orphan",
+          "message": "Token \"colors.orphan\" is declared in colors but never referenced by any component."
+        }
+      ]
+    },
+    "diff": {
+      "added": [
+        {
+          "path": "colors.brandBlue",
+          "value": "#0F4C81"
+        }
+      ],
+      "removed": [
+        {
+          "path": "typography.body.fontFamily",
+          "value": "Libre Franklin"
+        },
+        {
+          "path": "typography.body.fontSize",
+          "value": "16px"
+        },
+        {
+          "path": "typography.body.lineHeight",
+          "value": "1.5"
+        },
+        {
+          "path": "spacing.sm",
+          "value": "8px"
+        },
+        {
+          "path": "spacing.md",
+          "value": "16px"
+        },
+        {
+          "path": "spacing.lg",
+          "value": "24px"
+        },
+        {
+          "path": "components.button-primary.backgroundColor",
+          "value": "#1FA85E"
+        },
+        {
+          "path": "components.button-primary.textColor",
+          "value": "#181815"
+        },
+        {
+          "path": "components.card.backgroundColor",
+          "value": "#F4F5F2"
+        },
+        {
+          "path": "components.card.textColor",
+          "value": "#181815"
+        }
+      ],
+      "changed": [
+        {
+          "path": "colors.ink",
+          "before": "#181815",
+          "after": "#111110"
+        }
+      ],
+      "breaking": true
+    },
+    "dtcgParsed": {
+      "name": "Studio Tokens",
+      "specVersion": "2025.10",
+      "dtcg": true,
+      "nonConformant": false,
+      "errors": [],
+      "colors": {
+        "colors_surface": "#F4F5F2",
+        "colors_ink": "#181815",
+        "colors_brand": "#181815"
+      },
+      "typography": {
+        "typography_heading": {
+          "fontFamily": "Newsreader, Georgia, serif"
+        }
+      },
+      "rounded": {},
+      "spacing": {
+        "radii_sm": "4px",
+        "spacing_md": "16px"
+      },
+      "shadows": {},
+      "motion": {
+        "durations": {},
+        "easings": {}
+      },
+      "deprecatedTokens": [],
+      "components": {}
+    },
+    "systemAligned": {
+      "score": 100,
+      "tier": "Aligned",
+      "driftIds": [],
+      "checkStatuses": {
+        "fonts.declared": "pass",
+        "colors.cta": "pass",
+        "colors.surface": "pass",
+        "colors.headings": "pass",
+        "radii.scale": "pass",
+        "spacing.scale": "pass",
+        "typography.scale": "pass",
+        "typography.styles": "pass",
+        "contrast.componentPairs": "skip"
+      }
+    },
+    "systemDrifting": {
+      "score": 0,
+      "tier": "Off-system",
+      "driftIds": [
+        "fonts.declared",
+        "colors.cta",
+        "colors.surface",
+        "colors.headings",
+        "radii.scale",
+        "spacing.scale",
+        "typography.scale"
+      ],
+      "checkStatuses": {
+        "fonts.declared": "fail",
+        "colors.cta": "fail",
+        "colors.surface": "fail",
+        "colors.headings": "fail",
+        "radii.scale": "fail",
+        "spacing.scale": "fail",
+        "typography.scale": "fail",
+        "typography.styles": "skip",
+        "contrast.componentPairs": "skip"
+      }
+    },
+    "fixtures": {
+      "validDesignMd": "---\nname: \"Editorial Paper\"\nspecVersion: \"alpha\"\ncolors:\n  surface: \"#F4F5F2\"\n  ink: \"#181815\"\n  accent: \"#1FA85E\"\n  onAccent: \"#181815\"\ntypography:\n  h1:\n    fontFamily: \"Newsreader\"\n    fontSize: 48px\n    lineHeight: 1.15\n  body:\n    fontFamily: \"Libre Franklin\"\n    fontSize: 16px\n    lineHeight: 1.5\nrounded:\n  none: 0px\n  sm: 4px\nspacing:\n  sm: 8px\n  md: 16px\n  lg: 24px\ncomponents:\n  button-primary:\n    backgroundColor: \"{colors.accent}\"\n    textColor: \"{colors.onAccent}\"\n  card:\n    backgroundColor: \"{colors.surface}\"\n    textColor: \"{colors.ink}\"\n---\n\n# Editorial Paper\n",
+      "brokenDesignMd": "---\nname: \"Broken System\"\nspecVersion: \"v2\"\ncolors:\n  surface: \"#FFFFFF\"\n  muted: \"#CCCCCC\"\n  orphan: \"#123456\"\n  loopA: \"{colors.loopB}\"\n  loopB: \"{colors.loopA}\"\ncomponents:\n  bad-button:\n    backgroundColor: \"{colors.surface}\"\n    textColor: \"{colors.muted}\"\n  missing-ref:\n    backgroundColor: \"{colors.doesNotExist}\"\n    textColor: \"{colors.surface}\"\n---\n",
+      "updatedDesignMd": "---\nname: \"Editorial Paper\"\nspecVersion: \"alpha\"\ncolors:\n  surface: \"#F4F5F2\"\n  ink: \"#111110\"\n  accent: \"#1FA85E\"\n  onAccent: \"#181815\"\n  brandBlue: \"#0F4C81\"\ntypography:\n  h1:\n    fontFamily: \"Newsreader\"\n    fontSize: 48px\n    lineHeight: 1.15\nrounded:\n  none: 0px\n  sm: 4px\n---\n",
+      "dtcgSample": "{\n  \"$name\": \"Studio Tokens\",\n  \"colors\": {\n    \"$type\": \"color\",\n    \"surface\": {\n      \"$value\": {\n        \"colorSpace\": \"srgb\",\n        \"components\": [\n          0.9569,\n          0.9608,\n          0.949\n        ],\n        \"hex\": \"#F4F5F2\"\n      }\n    },\n    \"ink\": {\n      \"$value\": {\n        \"colorSpace\": \"srgb\",\n        \"components\": [\n          0.0941,\n          0.0941,\n          0.0824\n        ],\n        \"hex\": \"#181815\"\n      }\n    },\n    \"brand\": {\n      \"$value\": \"{colors.ink}\"\n    }\n  },\n  \"typography\": {\n    \"$type\": \"fontFamily\",\n    \"heading\": {\n      \"$value\": [\n        \"Newsreader\",\n        \"Georgia\",\n        \"serif\"\n      ]\n    }\n  },\n  \"radii\": {\n    \"$type\": \"dimension\",\n    \"sm\": {\n      \"$value\": {\n        \"value\": 4,\n        \"unit\": \"px\"\n      }\n    }\n  },\n  \"spacing\": {\n    \"$type\": \"dimension\",\n    \"md\": {\n      \"$value\": {\n        \"value\": 16,\n        \"unit\": \"px\"\n      }\n    }\n  }\n}",
+      "observedAligned": {
+        "fonts": {
+          "\"Newsreader\", serif": 4,
+          "\"Libre Franklin\", sans-serif": 20
+        },
+        "surface": "rgb(244, 245, 242)",
+        "headings": [
+          {
+            "tag": "H1",
+            "color": "rgb(24, 24, 21)",
+            "fontFamily": "Newsreader",
+            "fontSize": 48
+          }
+        ],
+        "ctas": [
+          {
+            "bg": "rgb(31, 168, 94)",
+            "color": "rgb(24, 24, 21)",
+            "text": "Start audit"
+          }
+        ],
+        "radii": [
+          4
+        ],
+        "spacings": [
+          8,
+          16,
+          24
+        ],
+        "fontSizes": [
+          16,
+          48
+        ],
+        "typographyStyles": [
+          {
+            "tag": "H1",
+            "fontFamily": "Newsreader",
+            "fontSize": 48,
+            "lineHeight": 1.15,
+            "letterSpacing": 0
+          },
+          {
+            "tag": "P",
+            "fontFamily": "Libre Franklin",
+            "fontSize": 16,
+            "lineHeight": 1.5,
+            "letterSpacing": 0
+          }
+        ]
+      },
+      "observedDrifting": {
+        "fonts": {
+          "\"Inter\", sans-serif": 24
+        },
+        "surface": "rgb(10, 10, 20)",
+        "headings": [
+          {
+            "tag": "H1",
+            "color": "rgb(139, 92, 246)",
+            "fontFamily": "Inter",
+            "fontSize": 72
+          }
+        ],
+        "ctas": [
+          {
+            "bg": "rgb(99, 102, 241)",
+            "color": "rgb(255, 255, 255)",
+            "text": "Get Started"
+          }
+        ],
+        "radii": [
+          16,
+          24
+        ],
+        "spacings": [
+          12,
+          36
+        ],
+        "fontSizes": [
+          14,
+          72
+        ],
+        "typographyStyles": []
+      }
+    }
+  },
+  "designScore": [
+    {
+      "name": "clean_empty",
+      "input": [],
+      "expected": {
+        "score": 0,
+        "tier": "Clean",
+        "grade": "A+",
+        "verdict": "Matches few default-template patterns. Distinct visual choices.",
+        "adjustmentRules": []
+      }
+    },
+    {
+      "name": "inter_only_co_signal_zeroed",
+      "input": [
+        {
+          "id": "slop_fonts",
+          "weight": 8,
+          "triggered": true,
+          "evidence": {
+            "heroFam": "Inter",
+            "interOrGeistOnly": true
+          }
+        }
+      ],
+      "expected": {
+        "score": 0,
+        "tier": "Clean",
+        "grade": "A+",
+        "verdict": "Clean. Minimal overlap with common default-template patterns.",
+        "adjustmentRules": [
+          {
+            "ruleId": "slop_fonts_co_signal",
+            "targetPatternId": "slop_fonts",
+            "delta": -8
+          }
+        ]
+      }
+    },
+    {
+      "name": "inter_plus_centered_hero_capped_at_8",
+      "input": [
+        {
+          "id": "slop_fonts",
+          "weight": 8,
+          "triggered": true,
+          "evidence": {
+            "heroFam": "Inter",
+            "interOrGeistOnly": true
+          }
+        },
+        {
+          "id": "centered_hero",
+          "weight": 4,
+          "triggered": true,
+          "evidence": {
+            "centered": true
+          }
+        }
+      ],
+      "expected": {
+        "score": 8,
+        "tier": "Clean",
+        "grade": "A-",
+        "verdict": "Few default-template patterns matched — custom layout and palette.",
+        "adjustmentRules": [
+          {
+            "ruleId": "slop_fonts_centered_hero_cap",
+            "targetPatternId": "centered_hero",
+            "delta": -4
+          }
+        ]
+      }
+    },
+    {
+      "name": "purple_alone_zeroed",
+      "input": [
+        {
+          "id": "purple_accent",
+          "weight": 4,
+          "triggered": true,
+          "evidence": {
+            "count": 2,
+            "samples": [
+              "#6366f1"
+            ]
+          }
+        },
+        {
+          "id": "gradient_text",
+          "weight": 6,
+          "triggered": false,
+          "evidence": {}
+        }
+      ],
+      "expected": {
+        "score": 0,
+        "tier": "Clean",
+        "grade": "A+",
+        "verdict": "Clean. Minimal overlap with common default-template patterns.",
+        "adjustmentRules": [
+          {
+            "ruleId": "purple_accent_co_signal",
+            "targetPatternId": "purple_accent",
+            "delta": -4
+          }
+        ]
+      }
+    },
+    {
+      "name": "purple_with_co_signal_kept",
+      "input": [
+        {
+          "id": "purple_accent",
+          "weight": 4,
+          "triggered": true,
+          "evidence": {
+            "count": 2
+          }
+        },
+        {
+          "id": "gradient_text",
+          "weight": 6,
+          "triggered": true,
+          "evidence": {
+            "count": 1
+          }
+        },
+        {
+          "id": "glassmorphism",
+          "weight": 4,
+          "triggered": true,
+          "evidence": {
+            "count": 2
+          }
+        }
+      ],
+      "expected": {
+        "score": 14,
+        "tier": "Mild",
+        "grade": "B+",
+        "verdict": "Matches a few default-template patterns; most layout choices are distinct.",
+        "adjustmentRules": []
+      }
+    },
+    {
+      "name": "overlapping_nodes_dedup",
+      "input": [
+        {
+          "id": "gradient_text",
+          "weight": 6,
+          "triggered": true,
+          "evidence": {
+            "nodeIds": [
+              "h1:10:hero",
+              "span:20:sub"
+            ]
+          }
+        },
+        {
+          "id": "colored_glows",
+          "weight": 4,
+          "triggered": true,
+          "evidence": {
+            "nodeIds": [
+              "h1:10:hero",
+              "span:20:sub"
+            ]
+          }
+        }
+      ],
+      "expected": {
+        "score": 6,
+        "tier": "Clean",
+        "grade": "A-",
+        "verdict": "Clean. Minimal overlap with common default-template patterns.",
+        "adjustmentRules": [
+          {
+            "ruleId": "overlapping_evidence_dedup",
+            "targetPatternId": "colored_glows",
+            "delta": -4
+          }
+        ]
+      }
+    },
+    {
+      "name": "heavy_vibecode_stack",
+      "input": [
+        {
+          "id": "slop_fonts",
+          "weight": 8,
+          "triggered": true,
+          "evidence": {
+            "heroFam": "Space Grotesk"
+          }
+        },
+        {
+          "id": "centered_hero",
+          "weight": 4,
+          "triggered": true,
+          "evidence": {}
+        },
+        {
+          "id": "gradient_text",
+          "weight": 6,
+          "triggered": true,
+          "evidence": {}
+        },
+        {
+          "id": "glassmorphism",
+          "weight": 4,
+          "triggered": true,
+          "evidence": {}
+        },
+        {
+          "id": "bento_grid",
+          "weight": 4,
+          "triggered": true,
+          "evidence": {}
+        },
+        {
+          "id": "aurora_mesh_gradient",
+          "weight": 5,
+          "triggered": true,
+          "evidence": {}
+        },
+        {
+          "id": "hero_eyebrow_pill",
+          "weight": 5,
+          "triggered": true,
+          "evidence": {}
+        }
+      ],
+      "expected": {
+        "score": 32,
+        "tier": "Heavy",
+        "grade": "D+",
+        "verdict": "Matches many default-template patterns — gradients, default fonts, and repeated card grids.",
+        "adjustmentRules": [
+          {
+            "ruleId": "slop_fonts_centered_hero_cap",
+            "targetPatternId": "centered_hero",
+            "delta": -4
+          }
+        ]
+      }
+    }
+  ],
+  "combineAxes": [
+    {
+      "input": {
+        "design": {
+          "score": 4,
+          "tier": "Clean"
+        },
+        "copy": {
+          "score": 2,
+          "tier": "Clean"
+        }
+      },
+      "expected": {
+        "unifiedScore": 4,
+        "unifiedTier": "Clean",
+        "unifiedGrade": "A",
+        "axesScored": [
+          "design",
+          "copy"
+        ],
+        "dirtyAxes": 0
+      }
+    },
+    {
+      "input": {
+        "design": {
+          "score": 18,
+          "tier": "Mild"
+        },
+        "copy": {
+          "score": 4,
+          "tier": "Clean"
+        }
+      },
+      "expected": {
+        "unifiedScore": 18,
+        "unifiedTier": "Mild",
+        "unifiedGrade": "B",
+        "axesScored": [
+          "design",
+          "copy"
+        ],
+        "dirtyAxes": 1
+      }
+    },
+    {
+      "input": {
+        "design": {
+          "score": 20,
+          "tier": "Mild"
+        },
+        "copy": {
+          "score": 15,
+          "tier": "Mild"
+        }
+      },
+      "expected": {
+        "unifiedScore": 26,
+        "unifiedTier": "Mild",
+        "unifiedGrade": "C",
+        "axesScored": [
+          "design",
+          "copy"
+        ],
+        "dirtyAxes": 2
+      }
+    },
+    {
+      "input": {
+        "design": {
+          "score": 34,
+          "tier": "Heavy"
+        },
+        "copy": {
+          "score": 22,
+          "tier": "Heavy"
+        }
+      },
+      "expected": {
+        "unifiedScore": 40,
+        "unifiedTier": "Heavy",
+        "unifiedGrade": "F",
+        "axesScored": [
+          "design",
+          "copy"
+        ],
+        "dirtyAxes": 2
+      }
+    }
+  ],
+  "copy": [
+    {
+      "name": "clean_human_prose",
+      "input": {
+        "text": "Our print shop opened on Fourth Street in 1994 with a single Heidelberg windmill press and two shelves of lead type. We still set wedding announcements, hardware catalogs, and municipal forms on heavy cotton stock cut to size in the back room. Customers walk in with a sketch on graph paper, pick an ink tin off the counter, and inspect the first proof before the run starts. Because every press runs on mechanical registration rather than digital toner, a two-color poster takes about forty minutes to lock up and clean down. Most jobs leave the shop in brown kraft boxes within three business days, priced by sheet count and press hours rather than subscription tiers. Last winter we rebuilt the paper cutter flywheel with parts machined down the block and catalogued forty drawers of wood display letters. If you need foil stamping, blind debossing, or numbered raffle books, send your dimensions and paper weight by Tuesday afternoon so we can pull stock from the mill truck. Parking is behind the loading dock off Maple Alley, and press checks run every morning between eight and eleven.",
+        "lang": "en"
+      },
+      "expected": {
+        "score": 0,
+        "tier": "Clean",
+        "grade": "A+",
+        "isEnglish": true,
+        "proseConfidence": "low",
+        "thin": false,
+        "triggeredIds": []
+      }
+    },
+    {
+      "name": "heavy_ai_copy",
+      "input": {
+        "text": "In today's fast-paced digital world, it's not just a dashboard — it's a revolutionary, cutting-edge ecosystem designed to seamlessly elevate, streamline, harness, unlock, and supercharge your workflow. Whether you are a solo founder, a growing startup, or an enterprise team, our robust and holistic platform empowers you to leverage unparalleled synergy and effortless scalability across every department. Delve into a transformative tapestry of next-generation insights — built for speed, engineered for scale, crafted for perfection — so you can navigate the ever-evolving landscape with ease and confidence. Here is a quick summary of what you get: fast setup, reliable analytics, and modern security. It is not merely software; it is a game-changing paradigm shift for future-proof teams. Modern organizations cannot afford fragmented tools when customers expect frictionless experiences from the very first interaction. Our innovative architecture bridges the gap between strategy and execution, turning raw complexity into actionable clarity. Whether you are scaling global operations, streamlining customer onboarding, or unlocking hidden revenue streams, every feature works harmoniously to foster collaboration, accelerate velocity, and elevate outcomes. Ready to reimagine what is possible? Embark on your journey today and take your productivity to the next level. In conclusion, this seamless solution unlocks your full potential.",
+        "lang": "en"
+      },
+      "expected": {
+        "score": 11,
+        "tier": "Mild",
+        "grade": "B+",
+        "isEnglish": true,
+        "proseConfidence": "low",
+        "thin": false,
+        "triggeredIds": [
+          "buzzword_density",
+          "antithesis_construction",
+          "filler_openers",
+          "formulaic_closers"
+        ]
+      }
+    },
+    {
+      "name": "short_prose_gated",
+      "input": {
+        "text": "Short marketing snippet with seamless synergy.",
+        "lang": "en"
+      },
+      "expected": {
+        "score": 0,
+        "tier": "Clean",
+        "grade": "A+",
+        "isEnglish": true,
+        "proseConfidence": "insufficient_prose",
+        "thin": true,
+        "triggeredIds": []
+      }
+    },
+    {
+      "name": "non_english_gated",
+      "input": {
+        "text": "Bonjour et bienvenue sur notre atelier artisanal de menuiserie traditionnelle situe dans le centre historique de Lyon depuis plusieurs generations.",
+        "lang": "fr"
+      },
+      "expected": {
+        "score": 0,
+        "tier": "Clean",
+        "grade": "A+",
+        "isEnglish": false,
+        "proseConfidence": "non_english",
+        "thin": true,
+        "triggeredIds": []
+      }
+    },
+    {
+      "name": "paste_artifacts",
+      "input": {
+        "text": "Sure! Here is your updated homepage copy for [Company Name]. Check our guide: **Bold Launch** and ## Subheading. :contentReference[oaicite:0]{index=0} Regenerate response.",
+        "links": [
+          {
+            "href": "https://example.com/pricing?utm_source=chatgpt.com",
+            "text": "Pricing"
+          }
+        ],
+        "wordCount": 25,
+        "proseWordCount": 25
+      },
+      "expected": {
+        "score": 0,
+        "tier": "Clean",
+        "grade": "A+",
+        "isEnglish": true,
+        "proseConfidence": "insufficient_prose",
+        "thin": true,
+        "triggeredIds": [
+          "chatbot_markup_leak",
+          "chatbot_reply_residue",
+          "ai_referral_utm_links",
+          "unfilled_placeholders"
+        ]
+      }
+    }
+  ],
+  "aeo": {
+    "robots": [
+      {
+        "name": "allow_all_default",
+        "robotsTxt": "User-agent: *\nAllow: /\n",
+        "pathname": "/",
+        "fetchInfo": {
+          "status": 200,
+          "contentType": "text/plain"
+        },
+        "expected": {
+          "fetchOutcome": "ok",
+          "searchAllowed": true,
+          "searchBlocked": [],
+          "trainingBlocked": [],
+          "cloudflareManaged": false,
+          "cloudflareSearchCollateral": []
+        }
+      },
+      {
+        "name": "block_training_allow_search",
+        "robotsTxt": "User-agent: GPTBot\nDisallow: /\n\nUser-agent: ClaudeBot\nDisallow: /\n\nUser-agent: *\nAllow: /\n",
+        "pathname": "/docs",
+        "fetchInfo": {
+          "status": 200,
+          "contentType": "text/plain"
+        },
+        "expected": {
+          "fetchOutcome": "ok",
+          "searchAllowed": true,
+          "searchBlocked": [],
+          "trainingBlocked": [
+            "gptbot",
+            "claudebot"
+          ],
+          "cloudflareManaged": false,
+          "cloudflareSearchCollateral": []
+        }
+      },
+      {
+        "name": "rfc9309_longest_match_and_tie_allow_wins",
+        "robotsTxt": "User-agent: OAI-SearchBot\nDisallow: /docs/\nAllow: /docs/public\nDisallow: /exact$\nAllow: /exact$\n",
+        "pathname": "/docs/public/guide",
+        "fetchInfo": {
+          "status": 200,
+          "contentType": "text/plain"
+        },
+        "expected": {
+          "fetchOutcome": "ok",
+          "searchAllowed": true,
+          "searchBlocked": [],
+          "trainingBlocked": [],
+          "cloudflareManaged": false,
+          "cloudflareSearchCollateral": []
+        }
+      },
+      {
+        "name": "cloudflare_managed_collateral",
+        "robotsTxt": "# BEGIN Cloudflare Managed content\nUser-agent: *\nDisallow: /\n# END Cloudflare Managed content\n",
+        "pathname": "/",
+        "fetchInfo": {
+          "status": 200,
+          "contentType": "text/plain"
+        },
+        "expected": {
+          "fetchOutcome": "ok",
+          "searchAllowed": false,
+          "searchBlocked": [
+            "oai-searchbot",
+            "claude-searchbot",
+            "perplexitybot",
+            "googlebot",
+            "bingbot",
+            "applebot",
+            "duckassistbot",
+            "youbot",
+            "amzn-searchbot",
+            "mistralai-index",
+            "meta-webindexer"
+          ],
+          "trainingBlocked": [
+            "gptbot",
+            "claudebot",
+            "google-extended",
+            "applebot-extended",
+            "googleother",
+            "ccbot",
+            "bytespider",
+            "deepseekbot",
+            "amazonbot",
+            "meta-externalagent",
+            "cohere-ai",
+            "ai2bot",
+            "diffbot",
+            "imagesiftbot",
+            "omgilibot",
+            "mistralai-training",
+            "anthropic-ai"
+          ],
+          "cloudflareManaged": true,
+          "cloudflareSearchCollateral": [
+            "oai-searchbot",
+            "claude-searchbot",
+            "perplexitybot",
+            "googlebot",
+            "bingbot",
+            "applebot"
+          ]
+        }
+      },
+      {
+        "name": "applebot_inherits_googlebot",
+        "robotsTxt": "User-agent: Googlebot\nDisallow: /private/\n",
+        "pathname": "/private/secret",
+        "fetchInfo": {
+          "status": 200,
+          "contentType": "text/plain"
+        },
+        "expected": {
+          "fetchOutcome": "ok",
+          "searchAllowed": false,
+          "searchBlocked": [
+            "googlebot",
+            "applebot"
+          ],
+          "trainingBlocked": [],
+          "cloudflareManaged": false,
+          "cloudflareSearchCollateral": []
+        }
+      },
+      {
+        "name": "rfc9309_5xx_disallows_all",
+        "robotsTxt": "",
+        "pathname": "/",
+        "fetchInfo": {
+          "status": 503,
+          "contentType": "text/plain"
+        },
+        "expected": {
+          "fetchOutcome": "unreachable_5xx",
+          "searchAllowed": false,
+          "searchBlocked": [
+            "oai-searchbot",
+            "claude-searchbot",
+            "perplexitybot",
+            "googlebot",
+            "bingbot",
+            "applebot",
+            "duckassistbot",
+            "youbot",
+            "amzn-searchbot",
+            "mistralai-index",
+            "meta-webindexer"
+          ],
+          "trainingBlocked": [],
+          "cloudflareManaged": false,
+          "cloudflareSearchCollateral": []
+        }
+      },
+      {
+        "name": "rfc9309_404_allows_all",
+        "robotsTxt": "Not Found",
+        "pathname": "/",
+        "fetchInfo": {
+          "status": 404,
+          "contentType": "text/html"
+        },
+        "expected": {
+          "fetchOutcome": "missing_4xx",
+          "searchAllowed": true,
+          "searchBlocked": [],
+          "trainingBlocked": [],
+          "cloudflareManaged": false,
+          "cloudflareSearchCollateral": []
+        }
+      }
+    ],
+    "preview": [
+      {
+        "name": "clean_preview",
+        "headers": {},
+        "html": "<html><head><title>Doc</title></head><body><main><p>Readable article prose here.</p></main></body></html>",
+        "expected": {
+          "status": "pass",
+          "earnedWeight": 8,
+          "globalNoindex": false,
+          "googleStatus": "pass",
+          "bingStatus": "pass",
+          "appleStatus": "pass"
+        }
+      },
+      {
+        "name": "x_robots_scoped_google_nosnippet",
+        "headers": {
+          "x-robots-tag": "googlebot: nosnippet, bingbot: index"
+        },
+        "html": "<html><body><p>Hello world</p></body></html>",
+        "expected": {
+          "status": "fail",
+          "earnedWeight": 3,
+          "globalNoindex": false,
+          "googleStatus": "fail",
+          "bingStatus": "pass",
+          "appleStatus": "pass"
+        }
+      },
+      {
+        "name": "meta_global_noindex",
+        "headers": {},
+        "html": "<html><head><meta name=\"robots\" content=\"noindex, nofollow\"></head><body><p>Private</p></body></html>",
+        "expected": {
+          "status": "fail",
+          "earnedWeight": 0,
+          "globalNoindex": true,
+          "googleStatus": "fail",
+          "bingStatus": "fail",
+          "appleStatus": "fail"
+        }
+      }
+    ],
+    "llms": [
+      {
+        "name": "valid_llms_txt",
+        "body": "# Slop Detector\n\n> Deterministic page auditor.\n\n## Docs\n- [Guide](https://slop-detect.com/docs.md): Documentation\n",
+        "contentType": "text/plain; charset=utf-8",
+        "expected": {
+          "valid": true,
+          "hasH1": true,
+          "linkCount": 1
+        }
+      },
+      {
+        "name": "html_soft_404",
+        "body": "<!doctype html><html><body><h1>Not Found</h1></body></html>",
+        "contentType": "text/html",
+        "expected": {
+          "valid": false,
+          "hasH1": false,
+          "linkCount": 0
+        }
+      },
+      {
+        "name": "missing_h1_and_links",
+        "body": "Just some plain text without headings or markdown links.",
+        "contentType": "text/plain",
+        "expected": {
+          "valid": false,
+          "hasH1": false,
+          "linkCount": 0
+        }
+      }
+    ]
+  },
+  "craft": {
+    "scoreClean": {
+      "score": 100,
+      "failedIds": []
+    },
+    "scoreDefective": {
+      "score": 71,
+      "failedIds": [
+        "viewport_meta_missing",
+        "mobile_reflow_failure"
+      ]
+    },
+    "mobileReflowOverflow": {
+      "triggered": true,
+      "subtypes": [
+        "page_overflow",
+        "viewport_protrusion"
+      ],
+      "pageOverflowPx": 90,
+      "viewportProtrusions": [
+        "Wide hero box"
+      ],
+      "elementProtrusions": [],
+      "collisions": []
+    }
+  }
+}

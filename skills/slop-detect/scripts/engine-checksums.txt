@@ -1,0 +1,3 @@
+# Engine binary SHA-256 digests for pinned ENGINE_VERSION releases.
+# Format: <engine-version> <asset> <sha256>
+# Populated automatically by .github/workflows/release-engine.yml on each engine-v* tag.

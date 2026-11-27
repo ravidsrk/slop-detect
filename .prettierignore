@@ -11,6 +11,10 @@ assets-raw
 **/calibration/**/*.json
 **/fixtures/**
 **/*.min.js
+target/
+browser-bundle/
+spec/oracle/
+crates/*/pkg/
 
 # Hand-curated prose — Prettier mangles tables and intentional line wrapping.
 # These follow .editorconfig (no trailing-whitespace trimming) instead.
