@@ -9,7 +9,11 @@ use slop_core::aeo::{evaluate_robots_txt, parse_preview_directives, validate_llm
 use slop_core::color::parse_color;
 use slop_core::copy::{score_copy, CopyInput};
 use slop_core::design::{score_patterns, PatternInput};
-use slop_core::design_md::{diff_design_md, lint_design_md, parse_design_md, score_system_compliance};
+use slop_core::design_md::{
+    diff_design_md, extract_dtcg_tokens, generate_design_md, lint_design_md, parse_design_md,
+    score_system_compliance,
+};
+use slop_core::fixes::{build_avoid_list, build_fix_prompt};
 use slop_core::{DEFINITIONS_VERSION, ENGINE_VERSION};
 use std::collections::HashMap;
 
@@ -116,6 +120,41 @@ pub fn dispatch_json(op: &str, payload: &str) -> String {
                         .unwrap_or("text/plain"),
                 );
                 serde_json::to_string(&res).unwrap_or_else(|_| "{}".to_string())
+            }
+            Err(e) => json!({ "error": e.to_string() }).to_string(),
+        },
+        "fix_prompt" => match serde_json::from_str::<Value>(payload) {
+            Ok(v) => {
+                let url = v.get("url").and_then(|x| x.as_str());
+                let score = v.get("score").and_then(|x| x.as_u64()).map(|n| n as u32);
+                let tier = v.get("tier").and_then(|x| x.as_str());
+                let brief = v.get("brief").and_then(|x| x.as_bool()).unwrap_or(false);
+                let patterns: Vec<String> = v
+                    .get("patterns")
+                    .and_then(|x| x.as_array())
+                    .map(|a| {
+                        a.iter()
+                            .filter_map(|i| i.as_str().map(|s| s.to_string()))
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                let res = if brief {
+                    build_avoid_list(&patterns)
+                } else {
+                    build_fix_prompt(url, score, tier, &patterns)
+                };
+                serde_json::to_string(&res).unwrap_or_else(|_| "{}".to_string())
+            }
+            Err(e) => json!({ "error": e.to_string() }).to_string(),
+        },
+        "extract_design_system" => match serde_json::from_str::<Value>(payload) {
+            Ok(v) => {
+                let obs = v.get("observed").cloned().unwrap_or(Value::Null);
+                let name = v.get("name").and_then(|x| x.as_str());
+                let url = v.get("url").and_then(|x| x.as_str());
+                let design_md = generate_design_md(&obs, name, url);
+                let dtcg = extract_dtcg_tokens(&obs, name);
+                json!({ "designMd": design_md, "dtcg": dtcg }).to_string()
             }
             Err(e) => json!({ "error": e.to_string() }).to_string(),
         },

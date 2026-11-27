@@ -19,3 +19,9 @@ export {
   type DoctorReport,
   type DoctorStatus,
 } from './doctor.js';
+export {
+  findNativeEngine,
+  runNativeStaticCheck,
+  runNativeCdpScan,
+  type NativeEngineInfo,
+} from './native-engine.js';

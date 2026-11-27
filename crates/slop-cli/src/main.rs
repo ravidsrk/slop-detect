@@ -13,7 +13,10 @@ use serde_json::json;
 use slop_aeo::run_aeo_audit;
 use slop_browser::{discover_chrome, scan_url_cdp, BrowserScanOptions};
 use slop_core::design::DESIGN_PATTERNS;
-use slop_core::design_md::{diff_design_md, lint_design_md};
+use slop_core::design_md::{
+    diff_design_md, extract_dtcg_tokens, generate_design_md, lint_design_md,
+};
+use slop_core::fixes::{build_avoid_list, build_fix_prompt};
 use slop_core::{DEFINITIONS_VERSION, ENGINE_VERSION};
 use slop_hook::run_hook_stdio;
 use slop_mcp::serve_stdio;
@@ -96,10 +99,22 @@ enum Commands {
         #[arg(long)]
         fail_under: Option<u32>,
     },
-    /// DESIGN.md & DTCG offline governance tools (lint, diff).
+    /// DESIGN.md & DTCG offline governance tools (lint, diff, extract).
     Design {
         #[command(subcommand)]
         action: DesignAction,
+    },
+    /// Build a deterministic fix prompt or <=120-word avoid list from pattern IDs or a live URL.
+    Fix {
+        /// Optional URL to scan before generating the fix prompt.
+        #[arg(long)]
+        url: Option<String>,
+        /// Comma-separated triggered pattern IDs (no browser needed).
+        #[arg(long)]
+        patterns: Option<String>,
+        /// Emit a <=120-word avoid list instead of the full prompt.
+        #[arg(long)]
+        brief: bool,
     },
     /// Run as a coding-agent hook (reads JSON from stdin).
     Hook,
@@ -127,6 +142,15 @@ enum DesignAction {
         format: OutputFormat,
         #[arg(long)]
         fail_on_breaking: bool,
+    },
+    /// Extract a starter DESIGN.md or W3C DTCG 2025.10 tokens.json from a live URL via raw CDP.
+    Extract {
+        url: String,
+        #[arg(long)]
+        name: Option<String>,
+        /// Output format: design-md or dtcg.
+        #[arg(long, default_value = "design-md")]
+        format: String,
     },
 }
 
@@ -169,7 +193,13 @@ fn main() {
                 format,
                 fail_on_breaking,
             } => run_design_diff(base, head, format, fail_on_breaking),
+            DesignAction::Extract { url, name, format } => run_design_extract(url, name, format),
         },
+        Commands::Fix {
+            url,
+            patterns,
+            brief,
+        } => run_fix(url, patterns, brief),
     };
     process::exit(code);
 }
@@ -521,4 +551,69 @@ fn run_design_diff(base: PathBuf, head: PathBuf, format: OutputFormat, fail_on_b
         }
     }
     if fail_on_breaking && res.breaking { 1 } else { 0 }
+}
+
+fn run_design_extract(url: String, name: Option<String>, format: String) -> i32 {
+    match scan_url_cdp(&url, &BrowserScanOptions::default()) {
+        Ok(res) => {
+            let obs = res.observed_system.unwrap_or(serde_json::Value::Null);
+            let sys_name = name
+                .as_deref()
+                .or(if res.title.is_empty() { None } else { Some(res.title.as_str()) });
+            if format == "dtcg" {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&extract_dtcg_tokens(&obs, sys_name)).unwrap()
+                );
+            } else {
+                print!("{}", generate_design_md(&obs, sys_name, Some(&url)));
+            }
+            0
+        }
+        Err(e) => {
+            eprintln!("Design extraction failed: {}", e);
+            2
+        }
+    }
+}
+
+fn run_fix(url: Option<String>, patterns: Option<String>, brief: bool) -> i32 {
+    let mut ids: Vec<String> = patterns
+        .map(|p| {
+            p.split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect()
+        })
+        .unwrap_or_default();
+    let mut score = None;
+    let mut tier = None;
+    if ids.is_empty() {
+        if let Some(ref u) = url {
+            match scan_url_cdp(u, &BrowserScanOptions::default()) {
+                Ok(res) => {
+                    score = Some(res.score);
+                    tier = Some(res.tier);
+                    ids = res
+                        .design
+                        .patterns
+                        .iter()
+                        .filter(|p| p.triggered)
+                        .map(|p| p.id.clone())
+                        .collect();
+                }
+                Err(e) => {
+                    eprintln!("Scan failed: {}", e);
+                    return 2;
+                }
+            }
+        }
+    }
+    let out = if brief {
+        build_avoid_list(&ids)
+    } else {
+        build_fix_prompt(url.as_deref(), score, tier.as_deref(), &ids)
+    };
+    println!("{}", out.text);
+    0
 }

@@ -110,17 +110,9 @@ fn directive_matches(s: &str, marker: &str, rule_id: &str) -> bool {
 }
 
 fn is_waived_line(prev_line: Option<&str>, cur_line: &str, rule_id: &str) -> bool {
-    if directive_matches(cur_line, "slop-ignore", rule_id)
+    directive_matches(cur_line, "slop-ignore", rule_id)
         || directive_matches(cur_line, "slop-disable-line", rule_id)
-    {
-        return true;
-    }
-    if let Some(prev) = prev_line {
-        if directive_matches(prev, "slop-disable-next-line", rule_id) {
-            return true;
-        }
-    }
-    false
+        || prev_line.is_some_and(|prev| directive_matches(prev, "slop-disable-next-line", rule_id))
 }
 
 fn find_project_design_md(start: &Path) -> Option<PathBuf> {

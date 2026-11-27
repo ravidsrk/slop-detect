@@ -1,8 +1,9 @@
 //! DESIGN.md & W3C DTCG 2025.10 tokens.json parser, static linter, token differ, and rendered compliance scorer.
 
-use crate::color::{contrast_ratio, delta_e_oklab, parse_color};
+use crate::color::{contrast_ratio, delta_e_oklab, is_dark, is_purple, parse_color, ParsedColor};
+use crate::design::{score_patterns, DesignScoreResult, PatternInput};
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
+use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 pub const DESIGN_MD_SPEC_VERSION: &str = "alpha";
@@ -1233,4 +1234,398 @@ pub fn score_system_compliance(
         checks,
         drift_ids,
     }
+}
+
+// ── S-03 (#282): Token-scoped DESIGN.md waivers ──────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WaivedPattern {
+    pub id: String,
+    pub reason: String,
+    pub declared_token: String,
+    pub original_weight: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WaivedDesignResult {
+    pub raw_score: u32,
+    pub raw_tier: String,
+    pub waived_patterns: Vec<WaivedPattern>,
+    pub design: DesignScoreResult,
+}
+
+fn is_cream_surface(c: &ParsedColor) -> bool {
+    c.r >= 235 && c.g >= 230 && c.b >= 215 && c.r.saturating_sub(c.b) >= 6
+}
+
+fn observed_color_strings(ev: &Value) -> Vec<String> {
+    let mut out = Vec::new();
+    let Some(obj) = ev.as_object() else {
+        return out;
+    };
+    for key in ["surface", "bodyBg", "background", "bg", "hex", "color", "accent"] {
+        if let Some(s) = obj.get(key).and_then(|v| v.as_str()) {
+            let t = s.trim();
+            if !t.is_empty() {
+                out.push(t.to_string());
+            }
+        }
+    }
+    if let Some(samples) = obj.get("samples").and_then(|v| v.as_array()) {
+        for s in samples {
+            if let Some(str_val) = s.as_str() {
+                if !str_val.trim().is_empty() {
+                    out.push(str_val.trim().to_string());
+                }
+            } else if let Some(so) = s.as_object() {
+                for key in ["bg", "color", "surface", "background"] {
+                    if let Some(sv) = so.get(key).and_then(|v| v.as_str()) {
+                        if !sv.trim().is_empty() {
+                            out.push(sv.trim().to_string());
+                        }
+                    }
+                }
+            }
+        }
+    }
+    out
+}
+
+fn matching_declared_color<F: Fn(&ParsedColor) -> bool>(
+    ev: &Value,
+    tokens: &[String],
+    accepts: F,
+) -> Option<String> {
+    let observed: Vec<ParsedColor> = observed_color_strings(ev)
+        .iter()
+        .filter_map(|s| parse_color(s))
+        .collect();
+    if observed.is_empty() {
+        return None;
+    }
+    for tok in tokens {
+        let Some(parsed) = parse_color(tok) else {
+            continue;
+        };
+        if !accepts(&parsed) {
+            continue;
+        }
+        if observed.iter().any(|seen| delta_e_oklab(seen, &parsed) <= 0.05) {
+            return Some(tok.clone());
+        }
+    }
+    None
+}
+
+/// Apply S-03 token-scoped DESIGN.md waivers and cleanly recompute the design score.
+pub fn apply_design_system_waivers(
+    design: &DesignScoreResult,
+    parsed: &ParsedDesignSystem,
+) -> WaivedDesignResult {
+    let tokens = flatten_design_tokens(parsed);
+    let mut waived_patterns = Vec::new();
+    let mut waived_ids = HashSet::new();
+
+    for p in &design.patterns {
+        if !p.triggered {
+            continue;
+        }
+        match p.id.as_str() {
+            "purple_accent" => {
+                if let Some(tok) = matching_declared_color(&p.evidence, &tokens.colors, is_purple) {
+                    waived_ids.insert(p.id.clone());
+                    waived_patterns.push(WaivedPattern {
+                        id: p.id.clone(),
+                        reason: format!("Primary purple accent ({}) is explicitly declared in DESIGN.md", tok),
+                        declared_token: tok,
+                        original_weight: p.weight,
+                    });
+                }
+            }
+            "slop_fonts" | "display_mono_heading" if !tokens.fonts.is_empty() => {
+                let hero = p
+                    .evidence
+                    .get("heroFam")
+                    .or_else(|| p.evidence.get("family"))
+                    .and_then(|v| v.as_str())
+                    .and_then(primary_family);
+                if let Some(fam) = hero {
+                    if tokens.fonts.iter().any(|f| f == &fam) {
+                        waived_ids.insert(p.id.clone());
+                        waived_patterns.push(WaivedPattern {
+                            id: p.id.clone(),
+                            reason: format!("Font family \"{}\" is explicitly declared in DESIGN.md typography", fam),
+                            declared_token: fam,
+                            original_weight: p.weight,
+                        });
+                    }
+                }
+            }
+            "perma_dark_mode" => {
+                if let Some(tok) = matching_declared_color(&p.evidence, &tokens.colors, is_dark) {
+                    waived_ids.insert(p.id.clone());
+                    waived_patterns.push(WaivedPattern {
+                        id: p.id.clone(),
+                        reason: format!("Dark surface token ({}) is explicitly declared in DESIGN.md", tok),
+                        declared_token: tok,
+                        original_weight: p.weight,
+                    });
+                }
+            }
+            "cream_default_bg" | "editorial_cream_kit" => {
+                if let Some(tok) =
+                    matching_declared_color(&p.evidence, &tokens.colors, is_cream_surface)
+                {
+                    waived_ids.insert(p.id.clone());
+                    waived_patterns.push(WaivedPattern {
+                        id: p.id.clone(),
+                        reason: format!("Warm cream surface ({}) is explicitly declared in DESIGN.md", tok),
+                        declared_token: tok,
+                        original_weight: p.weight,
+                    });
+                }
+            }
+            "uniform_radius_shadow" if !tokens.radii.is_empty() => {
+                let radii_list = tokens
+                    .radii
+                    .iter()
+                    .map(|r| format!("{}", r.round() as i64))
+                    .collect::<Vec<_>>()
+                    .join(",");
+                waived_ids.insert(p.id.clone());
+                waived_patterns.push(WaivedPattern {
+                    id: p.id.clone(),
+                    reason: format!("Border-radius scale ({}px) is explicitly declared in DESIGN.md", radii_list),
+                    declared_token: radii_list,
+                    original_weight: p.weight,
+                });
+            }
+            _ => {}
+        }
+    }
+
+    let rescored = if waived_ids.is_empty() {
+        design.clone()
+    } else {
+        let inputs: Vec<PatternInput> = design
+            .patterns
+            .iter()
+            .map(|p| PatternInput {
+                id: p.id.clone(),
+                label: Some(p.label.clone()),
+                weight: Some(p.weight),
+                triggered: if waived_ids.contains(&p.id) {
+                    false
+                } else {
+                    p.triggered
+                },
+                status: None,
+                rule_status: Some(p.rule_status.clone()),
+                evidence: p.evidence.clone(),
+            })
+            .collect();
+        score_patterns(&inputs)
+    };
+
+    WaivedDesignResult {
+        raw_score: design.score,
+        raw_tier: design.tier.clone(),
+        waived_patterns,
+        design: rescored,
+    }
+}
+
+// ── DESIGN.md & W3C DTCG 2025.10 extractors (#332) ───────────────────────────
+
+fn to_hex_color(raw: &str) -> String {
+    match parse_color(raw) {
+        Some(c) => format!("#{:02X}{:02X}{:02X}", c.r, c.g, c.b),
+        None => raw.trim().to_string(),
+    }
+}
+
+pub fn generate_design_md(observed: &Value, name: Option<&str>, url: Option<&str>) -> String {
+    let sys_name = name.unwrap_or("Site Design System");
+
+    let mut fam_counts: HashMap<String, f64> = HashMap::new();
+    let mut total_fonts = 0.0f64;
+    if let Some(obj) = observed.get("fonts").and_then(|v| v.as_object()) {
+        for (stack, cnt) in obj {
+            let n = cnt.as_f64().unwrap_or(0.0);
+            total_fonts += n;
+            if let Some(fam) = primary_family(stack) {
+                *fam_counts.entry(fam).or_insert(0.0) += n;
+            }
+        }
+    }
+    let mut sorted_fonts: Vec<(String, f64)> = fam_counts
+        .into_iter()
+        .filter(|(_, n)| total_fonts == 0.0 || n / total_fonts >= 0.05)
+        .collect();
+    sorted_fonts.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+
+    let h1_fam = observed
+        .get("headings")
+        .and_then(|v| v.as_array())
+        .and_then(|a| a.first())
+        .and_then(|h| h.get("fontFamily"))
+        .and_then(|v| v.as_str())
+        .and_then(primary_family)
+        .or_else(|| sorted_fonts.first().map(|(f, _)| f.clone()))
+        .unwrap_or_else(|| "system-ui".to_string());
+    let body_fam = sorted_fonts
+        .first()
+        .map(|(f, _)| f.clone())
+        .unwrap_or_else(|| h1_fam.clone());
+
+    let surface_hex = observed
+        .get("surface")
+        .and_then(|v| v.as_str())
+        .map(to_hex_color)
+        .unwrap_or_else(|| "#FFFFFF".to_string());
+    let heading_hex = observed
+        .get("headings")
+        .and_then(|v| v.as_array())
+        .and_then(|a| a.first())
+        .and_then(|h| h.get("color"))
+        .and_then(|v| v.as_str())
+        .map(to_hex_color)
+        .unwrap_or_else(|| "#181815".to_string());
+    let primary_cta = observed
+        .get("ctas")
+        .and_then(|v| v.as_array())
+        .and_then(|a| a.first())
+        .and_then(|c| c.get("bg"))
+        .and_then(|v| v.as_str())
+        .map(to_hex_color)
+        .unwrap_or_else(|| heading_hex.clone());
+
+    // Choose WCAG >= 4.5:1 button text token so generated DESIGN.md passes lint_design_md
+    let mut on_primary_line = String::new();
+    let mut button_text_ref = "\"{colors.surface}\"";
+    if let Some(pc) = parse_color(&primary_cta) {
+        let surf_cr = parse_color(&surface_hex)
+            .map(|s| contrast_ratio(&s, &pc))
+            .unwrap_or(0.0);
+        let head_cr = parse_color(&heading_hex)
+            .map(|h| contrast_ratio(&h, &pc))
+            .unwrap_or(0.0);
+        if surf_cr >= 4.5 {
+            button_text_ref = "\"{colors.surface}\"";
+        } else if head_cr >= 4.5 {
+            button_text_ref = "\"{colors.ink}\"";
+        } else {
+            let white_cr = contrast_ratio(&parse_color("#FFFFFF").unwrap(), &pc);
+            let dark_cr = contrast_ratio(&parse_color("#181815").unwrap(), &pc);
+            let chosen = if white_cr >= dark_cr { "#FFFFFF" } else { "#181815" };
+            on_primary_line = format!("\n  onPrimary: \"{}\"", chosen);
+            button_text_ref = "\"{colors.onPrimary}\"";
+        }
+    }
+
+    let mut radii: Vec<i64> = observed
+        .get("radii")
+        .and_then(|v| v.as_array())
+        .map(|a| {
+            a.iter()
+                .filter_map(|v| v.as_f64().map(|n| n.round() as i64))
+                .collect()
+        })
+        .unwrap_or_default();
+    radii.sort();
+    radii.dedup();
+    if radii.is_empty() {
+        radii = vec![4, 8];
+    }
+    let radius_keys = ["sm", "md", "lg", "xl", "2xl", "3xl"];
+    let radii_yaml: Vec<String> = radii
+        .iter()
+        .enumerate()
+        .map(|(i, r)| {
+            let key = radius_keys
+                .get(i)
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| format!("r{}", i + 1));
+            format!("  {}: {}px", key, r)
+        })
+        .collect();
+
+    let url_note = url
+        .map(|u| format!("Extracted from live DOM tokens at `{}`.\n\n", u))
+        .unwrap_or_default();
+
+    format!(
+        "---\nname: \"{}\"\nspecVersion: \"{}\"\ncolors:\n  surface: \"{}\"\n  ink: \"{}\"\n  primary: \"{}\"{}\ntypography:\n  h1:\n    fontFamily: \"{}\"\n  body:\n    fontFamily: \"{}\"\nrounded:\n{}\ncomponents:\n  button-primary:\n    backgroundColor: \"{{colors.primary}}\"\n    textColor: {}\n---\n\n# {} — Design System (`DESIGN.md`)\n\n{}Verify anytime with `slop-detect scan {} --design-md ./DESIGN.md`.\n",
+        sys_name.replace('"', "\\\""),
+        DESIGN_MD_SPEC_VERSION,
+        surface_hex,
+        heading_hex,
+        primary_cta,
+        on_primary_line,
+        h1_fam,
+        body_fam,
+        radii_yaml.join("\n"),
+        button_text_ref,
+        sys_name,
+        url_note,
+        url.unwrap_or("<url>")
+    )
+}
+
+pub fn extract_dtcg_tokens(observed: &Value, name: Option<&str>) -> Value {
+    let md = generate_design_md(observed, name, None);
+    let parsed = parse_design_md(&md);
+    let mut colors_group = Map::new();
+    colors_group.insert("$type".to_string(), Value::String("color".to_string()));
+    if let Some(ref p) = parsed {
+        for (k, v) in &p.colors {
+            if let Some(s) = v.as_str() {
+                let hex = to_hex_color(s);
+                let c = parse_color(&hex).unwrap_or_else(|| parse_color("#000000").unwrap());
+                colors_group.insert(
+                    k.clone(),
+                    json!({
+                        "$value": {
+                            "colorSpace": "srgb",
+                            "components": [
+                                ((c.r as f64 / 255.0) * 10000.0).round() / 10000.0,
+                                ((c.g as f64 / 255.0) * 10000.0).round() / 10000.0,
+                                ((c.b as f64 / 255.0) * 10000.0).round() / 10000.0,
+                            ],
+                            "hex": hex
+                        }
+                    }),
+                );
+            }
+        }
+    }
+
+    let mut typo_group = Map::new();
+    typo_group.insert("$type".to_string(), Value::String("fontFamily".to_string()));
+    if let Some(ref p) = parsed {
+        for (k, v) in &p.typography {
+            if let Some(fam) = v.get("fontFamily").and_then(|f| f.as_str()) {
+                typo_group.insert(k.clone(), json!({ "$value": fam }));
+            }
+        }
+    }
+
+    let mut rounded_group = Map::new();
+    rounded_group.insert("$type".to_string(), Value::String("dimension".to_string()));
+    if let Some(ref p) = parsed {
+        for (k, v) in &p.rounded {
+            let px = parse_length_px(v, 16.0).unwrap_or(0.0);
+            rounded_group.insert(k.clone(), json!({ "$value": { "value": px, "unit": "px" } }));
+        }
+    }
+
+    json!({
+        "$schema": "https://tr.designtokens.org/format/2025.10/schema.json",
+        "$name": name.unwrap_or("Site Design System"),
+        "colors": colors_group,
+        "typography": typo_group,
+        "rounded": rounded_group
+    })
 }
