@@ -1,0 +1,17 @@
+[package]
+name = "slop-aeo"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+description = "Native HTTP/TLS AEO technical crawler eligibility runner (zero Node, zero Chromium)."
+
+[dependencies]
+slop-core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+ureq = { workspace = true }
+url = { workspace = true }
+thiserror = { workspace = true }
