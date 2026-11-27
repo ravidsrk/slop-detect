@@ -156,3 +156,6 @@ concise addition to this file so the next agent doesn't relearn it.
 - `deploy.yml` needs `--branch main` (bare `pages deploy` ships previews, not
   production) with the ref guards intact. If health-ping is red while CI is
   green, suspect stale prod first — probe `/api/health` + a known scan directly.
+- Native Rust engine (`crates/`, see `docs/ENGINE.md`): run `bun run oracle:generate`
+  and `bun run probe:build` whenever `@slop-detect/core` scoring/extractors change,
+  then verify with `bun run rust:test`, `bun run rust:build`, and `bun run rust:wasm`.

@@ -1,0 +1,114 @@
+name: release-engine
+
+on:
+  push:
+    tags:
+      - 'engine-v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. engine-v0.1.0)'
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-native:
+    name: Build ${{ matrix.asset }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            asset: slop-detect-linux-x64
+            bin: slop-detect
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            asset: slop-detect-linux-arm64
+            bin: slop-detect
+          - os: macos-15
+            target: aarch64-apple-darwin
+            asset: slop-detect-darwin-arm64
+            bin: slop-detect
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+            asset: slop-detect-darwin-x64
+            bin: slop-detect
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            asset: slop-detect-windows-x64.exe
+            bin: slop-detect.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Build release binary
+        run: cargo build --release --locked --target ${{ matrix.target }} -p slop-cli
+      - name: Stage binary and SHA-256
+        shell: bash
+        run: |
+          mkdir -p dist-release
+          cp "target/${{ matrix.target }}/release/${{ matrix.bin }}" "dist-release/${{ matrix.asset }}"
+          if command -v sha256sum >/dev/null 2>&1; then
+            sha256sum "dist-release/${{ matrix.asset }}" | awk '{print $1}' > "dist-release/${{ matrix.asset }}.sha256"
+          else
+            shasum -a 256 "dist-release/${{ matrix.asset }}" | awk '{print $1}' > "dist-release/${{ matrix.asset }}.sha256"
+          fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ matrix.asset }}
+          path: dist-release/*
+
+  build-wasm:
+    name: Build slop_wasm.wasm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - run: cargo build --release --locked --target wasm32-unknown-unknown -p slop-wasm
+      - run: |
+          mkdir -p dist-release
+          cp target/wasm32-unknown-unknown/release/slop_wasm.wasm dist-release/slop_wasm.wasm
+          sha256sum dist-release/slop_wasm.wasm | awk '{print $1}' > dist-release/slop_wasm.wasm.sha256
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: slop-wasm
+          path: dist-release/*
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: [build-native, build-wasm]
+    if: startsWith(github.ref, 'refs/tags/engine-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          path: all-artifacts
+          merge-multiple: true
+      - name: Generate engine-checksums.txt
+        run: |
+          VER="${GITHUB_REF_NAME#engine-v}"
+          {
+            echo "# Engine binary SHA-256 digests for ${GITHUB_REF_NAME}"
+            for f in all-artifacts/slop-detect-*; do
+              case "$f" in *.sha256) continue ;; esac
+              name=$(basename "$f")
+              sum=$(cat "${f}.sha256")
+              echo "${VER} ${name} ${sum}"
+            done
+          } > all-artifacts/engine-checksums.txt
+          cat all-artifacts/engine-checksums.txt
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" all-artifacts/* \
+            --title "slop-detect Rust engine $GITHUB_REF_NAME" \
+            --notes "Zero-Node, zero-Playwright native Rust engine binaries (CLI, static linter, raw CDP browser runner, hooks, stdio MCP) and wasm32-unknown-unknown module."

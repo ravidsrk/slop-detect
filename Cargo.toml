@@ -1,0 +1,50 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/slop-core",
+    "crates/slop-static",
+    "crates/slop-aeo",
+    "crates/slop-browser",
+    "crates/slop-hook",
+    "crates/slop-mcp",
+    "crates/slop-wasm",
+    "crates/slop-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/ravidsrk/slop-detect"
+homepage = "https://slop-detect.com"
+authors = ["Ravindra Kumar <ravidsrk@gmail.com>"]
+
+[workspace.dependencies]
+slop-core = { path = "crates/slop-core" }
+slop-static = { path = "crates/slop-static" }
+slop-aeo = { path = "crates/slop-aeo" }
+slop-browser = { path = "crates/slop-browser" }
+slop-hook = { path = "crates/slop-hook" }
+slop-mcp = { path = "crates/slop-mcp" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+regex = "1"
+thiserror = "2"
+url = "2"
+walkdir = "2"
+tungstenite = { version = "0.24", default-features = false, features = ["handshake"] }
+ureq = { version = "2.10", default-features = false, features = ["tls", "json"] }
+clap = { version = "4", features = ["derive"] }
+
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = true
+panic = "abort"

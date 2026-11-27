@@ -10,6 +10,8 @@ build/
 .next/
 .cache/
 .turbo/
+target/
+crates/*/pkg/
 
 # Cloudflare / Wrangler
 .wrangler/

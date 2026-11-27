@@ -1,0 +1,17 @@
+[package]
+name = "slop-mcp"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+description = "Native zero-Node stdio MCP server compiled directly into the slop-detect binary."
+
+[dependencies]
+slop-core = { workspace = true }
+slop-static = { workspace = true }
+slop-aeo = { workspace = true }
+slop-browser = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

@@ -1,0 +1,16 @@
+[package]
+name = "slop-static"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+description = "Sub-20ms static source, DESIGN.md/DTCG token drift, and paste-artifact auditor."
+
+[dependencies]
+slop-core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+regex = { workspace = true }
+walkdir = { workspace = true }
